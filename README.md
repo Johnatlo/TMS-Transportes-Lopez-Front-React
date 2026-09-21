@@ -38,25 +38,15 @@ src/
 
 ## Estado de la migracion
 
-| Pantalla    | Estado    | Angular equivalente            | Lineas aprox. |
-|-------------|-----------|--------------------------------|---------------|
-| Dashboard   | Migrada   | dashboard.component             | 118 + 187     |
-| Historial   | Migrada   | historial.component             | 46 + 41       |
-| Catalogo    | Pendiente | catalogo.component              | 326 + 174     |
-| Plantillas  | Pendiente | plantillas + plantilla-form     | 337 + 369     |
-| Despacho    | Pendiente | despacho.component              | 498 + 242     |
+| Pantalla    | Estado  | Angular equivalente         |
+|-------------|---------|-----------------------------|
+| Dashboard   | Migrada | dashboard.component         |
+| Historial   | Migrada | historial.component         |
+| Catalogo    | Migrada | catalogo.component          |
+| Plantillas  | Migrada | plantillas + plantilla-form |
+| Despacho    | Migrada | despacho.component          |
 
-Cada pagina pendiente tiene, en su archivo, la lista de lo que hay que
-reproducir y los detalles que no se pueden perder.
-
-## Orden sugerido
-
-De menor a mayor dificultad, para ir ganando soltura:
-
-1. `Catalogo` — formularios sueltos, sin dependencias entre campos.
-2. `Plantillas` — formulario por pasos y la actualizacion masiva de tarifas.
-3. `Despacho` — dejarla de ultima. Es la unica con cadena de dependencias
-   (vehiculo -> vias -> piso -> FOPAT) y la que mas ensena sobre useEffect.
+Paridad completa con la version en Angular.
 
 ## Diferencias con Angular que conviene tener presentes
 
