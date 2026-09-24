@@ -99,6 +99,17 @@ function Campo({
           <option value="" disabled>
             Selecciona...
           </option>
+          {/* Un valor guardado que no esta entre las opciones (dato viejo o
+              importado) se muestra tal cual. Sin esto el navegador ensena la
+              primera opcion y parece que el registro ya tiene ese valor. */}
+          {valor !== null &&
+            valor !== undefined &&
+            valor !== "" &&
+            !campo.opciones?.some((o) => String(o.value) === String(valor)) && (
+              <option value={valor} disabled>
+                {valor} (no valido, elige otro)
+              </option>
+            )}
           {campo.opciones?.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}

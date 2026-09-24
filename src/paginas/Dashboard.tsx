@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api, separarAvisos, soloFecha, fechaHora } from "../api/cliente";
+import { api, separarAvisos, soloDia, fechaHora } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import type { AlertaDocumento, Viaje, ViajeRemesa } from "../api/tipos";
@@ -178,7 +178,7 @@ function FilaAlerta({ alerta }: { alerta: AlertaDocumento }) {
     <tr>
       <td>{alerta.tipo}</td>
       <td>{alerta.sujeto}</td>
-      <td>{soloFecha(alerta.fechaVencimiento)}</td>
+      <td>{soloDia(alerta.fechaVencimiento)}</td>
       <td>
         <span className={`badge ${clase}`}>{texto}</span>
       </td>

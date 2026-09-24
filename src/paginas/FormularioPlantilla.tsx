@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { api } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
+import { useMunicipios } from "../ganchos/useMunicipios";
 import Modal from "../componentes/Modal";
+import ComboBuscable from "../componentes/ComboBuscable";
+import type { Municipio, PlantillaViaje, Tercero } from "../api/tipos";
 
 const PASOS = ["Identificacion", "Partes", "Mercancia", "Tiempos", "Manifiesto"];
 
@@ -25,48 +28,126 @@ const UNIDADES_PRODUCTO = [
   { value: "BLL", label: "Barriles" },
 ];
 
+/**
+ * Crea o edita una plantilla.
+ *
+ * Si llega `plantilla`, el formulario abre en modo edicion con sus valores.
+ * El valor que recibe `useState(...)` solo se usa en el PRIMER render: por eso
+ * basta con pasarle el dato de la plantilla ahi y no hace falta un useEffect
+ * para "copiar" la plantilla al estado.
+ */
 export default function FormularioPlantilla({
+  plantilla,
   alCerrar,
   alGuardar,
 }: {
+  plantilla?: PlantillaViaje;
   alCerrar: () => void;
   alGuardar: () => void;
 }) {
   const terceros = useDatos(() => api.getTerceros(), []);
+  const municipios = useMunicipios(terceros.datos);
+  const editando = !!plantilla;
   const [paso, setPaso] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Paso 0
-  const [nombre, setNombre] = useState("");
+  const [nombre, setNombre] = useState(plantilla?.nombre ?? "");
   // Paso 1
-  const [contratanteId, setContratanteId] = useState<number | null>(null);
-  const [remitenteId, setRemitenteId] = useState<number | null>(null);
-  const [destinatarioId, setDestinatarioId] = useState<number | null>(null);
+  const [contratanteId, setContratanteId] = useState<number | null>(plantilla?.contratanteId ?? null);
+  const [remitenteId, setRemitenteId] = useState<number | null>(plantilla?.remitenteId ?? null);
+  const [destinatarioId, setDestinatarioId] = useState<number | null>(
+    plantilla?.destinatarioId ?? null
+  );
+  // Ruta explicita (DIVIPOLA). Se precarga al elegir remitente y destinatario.
+  const [municipioOrigen, setMunicipioOrigen] = useState(plantilla?.municipioOrigen ?? "");
+  const [municipioDestino, setMunicipioDestino] = useState(plantilla?.municipioDestino ?? "");
   // Paso 2
-  const [tipoMercancia, setTipoMercancia] = useState("");
-  const [codMercancia, setCodMercancia] = useState("");
-  const [subpartidaCode, setSubpartidaCode] = useState("");
-  const [codigoArancelCode, setCodigoArancelCode] = useState("");
-  const [unidadMedidaProducto, setUnidadMedidaProducto] = useState("KGM");
-  const [codTipoEmpaque, setCodTipoEmpaque] = useState("0");
-  const [empaquePrimario, setEmpaquePrimario] = useState("");
-  const [valorFleteBase, setValorFleteBase] = useState<number | null>(null);
+  const [tipoMercancia, setTipoMercancia] = useState(plantilla?.tipoMercancia ?? "");
+  const [codMercancia, setCodMercancia] = useState(plantilla?.codMercancia ?? "");
+  const [subpartidaCode, setSubpartidaCode] = useState(plantilla?.subpartidaCode ?? "");
+  const [codigoArancelCode, setCodigoArancelCode] = useState(plantilla?.codigoArancelCode ?? "");
+  const [unidadMedidaProducto, setUnidadMedidaProducto] = useState(
+    plantilla?.unidadMedidaProducto ?? "KGM"
+  );
+  const [codTipoEmpaque, setCodTipoEmpaque] = useState(plantilla?.codTipoEmpaque ?? "0");
+  const [empaquePrimario, setEmpaquePrimario] = useState(plantilla?.empaquePrimario ?? "");
+  const [valorFleteBase, setValorFleteBase] = useState<number | null>(
+    plantilla?.valorFleteBase ?? null
+  );
   // Paso 3
-  const [horasPactoCargue, setHorasPactoCargue] = useState(2);
-  const [minutosPactoCargue, setMinutosPactoCargue] = useState(0);
-  const [horasPactoDescargue, setHorasPactoDescargue] = useState(2);
-  const [minutosPactoDescargue, setMinutosPactoDescargue] = useState(0);
+  const [horasPactoCargue, setHorasPactoCargue] = useState(plantilla?.horasPactoCargue ?? 2);
+  const [minutosPactoCargue, setMinutosPactoCargue] = useState(plantilla?.minutosPactoCargue ?? 0);
+  const [horasPactoDescargue, setHorasPactoDescargue] = useState(plantilla?.horasPactoDescargue ?? 2);
+  const [minutosPactoDescargue, setMinutosPactoDescargue] = useState(
+    plantilla?.minutosPactoDescargue ?? 0
+  );
   // Paso 4
-  const [tipoManifiesto, setTipoManifiesto] = useState("G");
-  const [codMunicipioIntermedio, setCodMunicipioIntermedio] = useState("");
-  const [factorIcaCargue, setFactorIcaCargue] = useState(0);
-  const [tarifaPct, setTarifaPct] = useState(1);
-  const [titularEsRegimenSimple, setTitularEsRegimenSimple] = useState(false);
-  const [codResponsablePagoCargue, setCodResponsablePagoCargue] = useState("R");
-  const [codResponsablePagoDescargue, setCodResponsablePagoDescargue] = useState("D");
-  const [aceptacionElectronica, setAceptacionElectronica] = useState("NO");
-  const [codMunicipioPagoSaldo, setCodMunicipioPagoSaldo] = useState("");
+  const [tipoManifiesto, setTipoManifiesto] = useState(plantilla?.tipoManifiesto ?? "G");
+  const [codMunicipioIntermedio, setCodMunicipioIntermedio] = useState(
+    plantilla?.codMunicipioIntermedio ?? ""
+  );
+  const [factorIcaCargue, setFactorIcaCargue] = useState(plantilla?.factorIcaCargue ?? 0);
+  // Se guarda como fraccion (0.01) y se edita como porcentaje (1). El redondeo
+  // evita que 0.011 * 100 aparezca como 1.0999999999999999.
+  const [tarifaPct, setTarifaPct] = useState(
+    plantilla ? Math.round(plantilla.tarifaRetencionFuente * 10000) / 100 : 1
+  );
+  const [titularEsRegimenSimple, setTitularEsRegimenSimple] = useState(
+    plantilla?.titularEsRegimenSimple ?? false
+  );
+  const [codResponsablePagoCargue, setCodResponsablePagoCargue] = useState(
+    plantilla?.codResponsablePagoCargue ?? "R"
+  );
+  const [codResponsablePagoDescargue, setCodResponsablePagoDescargue] = useState(
+    plantilla?.codResponsablePagoDescargue ?? "D"
+  );
+  const [aceptacionElectronica, setAceptacionElectronica] = useState(
+    plantilla?.aceptacionElectronica ?? "NO"
+  );
+  const [codMunicipioPagoSaldo, setCodMunicipioPagoSaldo] = useState(
+    plantilla?.codMunicipioPagoSaldo ?? ""
+  );
+
+  const opcionesTerceros = terceros.datos ?? [];
+  const terceroPorId = (id: number | null) => opcionesTerceros.find((t) => t.id === id) ?? null;
+
+  /**
+   * Al elegir el remitente se precarga el origen de la ruta con su municipio
+   * (y lo mismo con el destinatario y el destino).
+   *
+   * Se hace aqui, en el manejador del cambio, y no con un useEffect que "mire"
+   * remitenteId. La diferencia importa: un efecto tambien correria al abrir una
+   * plantilla para editarla y pisaria la ruta que el despachador ya habia
+   * corregido a mano. El manejador solo corre cuando el usuario cambia el
+   * tercero, que es justo cuando tiene sentido sugerir otro municipio.
+   */
+  function alCambiarRemitente(id: number | null) {
+    setRemitenteId(id);
+    const codigo = terceroPorId(id)?.codMunicipioRndc;
+    if (codigo) setMunicipioOrigen(codigo);
+  }
+
+  function alCambiarDestinatario(id: number | null) {
+    setDestinatarioId(id);
+    const codigo = terceroPorId(id)?.codMunicipioRndc;
+    if (codigo) setMunicipioDestino(codigo);
+  }
+
+  const rutaCompleta = /^\d{8}$/.test(municipioOrigen) && /^\d{8}$/.test(municipioDestino);
+
+  /**
+   * La ruta puede diferir de los sitios de cargue/descargue a proposito (tramo
+   * en vacio, ida y regreso), asi que aqui solo se avisa. El bloqueo real esta
+   * en el despacho, donde ya se conocen todas las remesas del viaje.
+   */
+  const municipioRemitente = terceroPorId(remitenteId)?.codMunicipioRndc ?? null;
+  const municipioDestinatario = terceroPorId(destinatarioId)?.codMunicipioRndc ?? null;
+  const rutaDifiereDeTerceros =
+    rutaCompleta &&
+    ((!!municipioRemitente && municipioRemitente !== municipioOrigen) ||
+      (!!municipioDestinatario && municipioDestinatario !== municipioDestino));
 
   /** El municipio de retorno solo lo exige el manifiesto de ida y regreso. */
   const pideMunicipioIntermedio = tipoManifiesto === "I";
@@ -81,6 +162,8 @@ export default function FormularioPlantilla({
     if (!nombre.trim()) return "Ponle un nombre a la plantilla.";
     if (!contratanteId || !remitenteId || !destinatarioId)
       return "Completa las partes involucradas.";
+    if (!rutaCompleta)
+      return "Completa la ruta: municipio origen y destino, con su codigo DIVIPOLA de 8 digitos.";
 
     const codigo = codMercancia.replace(/\D/g, "");
     if (codigo.length !== 4 && codigo.length !== 6)
@@ -115,11 +198,13 @@ export default function FormularioPlantilla({
 
     const codigo = codMercancia.replace(/\D/g, "");
     try {
-      await api.crearPlantilla({
+      const datos = {
         nombre,
         contratanteId: contratanteId!,
         remitenteId: remitenteId!,
         destinatarioId: destinatarioId!,
+        municipioOrigen,
+        municipioDestino,
         tipoMercancia: tipoMercancia.slice(0, 60),
         codMercancia: codigo.length === 4 ? `00${codigo}` : codigo,
         subpartidaCode: subpartidaCode || null,
@@ -145,7 +230,9 @@ export default function FormularioPlantilla({
         codResponsablePagoDescargue,
         aceptacionElectronica,
         codMunicipioPagoSaldo: codMunicipioPagoSaldo || null,
-      } as any);
+      } as any;
+      if (plantilla) await api.actualizarPlantilla(plantilla.id, datos);
+      else await api.crearPlantilla(datos);
       alGuardar();
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "No se pudo guardar la plantilla.");
@@ -154,13 +241,16 @@ export default function FormularioPlantilla({
     }
   }
 
-  const opcionesTerceros = terceros.datos ?? [];
   const puedeAvanzar =
-    paso === 0 ? !!nombre.trim() : paso === 1 ? !!(contratanteId && remitenteId && destinatarioId) : true;
+    paso === 0
+      ? !!nombre.trim()
+      : paso === 1
+        ? !!(contratanteId && remitenteId && destinatarioId && rutaCompleta)
+        : true;
 
   return (
     <Modal
-      titulo="Nueva plantilla de viaje"
+      titulo={editando ? `Editar plantilla: ${plantilla!.nombre}` : "Nueva plantilla de viaje"}
       ancho="wide"
       pasos={PASOS}
       pasoActual={paso}
@@ -182,7 +272,7 @@ export default function FormularioPlantilla({
             </button>
           ) : (
             <button className="btn-primary" onClick={guardar} disabled={guardando}>
-              {guardando ? "Guardando..." : "Guardar plantilla"}
+              {guardando ? "Guardando..." : editando ? "Guardar cambios" : "Guardar plantilla"}
             </button>
           )}
         </>
@@ -204,11 +294,12 @@ export default function FormularioPlantilla({
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Cliente X - Bogota a Medellin"
             />
-            <p className="section-desc">
-              El origen y el destino del manifiesto no se configuran aqui: se deducen de los
-              municipios del sitio de cargue y del sitio de descargue que elijas en el siguiente
-              paso. Asi siempre coinciden, que es lo que exige el RNDC.
-            </p>
+            {editando && (
+              <p className="section-desc">
+                Los cambios aplican a los despachos que hagas de aqui en adelante. Los viajes ya
+                despachados conservan lo que se envio al RNDC.
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -230,19 +321,45 @@ export default function FormularioPlantilla({
             <SelectorTercero
               etiqueta="Remitente (sitio de cargue)"
               valor={remitenteId}
-              alCambiar={setRemitenteId}
+              alCambiar={alCambiarRemitente}
               opciones={opcionesTerceros}
             />
             <SelectorTercero
               etiqueta="Destinatario (sitio de descargue)"
               valor={destinatarioId}
-              alCambiar={setDestinatarioId}
+              alCambiar={alCambiarDestinatario}
               opciones={opcionesTerceros}
             />
+
+            <div className="section-title" style={{ marginTop: "1rem" }}>
+              Ruta del viaje
+            </div>
             <p className="section-desc">
-              El municipio del remitente sera el origen del manifiesto y el del destinatario el
-              destino. Si a alguno le falta el codigo de municipio, el despacho se detiene.
+              Se llena sola con el municipio del remitente y del destinatario. Cambiala solo si el
+              viaje empieza o termina en otro municipio (por ejemplo, un tramo en vacio antes del
+              primer cargue). Con esta ruta se consultan las vias y el piso de SICETAC.
             </p>
+            <SelectorMunicipio
+              etiqueta="Municipio origen"
+              valor={municipioOrigen}
+              alCambiar={setMunicipioOrigen}
+              opciones={municipios.lista}
+            />
+            <SelectorMunicipio
+              etiqueta="Municipio destino"
+              valor={municipioDestino}
+              alCambiar={setMunicipioDestino}
+              opciones={municipios.lista}
+            />
+            {rutaDifiereDeTerceros && (
+              <div className="alert warning" style={{ marginTop: "0.6rem" }}>
+                La ruta no coincide con los municipios del remitente (
+                {municipios.nombre(municipioRemitente)}) y del destinatario (
+                {municipios.nombre(municipioDestinatario)}). Solo es correcto si hay un tramo en
+                vacio o el viaje es de ida y regreso. Al despachar, si la ruta no calza con el
+                cargue o el descargue de ninguna remesa, el sistema no deja enviar.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -486,6 +603,55 @@ export default function FormularioPlantilla({
   );
 }
 
+/**
+ * Municipio con buscador por nombre, mas el codigo DIVIPOLA editable a mano.
+ *
+ * Los dos controles escriben el MISMO estado (`valor`): elegir en la lista
+ * llena el codigo, y escribir el codigo selecciona el municipio si esta en la
+ * lista. El campo de codigo existe porque la lista puede no traer el municipio
+ * que se necesita (por ejemplo, donde arranca un tramo en vacio).
+ */
+function SelectorMunicipio({
+  etiqueta,
+  valor,
+  alCambiar,
+  opciones,
+}: {
+  etiqueta: string;
+  valor: string;
+  alCambiar: (codigo: string) => void;
+  opciones: Municipio[];
+}) {
+  return (
+    <>
+      <label>{etiqueta}</label>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div style={{ flex: 1 }}>
+          <ComboBuscable<Municipio, string>
+            opciones={opciones}
+            valor={valor || null}
+            alCambiar={(codigo) => alCambiar(codigo ?? "")}
+            obtenerId={(m) => m.codigo}
+            obtenerEtiqueta={(m) =>
+              `${m.nombre}${m.departamento ? ` - ${m.departamento}` : ""} (${m.codigo})`
+            }
+            placeholder="Busca el municipio por nombre..."
+          />
+        </div>
+        <input
+          style={{ width: "8rem" }}
+          value={valor}
+          maxLength={8}
+          inputMode="numeric"
+          placeholder="Codigo"
+          // Solo digitos: el codigo DIVIPOLA no lleva puntos ni guiones.
+          onChange={(e) => alCambiar(e.target.value.replace(/\D/g, ""))}
+        />
+      </div>
+    </>
+  );
+}
+
 function SelectorTercero({
   etiqueta,
   valor,
@@ -494,26 +660,20 @@ function SelectorTercero({
 }: {
   etiqueta: string;
   valor: number | null;
-  alCambiar: (id: number) => void;
-  opciones: Array<{ id: number; nombre: string; codSede: string; ciudad: string | null }>;
+  alCambiar: (id: number | null) => void;
+  opciones: Tercero[];
 }) {
   return (
     <>
       <label>{etiqueta}</label>
-      <select
-        value={valor ?? ""}
-        onChange={(e) => alCambiar(Number(e.target.value))}
-      >
-        <option value="" disabled>
-          Selecciona...
-        </option>
-        {opciones.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.nombre} — sede {t.codSede}
-            {t.ciudad ? ` (${t.ciudad})` : ""}
-          </option>
-        ))}
-      </select>
+      <ComboBuscable
+        opciones={opciones}
+        valor={valor}
+        alCambiar={alCambiar}
+        obtenerId={(t) => t.id}
+        obtenerEtiqueta={(t) => `${t.nombre} — sede ${t.codSede}${t.ciudad ? ` (${t.ciudad})` : ""}`}
+        placeholder="Busca por nombre o NIT..."
+      />
     </>
   );
 }

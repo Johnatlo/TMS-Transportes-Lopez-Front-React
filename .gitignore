@@ -1,0 +1,8 @@
+# Dependencias y compilado: se regeneran con npm install / npm run build
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Variables de entorno locales
+.env
+.env.*

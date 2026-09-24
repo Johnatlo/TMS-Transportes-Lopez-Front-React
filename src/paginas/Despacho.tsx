@@ -1,12 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, moneda } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
+import { useMunicipios } from "../ganchos/useMunicipios";
 import { Avisos, Cargando } from "../componentes/Estado";
+import ComboBuscable from "../componentes/ComboBuscable";
 import Modal from "../componentes/Modal";
 import type { PlantillaViaje, Via } from "../api/tipos";
 
 /** Tope del RNDC para este sistema. */
 const MAX_REMESAS = 5;
+
+const LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+/**
+ * Consecutivo de cada remesa a partir del numero base del viaje.
+ *
+ * Convencion de la empresa: la primera remesa lleva el numero tal cual (el
+ * mismo del manifiesto) y las siguientes agregan una letra. Es la misma regla
+ * que aplica el backend; aqui esta solo para mostrar la vista previa.
+ */
+function consecutivoRemesa(base: string, orden: number): string {
+  return orden === 1 ? base : `${base}${LETRAS[orden - 2] ?? "?"}`;
+}
 
 const PASOS = ["Vehiculo y conductor", "Cargas", "Valores"];
 
@@ -68,6 +83,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const vehiculos = useDatos(() => api.getVehiculos(), []);
   const conductores = useDatos(() => api.getConductores(), []);
   const remolques = useDatos(() => api.getRemolques(), []);
+  const empresasMonitoreo = useDatos(() => api.getEmpresasMonitoreo(), []);
 
   const [paso, setPaso] = useState(0);
 
@@ -75,6 +91,11 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const [conductorId, setConductorId] = useState<number | null>(null);
   const [conductor2Id, setConductor2Id] = useState<number | null>(null);
   const [remolqueId, setRemolqueId] = useState<number | null>(null);
+  /** Empresa de monitoreo del viaje (se elige por id, se envia el NIT). */
+  const [monitoreoId, setMonitoreoId] = useState<number | null>(null);
+  const [monitoreoEditado, setMonitoreoEditado] = useState(false);
+  /** Numero base del viaje: manifiesto y remesas salen de aqui. */
+  const [consecutivoBase, setConsecutivoBase] = useState("");
 
   const [remesas, setRemesas] = useState<FilaRemesa[]>([filaVacia()]);
 
@@ -100,6 +121,15 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const [vacio2Destino, setVacio2Destino] = useState("");
   const [vacio2Valor, setVacio2Valor] = useState<number | null>(null);
 
+  // Se sugiere el siguiente numero libre al abrir. Es editable: cuando se
+  // anula un documento hay que poder saltar o retomar la numeracion.
+  useEffect(() => {
+    api
+      .getSiguienteConsecutivo()
+      .then((r) => setConsecutivoBase((actual) => actual || r.base))
+      .catch(() => undefined);
+  }, []);
+
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: "success" | "danger"; texto: string } | null>(null);
   const [avisos, setAvisos] = useState<string[]>([]);
@@ -108,6 +138,9 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const listaVehiculos = (vehiculos.datos ?? []).filter((v) => v.activo);
   const listaConductores = (conductores.datos ?? []).filter((c) => c.activo);
   const listaRemolques = (remolques.datos ?? []).filter((r) => r.activo);
+  const listaMonitoreo = empresasMonitoreo.datos ?? [];
+  const nitMonitoreo = listaMonitoreo.find((e) => e.id === monitoreoId)?.nit ?? null;
+  const vehiculoElegido = listaVehiculos.find((v) => v.id === vehiculoId) ?? null;
 
   const plantillaDe = (fila: FilaRemesa): PlantillaViaje | null =>
     listaPlantillas.find((p) => p.id === fila.plantillaId) ?? null;
@@ -116,10 +149,53 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const plantillaPrincipal = plantillaDe(remesas[0]);
   const esMultiparada = remesas.length > 1;
 
-  /** Origen y destino efectivos: los municipios de cargue y descargue. */
-  const municipioOrigen = plantillaPrincipal?.remitente?.codMunicipioRndc ?? null;
-  const municipioDestino =
-    plantillaDe(remesas[remesas.length - 1])?.destinatario?.codMunicipioRndc ?? null;
+  /**
+   * Ruta del viaje: el origen de la plantilla de la primera carga y el destino
+   * de la plantilla de la ultima (en multiparada el viaje termina donde
+   * descarga el ultimo cliente). Son campos propios de la plantilla, no se
+   * deducen de los terceros. Es la misma regla que aplica el backend.
+   */
+  const plantillaUltima = plantillaDe(remesas[remesas.length - 1]);
+  // Sin catalogo DIVIPOLA cargado, los nombres salen de los terceros de las
+  // plantillas. useMemo: sin el, el arreglo seria nuevo en cada render y el
+  // hook recalcularia la lista cada vez.
+  const tercerosDePlantillas = useMemo(
+    () => listaPlantillas.flatMap((p) => [p.remitente, p.destinatario]).filter(Boolean),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [plantillas.datos]
+  );
+  const municipios = useMunicipios(tercerosDePlantillas);
+  const municipioOrigen = plantillaPrincipal?.municipioOrigen ?? null;
+  const municipioDestino = plantillaUltima?.municipioDestino ?? null;
+
+  /**
+   * Aviso previo de la regla del Manual 5.2.4: el origen debe ser el cargue de
+   * alguna carga y el destino el descargue de alguna. El backend bloquea el
+   * envio si no se cumple; aqui se anticipa para que no sea una sorpresa.
+   * Con trayecto en vacio el extremo es otro municipio a proposito.
+   */
+  const avisoRuta = useMemo(() => {
+    if (!municipioOrigen || !municipioDestino) return null;
+    const cargues = remesas.map((r) => plantillaDe(r)?.remitente?.codMunicipioRndc);
+    const descargues = remesas.map((r) => plantillaDe(r)?.destinatario?.codMunicipioRndc);
+    const problemas: string[] = [];
+    if (!(mostrarVacios && vacio1Origen) && cargues.every(Boolean) && !cargues.includes(municipioOrigen))
+      problemas.push(
+        `el origen ${municipioOrigen} no es el municipio de cargue de ninguna carga (${[...new Set(cargues)].join(", ")})`
+      );
+    if (
+      !(mostrarVacios && vacio2Destino) &&
+      descargues.every(Boolean) &&
+      !descargues.includes(municipioDestino)
+    )
+      problemas.push(
+        `el destino ${municipioDestino} no es el municipio de descargue de ninguna carga (${[...new Set(descargues)].join(", ")})`
+      );
+    return problemas.length
+      ? `La ruta no calza con las cargas: ${problemas.join("; ")}. El sistema no dejara enviar el manifiesto. Corrige la ruta de la plantilla o registra el trayecto en vacio.`
+      : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [municipioOrigen, municipioDestino, remesas, listaPlantillas, mostrarVacios, vacio1Origen, vacio2Destino]);
 
   const configuracion = listaVehiculos.find((v) => v.id === vehiculoId)?.configuracion ?? null;
 
@@ -175,6 +251,16 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   }, [municipioOrigen, municipioDestino, configuracion, horasPactadas]);
 
   const viaSeleccionada = vias.find((v) => v.codVia === codVia) ?? null;
+
+  // El proveedor de GPS depende del vehiculo: al cambiarlo se precarga el suyo.
+  // Si el despachador ya eligio otro a mano, se respeta.
+  useEffect(() => {
+    if (monitoreoEditado) return;
+    const nitDefecto = vehiculoElegido?.nitMonitoreoFlota;
+    const emf = listaMonitoreo.find((e) => e.nit === nitDefecto);
+    setMonitoreoId(emf?.id ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehiculoId, empresasMonitoreo.datos]);
 
   // Al elegir la plantilla de la primera carga se trae su tarifa, salvo que ya
   // se haya escrito un valor a mano.
@@ -312,6 +398,15 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       setMensaje({ tipo: "danger", texto: "Completa vehiculo, conductor y remolque." });
       return;
     }
+    // El RNDC lo exige (error MAN067): todo manifiesto debe decir que empresa
+    // de monitoreo reporta los tiempos del viaje.
+    if (!nitMonitoreo) {
+      setMensaje({
+        tipo: "danger",
+        texto: "Elige la empresa de monitoreo de flota. El RNDC la exige en todo manifiesto.",
+      });
+      return;
+    }
     for (let i = 0; i < remesas.length; i++) {
       const r = remesas[i];
       if (!r.plantillaId) {
@@ -332,6 +427,17 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         });
         return;
       }
+    }
+    if (!consecutivoBase.trim()) {
+      setMensaje({ tipo: "danger", texto: "Escribe el numero de remesa y manifiesto." });
+      return;
+    }
+    if (!/^[A-Za-z0-9]+$/.test(consecutivoBase.trim())) {
+      setMensaje({
+        tipo: "danger",
+        texto: "El numero solo puede llevar letras y digitos, sin espacios ni guiones.",
+      });
+      return;
     }
     if (fleteEfectivo <= 0) {
       setMensaje({
@@ -359,6 +465,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         remolqueId,
         conductor2Id: conductor2Id ?? undefined,
         plantillaId: remesas[0].plantillaId!,
+        consecutivoBase: consecutivoBase.trim(),
         remesas: remesas.map((r) => ({
           plantillaId: r.plantillaId!,
           fechaHoraCargue: r.fechaHoraCargue,
@@ -372,6 +479,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         valorAnticipoManifiesto: valorAnticipo ?? undefined,
         retencionFopat: retencionFopat ?? undefined,
         codVia: codVia ?? undefined,
+        nitMonitoreoFlota: nitMonitoreo ?? undefined,
         fechaPagoSaldo: fechaPagoSaldo || undefined,
         viajesDia: viajesDia ?? undefined,
         vacio1Origen: vacio1Origen || undefined,
@@ -402,7 +510,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
 
   const puedeAvanzar =
     paso === 0
-      ? !!(vehiculoId && conductorId && remolqueId)
+      ? !!(vehiculoId && conductorId && remolqueId && monitoreoId)
       : paso === 1
         ? remesas.every((r) => r.plantillaId && r.fechaHoraCargue && r.fechaHoraDescargue)
         : true;
@@ -433,65 +541,68 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
           </div>
           <div>
             <label>Vehiculo</label>
-            <select
-              value={vehiculoId ?? ""}
-              onChange={(e) => setVehiculoId(Number(e.target.value))}
-            >
-              <option value="" disabled>
-                Selecciona...
-              </option>
-              {listaVehiculos.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.placa}
-                  {v.configuracion ? ` (${v.configuracion})` : ""}
-                </option>
-              ))}
-            </select>
+            <ComboBuscable
+              opciones={listaVehiculos}
+              valor={vehiculoId}
+              alCambiar={setVehiculoId}
+              obtenerId={(v) => v.id}
+              obtenerEtiqueta={(v) => `${v.placa}${v.configuracion ? ` (${v.configuracion})` : ""}`}
+              placeholder="Busca por placa..."
+            />
+
+            <label>Empresa de monitoreo (proveedor de GPS)</label>
+            <ComboBuscable
+              opciones={listaMonitoreo}
+              valor={monitoreoId}
+              alCambiar={(id) => {
+                setMonitoreoEditado(true);
+                setMonitoreoId(id);
+              }}
+              obtenerId={(e) => e.id}
+              obtenerEtiqueta={(e) => `${e.nombre} (${e.nit})`}
+              placeholder="Busca por nombre o NIT..."
+            />
+            {vehiculoElegido && !vehiculoElegido.nitMonitoreoFlota && !monitoreoId && (
+              <p className="section-desc">
+                Este vehiculo no tiene proveedor de GPS por defecto. Eligelo aqui; si siempre es el
+                mismo, asignaselo en Catalogo → Vehiculos para no repetirlo.
+              </p>
+            )}
+            {listaMonitoreo.length === 0 && !empresasMonitoreo.cargando && (
+              <p className="section-desc">
+                No hay empresas de monitoreo cargadas. Agregalas en Catalogo → Monitoreo.
+              </p>
+            )}
 
             <label>Remolque (trailer) usado en este viaje</label>
-            <select
-              value={remolqueId ?? ""}
-              onChange={(e) => setRemolqueId(Number(e.target.value))}
-            >
-              <option value="" disabled>
-                Selecciona...
-              </option>
-              {listaRemolques.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.placa}
-                </option>
-              ))}
-            </select>
+            <ComboBuscable
+              opciones={listaRemolques}
+              valor={remolqueId}
+              alCambiar={setRemolqueId}
+              obtenerId={(r) => r.id}
+              obtenerEtiqueta={(r) => r.placa}
+              placeholder="Busca por placa..."
+            />
 
             <label>Conductor</label>
-            <select
-              value={conductorId ?? ""}
-              onChange={(e) => setConductorId(Number(e.target.value))}
-            >
-              <option value="" disabled>
-                Selecciona...
-              </option>
-              {listaConductores.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
+            <ComboBuscable
+              opciones={listaConductores}
+              valor={conductorId}
+              alCambiar={setConductorId}
+              obtenerId={(c) => c.id}
+              obtenerEtiqueta={(c) => `${c.nombre} (${c.cedula})`}
+              placeholder="Busca por nombre o cedula..."
+            />
 
             <label>Segundo conductor (opcional)</label>
-            <select
-              value={conductor2Id ?? ""}
-              onChange={(e) =>
-                setConductor2Id(e.target.value === "" ? null : Number(e.target.value))
-              }
-            >
-              <option value="">Ninguno</option>
-              {listaConductores.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
+            <ComboBuscable
+              opciones={listaConductores}
+              valor={conductor2Id}
+              alCambiar={setConductor2Id}
+              obtenerId={(c) => c.id}
+              obtenerEtiqueta={(c) => `${c.nombre} (${c.cedula})`}
+              placeholder="Ninguno — busca por nombre o cedula..."
+            />
           </div>
         </div>
       )}
@@ -526,19 +637,14 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
                 </div>
 
                 <label>Plantilla (cliente y mercancia)</label>
-                <select
-                  value={r.plantillaId ?? ""}
-                  onChange={(e) => actualizarFila(i, { plantillaId: Number(e.target.value) })}
-                >
-                  <option value="" disabled>
-                    Selecciona...
-                  </option>
-                  {listaPlantillas.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
+                <ComboBuscable
+                  opciones={listaPlantillas}
+                  valor={r.plantillaId}
+                  alCambiar={(id) => actualizarFila(i, { plantillaId: id })}
+                  obtenerId={(p) => p.id}
+                  obtenerEtiqueta={(p) => p.nombre}
+                  placeholder="Busca por nombre de la plantilla..."
+                />
 
                 <label>Cita de cargue</label>
                 <input
@@ -639,6 +745,56 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             <div className="section-desc">Aplican al viaje completo, no a cada carga.</div>
           </div>
           <div>
+            <label>Numero de remesa y manifiesto</label>
+            <input
+              value={consecutivoBase}
+              onChange={(e) => setConsecutivoBase(e.target.value)}
+              placeholder="00006692"
+            />
+            <p className="section-desc">
+              El manifiesto lleva este numero tal cual.
+              {esMultiparada
+                ? " Las remesas salen del mismo numero con una letra al final."
+                : " La remesa lleva el mismo numero."}{" "}
+              Se sugiere el siguiente libre, pero lo puedes cambiar si hubo un documento anulado.
+            </p>
+
+            <label>Ruta del viaje</label>
+            <div className="alert info" style={{ marginBottom: "0.4rem" }}>
+              {municipioOrigen && municipioDestino ? (
+                <>
+                  <strong>
+                    {municipios.nombre(municipioOrigen)} → {municipios.nombre(municipioDestino)}
+                  </strong>
+                  <div style={{ marginTop: "0.3rem" }}>
+                    Origen de la plantilla "{plantillaPrincipal?.nombre}"
+                    {esMultiparada ? `, destino de "${plantillaUltima?.nombre}" (ultima carga)` : ""}.
+                    Con esta ruta se consultaron las vias y el piso de SICETAC.
+                  </div>
+                </>
+              ) : (
+                <>
+                  La plantilla no tiene la ruta completa, asi que no se pueden consultar las vias.
+                  Completala en Plantillas → Editar.
+                </>
+              )}
+            </div>
+            {avisoRuta && <div className="alert danger">{avisoRuta}</div>}
+
+            {consecutivoBase.trim() && (
+              <div className="alert info" style={{ marginBottom: "0.8rem" }}>
+                <strong>Quedaria asi:</strong>
+                <div style={{ marginTop: "0.3rem" }}>
+                  Manifiesto <strong>{consecutivoBase.trim()}</strong>
+                </div>
+                {remesas.map((_, i) => (
+                  <div key={i}>
+                    Remesa {i + 1}: <strong>{consecutivoRemesa(consecutivoBase.trim(), i + 1)}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <label>Via a utilizar</label>
             <select
               value={codVia ?? ""}
@@ -669,7 +825,8 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             )}
             {!cargandoVias && vias.length === 0 && municipioOrigen && municipioDestino && (
               <p className="section-desc">
-                SICETAC no devolvio vias para {municipioOrigen} → {municipioDestino}. El manifiesto
+                SICETAC no devolvio vias para {municipios.nombre(municipioOrigen)} →{" "}
+                {municipios.nombre(municipioDestino)}. El manifiesto
                 saldra con la via estandar que asigne el RNDC.
               </p>
             )}

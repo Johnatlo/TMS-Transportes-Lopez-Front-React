@@ -4,13 +4,30 @@ import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import Modal from "../componentes/Modal";
 import FormularioPlantilla from "./FormularioPlantilla";
-import type { RutaConTarifa } from "../api/tipos";
+import type { PlantillaViaje, RutaConTarifa } from "../api/tipos";
 
 export default function Plantillas() {
   const plantillas = useDatos(() => api.getPlantillas(), []);
   const [busqueda, setBusqueda] = useState("");
   const [modalNueva, setModalNueva] = useState(false);
+  /** Plantilla abierta para editar, o null si no hay ninguna. */
+  const [editando, setEditando] = useState<PlantillaViaje | null>(null);
   const [modalTarifas, setModalTarifas] = useState(false);
+
+  const [borrandoId, setBorrandoId] = useState<number | null>(null);
+
+  async function eliminar(id: number, nombre: string) {
+    if (!window.confirm(`¿Eliminar la plantilla "${nombre}"? Dejara de aparecer para despachar, pero el historial de viajes que ya la uso no se toca.`)) {
+      return;
+    }
+    setBorrandoId(id);
+    try {
+      await api.eliminarPlantilla(id);
+      plantillas.recargar();
+    } finally {
+      setBorrandoId(null);
+    }
+  }
 
   const texto = busqueda.toLowerCase();
   const lista = (plantillas.datos ?? []).filter((p) =>
@@ -45,20 +62,35 @@ export default function Plantillas() {
             <thead>
               <tr>
                 <th>Nombre</th>
-                <th>Cargue</th>
-                <th>Descargue</th>
+                <th>Ruta</th>
                 <th>Contratante</th>
                 <th>Tarifa</th>
+                <th />
               </tr>
             </thead>
             <tbody>
               {lista.map((p) => (
                 <tr key={p.id}>
                   <td>{p.nombre}</td>
-                  <td>{p.remitente?.ciudad ?? "-"}</td>
-                  <td>{p.destinatario?.ciudad ?? "-"}</td>
+                  <td>
+                    {p.municipioOrigen && p.municipioDestino
+                      ? `${p.municipioOrigen} → ${p.municipioDestino}`
+                      : "Sin ruta"}
+                  </td>
                   <td>{p.contratante?.nombre ?? "-"}</td>
                   <td>{moneda(p.valorFleteBase)}</td>
+                  <td>
+                    <button className="btn-link" onClick={() => setEditando(p)}>
+                      Editar
+                    </button>{" "}
+                    <button
+                      className="btn-link"
+                      onClick={() => eliminar(p.id, p.nombre)}
+                      disabled={borrandoId === p.id}
+                    >
+                      {borrandoId === p.id ? "Eliminando..." : "Eliminar"}
+                    </button>
+                  </td>
                 </tr>
               ))}
               {lista.length === 0 && (
@@ -78,6 +110,23 @@ export default function Plantillas() {
           alCerrar={() => setModalNueva(false)}
           alGuardar={() => {
             setModalNueva(false);
+            plantillas.recargar();
+          }}
+        />
+      )}
+
+      {/*
+        key={editando.id} hace que React cree un formulario NUEVO al cambiar de
+        plantilla, en vez de reutilizar el anterior con su estado viejo: el
+        estado inicial de useState solo se toma al crear el componente.
+      */}
+      {editando && (
+        <FormularioPlantilla
+          key={editando.id}
+          plantilla={editando}
+          alCerrar={() => setEditando(null)}
+          alGuardar={() => {
+            setEditando(null);
             plantillas.recargar();
           }}
         />
@@ -157,8 +206,9 @@ function ModalTarifas({
         <div>
           <div className="section-title">Rutas con plantillas activas</div>
           <div className="section-desc">
-            La ruta sale de los municipios del sitio de cargue y de descargue de cada plantilla.
-            Elige una para ver cuales se veran afectadas antes de cambiar nada.
+            Agrupa las plantillas por su ruta (municipio origen y destino), la misma con la que
+            se consulta SICETAC. Elige una para ver cuales se veran afectadas antes de cambiar
+            nada.
           </div>
         </div>
         <div>
@@ -210,7 +260,7 @@ function ModalTarifas({
                 {(rutas.datos ?? []).length === 0 && (
                   <tr>
                     <td colSpan={4} className="empty-row">
-                      No hay rutas. Revisa que los terceros tengan su codigo de municipio.
+                      No hay rutas. Revisa que las plantillas tengan su ruta (Editar → Partes).
                     </td>
                   </tr>
                 )}

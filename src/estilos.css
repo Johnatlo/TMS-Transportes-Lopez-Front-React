@@ -381,3 +381,49 @@ input:focus, select:focus { outline: 2px solid var(--color-accent); outline-offs
   color: inherit; font: inherit; font-weight: 600;
   text-decoration: underline; cursor: pointer;
 }
+
+/* Select con busqueda (ComboBuscable): vehiculos, conductores, remolques,
+   terceros y plantillas se buscan en vez de desplazarse por una lista larga. */
+.combo-buscable { position: relative; }
+.combo-buscable input {
+  width: 100%;
+}
+.combo-lista {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+.combo-item {
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.86rem;
+}
+.combo-item:hover, .combo-item.activo { background: rgba(0, 0, 0, 0.05); }
+.combo-vacio {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+/* Vista previa de la numeracion en el despacho. */
+.alert.info { background: var(--color-info-bg); color: var(--color-info-text); }
+
+/* ---------- Catalogo: tablas anchas y filas editables ---------- */
+.tabla-scroll { overflow-x: auto; }
+.tabla-scroll table.modern td, .tabla-scroll table.modern th { white-space: nowrap; }
+table.modern tbody tr.fila-clic { cursor: pointer; }
+table.modern tbody tr.fila-clic:hover { background: #eef4ff; }
+table.modern tbody tr.fila-inactiva td { color: #94a3b8; }
+.dato-sec { display: block; font-size: 0.75rem; color: #64748b; }
+.filtros-catalogo { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+.filtros-catalogo label { display: flex; align-items: center; gap: 0.3rem; margin: 0; font-size: 0.85rem; cursor: pointer; }
+.filtros-catalogo input[type="checkbox"] { width: auto; }
+.resumen-catalogo { font-size: 0.8rem; color: #64748b; }

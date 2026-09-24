@@ -13,6 +13,8 @@
 
 import type {
   Conductor,
+  EmpresaMonitoreo,
+  Municipio,
   ParametrosEmpresa,
   PeticionDespacho,
   PlantillaViaje,
@@ -79,6 +81,7 @@ const post = <T>(ruta: string, datos: unknown) =>
   pedir<T>(ruta, { method: "POST", body: JSON.stringify(datos) });
 const put = <T>(ruta: string, datos: unknown) =>
   pedir<T>(ruta, { method: "PUT", body: JSON.stringify(datos) });
+const del = <T>(ruta: string) => pedir<T>(ruta, { method: "DELETE" });
 
 // ---------------------------------------------------------------------------
 // Catalogo
@@ -88,22 +91,51 @@ export const api = {
   getVehiculos: () => get<Vehiculo[]>("/catalogo/vehiculos"),
   crearVehiculo: (datos: Partial<Vehiculo>) =>
     post<Vehiculo>("/catalogo/vehiculos", datos),
+  /** Lo que no se mande conserva su valor actual. */
+  actualizarVehiculo: (id: number, datos: Partial<Vehiculo>) =>
+    put<Vehiculo>(`/catalogo/vehiculos/${id}`, datos),
+
+  // ---------- Empresas de monitoreo de flota ----------
+
+  getEmpresasMonitoreo: () => get<EmpresaMonitoreo[]>("/catalogo/monitoreo"),
+  crearEmpresaMonitoreo: (datos: { nit: string; nombre: string }) =>
+    post<EmpresaMonitoreo>("/catalogo/monitoreo", datos),
+  actualizarEmpresaMonitoreo: (id: number, datos: { nit?: string; nombre?: string }) =>
+    put<EmpresaMonitoreo>(`/catalogo/monitoreo/${id}`, datos),
+  eliminarEmpresaMonitoreo: (id: number) => del<void>(`/catalogo/monitoreo/${id}`),
+  /** Proveedor de GPS por defecto de un vehiculo. */
+  fijarMonitoreoVehiculo: (vehiculoId: number, nitMonitoreoFlota: string | null) =>
+    put<Vehiculo>(`/catalogo/vehiculos/${vehiculoId}/monitoreo`, { nitMonitoreoFlota }),
 
   getConductores: () => get<Conductor[]>("/catalogo/conductores"),
   crearConductor: (datos: Partial<Conductor>) =>
     post<Conductor>("/catalogo/conductores", datos),
+  actualizarConductor: (id: number, datos: Partial<Conductor>) =>
+    put<Conductor>(`/catalogo/conductores/${id}`, datos),
 
   getRemolques: () => get<Remolque[]>("/catalogo/remolques"),
   crearRemolque: (datos: Partial<Remolque>) =>
     post<Remolque>("/catalogo/remolques", datos),
+  actualizarRemolque: (id: number, datos: Partial<Remolque>) =>
+    put<Remolque>(`/catalogo/remolques/${id}`, datos),
 
   getTerceros: () => get<Tercero[]>("/catalogo/terceros"),
   crearTercero: (datos: Partial<Tercero>) =>
     post<Tercero & { avisoCoordenada?: string | null }>("/catalogo/terceros", datos),
+  actualizarTercero: (id: number, datos: Partial<Tercero>) =>
+    put<Tercero & { avisoCoordenada?: string | null }>(`/catalogo/terceros/${id}`, datos),
 
   getPlantillas: () => get<PlantillaViaje[]>("/catalogo/plantillas"),
   crearPlantilla: (datos: Partial<PlantillaViaje>) =>
     post<PlantillaViaje>("/catalogo/plantillas", datos),
+  /** Lo que no se mande conserva su valor actual. */
+  actualizarPlantilla: (id: number, datos: Partial<PlantillaViaje>) =>
+    put<PlantillaViaje>(`/catalogo/plantillas/${id}`, datos),
+  /** "Elimina" (desactiva) una plantilla que ya no se usa. */
+  eliminarPlantilla: (id: number) => del<void>(`/catalogo/plantillas/${id}`),
+
+  /** Catalogo DIVIPOLA. Vacio si aun no se importo el CSV de municipios. */
+  getMunicipios: () => get<Municipio[]>("/catalogo/municipios"),
 
   // ---------- Vias y SICETAC ----------
 
@@ -151,6 +183,9 @@ export const api = {
 
   getHistorial: () => get<Viaje[]>("/despacho/historial"),
 
+  /** Siguiente numero disponible. Es una sugerencia, no una reserva. */
+  getSiguienteConsecutivo: () => get<{ base: string }>("/despacho/siguiente-consecutivo"),
+
   getRemesasDeViaje: (viajeId: number) =>
     get<ViajeRemesa[]>(`/despacho/${viajeId}/remesas`),
 
@@ -197,6 +232,24 @@ export function fechaHora(valor: string | null | undefined): string {
     minute: "2-digit",
     hourCycle: "h23",
   }).format(new Date(valor));
+}
+
+/**
+ * Para columnas DATE (vencimientos de SOAT, tecnomecanica, licencia...).
+ *
+ * El backend las entrega como medianoche UTC ("2029-04-06T00:00:00.000Z").
+ * soloFecha() las pasa a hora de Bogota y quedaban UN DIA ANTES (05/04/2029).
+ * Aqui se lee el dia tal cual, sin zona horaria.
+ */
+export function soloDia(valor: string | null | undefined): string {
+  if (!valor) return "-";
+  const [a, m, d] = valor.slice(0, 10).split("-");
+  return d && m && a ? `${d}/${m}/${a}` : "-";
+}
+
+/** Hoy en Colombia como "AAAA-MM-DD", para comparar contra columnas DATE. */
+export function hoyColombia(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 }
 
 export function soloFecha(valor: string | null | undefined): string {

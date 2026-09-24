@@ -36,6 +36,20 @@ export interface Vehiculo {
   pesoVehiculoVacio: number | null;
   /** true si el PBV supera 10.5 t: el manifiesto debe llevar aporte FOPAT. */
   aplicaFopat: boolean;
+  /** Proveedor de GPS por defecto del vehiculo (NIT de la EMF). */
+  nitMonitoreoFlota: string | null;
+  /** Propietario segun la tarjeta de propiedad. Informativo. */
+  propietarioNit: string | null;
+  /** Nombre del titular del manifiesto. Informativo: no viaja al RNDC. */
+  nombreTenedor: string | null;
+}
+
+/** Empresa de monitoreo de flota registrada en el RNDC. */
+export interface EmpresaMonitoreo {
+  id: number;
+  /** Lo que viaja en NITMONITOREOFLOTA. */
+  nit: string;
+  nombre: string;
 }
 
 export interface Conductor {
@@ -62,8 +76,19 @@ export interface Tercero {
   /** Coordenadas de la sede, copiadas del maestro de terceros del RNDC. */
   latitud: number | null;
   longitud: number | null;
-  /** Codigo DIVIPOLA del municipio de la sede. De aqui salen origen y destino. */
+  /**
+   * Codigo DIVIPOLA del municipio de la sede. Precarga la ruta de la plantilla
+   * y sirve para validar que la ruta calce con los sitios de cargue/descargue.
+   */
   codMunicipioRndc: string | null;
+}
+
+/** Municipio del catalogo DIVIPOLA. */
+export interface Municipio {
+  /** 8 digitos: 5 del municipio + 3 del centro poblado (000 = cabecera). */
+  codigo: string;
+  nombre: string;
+  departamento: string | null;
 }
 
 export interface PlantillaViaje {
@@ -72,6 +97,13 @@ export interface PlantillaViaje {
   contratanteId: number;
   remitenteId: number;
   destinatarioId: number;
+  /**
+   * Ruta del viaje (DIVIPOLA, 8 digitos). Dato propio de la plantilla: se
+   * precarga con el municipio del remitente y del destinatario, pero se puede
+   * cambiar. Con este par se consultan las vias a SICETAC.
+   */
+  municipioOrigen: string | null;
+  municipioDestino: string | null;
   tipoMercancia: string | null;
   /** Tarifa pactada para la ruta. Se precarga en el despacho. */
   valorFleteBase: number | null;
@@ -134,6 +166,7 @@ export interface Viaje {
   fechaPagoFopat: string | null;
   fechaPagoSaldo: string | null;
   codVia: string | null;
+  nitMonitoreoFlota: string | null;
   viajesDia: number | null;
   vacio1Origen: string | null;
   vacio1Destino: string | null;
@@ -170,6 +203,10 @@ export interface ParametrosEmpresa {
   aplicaFopat: boolean;
   tarifaRetencionFuente: number;
   actualizadoEn: string | null;
+  /** Del .env del backend, solo lectura. */
+  nitEmpresa?: string;
+  nombreEmpresa?: string;
+  ambienteRndc?: string;
   /** Aviso si la poliza esta vencida o por vencerse. */
   avisoPoliza?: string | null;
 }
@@ -246,12 +283,19 @@ export interface PeticionDespacho {
   remesas: RemesaADespachar[];
   /** Plantilla que aporta los terminos del manifiesto (la de la primera carga). */
   plantillaId?: number;
+  /**
+   * Numero base del viaje: el manifiesto lo usa tal cual y las remesas
+   * adicionales le agregan letra. Vacio = el backend sugiere el siguiente.
+   */
+  consecutivoBase?: string;
   valorFleteReal?: number;
   valorAnticipoManifiesto?: number;
   /** Si va vacio, el backend calcula el 0.1%. */
   retencionFopat?: number;
   /** Via elegida. Vacia = el RNDC asigna la estandar de SICETAC. */
   codVia?: string;
+  /** Empresa de monitoreo del viaje. Vacia = la del vehiculo. */
+  nitMonitoreoFlota?: string;
   fechaPagoSaldo?: string;
   viajesDia?: number;
   vacio1Origen?: string;
