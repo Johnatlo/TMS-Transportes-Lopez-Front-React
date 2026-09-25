@@ -186,6 +186,15 @@ export const api = {
   /** Siguiente numero disponible. Es una sugerencia, no una reserva. */
   getSiguienteConsecutivo: () => get<{ base: string }>("/despacho/siguiente-consecutivo"),
 
+  /**
+   * Retoma un viaje a medias: reutiliza las remesas ya creadas en el RNDC y
+   * envia lo que falte. `cambios` corrige datos del manifiesto (vehiculo,
+   * conductor, remolque, EMF, valores, numero). Si el RNDC vuelve a rechazar,
+   * lanza ErrorApi con el viaje actualizado en `cuerpo`.
+   */
+  reintentarViaje: (viajeId: number, cambios: Record<string, unknown>) =>
+    post<Viaje>(`/despacho/${viajeId}/reintentar`, cambios),
+
   getRemesasDeViaje: (viajeId: number) =>
     get<ViajeRemesa[]>(`/despacho/${viajeId}/remesas`),
 

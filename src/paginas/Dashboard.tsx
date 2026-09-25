@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api, separarAvisos, soloDia, fechaHora } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
+import ReintentarViaje, { esReintentable } from "../componentes/ReintentarViaje";
 import type { AlertaDocumento, Viaje, ViajeRemesa } from "../api/tipos";
 
 /**
@@ -16,6 +17,8 @@ import type { AlertaDocumento, Viaje, ViajeRemesa } from "../api/tipos";
 export default function Dashboard() {
   const alertas = useDatos(() => api.getAlertas(30), []);
   const historial = useDatos(() => api.getHistorial(), []);
+  /** Viaje abierto en la ventana de reintento (null = ventana cerrada). */
+  const [reintentando, setReintentando] = useState<Viaje | null>(null);
 
   // Remesas desplegadas por viaje. Se piden bajo demanda y no de entrada:
   // son varias peticiones y casi nunca se necesitan todas.
@@ -98,6 +101,7 @@ export default function Dashboard() {
                 <th>Cargue</th>
                 <th>Estado</th>
                 <th>Detalle</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -109,11 +113,18 @@ export default function Dashboard() {
                     <span className="badge badge-danger">{v.estado}</span>
                   </td>
                   <td>{v.mensajeError ?? "-"}</td>
+                  <td>
+                    {esReintentable(v) && (
+                      <button className="btn-primary" onClick={() => setReintentando(v)}>
+                        Reintentar
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {enCurso.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="empty-row">
+                  <td colSpan={5} className="empty-row">
                     No hay viajes pendientes ni con incidencias. Todo al dia.
                   </td>
                 </tr>
@@ -122,6 +133,14 @@ export default function Dashboard() {
           </table>
         )}
       </div>
+
+      {reintentando && (
+        <ReintentarViaje
+          viaje={reintentando}
+          alCerrar={() => setReintentando(null)}
+          alTerminar={historial.recargar}
+        />
+      )}
 
       {/* ---------- Manifiestos para imprimir ---------- */}
       <div className="panel">

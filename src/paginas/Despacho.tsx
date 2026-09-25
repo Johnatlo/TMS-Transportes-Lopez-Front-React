@@ -900,7 +900,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               onChange={(e) => setFechaPagoSaldo(e.target.value)}
             />
             <p className="section-desc">
-              Maximo 5 dias habiles despues de la cita de descargue.
+              30 dias habiles despues de la cita de descargue.
             </p>
 
             {pideViajesDia && (
