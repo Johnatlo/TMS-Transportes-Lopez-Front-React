@@ -140,6 +140,8 @@ export interface PlantillaViaje {
 
 export interface Viaje {
   id: number;
+  /** Plantilla de la primera remesa: de ella sale la ruta del viaje. */
+  plantillaId: number;
   vehiculoId: number;
   conductorId: number;
   conductor2Id: number | null;
@@ -241,6 +243,17 @@ export interface AlertaDocumento {
   diasRestantes: number | null;
   severidad: "VENCIDO" | "POR_VENCER" | "VIGENTE";
   mensaje: string;
+  /** Registro y campo de donde sale la fecha: permite corregirla desde la alerta. */
+  origen: OrigenAlerta;
+  /** false si el registro esta inactivo (solo llegan al pedir inactivos). */
+  activo: boolean;
+}
+
+export interface OrigenAlerta {
+  entidad: "vehiculo" | "remolque" | "conductor" | "empresa";
+  /** null para la empresa (una sola fila de parametros). */
+  id: number | null;
+  campo: "fechaVencSoat" | "fechaVencTecnomecanica" | "fechaVencLicencia" | "fechaVencimientoPolizaCarga";
 }
 
 export interface ResumenAlertas {
@@ -249,6 +262,7 @@ export interface ResumenAlertas {
   sinFecha: AlertaDocumento[];
   diasAviso: number;
   revisados: { vehiculos: number; remolques: number; conductores: number };
+  incluyeInactivos: boolean;
 }
 
 export interface RutaConTarifa {

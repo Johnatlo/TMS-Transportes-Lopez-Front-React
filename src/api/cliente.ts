@@ -171,7 +171,9 @@ export const api = {
 
   // ---------- Alertas y parametros ----------
 
-  getAlertas: (dias = 30) => get<ResumenAlertas>(`/catalogo/alertas?dias=${dias}`),
+  /** `inactivos` agrega los documentos de vehiculos, remolques y conductores inactivos. */
+  getAlertas: (dias = 30, inactivos = false) =>
+    get<ResumenAlertas>(`/catalogo/alertas?dias=${dias}${inactivos ? "&inactivos=1" : ""}`),
 
   getParametros: () => get<ParametrosEmpresa>("/catalogo/parametros"),
   guardarParametros: (datos: Partial<ParametrosEmpresa>) =>
