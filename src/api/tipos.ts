@@ -176,6 +176,27 @@ export interface Viaje {
   vacio2Origen: string | null;
   vacio2Destino: string | null;
   vacio2Valor: number;
+  /** Anulacion (procesos 54, 32 y 9). */
+  motivoAnulacion: string | null;
+  observacionesAnulacion: string | null;
+  /** Radicado del RNDC de la anulacion del manifiesto. */
+  radicadoAnulacion: string | null;
+  fechaAnulacion: string | null;
+}
+
+/** Vista previa de una anulacion: pasos, motivos y tope mensual. */
+export interface PreviaAnulacion {
+  anulable: boolean;
+  estado: string;
+  pasos: string[];
+  /** true si nada quedo creado en el RNDC: solo se marca como anulado aqui. */
+  soloLocal: boolean;
+  tope: { expedidos: number; anulados: number; porcentaje: number; maximo: number } | null;
+  motivos: {
+    manifiesto: Record<string, string>;
+    cumplido: Record<string, string>;
+    remesa: Record<string, string>;
+  };
 }
 
 /** Una carga del viaje. Un manifiesto ampara hasta 5. */
@@ -194,6 +215,9 @@ export interface ViajeRemesa {
   valorFleteRemesa: number | null;
   estado: string;
   mensajeError: string | null;
+  /** Radicados de anulacion del cumplido inicial (54) y de la remesa (9). */
+  radicadoAnulacionCumplido: string | null;
+  radicadoAnulacion: string | null;
 }
 
 export interface ParametrosEmpresa {

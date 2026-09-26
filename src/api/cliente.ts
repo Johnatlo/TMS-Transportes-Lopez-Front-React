@@ -27,6 +27,7 @@ import type {
   Via,
   Viaje,
   ViajeRemesa,
+  PreviaAnulacion,
 } from "./tipos";
 
 const BASE = "/api";
@@ -196,6 +197,18 @@ export const api = {
    */
   reintentarViaje: (viajeId: number, cambios: Record<string, unknown>) =>
     post<Viaje>(`/despacho/${viajeId}/reintentar`, cambios),
+
+  /** Que se anularia y en que orden, con los motivos validos y el tope mensual. */
+  getPreviaAnulacion: (viajeId: number) =>
+    get<PreviaAnulacion>(`/despacho/${viajeId}/anulacion`),
+  /**
+   * Anula en el RNDC: cumplido inicial (54), manifiesto (32) y remesas (9).
+   * Si un paso falla, lanza ErrorApi con el viaje actualizado en `cuerpo`.
+   */
+  anularViaje: (
+    viajeId: number,
+    datos: { motivoManifiesto?: string; motivoCumplido: string; motivoRemesa: string; observaciones: string }
+  ) => post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/anular`, datos),
 
   getRemesasDeViaje: (viajeId: number) =>
     get<ViajeRemesa[]>(`/despacho/${viajeId}/remesas`),

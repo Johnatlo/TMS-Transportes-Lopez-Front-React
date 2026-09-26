@@ -583,3 +583,15 @@ td.numero { font-variant-numeric: tabular-nums; }
 .error-fila { display: block; margin-top: 0.3rem; font-size: 0.78rem; color: var(--color-danger-text); }
 
 .fila-inactiva-alerta td { background: #fafafa; }
+
+/* ---------- Anulacion ---------- */
+.btn-danger {
+  background: var(--color-danger-text); color: white; border: none;
+  padding: 0.55rem 1.1rem; border-radius: 8px; font-weight: 600; cursor: pointer;
+}
+.btn-danger:disabled { opacity: 0.45; cursor: not-allowed; }
+.pasos-anulacion { margin: 0 0 0.8rem; padding-left: 1.2rem; font-size: 0.88rem; }
+.pasos-anulacion li { padding: 0.2rem 0; }
+.confirmacion-anular { display: flex; align-items: flex-start; gap: 0.5rem; margin-top: 0.9rem; font-weight: 400; cursor: pointer; }
+.confirmacion-anular input { width: auto; margin-top: 0.2rem; }
+textarea { width: 100%; font: inherit; padding: 0.55rem 0.7rem; border: 1px solid var(--color-border); border-radius: 8px; }

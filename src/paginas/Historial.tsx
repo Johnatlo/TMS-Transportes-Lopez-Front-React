@@ -3,6 +3,7 @@ import { api, fechaHora, moneda } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import ReintentarViaje, { esReintentable } from "../componentes/ReintentarViaje";
+import AnularViaje, { esAnulable } from "../componentes/AnularViaje";
 import type { Viaje } from "../api/tipos";
 
 /**
@@ -13,6 +14,8 @@ export default function Historial() {
   const { datos, cargando, error, recargar } = useDatos(() => api.getHistorial(), []);
   /** Viaje abierto en la ventana de reintento (null = ventana cerrada). */
   const [reintentando, setReintentando] = useState<Viaje | null>(null);
+  /** Viaje abierto en la ventana de anulacion. */
+  const [anulando, setAnulando] = useState<Viaje | null>(null);
 
   if (cargando) return <Cargando que="historial" />;
   if (error) return <ErrorCarga mensaje={error} alReintentar={recargar} />;
@@ -42,16 +45,15 @@ export default function Historial() {
                   <td>#{v.id}</td>
                   <td>{fechaHora(v.fechaHoraCargue)}</td>
                   <td>
-                    <span
-                      className={`badge ${v.estado === "CONFIRMADO" ? "badge-ok" : "badge-danger"}`}
-                    >
-                      {v.estado}
-                    </span>
+                    <span className={`badge ${claseEstado(v.estado)}`}>{v.estado}</span>
                   </td>
                   <td>
                     {v.consecutivoManifiesto ?? "-"}
                     {v.numeroManifiestoRndc && (
                       <span className="dato-sec">Radicado {v.numeroManifiestoRndc}</span>
+                    )}
+                    {v.radicadoAnulacion && (
+                      <span className="dato-sec">Anulado: radicado {v.radicadoAnulacion}</span>
                     )}
                   </td>
                   <td>{moneda(v.valorFleteReal)}</td>
@@ -68,10 +70,19 @@ export default function Historial() {
                       "-"
                     )}
                   </td>
-                  <td>
+                  <td style={{ whiteSpace: "nowrap" }}>
                     {esReintentable(v) && (
                       <button className="btn-primary" onClick={() => setReintentando(v)}>
                         Reintentar
+                      </button>
+                    )}
+                    {esAnulable(v) && (
+                      <button
+                        className="btn-secondary"
+                        style={{ marginLeft: "0.35rem" }}
+                        onClick={() => setAnulando(v)}
+                      >
+                        {v.estado === "ANULACION_ERROR" ? "Reintentar anulacion" : "Anular"}
                       </button>
                     )}
                   </td>
@@ -96,6 +107,15 @@ export default function Historial() {
           alTerminar={recargar}
         />
       )}
+      {anulando && (
+        <AnularViaje viaje={anulando} alCerrar={() => setAnulando(null)} alTerminar={recargar} />
+      )}
     </>
   );
+}
+
+function claseEstado(estado: string): string {
+  if (estado === "CONFIRMADO") return "badge-ok";
+  if (estado === "ANULADO") return "badge-neutral";
+  return "badge-danger";
 }
