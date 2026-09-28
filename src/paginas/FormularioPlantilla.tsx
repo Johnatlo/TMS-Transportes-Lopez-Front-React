@@ -17,6 +17,19 @@ const TIPOS_MANIFIESTO = [
   { value: "W", label: "Viaje en vacio (sin remesa)" },
 ];
 
+/**
+ * Tipos de empaque del RNDC (CODTIPOEMPAQUE). Equivalencias verificadas por la
+ * empresa en el portal del RNDC; nombres de la guia de remesa. 0 y 17 son de
+ * "Mercancia consolidada". Espejo de TIPOS_EMPAQUE en backend/src/rndc/builders.ts.
+ */
+const TIPOS_EMPAQUE = [
+  { value: "15", label: "15 - Granel solido" },
+  { value: "4", label: "4 - General fraccionada" },
+  { value: "18", label: "18 - Unidad sin empaque" },
+  { value: "0", label: "0 - Paquetes general fraccionada (max. 2 kg por unidad)" },
+  { value: "17", label: "17 - Varios" },
+];
+
 const UNIDADES_PRODUCTO = [
   { value: "KGM", label: "Kilogramos" },
   { value: "UN", label: "Unidades" },
@@ -71,7 +84,8 @@ export default function FormularioPlantilla({
   const [unidadMedidaProducto, setUnidadMedidaProducto] = useState(
     plantilla?.unidadMedidaProducto ?? "KGM"
   );
-  const [codTipoEmpaque, setCodTipoEmpaque] = useState(plantilla?.codTipoEmpaque ?? "0");
+  // Por defecto 15 (granel solido), la carga habitual de la empresa.
+  const [codTipoEmpaque, setCodTipoEmpaque] = useState(plantilla?.codTipoEmpaque ?? "15");
   const [empaquePrimario, setEmpaquePrimario] = useState(plantilla?.empaquePrimario ?? "");
   const [valorFleteBase, setValorFleteBase] = useState<number | null>(
     plantilla?.valorFleteBase ?? null
@@ -423,8 +437,24 @@ export default function FormularioPlantilla({
               cada despacho.
             </p>
 
-            <label>Cod. tipo de empaque</label>
-            <input value={codTipoEmpaque} onChange={(e) => setCodTipoEmpaque(e.target.value)} />
+            <label>Tipo de empaque</label>
+            <select value={codTipoEmpaque} onChange={(e) => setCodTipoEmpaque(e.target.value)}>
+              {/* Un codigo guardado que no este en la lista se muestra tal cual. */}
+              {!TIPOS_EMPAQUE.some((t) => t.value === codTipoEmpaque) && (
+                <option value={codTipoEmpaque}>{codTipoEmpaque} (codigo sin nombre conocido)</option>
+              )}
+              {TIPOS_EMPAQUE.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+            {codTipoEmpaque === "0" && (
+              <p className="section-desc" style={{ color: "var(--color-warning-text)" }}>
+                ⚠ El codigo 0 declara paquetes de maximo 2 kg por unidad (mercancia consolidada).
+                Para carga a granel usa 15 - Granel solido.
+              </p>
+            )}
 
             <label>Empaque primario (opcional)</label>
             <input value={empaquePrimario} onChange={(e) => setEmpaquePrimario(e.target.value)} />
