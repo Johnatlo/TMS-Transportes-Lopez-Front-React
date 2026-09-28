@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DocumentosViaje } from "../componentes/DocumentosViaje";
 import { api, moneda } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { useMunicipios } from "../ganchos/useMunicipios";
 import { Avisos, Cargando } from "../componentes/Estado";
 import ComboBuscable from "../componentes/ComboBuscable";
 import Modal from "../componentes/Modal";
-import type { PlantillaViaje, Via } from "../api/tipos";
+import type { PlantillaViaje, Via, Viaje } from "../api/tipos";
 
 /** Tope del RNDC para este sistema. */
 const MAX_REMESAS = 5;
@@ -132,6 +133,8 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
 
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: "success" | "danger"; texto: string } | null>(null);
+  /** Viaje recien expedido: se muestran sus documentos para imprimir. */
+  const [viajeExpedido, setViajeExpedido] = useState<Viaje | null>(null);
   const [avisos, setAvisos] = useState<string[]>([]);
 
   const listaPlantillas = plantillas.datos ?? [];
@@ -457,6 +460,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     setEnviando(true);
     setMensaje(null);
     setAvisos([]);
+    setViajeExpedido(null);
 
     try {
       const viaje = await api.despachar({
@@ -491,6 +495,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       });
 
       setAvisos(viaje.avisos ? viaje.avisos.split(" | ") : []);
+      setViajeExpedido(viaje);
       setMensaje({
         tipo: "success",
         texto: `Manifiesto ${viaje.numeroManifiestoRndc} generado con ${remesas.length} remesa(s).`,
@@ -523,6 +528,13 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       {mensaje && (
         <div className={`alert ${mensaje.tipo === "success" ? "success" : "danger"}`}>
           {mensaje.texto}
+        </div>
+      )}
+      {/* Recien expedido: los documentos que debe llevar el conductor. */}
+      {viajeExpedido && (
+        <div className="panel panel-body">
+          <h3 className="panel-title">Documentos para el conductor</h3>
+          <DocumentosViaje viaje={viajeExpedido} />
         </div>
       )}
       <Avisos avisos={avisos} />

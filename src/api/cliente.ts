@@ -223,7 +223,9 @@ export const api = {
   // Son URL y no peticiones: se abren en otra pestaña para que el navegador
   // muestre el PDF con su propio visor.
 
-  urlPdfManifiesto: (viajeId: number) => `${BASE}/despacho/${viajeId}/manifiesto.pdf`,
+  /** PDF oficial del RNDC; por defecto con el logo de la empresa estampado. */
+  urlPdfManifiesto: (viajeId: number, original = false) =>
+    `${BASE}/despacho/${viajeId}/manifiesto.pdf${original ? "?original=1" : ""}`,
   urlImprimirRemesa: (remesaId: number) => `${BASE}/despacho/remesas/${remesaId}/imprimir`,
 };
 

@@ -4,6 +4,7 @@ import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import ReintentarViaje, { esReintentable } from "../componentes/ReintentarViaje";
 import AnularViaje, { esAnulable } from "../componentes/AnularViaje";
+import VentanaDocumentosViaje from "../componentes/DocumentosViaje";
 import type { Viaje } from "../api/tipos";
 
 /**
@@ -16,6 +17,8 @@ export default function Historial() {
   const [reintentando, setReintentando] = useState<Viaje | null>(null);
   /** Viaje abierto en la ventana de anulacion. */
   const [anulando, setAnulando] = useState<Viaje | null>(null);
+  /** Viaje cuyos documentos (manifiesto y remesas) se van a imprimir. */
+  const [imprimiendo, setImprimiendo] = useState<Viaje | null>(null);
 
   if (cargando) return <Cargando que="historial" />;
   if (error) return <ErrorCarga mensaje={error} alReintentar={recargar} />;
@@ -71,6 +74,11 @@ export default function Historial() {
                     )}
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
+                    {v.estado === "CONFIRMADO" && (
+                      <button className="btn-primary" onClick={() => setImprimiendo(v)}>
+                        🖨 Imprimir
+                      </button>
+                    )}
                     {esReintentable(v) && (
                       <button className="btn-primary" onClick={() => setReintentando(v)}>
                         Reintentar
@@ -106,6 +114,9 @@ export default function Historial() {
           alCerrar={() => setReintentando(null)}
           alTerminar={recargar}
         />
+      )}
+      {imprimiendo && (
+        <VentanaDocumentosViaje viaje={imprimiendo} alCerrar={() => setImprimiendo(null)} />
       )}
       {anulando && (
         <AnularViaje viaje={anulando} alCerrar={() => setAnulando(null)} alTerminar={recargar} />
