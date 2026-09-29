@@ -106,6 +106,34 @@ export default function Catalogo() {
     }
   }
 
+  /**
+   * Elimina el vehiculo abierto en la ventana. Es un borrado logico: los
+   * viajes que ya lo usaron lo siguen mostrando en el historial.
+   */
+  async function eliminarVehiculo() {
+    if (!edicion || edicion.modo !== "editar") return;
+    const placa = String(edicion.original.placa ?? "");
+    const confirmado = window.confirm(
+      `¿Eliminar el vehiculo ${placa}?
+
+` +
+        "Desaparece del catalogo, del despacho y de las alertas. Los viajes que ya hizo se conservan. " +
+        "Si mas adelante lo vuelves a crear con la misma placa, se recupera."
+    );
+    if (!confirmado) return;
+    setGuardando(true);
+    setErrorGuardar(null);
+    try {
+      await api.eliminarVehiculo(edicion.id);
+      vehiculos.recargar();
+      setEdicion(null);
+    } catch (exc) {
+      setErrorGuardar(exc instanceof Error ? exc.message : "No se pudo eliminar");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
   async function crear(p: Pestana, datos: Modelo) {
     if (p === "vehiculos") {
       await api.crearVehiculo(datos);
@@ -489,6 +517,18 @@ export default function Catalogo() {
           alCerrar={() => setEdicion(null)}
           pie={
             <>
+              {/* Solo vehiculos, y solo al editar uno existente. Va a la
+                  izquierda, separado de Guardar, para no pulsarlo por error. */}
+              {pestana === "vehiculos" && edicion.modo === "editar" && (
+                <button
+                  className="btn-danger-outline"
+                  onClick={eliminarVehiculo}
+                  disabled={guardando}
+                  style={{ marginRight: "auto" }}
+                >
+                  Eliminar vehiculo
+                </button>
+              )}
               <button className="btn-secondary" onClick={() => setEdicion(null)}>
                 Cancelar
               </button>
@@ -873,7 +913,14 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[]): SeccionFormulario[] {
           key: "placaRemolque",
           label: "Remolque habitual (placa)",
           tipo: "text",
-          ayuda: "Solo de referencia: el remolque se elige en cada despacho.",
+          ayuda:
+            "Se sugiere al despachar mientras el vehiculo no tenga historial propio; se puede cambiar en cada despacho.",
+        },
+        {
+          key: "cedulaConductorHabitual",
+          label: "Conductor habitual (cedula)",
+          tipo: "text",
+          ayuda: "Igual que el remolque: se sugiere al despachar si no hay historial.",
         },
       ],
     },

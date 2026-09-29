@@ -92,6 +92,15 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const [conductorId, setConductorId] = useState<number | null>(null);
   const [conductor2Id, setConductor2Id] = useState<number | null>(null);
   const [remolqueId, setRemolqueId] = useState<number | null>(null);
+  /**
+   * Remolque y conductor se sugieren segun el vehiculo. Se guarda el "porque"
+   * de la sugerencia; si el despachador los cambia a mano pasa a null y ya no
+   * se vuelven a pisar al cambiar de vehiculo.
+   */
+  const [porqueRemolque, setPorqueRemolque] = useState<string | null>(null);
+  const [porqueConductor, setPorqueConductor] = useState<string | null>(null);
+  const [remolqueManual, setRemolqueManual] = useState(false);
+  const [conductorManual, setConductorManual] = useState(false);
   /** Empresa de monitoreo del viaje (se elige por id, se envia el NIT). */
   const [monitoreoId, setMonitoreoId] = useState<number | null>(null);
   const [monitoreoEditado, setMonitoreoEditado] = useState(false);
@@ -105,7 +114,9 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const [retencionFopat, setRetencionFopat] = useState<number | null>(null);
   const [fopatEditado, setFopatEditado] = useState(false);
   const [valorAnticipo, setValorAnticipo] = useState<number | null>(null);
-  const [fechaPagoSaldo, setFechaPagoSaldo] = useState("");
+  // Por defecto el saldo se paga 30 dias calendario despues del despacho.
+  // Es editable. Se calcula una sola vez al abrir (funcion en useState).
+  const [fechaPagoSaldo, setFechaPagoSaldo] = useState(() => diasDesdeHoy(30));
   const [viajesDia, setViajesDia] = useState<number | null>(null);
 
   const [codVia, setCodVia] = useState<string | null>(null);
@@ -264,6 +275,33 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     setMonitoreoId(emf?.id ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehiculoId, empresasMonitoreo.datos]);
+
+  // Al elegir el vehiculo se sugieren su remolque y su conductor habituales.
+  // La bandera `vigente` descarta respuestas viejas: si se cambia rapido de
+  // vehiculo, la respuesta del anterior puede llegar despues que la nueva.
+  useEffect(() => {
+    if (!vehiculoId) return;
+    let vigente = true;
+    api
+      .getSugerencias(vehiculoId)
+      .then((s) => {
+        if (!vigente) return;
+        if (!remolqueManual) {
+          setRemolqueId(s.remolque?.id ?? null);
+          setPorqueRemolque(s.remolque?.origen ?? null);
+        }
+        if (!conductorManual) {
+          setConductorId(s.conductor?.id ?? null);
+          setPorqueConductor(s.conductor?.origen ?? null);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      vigente = false;
+    };
+    // Solo al cambiar de vehiculo: las banderas manuales se leen en el momento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehiculoId]);
 
   // Al elegir la plantilla de la primera carga se trae su tarifa, salvo que ya
   // se haya escrito un valor a mano.
@@ -590,21 +628,35 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             <ComboBuscable
               opciones={listaRemolques}
               valor={remolqueId}
-              alCambiar={setRemolqueId}
+              alCambiar={(id) => {
+                setRemolqueManual(true);
+                setPorqueRemolque(null);
+                setRemolqueId(id);
+              }}
               obtenerId={(r) => r.id}
               obtenerEtiqueta={(r) => r.placa}
               placeholder="Busca por placa..."
             />
+            {porqueRemolque && remolqueId && (
+              <p className="section-desc sugerencia">✓ Sugerido: {porqueRemolque}.</p>
+            )}
 
             <label>Conductor</label>
             <ComboBuscable
               opciones={listaConductores}
               valor={conductorId}
-              alCambiar={setConductorId}
+              alCambiar={(id) => {
+                setConductorManual(true);
+                setPorqueConductor(null);
+                setConductorId(id);
+              }}
               obtenerId={(c) => c.id}
               obtenerEtiqueta={(c) => `${c.nombre} (${c.cedula})`}
               placeholder="Busca por nombre o cedula..."
             />
+            {porqueConductor && conductorId && (
+              <p className="section-desc sugerencia">✓ Sugerido: {porqueConductor}.</p>
+            )}
 
             <label>Segundo conductor (opcional)</label>
             <ComboBuscable
@@ -905,14 +957,15 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               No puede superar el neto a pagar, o sea el flete menos las tres retenciones.
             </p>
 
-            <label>Fecha de pago del saldo (vacio = fecha del ultimo descargue)</label>
+            <label>Fecha de pago del saldo</label>
             <input
               type="date"
               value={fechaPagoSaldo}
               onChange={(e) => setFechaPagoSaldo(e.target.value)}
             />
             <p className="section-desc">
-              30 dias habiles despues de la cita de descargue.
+              Por defecto, 30 dias despues del despacho. Si la borras, se toma la fecha del ultimo
+              descargue. El limite es 30 dias habiles despues de la cita de descargue.
             </p>
 
             {pideViajesDia && (
@@ -1034,4 +1087,13 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       <div className="modal-footer">{pie}</div>
     </div>
   );
+}
+
+/** "AAAA-MM-DD" de hoy + n dias, en hora de Colombia (para inputs type="date"). */
+function diasDesdeHoy(n: number): string {
+  const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
+  const [a, m, d] = hoy.split("-").map(Number);
+  // Se opera en UTC con el dia de Colombia: sumar dias no se corre por la zona.
+  const f = new Date(Date.UTC(a, m - 1, d + n));
+  return f.toISOString().slice(0, 10);
 }

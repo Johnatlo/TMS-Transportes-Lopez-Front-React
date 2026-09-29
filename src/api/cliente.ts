@@ -28,6 +28,7 @@ import type {
   Viaje,
   ViajeRemesa,
   PreviaAnulacion,
+  SugerenciaVehiculo,
 } from "./tipos";
 
 const BASE = "/api";
@@ -95,6 +96,11 @@ export const api = {
   /** Lo que no se mande conserva su valor actual. */
   actualizarVehiculo: (id: number, datos: Partial<Vehiculo>) =>
     put<Vehiculo>(`/catalogo/vehiculos/${id}`, datos),
+  /**
+   * Borrado logico: el vehiculo sale de todas las listas pero se conserva
+   * para los viajes que ya lo usaron. Crear otra vez la misma placa lo recupera.
+   */
+  eliminarVehiculo: (id: number) => del<void>(`/catalogo/vehiculos/${id}`),
 
   // ---------- Empresas de monitoreo de flota ----------
 
@@ -187,6 +193,10 @@ export const api = {
   getHistorial: () => get<Viaje[]>("/despacho/historial"),
 
   /** Siguiente numero disponible. Es una sugerencia, no una reserva. */
+  /** Remolque y conductor que suele usar el vehiculo (historial o catalogo). */
+  getSugerencias: (vehiculoId: number) =>
+    get<SugerenciaVehiculo>(`/despacho/sugerencias/${vehiculoId}`),
+
   getSiguienteConsecutivo: () => get<{ base: string }>("/despacho/siguiente-consecutivo"),
 
   /**

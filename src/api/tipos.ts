@@ -42,6 +42,14 @@ export interface Vehiculo {
   propietarioNit: string | null;
   /** Nombre del titular del manifiesto. Informativo: no viaja al RNDC. */
   nombreTenedor: string | null;
+  /** Cedula del conductor que suele manejarlo (sugerencia del despacho). */
+  cedulaConductorHabitual: string | null;
+}
+
+/** Remolque y conductor sugeridos para un vehiculo, con el porque. */
+export interface SugerenciaVehiculo {
+  remolque: { id: number; origen: string } | null;
+  conductor: { id: number; origen: string } | null;
 }
 
 /** Empresa de monitoreo de flota registrada en el RNDC. */
