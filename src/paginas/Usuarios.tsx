@@ -72,49 +72,51 @@ export default function Usuarios() {
             + Nuevo usuario
           </button>
         </div>
-        <table className="tabla-tablero">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Email</th>
-              <th>Estado</th>
-              <th>Ultimo acceso</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {(lista.datos ?? []).map((u) => (
-              <tr key={u.id}>
-                <td>
-                  <strong>{u.nombre}</strong>
-                  {u.id === yo?.id && <span className="dato-sec">(tu)</span>}
-                </td>
-                <td>{u.email}</td>
-                <td>
-                  <span className={`etiqueta-estado ${u.activo ? "estado-verde" : "estado-neutro"}`}>
-                    {u.activo ? "Activo" : "Inactivo"}
-                  </span>
-                  {u.activo && u.debeCambiarClave && (
-                    <span className="etiqueta-estado estado-gris" style={{ marginLeft: 6 }}>
-                      Clave temporal
-                    </span>
-                  )}
-                </td>
-                <td>{u.ultimoAcceso ? fechaHora(u.ultimoAcceso) : "Nunca"}</td>
-                <td style={{ textAlign: "right" }}>
-                  <button className="boton-suave" onClick={() => restablecer(u)}>
-                    Restablecer contrasena
-                  </button>
-                  {u.id !== yo?.id && (
-                    <button className="btn-link" style={{ marginLeft: 8 }} onClick={() => cambiarEstado(u)}>
-                      {u.activo ? "Desactivar" : "Reactivar"}
-                    </button>
-                  )}
-                </td>
+        <div className="tabla-scroll">
+          <table className="tabla-tablero">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Estado</th>
+                <th>Ultimo acceso</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(lista.datos ?? []).map((u) => (
+                <tr key={u.id}>
+                  <td>
+                    <strong>{u.nombre}</strong>
+                    {u.id === yo?.id && <span className="dato-sec">(tu)</span>}
+                  </td>
+                  <td>{u.email}</td>
+                  <td>
+                    <span className={`etiqueta-estado ${u.activo ? "estado-verde" : "estado-neutro"}`}>
+                      {u.activo ? "Activo" : "Inactivo"}
+                    </span>
+                    {u.activo && u.debeCambiarClave && (
+                      <span className="etiqueta-estado estado-gris" style={{ marginLeft: 6 }}>
+                        Clave temporal
+                      </span>
+                    )}
+                  </td>
+                  <td>{u.ultimoAcceso ? fechaHora(u.ultimoAcceso) : "Nunca"}</td>
+                  <td style={{ textAlign: "right" }}>
+                    <button className="boton-suave" onClick={() => restablecer(u)}>
+                      Restablecer contrasena
+                    </button>
+                    {u.id !== yo?.id && (
+                      <button className="btn-link" style={{ marginLeft: 8 }} onClick={() => cambiarEstado(u)}>
+                        {u.activo ? "Desactivar" : "Reactivar"}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {creando && (

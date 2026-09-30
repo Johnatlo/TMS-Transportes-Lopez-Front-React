@@ -35,7 +35,9 @@ export default function Historial() {
     <>
       <div className="panel">
         <div className="tabla-scroll">
-          <table className="modern">
+          {/* En el celular cada fila se ve como tarjeta (ver .tabla-viajes en
+              estilos.css); data-label es el titulo de cada dato en la tarjeta. */}
+          <table className="modern tabla-viajes">
             <thead>
               <tr>
                 <th>Viaje</th>
@@ -51,19 +53,19 @@ export default function Historial() {
             <tbody>
               {viajes.map((v) => (
                 <tr key={v.id}>
-                  <td>
+                  <td className="celda-viaje">
                     #{v.id}
                     {v.creadoPorNombre && <span className="dato-sec">por {v.creadoPorNombre}</span>}
                   </td>
-                  <td>{fechaHora(v.fechaHoraCargue)}</td>
-                  <td>
+                  <td data-label="Cargue">{fechaHora(v.fechaHoraCargue)}</td>
+                  <td data-label="Estado">
                     <span className={`badge ${claseEstado(v.estado)}`}>{v.estado}</span>
                     {v.plazoCumplido && <PlazoCumplido dias={v.plazoCumplido.diasHabilesRestantes} />}
                     {v.estado === "CUMPLIDO" && v.cumplidoPorNombre && (
                       <span className="dato-sec">por {v.cumplidoPorNombre}</span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Manifiesto">
                     {v.consecutivoManifiesto ?? "-"}
                     {v.numeroManifiestoRndc && (
                       <span className="dato-sec">Radicado {v.numeroManifiestoRndc}</span>
@@ -78,10 +80,10 @@ export default function Historial() {
                       </span>
                     )}
                   </td>
-                  <td>{moneda(v.valorFleteReal)}</td>
-                  <td>{moneda(v.retencionFopat)}</td>
+                  <td data-label="Flete">{moneda(v.valorFleteReal)}</td>
+                  <td data-label="FOPAT">{moneda(v.retencionFopat)}</td>
                   {/* El error completo se ve en la ventana; aqui solo el comienzo. */}
-                  <td style={{ whiteSpace: "normal", maxWidth: 360 }}>
+                  <td className={`celda-error ${v.mensajeError ? "" : "sin-error"}`}>
                     {v.mensajeError ? (
                       <span className="dato-sec" title={v.mensajeError}>
                         {v.codigoError ? `${v.codigoError}: ` : ""}
@@ -92,7 +94,7 @@ export default function Historial() {
                       "-"
                     )}
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  <td className="celda-acciones">
                     {(v.estado === "CONFIRMADO" || v.estado === "CUMPLIDO") && (
                       <button className="btn-primary" onClick={() => setImprimiendo(v)}>
                         🖨 Imprimir

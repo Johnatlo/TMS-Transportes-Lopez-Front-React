@@ -17,6 +17,7 @@ import {
   IconoInicio,
   IconoCamion,
   IconoMas,
+  IconoMenu,
   IconoPlantillas,
   IconoViajes,
   IconoUsuarios,
@@ -85,6 +86,12 @@ export default function Shell() {
   const [verAlertas, setVerAlertas] = useState(false);
   const [versionDocumentos, setVersionDocumentos] = useState(0);
   const [contraido, setContraido] = useState(leerContraido);
+  /**
+   * En el celular el menu no ocupa espacio: se abre encima del contenido con
+   * el boton de tres rayas. En el computador esto no se usa (ver estilos.css,
+   * "Celular").
+   */
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const { usuario, salir } = useSesion();
   const [menuUsuario, setMenuUsuario] = useState(false);
   const [cambiandoClave, setCambiandoClave] = useState(false);
@@ -103,6 +110,9 @@ export default function Shell() {
     }
   }, [contraido]);
 
+  // Al elegir una pantalla el menu del celular se cierra solo.
+  useEffect(() => setMenuAbierto(false), [ubicacion.pathname]);
+
   const pendientes = (alertas.datos?.vencidos.length ?? 0) + (alertas.datos?.porVencer.length ?? 0);
   const nombreEmpresa = parametros.datos?.nombreEmpresa ?? "Transportes Lopez";
 
@@ -114,7 +124,9 @@ export default function Shell() {
 
   return (
     <div className={`app-shell ${contraido ? "menu-contraido" : ""}`}>
-      <aside className="sidebar">
+      {/* Fondo oscuro detras del menu abierto en el celular: tocarlo lo cierra. */}
+      {menuAbierto && <div className="capa-menu" onClick={() => setMenuAbierto(false)} />}
+      <aside className={`sidebar ${menuAbierto ? "abierto" : ""}`}>
         <div className="brand">
           <img className="brand-logo" src={logoPequeno} alt="" />
           <span className="solo-expandido">Transportes Lopez</span>
@@ -150,6 +162,9 @@ export default function Shell() {
 
       <div className="main-area">
         <header className="topbar">
+          <button className="boton-redondo boton-menu" title="Menu" aria-label="Abrir menu" onClick={() => setMenuAbierto(true)}>
+            <IconoMenu />
+          </button>
           <h1>
             {actual?.etiqueta ?? "TMS"}
             <span className="crumb"> · {nombreEmpresa}</span>

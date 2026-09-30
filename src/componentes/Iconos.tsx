@@ -112,6 +112,12 @@ export const IconoContraer = () => (
   </Icono>
 );
 
+export const IconoMenu = () => (
+  <Icono>
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </Icono>
+);
+
 export const IconoCalendario = () => (
   <Icono tamano={16}>
     <rect x="3.5" y="5" width="17" height="15" rx="2" />

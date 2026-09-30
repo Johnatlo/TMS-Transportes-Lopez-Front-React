@@ -58,50 +58,52 @@ export default function Plantillas() {
         )}
 
         {!plantillas.cargando && (
-          <table className="modern">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Ruta</th>
-                <th>Contratante</th>
-                <th>Tarifa</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.nombre}</td>
-                  <td>
-                    {p.municipioOrigen && p.municipioDestino
-                      ? `${p.municipioOrigen} → ${p.municipioDestino}`
-                      : "Sin ruta"}
-                  </td>
-                  <td>{p.contratante?.nombre ?? "-"}</td>
-                  <td>{moneda(p.valorFleteBase)}</td>
-                  <td>
-                    <button className="btn-link" onClick={() => setEditando(p)}>
-                      Editar
-                    </button>{" "}
-                    <button
-                      className="btn-link"
-                      onClick={() => eliminar(p.id, p.nombre)}
-                      disabled={borrandoId === p.id}
-                    >
-                      {borrandoId === p.id ? "Eliminando..." : "Eliminar"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {lista.length === 0 && (
+          <div className="tabla-scroll">
+            <table className="modern">
+              <thead>
                 <tr>
-                  <td colSpan={5} className="empty-row">
-                    Aun no tienes plantillas.
-                  </td>
+                  <th>Nombre</th>
+                  <th>Ruta</th>
+                  <th>Contratante</th>
+                  <th>Tarifa</th>
+                  <th />
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {lista.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.nombre}</td>
+                    <td>
+                      {p.municipioOrigen && p.municipioDestino
+                        ? `${p.municipioOrigen} → ${p.municipioDestino}`
+                        : "Sin ruta"}
+                    </td>
+                    <td>{p.contratante?.nombre ?? "-"}</td>
+                    <td>{moneda(p.valorFleteBase)}</td>
+                    <td>
+                      <button className="btn-link" onClick={() => setEditando(p)}>
+                        Editar
+                      </button>{" "}
+                      <button
+                        className="btn-link"
+                        onClick={() => eliminar(p.id, p.nombre)}
+                        disabled={borrandoId === p.id}
+                      >
+                        {borrandoId === p.id ? "Eliminando..." : "Eliminar"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {lista.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="empty-row">
+                      Aun no tienes plantillas.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -217,55 +219,57 @@ function ModalTarifas({
           {rutas.error && <ErrorCarga mensaje={rutas.error} alReintentar={rutas.recargar} />}
 
           {!rutas.cargando && (
-            <table className="modern">
-              <thead>
-                <tr>
-                  <th>Ruta</th>
-                  <th>Plantillas</th>
-                  <th>Tarifa actual</th>
-                  <th>Actualizada</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(rutas.datos ?? []).map((r) => (
-                  <tr
-                    key={`${r.codMunicipioOrigen}-${r.codMunicipioDestino}`}
-                    onClick={() => seleccionar(r)}
-                    style={{
-                      cursor: "pointer",
-                      background:
-                        ruta?.codMunicipioOrigen === r.codMunicipioOrigen &&
-                        ruta?.codMunicipioDestino === r.codMunicipioDestino
-                          ? "rgba(0,0,0,0.04)"
-                          : undefined,
-                    }}
-                  >
-                    <td>
-                      {r.municipioOrigen} → {r.municipioDestino}
-                    </td>
-                    <td>
-                      {r.plantillas}
-                      {r.sinTarifa > 0 && ` (${r.sinTarifa} sin tarifa)`}
-                    </td>
-                    <td>
-                      {r.fleteMinimo === null
-                        ? "-"
-                        : r.fleteMinimo === r.fleteMaximo
-                          ? moneda(r.fleteMinimo)
-                          : `${moneda(r.fleteMinimo)} a ${moneda(r.fleteMaximo)}`}
-                    </td>
-                    <td>{soloFecha(r.ultimaActualizacion)}</td>
-                  </tr>
-                ))}
-                {(rutas.datos ?? []).length === 0 && (
+            <div className="tabla-scroll">
+              <table className="modern">
+                <thead>
                   <tr>
-                    <td colSpan={4} className="empty-row">
-                      No hay rutas. Revisa que las plantillas tengan su ruta (Editar → Partes).
-                    </td>
+                    <th>Ruta</th>
+                    <th>Plantillas</th>
+                    <th>Tarifa actual</th>
+                    <th>Actualizada</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(rutas.datos ?? []).map((r) => (
+                    <tr
+                      key={`${r.codMunicipioOrigen}-${r.codMunicipioDestino}`}
+                      onClick={() => seleccionar(r)}
+                      style={{
+                        cursor: "pointer",
+                        background:
+                          ruta?.codMunicipioOrigen === r.codMunicipioOrigen &&
+                          ruta?.codMunicipioDestino === r.codMunicipioDestino
+                            ? "rgba(0,0,0,0.04)"
+                            : undefined,
+                      }}
+                    >
+                      <td>
+                        {r.municipioOrigen} → {r.municipioDestino}
+                      </td>
+                      <td>
+                        {r.plantillas}
+                        {r.sinTarifa > 0 && ` (${r.sinTarifa} sin tarifa)`}
+                      </td>
+                      <td>
+                        {r.fleteMinimo === null
+                          ? "-"
+                          : r.fleteMinimo === r.fleteMaximo
+                            ? moneda(r.fleteMinimo)
+                            : `${moneda(r.fleteMinimo)} a ${moneda(r.fleteMaximo)}`}
+                      </td>
+                      <td>{soloFecha(r.ultimaActualizacion)}</td>
+                    </tr>
+                  ))}
+                  {(rutas.datos ?? []).length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="empty-row">
+                        No hay rutas. Revisa que las plantillas tengan su ruta (Editar → Partes).
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {ruta && (
@@ -281,22 +285,24 @@ function ModalTarifas({
                 </div>
               )}
 
-              <table className="modern">
-                <thead>
-                  <tr>
-                    <th>Plantilla</th>
-                    <th>Tarifa actual</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {afectadas.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.nombre}</td>
-                      <td>{p.valorFleteBase ? moneda(p.valorFleteBase) : "sin tarifa"}</td>
+              <div className="tabla-scroll">
+                <table className="modern">
+                  <thead>
+                    <tr>
+                      <th>Plantilla</th>
+                      <th>Tarifa actual</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {afectadas.map((p) => (
+                      <tr key={p.id}>
+                        <td>{p.nombre}</td>
+                        <td>{p.valorFleteBase ? moneda(p.valorFleteBase) : "sin tarifa"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <label style={{ marginTop: "0.8rem" }}>Nueva tarifa para esta ruta</label>
               <input
