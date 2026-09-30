@@ -1,0 +1,232 @@
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { auth, fechaHora } from "../api/cliente";
+import type { EntregaClave } from "../api/cliente";
+import { useDatos } from "../ganchos/useDatos";
+import { useSesion } from "../ganchos/useSesion";
+import { Cargando, ErrorCarga } from "../componentes/Estado";
+import Modal from "../componentes/Modal";
+import type { Usuario } from "../api/tipos";
+
+/**
+ * Administracion de usuarios. Sin roles por ahora: cualquier usuario activo
+ * crea, desactiva y restablece cuentas.
+ *
+ * Las contrasenas temporales las genera el servidor y se muestran UNA sola
+ * vez: hay que copiarlas y entregarlas al usuario, que debera cambiarla en su
+ * primer ingreso.
+ */
+export default function Usuarios() {
+  const { usuario: yo } = useSesion();
+  const lista = useDatos(() => auth.listarUsuarios(), []);
+  const [creando, setCreando] = useState(false);
+  const [claveMostrada, setClaveMostrada] = useState<{ email: string; clave: string; aviso?: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [exito, setExito] = useState<string | null>(null);
+
+  /** Muestra como se entrego la clave: por correo, o en pantalla si no se pudo. */
+  function mostrarEntrega(email: string, r: EntregaClave) {
+    if (r.enviadoPorCorreo) {
+      setExito(`Se envio la contrasena temporal a ${email}.`);
+    } else if (r.claveTemporal) {
+      setClaveMostrada({ email, clave: r.claveTemporal, aviso: r.avisoCorreo });
+    }
+  }
+
+  async function cambiarEstado(u: Usuario) {
+    const accion = u.activo ? "desactivar" : "reactivar";
+    if (!window.confirm(`¿${accion[0].toUpperCase() + accion.slice(1)} a ${u.nombre}?`)) return;
+    setError(null);
+    try {
+      await auth.actualizarUsuario(u.id, { activo: !u.activo });
+      lista.recargar();
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo cambiar el estado");
+    }
+  }
+
+  async function restablecer(u: Usuario) {
+    if (!window.confirm(`¿Restablecer la contrasena de ${u.nombre}? Se cerraran sus sesiones abiertas.`)) return;
+    setError(null);
+    try {
+      setExito(null);
+      mostrarEntrega(u.email, await auth.restablecerClave(u.id));
+      lista.recargar();
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo restablecer");
+    }
+  }
+
+  if (lista.cargando && !lista.datos) return <Cargando que="usuarios" />;
+  if (lista.error) return <ErrorCarga mensaje={lista.error} alReintentar={lista.recargar} />;
+
+  return (
+    <>
+      {exito && <div className="alert success">{exito}</div>}
+      {error && <div className="alert danger">{error}</div>}
+      <div className="panel panel-body">
+        <div className="encabezado-seccion">
+          <h2>Usuarios</h2>
+          <span className="resumen-catalogo">Todos los usuarios tienen los mismos permisos.</span>
+          <button className="btn-primary" style={{ marginLeft: "auto" }} onClick={() => setCreando(true)}>
+            + Nuevo usuario
+          </button>
+        </div>
+        <table className="tabla-tablero">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Estado</th>
+              <th>Ultimo acceso</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {(lista.datos ?? []).map((u) => (
+              <tr key={u.id}>
+                <td>
+                  <strong>{u.nombre}</strong>
+                  {u.id === yo?.id && <span className="dato-sec">(tu)</span>}
+                </td>
+                <td>{u.email}</td>
+                <td>
+                  <span className={`etiqueta-estado ${u.activo ? "estado-verde" : "estado-neutro"}`}>
+                    {u.activo ? "Activo" : "Inactivo"}
+                  </span>
+                  {u.activo && u.debeCambiarClave && (
+                    <span className="etiqueta-estado estado-gris" style={{ marginLeft: 6 }}>
+                      Clave temporal
+                    </span>
+                  )}
+                </td>
+                <td>{u.ultimoAcceso ? fechaHora(u.ultimoAcceso) : "Nunca"}</td>
+                <td style={{ textAlign: "right" }}>
+                  <button className="boton-suave" onClick={() => restablecer(u)}>
+                    Restablecer contrasena
+                  </button>
+                  {u.id !== yo?.id && (
+                    <button className="btn-link" style={{ marginLeft: 8 }} onClick={() => cambiarEstado(u)}>
+                      {u.activo ? "Desactivar" : "Reactivar"}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {creando && (
+        <NuevoUsuario
+          alCerrar={() => setCreando(false)}
+          alCrear={(email, entrega) => {
+            setCreando(false);
+            setExito(null);
+            mostrarEntrega(email, entrega);
+            lista.recargar();
+          }}
+        />
+      )}
+
+      {claveMostrada && <ClaveTemporal {...claveMostrada} alCerrar={() => setClaveMostrada(null)} />}
+    </>
+  );
+}
+
+function NuevoUsuario({
+  alCerrar,
+  alCrear,
+}: {
+  alCerrar: () => void;
+  alCrear: (email: string, entrega: EntregaClave) => void;
+}) {
+  const [nombre, setNombre] = useState("");
+  const [email, setEmail] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function enviar(e: FormEvent) {
+    e.preventDefault();
+    setEnviando(true);
+    setError(null);
+    try {
+      const creado = await auth.crearUsuario(email, nombre);
+      alCrear(creado.email, creado);
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo crear el usuario");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Modal titulo="Nuevo usuario" alCerrar={alCerrar}>
+      <form onSubmit={enviar}>
+        {error && <div className="alert danger">{error}</div>}
+        <label htmlFor="nu-nombre">Nombre</label>
+        <input id="nu-nombre" autoFocus required value={nombre} onChange={(e) => setNombre(e.target.value)} />
+        <label htmlFor="nu-email">Email</label>
+        <input id="nu-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <p className="section-desc">
+          El sistema genera una contrasena temporal y se la envia por correo. Si el correo no
+          esta configurado, la veras aqui una sola vez. El usuario la cambiara en su primer
+          ingreso.
+        </p>
+        <div className="acciones-formulario">
+          <button type="button" className="btn-secondary" onClick={alCerrar}>
+            Cancelar
+          </button>
+          <button type="submit" className="btn-primary" disabled={enviando}>
+            {enviando ? "Creando..." : "Crear usuario"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function ClaveTemporal({
+  email,
+  clave,
+  aviso,
+  alCerrar,
+}: {
+  email: string;
+  clave: string;
+  aviso?: string;
+  alCerrar: () => void;
+}) {
+  const [copiado, setCopiado] = useState(false);
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(clave);
+      setCopiado(true);
+    } catch {
+      /* sin portapapeles: se copia a mano */
+    }
+  }
+  return (
+    <Modal
+      titulo="Contrasena temporal"
+      alCerrar={alCerrar}
+      pie={
+        <button className="btn-primary" onClick={alCerrar}>
+          Listo, ya la copie
+        </button>
+      }
+    >
+      {aviso && <div className="alert warning">{aviso}</div>}
+      <p>
+        Entrega esta contrasena a <strong>{email}</strong>. <strong>No se volvera a mostrar.</strong>{" "}
+        Al entrar, el sistema le pedira crear una propia.
+      </p>
+      <div className="clave-temporal">
+        <code>{clave}</code>
+        <button className="boton-suave" onClick={copiar}>
+          {copiado ? "✓ Copiada" : "Copiar"}
+        </button>
+      </div>
+    </Modal>
+  );
+}

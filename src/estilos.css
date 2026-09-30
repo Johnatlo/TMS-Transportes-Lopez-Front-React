@@ -613,3 +613,311 @@ textarea { width: 100%; font: inherit; padding: 0.55rem 0.7rem; border: 1px soli
 }
 .btn-danger-outline:hover { background: var(--color-danger-bg); }
 .btn-danger-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* =========================================================================
+   Tema del template (docs/template de ejemplo.png). Va al final para
+   redefinir lo anterior sin tocarlo: fondo gris muy claro, tarjetas blancas
+   redondeadas, menu lateral claro y azul como acento.
+   ========================================================================= */
+:root {
+  --color-bg: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-sidebar: #ffffff;
+  --color-accent: #2563eb;
+  --color-accent-dark: #1d4ed8;
+  --color-accent-suave: #eaf1ff;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-border: #e8ebf1;
+  --radius: 16px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.panel { border-radius: var(--radius); }
+.kpi-tile { border-radius: var(--radius); }
+
+/* ---------- Menu lateral ---------- */
+.sidebar {
+  width: 236px;
+  background: var(--color-sidebar);
+  color: #374151;
+  border-right: 1px solid var(--color-border);
+  padding: 1.1rem 0.8rem;
+  position: sticky; top: 0; height: 100vh;
+  transition: width 0.15s ease;
+}
+.sidebar .brand { color: #111827; font-size: 1.05rem; padding: 0.2rem 0.5rem 1.4rem; }
+.sidebar .brand-icon { color: white; flex: none; }
+/* Logo pequeno (el sello redondo): el logo ancho no se lee a este tamano. */
+.sidebar .brand-logo { width: 36px; height: 36px; flex: none; border-radius: 50%; }
+.empresa-logo { width: 30px; height: 30px; flex: none; border-radius: 50%; }
+.sidebar a { color: #374151; font-size: 0.9rem; padding: 0.62rem 0.8rem; border-radius: 10px; }
+.sidebar a:hover { background: #f3f5f9; color: #111827; }
+.sidebar a.active { background: var(--color-accent); color: white; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25); }
+.sidebar .icon { width: 20px; display: flex; justify-content: center; flex: none; }
+.sidebar-pie { margin-top: auto; display: flex; flex-direction: column; gap: 0.6rem; }
+.empresa-tarjeta {
+  display: flex; align-items: center; gap: 0.6rem;
+  border: 1px solid var(--color-border); border-radius: 12px; padding: 0.65rem 0.7rem;
+  background: #fafbfd;
+}
+.empresa-etiqueta { display: block; font-size: 0.7rem; color: var(--color-text-muted); }
+.empresa-nombre { display: block; font-size: 0.82rem; font-weight: 600; color: #111827;
+  max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.boton-contraer {
+  display: flex; align-items: center; gap: 0.6rem;
+  background: none; border: none; border-top: 1px solid var(--color-border);
+  padding: 0.8rem 0.8rem 0.2rem; color: #374151; font: inherit; font-size: 0.9rem; cursor: pointer;
+}
+.menu-contraido .sidebar { width: 72px; }
+.menu-contraido .solo-expandido { display: none; }
+.menu-contraido .sidebar a, .menu-contraido .boton-contraer { justify-content: center; }
+.menu-contraido .empresa-tarjeta { justify-content: center; padding: 0.5rem; }
+.menu-contraido .boton-contraer svg { transform: scaleX(-1); }
+
+/* ---------- Barra superior ---------- */
+.topbar { background: transparent; border-bottom: none; padding: 1.1rem 1.6rem 0.4rem; }
+.topbar h1 { font-size: 1.5rem; font-weight: 600; }
+.topbar .crumb { font-size: 0.85rem; color: var(--color-text-muted); font-weight: 400; }
+.boton-redondo {
+  position: relative; width: 38px; height: 38px; border-radius: 12px;
+  border: 1px solid var(--color-border); background: white; color: #374151;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.boton-redondo:hover { background: #f3f5f9; }
+.boton-redondo.primario { background: var(--color-accent); border-color: var(--color-accent); color: white; }
+.boton-redondo.primario:hover { background: var(--color-accent-dark); }
+.punto-contador {
+  position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px;
+  border-radius: 999px; background: #dc2626; color: white; font-size: 0.66rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; border: 2px solid var(--color-bg);
+}
+.avatar-usuario {
+  width: 38px; height: 38px; border-radius: 12px; background: #111827; color: white;
+  display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;
+}
+.content { padding: 0.8rem 1.6rem 1.6rem; }
+
+/* ---------- Tablero (Inicio) ---------- */
+.tablero { display: flex; flex-direction: column; gap: 1.1rem; }
+.tarjeta {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius); padding: 1.1rem 1.2rem; box-shadow: var(--shadow-card);
+}
+.indicadores { display: grid; grid-template-columns: repeat(4, 1fr); padding: 0; }
+.indicador { padding: 1.1rem 1.3rem; border-left: 1px solid var(--color-border); }
+.indicador:first-child { border-left: none; }
+.indicador-titulo { display: flex; align-items: center; gap: 0.55rem; font-size: 0.9rem; color: #374151; font-weight: 500; }
+.indicador-icono {
+  width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: center; color: var(--color-accent);
+}
+.indicador-fila { display: flex; align-items: baseline; gap: 0.6rem; margin-top: 0.9rem; flex-wrap: wrap; }
+.indicador-valor { font-size: 2rem; font-weight: 600; line-height: 1; }
+.indicador-periodo { margin-left: auto; font-size: 0.75rem; color: var(--color-text-muted); }
+.variacion { font-size: 0.72rem; font-weight: 600; padding: 0.15rem 0.45rem; border-radius: 6px; }
+.variacion.sube { background: var(--color-success-bg); color: var(--color-success-text); }
+.variacion.baja { background: var(--color-danger-bg); color: var(--color-danger-text); }
+
+.tablero-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.1rem; align-items: start; }
+.tablero-principal { display: flex; flex-direction: column; gap: 1.1rem; min-width: 0; }
+.tablero-lateral { display: flex; flex-direction: column; gap: 1.1rem; }
+
+.alertas-destacadas { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+.alerta-destacada {
+  display: flex; align-items: center; gap: 0.8rem; text-align: left; font: inherit; cursor: pointer;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius);
+  padding: 0.9rem 1rem; color: inherit; min-width: 0;
+}
+.alerta-destacada:hover { border-color: #c9d6f5; }
+.alerta-icono { width: 36px; height: 36px; border-radius: 10px; flex: none; display: flex; align-items: center; justify-content: center; color: white; }
+.alerta-icono.rojo { background: #dc2626; }
+.alerta-icono.azul { background: var(--color-accent); }
+.alerta-texto { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; font-size: 0.85rem; }
+.alerta-texto strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alerta-texto span { font-size: 0.78rem; color: var(--color-text-muted); }
+.alerta-flecha {
+  margin-left: auto; width: 32px; height: 32px; border-radius: 9px; flex: none;
+  background: var(--color-accent-suave); color: var(--color-accent);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.encabezado-seccion { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.7rem; }
+.encabezado-seccion h2 { font-size: 1.15rem; margin: 0; font-weight: 600; }
+.encabezado-seccion .boton-suave { margin-left: auto; }
+.pildoras { display: flex; gap: 0.25rem; }
+.pildoras button {
+  font: inherit; font-size: 0.82rem; border: none; background: transparent; cursor: pointer;
+  padding: 0.35rem 0.75rem; border-radius: 8px; color: #374151;
+}
+.pildoras button.activa { background: #111827; color: white; }
+.boton-suave {
+  font: inherit; font-size: 0.8rem; border: none; cursor: pointer;
+  background: var(--color-accent-suave); color: var(--color-accent);
+  padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: 500;
+}
+.seccion-tabla { overflow-x: auto; }
+.tabla-tablero { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.86rem; }
+.tabla-tablero th {
+  text-align: left; font-weight: 500; font-size: 0.78rem; color: #374151;
+  background: #eef0f4; padding: 0.55rem 0.8rem;
+}
+.tabla-tablero th:first-child { border-radius: 8px 0 0 8px; }
+.tabla-tablero th:last-child { border-radius: 0 8px 8px 0; }
+.tabla-tablero td { padding: 0.7rem 0.8rem; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+.vacio-tablero { text-align: center; color: var(--color-text-muted); padding: 1.4rem !important; white-space: normal !important; }
+.punto-estado { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 0.55rem; vertical-align: middle; }
+.etiqueta-estado { font-size: 0.75rem; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 500; }
+.estado-azul { background: #e0ecff; color: #1d4ed8; }
+.estado-gris { background: #eef0f4; color: #4b5563; }
+.estado-verde { background: #dcfce7; color: #15803d; }
+.estado-rojo { background: #fee2e2; color: #b91c1c; }
+.estado-neutro { background: #f3f4f6; color: #6b7280; }
+.punto-estado.estado-azul { background: #2563eb; }
+.punto-estado.estado-gris { background: #9ca3af; }
+.punto-estado.estado-verde { background: #16a34a; }
+.punto-estado.estado-rojo { background: #dc2626; }
+.punto-estado.estado-neutro { background: #d1d5db; }
+.avatar-conductor {
+  width: 30px; height: 30px; border-radius: 50%; background: #dbe4f5; color: #1e3a8a;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;
+}
+
+.encabezado-tarjeta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem; }
+.titulo-tarjeta { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.95rem; }
+.selector-pequeno { width: auto; font-size: 0.78rem; padding: 0.3rem 0.5rem; border-radius: 8px; }
+.grafica-semana { display: flex; gap: 0.35rem; height: 150px; align-items: stretch; }
+.dia-columna { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+.barras { position: relative; flex: 1; width: 100%; display: flex; justify-content: center; }
+.barra { position: absolute; bottom: 0; width: 22px; border-radius: 6px 6px 0 0; transition: opacity 0.15s; }
+.barra.anterior { background: #dbe8fd; width: 26px; }
+.barra.actual { background: var(--color-accent); }
+.dia-etiqueta { font-size: 0.72rem; color: var(--color-text-muted); }
+.totales-semana { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.6rem; }
+.totales-semana div { border: 1px solid var(--color-border); border-radius: 10px; padding: 0.55rem; text-align: center; }
+.totales-semana strong { display: block; font-size: 1rem; }
+.totales-semana span { font-size: 0.7rem; color: var(--color-text-muted); }
+.leyenda-semana { display: flex; gap: 1rem; font-size: 0.75rem; color: #374151; margin-top: 0.7rem; }
+.leyenda-semana i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.35rem; }
+.muestra-actual { background: var(--color-accent); }
+.muestra-anterior { background: #b7d3f6; }
+.mapa-seguimiento { height: 230px; border-radius: 12px; overflow: hidden; border: 1px solid var(--color-border); z-index: 0; }
+.nota-mapa { font-size: 0.72rem; color: var(--color-text-muted); margin: 0.5rem 0 0; }
+
+@media (max-width: 1200px) {
+  .tablero-cuerpo { grid-template-columns: 1fr; }
+  .indicadores { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Los botones redondos no heredan el padding de los botones generales: con
+   38px de ancho, ese padding aplastaba el icono hasta casi 0px. */
+.boton-redondo, .avatar-usuario { padding: 0; flex: none; }
+.boton-redondo svg, .alerta-flecha svg, .indicador-icono svg { flex: none; }
+
+/* ---------- Acceso (login, recuperar y cambio de clave) ----------
+   Tarjeta centrada sobre la foto de fondo, partida en dos mitades iguales:
+   formulario a la izquierda y foto con texto a la derecha. */
+.pantalla-acceso {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 2rem 1rem;
+  background: url("./assets/fondo-acceso.jpg") center / cover no-repeat, #1e5fae;
+}
+.tarjeta-dividida {
+  width: 100%; max-width: 1040px; min-height: min(620px, calc(100vh - 4rem));
+  display: grid; grid-template-columns: 1fr 1fr;
+  border-radius: 18px; overflow: hidden;
+  background: #fafbfc;
+  box-shadow: 0 30px 70px rgba(8, 25, 55, 0.35), 0 4px 14px rgba(8, 25, 55, 0.12);
+}
+
+/* Mitad del formulario */
+.acceso-formulario { display: flex; align-items: center; justify-content: center; padding: 2.5rem 2rem; }
+.acceso-contenido { width: 100%; max-width: 340px; display: flex; flex-direction: column; }
+.acceso-logo { width: 190px; height: auto; align-self: center; margin-bottom: 1.6rem; }
+.acceso-contenido .tarjeta-acceso { width: 100%; padding: 0; border: none; box-shadow: none; background: none; }
+.acceso-contenido h1 {
+  font-size: 1.75rem; margin: 0 0 0.35rem; text-align: center; letter-spacing: -0.02em;
+  color: #1a4fb0;
+}
+.acceso-contenido h1 + p, .acceso-subtitulo {
+  text-align: center; color: var(--color-text-muted); font-size: 0.88rem; margin: 0 0 1.6rem; line-height: 1.45;
+}
+.acceso-contenido label { font-size: 0.82rem; font-weight: 600; color: #1f2937; }
+.acceso-contenido input {
+  padding: 0.72rem 0.85rem; border-radius: 10px; border: 1px solid #d5dbe5; background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.acceso-contenido input:focus { outline: none; border-color: #2b6fd6; box-shadow: 0 0 0 3px rgba(43, 111, 214, 0.15); }
+.acceso-contenido input::placeholder { color: #a3acba; }
+.acceso-contenido .btn-primary.boton-ancho {
+  padding: 0.78rem; border-radius: 10px; font-weight: 600; margin-top: 1.5rem;
+  background: linear-gradient(135deg, #2b6fd6, #1a4fb0); border: none;
+  box-shadow: 0 8px 18px rgba(26, 79, 176, 0.28);
+}
+.acceso-contenido .btn-primary.boton-ancho:hover:not(:disabled) { filter: brightness(1.07); }
+
+/* "¿Olvidaste tu contrasena?" al lado de la etiqueta, como en el ejemplo. */
+.fila-etiqueta { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.3rem; }
+.fila-etiqueta label { margin-bottom: 0; }
+.enlace-pequeno {
+  background: none; border: none; padding: 0; cursor: pointer; font: inherit;
+  font-size: 0.78rem; color: #2b6fd6; font-weight: 500;
+}
+.enlace-pequeno:hover { text-decoration: underline; }
+
+/* Campo de contrasena con el ojo adentro, a la derecha. */
+.campo-clave { position: relative; margin-bottom: 0.9rem; }
+/* El margen inferior global de los inputs pasa al contenedor: si no, el ojo
+   (centrado en el contenedor) queda corrido hacia abajo. */
+.campo-clave input { width: 100%; padding-right: 2.6rem; margin-bottom: 0; }
+.boton-ojo {
+  position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%);
+  width: 32px; height: 32px; padding: 0; border: none; border-radius: 8px; background: none;
+  display: flex; align-items: center; justify-content: center; color: #7b8698; cursor: pointer;
+}
+.boton-ojo:hover { background: #eef2f8; color: #1a4fb0; }
+
+/* Mitad de la foto: el texto va abajo, sobre un degradado para que se lea. */
+.acceso-foto {
+  position: relative; display: flex; align-items: flex-end;
+  background: url("./assets/foto-acceso.jpg") center 40% / cover no-repeat, #26456f;
+}
+.acceso-foto::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10, 30, 70, 0.05) 35%, rgba(10, 30, 70, 0.82) 100%);
+}
+.acceso-foto-texto { position: relative; padding: 2.4rem 2.6rem; color: white; }
+.acceso-foto-texto h2 { margin: 0 0 0.5rem; font-size: 1.45rem; letter-spacing: -0.01em; }
+.acceso-foto-texto p { margin: 0; font-size: 0.9rem; line-height: 1.5; color: rgba(255, 255, 255, 0.85); max-width: 360px; }
+
+/* Pantallas angostas: se oculta la foto y queda solo el formulario. */
+@media (max-width: 820px) {
+  .tarjeta-dividida { grid-template-columns: 1fr; max-width: 440px; min-height: 0; }
+  .acceso-foto { display: none; }
+  .acceso-formulario { padding: 2.2rem 1.5rem; }
+}
+.boton-ancho { width: 100%; margin-top: 1rem; justify-content: center; }
+.acciones-formulario { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem; }
+
+/* ---------- Menu del usuario ---------- */
+.menu-usuario-contenedor { position: relative; }
+button.avatar-usuario { border: none; cursor: pointer; font: inherit; font-size: 0.8rem; font-weight: 700; }
+.capa-cierre { position: fixed; inset: 0; z-index: 40; }
+.menu-usuario {
+  position: absolute; right: 0; top: 46px; z-index: 41; width: 240px;
+  background: white; border: 1px solid var(--color-border); border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.12); padding: 0.4rem; display: flex; flex-direction: column;
+}
+.menu-usuario-cabecera { padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.3rem; }
+.menu-usuario-cabecera strong { display: block; font-size: 0.9rem; }
+.menu-usuario-cabecera span { font-size: 0.78rem; color: var(--color-text-muted); }
+.menu-usuario button {
+  text-align: left; background: none; border: none; font: inherit; font-size: 0.88rem;
+  padding: 0.55rem 0.7rem; border-radius: 8px; cursor: pointer; color: #374151;
+}
+.menu-usuario button:hover { background: #f3f5f9; }
+.clave-temporal { display: flex; align-items: center; gap: 0.8rem; margin-top: 0.8rem; }
+.clave-temporal code {
+  font-size: 1.3rem; letter-spacing: 1px; padding: 0.6rem 0.9rem; border-radius: 10px;
+  background: #f3f5f9; border: 1px dashed #c9d1de;
+}

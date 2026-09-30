@@ -1,274 +1,306 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { api, separarAvisos, fechaHora, hoyColombia, moneda } from "../api/cliente";
+import { useNavigate } from "react-router-dom";
+import { api, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
-import ReintentarViaje, { esReintentable } from "../componentes/ReintentarViaje";
 import { usarShell } from "../componentes/Shell";
-import type { Conductor, PlantillaViaje, Vehiculo, Viaje, ViajeRemesa } from "../api/tipos";
+import MapaSeguimiento, { coordenadaValida, type PuntoMapa } from "../componentes/MapaSeguimiento";
+import {
+  IconoCalendario,
+  IconoCamion,
+  IconoCheck,
+  IconoConductores,
+  IconoDocumento,
+  IconoFlecha,
+  IconoGrafica,
+  IconoMapa,
+} from "../componentes/Iconos";
+import type { AlertaDocumento, Conductor, PlantillaViaje, Viaje } from "../api/tipos";
 
 /**
- * Pantalla de inicio: tablero con el estado de la flota y de los viajes.
+ * Pantalla de inicio, organizada como docs/template de ejemplo.png:
+ * indicadores arriba, los documentos mas urgentes, los viajes de hoy, los
+ * ultimos viajes, los viajes por semana y el mapa de seguimiento.
  *
- * Todo se calcula en el navegador a partir de listas que ya existen
- * (vehiculos, conductores, plantillas y los ultimos 100 viajes). No hay
- * endpoints de estadisticas: si el volumen crece, conviene moverlo al backend.
+ * Todo se calcula en el navegador con listas que ya existen (los ultimos 100
+ * viajes, vehiculos, conductores y plantillas). Si el volumen crece, conviene
+ * mover los conteos al backend.
  *
- * "En camino" se deduce de las CITAS de cargue y descargue de los manifiestos
- * confirmados: el sistema aun no registra cumplidos ni posicion GPS.
+ * El estado de un viaje sale de las CITAS de cargue y descargue del
+ * manifiesto: el sistema aun no registra cumplidos ni posicion GPS.
  */
 export default function Dashboard() {
+  const navegar = useNavigate();
   const { alertas, abrirAlertas, versionDocumentos } = usarShell();
   const historial = useDatos(() => api.getHistorial(), []);
-  // Se vuelve a pedir cuando se corrige un documento desde las alertas.
   const vehiculos = useDatos(() => api.getVehiculos(), [versionDocumentos]);
   const conductores = useDatos(() => api.getConductores(), []);
   const plantillas = useDatos(() => api.getPlantillas(), []);
-  /** Viaje abierto en la ventana de reintento (null = ventana cerrada). */
-  const [reintentando, setReintentando] = useState<Viaje | null>(null);
 
-  // Remesas desplegadas por viaje. Se piden bajo demanda y no de entrada:
-  // son varias peticiones y casi nunca se necesitan todas.
-  const [remesasPorViaje, setRemesasPorViaje] = useState<Record<number, ViajeRemesa[]>>({});
+  const [hoyVista, setHoyVista] = useState<"cargues" | "descargues">("cargues");
+  const [semanaAtras, setSemanaAtras] = useState(0);
 
-  async function alternarRemesas(viajeId: number) {
-    if (remesasPorViaje[viajeId]) {
-      const copia = { ...remesasPorViaje };
-      delete copia[viajeId];
-      setRemesasPorViaje(copia);
-      return;
-    }
-    const remesas = await api.getRemesasDeViaje(viajeId);
-    setRemesasPorViaje({ ...remesasPorViaje, [viajeId]: remesas });
-  }
-
-  // Solo la primera carga muestra "Cargando": en una recarga (por ejemplo tras
-  // corregir un documento) se siguen viendo los datos anteriores hasta que
-  // lleguen los nuevos, sin parpadeo.
-  const cargando =
-    (historial.cargando && !historial.datos) || (vehiculos.cargando && !vehiculos.datos);
-  if (cargando) return <Cargando que="el tablero" />;
-  if (historial.error) return <ErrorCarga mensaje={historial.error} alReintentar={historial.recargar} />;
-  if (vehiculos.error) return <ErrorCarga mensaje={vehiculos.error} alReintentar={vehiculos.recargar} />;
-
+  const ahora = useMemo(() => new Date(), [historial.datos]);
   const viajes = historial.datos ?? [];
-  const flota = vehiculos.datos ?? [];
-  const ahora = new Date();
-
-  // Mapas por id para cruzar viajes con vehiculo, conductor y ruta.
-  const vehiculoPorId = new Map(flota.map((v) => [v.id, v]));
-  const conductorPorId = new Map((conductores.datos ?? []).map((c) => [c.id, c]));
-  const plantillaPorId = new Map((plantillas.datos ?? []).map((p) => [p.id, p]));
+  const vehiculoPorId = useMemo(() => new Map((vehiculos.datos ?? []).map((v) => [v.id, v])), [vehiculos.datos]);
+  const conductorPorId = useMemo(() => new Map((conductores.datos ?? []).map((c) => [c.id, c])), [conductores.datos]);
+  const plantillaPorId = useMemo(() => new Map((plantillas.datos ?? []).map((p) => [p.id, p])), [plantillas.datos]);
 
   const confirmados = viajes.filter((v) => v.estado === "CONFIRMADO");
-  const enCamino = confirmados
-    .filter((v) => estaEnCamino(v, ahora))
-    .sort((a, b) => fecha(a.fechaHoraDescargue) - fecha(b.fechaHoraDescargue));
-  const programados = confirmados
-    .filter((v) => new Date(v.fechaHoraCargue) > ahora)
-    .sort((a, b) => fecha(a.fechaHoraCargue) - fecha(b.fechaHoraCargue));
-  const incidencias = viajes.filter(esReintentable);
-  const imprimibles = confirmados.filter((v) => v.numeroManifiestoRndc).slice(0, 8);
+  const enCamino = confirmados.filter((v) => estadoViaje(v, ahora) === "En camino");
+  const programados = confirmados.filter((v) => estadoViaje(v, ahora) === "Programado");
 
-  const mesActual = claveDia(ahora).slice(0, 7);
-  const delMes = confirmados.filter((v) => claveDia(new Date(v.fechaCreacion)).slice(0, 7) === mesActual);
-  const fleteDelMes = delMes.reduce((s, v) => s + (v.valorFleteReal ?? 0), 0);
+  // Finalizados: llegada (cita de descargue) en los ultimos 30 dias, contra los 30 anteriores.
+  const finalizadosEn = (desdeDias: number, hastaDias: number) =>
+    confirmados.filter((v) => {
+      const d = v.fechaHoraDescargue ? new Date(v.fechaHoraDescargue).getTime() : NaN;
+      return d <= ahora.getTime() - hastaDias * DIA && d > ahora.getTime() - desdeDias * DIA;
+    }).length;
+  const finalizados30 = finalizadosEn(30, 0);
+  const finalizadosPrevios = finalizadosEn(60, 30);
 
-  // Estado de cada vehiculo. Un vehiculo en camino no cuenta como programado.
-  const placasEnCamino = new Set(enCamino.map((v) => v.vehiculoId));
-  const placasProgramadas = new Set(
-    programados.map((v) => v.vehiculoId).filter((id) => !placasEnCamino.has(id))
+  // Viajes por semana (lunes a domingo, hora de Colombia), por fecha de expedicion.
+  const semanas = useMemo(() => viajesPorSemana(confirmados, ahora), [historial.datos]);
+  const semanaActual = semanas[0];
+  const semanaAnterior = semanas[1];
+
+  // Los dos documentos mas urgentes: uno de vehiculo y uno de conductor.
+  const urgentes = alertas ? [...alertas.vencidos, ...alertas.porVencer] : [];
+  const docVehiculo = urgentes.find((a) => a.origen.entidad === "vehiculo" || a.origen.entidad === "remolque");
+  const docConductor = urgentes.find((a) => a.origen.entidad === "conductor");
+
+  const hoy = claveDia(ahora);
+  const deHoy = confirmados
+    .filter((v) => {
+      const f = hoyVista === "cargues" ? v.fechaHoraCargue : v.fechaHoraDescargue;
+      return f && claveDia(new Date(f)) === hoy;
+    })
+    .sort((a, b) => hora(hoyVista === "cargues" ? a.fechaHoraCargue : a.fechaHoraDescargue).localeCompare(
+      hora(hoyVista === "cargues" ? b.fechaHoraCargue : b.fechaHoraDescargue)
+    ));
+  const ultimos = viajes.slice(0, 6);
+
+  const puntos = useMemo<PuntoMapa[]>(
+    () =>
+      enCamino.flatMap((v) => {
+        const p = plantillaPorId.get(v.plantillaId);
+        const o = p?.remitente;
+        const d = p?.destinatario;
+        if (!o || !d || !coordenadaValida(o.latitud, o.longitud) || !coordenadaValida(d.latitud, d.longitud)) return [];
+        return [{
+          id: v.id,
+          etiqueta: vehiculoPorId.get(v.vehiculoId)?.placa ?? `Viaje #${v.id}`,
+          detalle: `${ruta(p)} · llega ${soloHora(v.fechaHoraDescargue)}`,
+          origen: [o.latitud!, o.longitud!] as [number, number],
+          destino: [d.latitud!, d.longitud!] as [number, number],
+          avance: avance(v, ahora),
+        }];
+      }),
+    // Solo cambia cuando llegan datos nuevos, no en cada render: si no, el
+    // mapa se reencuadraria cada vez que se toca algo de la pantalla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [historial.datos, plantillas.datos, vehiculos.datos]
   );
-  const activos = flota.filter((v) => v.activo);
-  const estadoFlota: SegmentoFlota[] = [
-    { id: "camino", etiqueta: "En camino", valor: activos.filter((v) => placasEnCamino.has(v.id)).length },
-    { id: "programado", etiqueta: "Programados", valor: activos.filter((v) => placasProgramadas.has(v.id)).length },
-    {
-      id: "disponible",
-      etiqueta: "Disponibles",
-      valor: activos.filter((v) => !placasEnCamino.has(v.id) && !placasProgramadas.has(v.id)).length,
-    },
-    { id: "inactivo", etiqueta: "Inactivos", valor: flota.length - activos.length },
-  ];
 
-  const vencidos = alertas?.vencidos.length ?? 0;
-  const porVencer = alertas?.porVencer.length ?? 0;
+  if (historial.cargando && !historial.datos) return <Cargando que="el tablero" />;
+  if (historial.error) return <ErrorCarga mensaje={historial.error} alReintentar={historial.recargar} />;
+
+  const fila = (v: Viaje, columnaLugar: "destino" | "ruta") => {
+    const p = plantillaPorId.get(v.plantillaId);
+    const estado = estadoViaje(v, ahora);
+    return (
+      <tr key={v.id}>
+        <td>
+          <span className={`punto-estado ${claseEstado(estado)}`} />
+          <strong>{v.consecutivoManifiesto ?? `#${v.id}`}</strong>
+        </td>
+        {columnaLugar === "destino" ? (
+          <>
+            <td>{soloHora(hoyVista === "cargues" ? v.fechaHoraCargue : v.fechaHoraDescargue)}</td>
+            <td>{hoyVista === "cargues" ? p?.destinatario?.ciudad ?? "-" : p?.remitente?.ciudad ?? "-"}</td>
+          </>
+        ) : (
+          <td>
+            <span className={`etiqueta-estado ${claseEstado(estado)}`}>{estado}</span>
+          </td>
+        )}
+        {columnaLugar === "ruta" && <td>{ruta(p)}</td>}
+        <td>{p?.contratante?.nombre ?? "-"}</td>
+        {columnaLugar === "destino" ? (
+          <td>
+            <span className={`etiqueta-estado ${claseEstado(estado)}`}>{estado}</span>
+          </td>
+        ) : (
+          <td>{v.fechaHoraDescargue ? `${fechaCorta(v.fechaHoraDescargue)} ${soloHora(v.fechaHoraDescargue)}` : "-"}</td>
+        )}
+        <td>{vehiculoPorId.get(v.vehiculoId)?.placa ?? "-"}</td>
+        <td>
+          <AvatarConductor conductor={conductorPorId.get(v.conductorId)} />
+        </td>
+      </tr>
+    );
+  };
 
   return (
-    <>
+    <div className="tablero">
       {/* ---------- Indicadores ---------- */}
-      <div className="kpi-grid">
-        <Indicador etiqueta="Flota activa" valor={activos.length}>
-          {(conductores.datos ?? []).filter((c) => c.activo).length} conductores activos
-        </Indicador>
-        <Indicador etiqueta="En camino" valor={enCamino.length} destacado>
-          segun las citas de cargue y descargue
-        </Indicador>
-        <Indicador etiqueta="Programados" valor={programados.length}>
-          {programados[0]
-            ? `proximo cargue ${fechaHora(programados[0].fechaHoraCargue)}`
-            : "sin cargues pendientes"}
-        </Indicador>
-        <Indicador etiqueta="Manifiestos del mes" valor={delMes.length}>
-          flete {moneda(fleteDelMes)}
-        </Indicador>
-        <Indicador etiqueta="Viajes con incidencias" valor={incidencias.length}>
-          {incidencias.length > 0 ? <Link to="/historial">ver y reintentar</Link> : "todo al dia"}
-        </Indicador>
+      <div className="tarjeta indicadores">
+        <Indicador icono={<IconoCamion />} titulo="Vehiculos en transito" valor={enCamino.length} />
         <Indicador
-          etiqueta="Documentos vencidos"
-          valor={alertas ? vencidos : "-"}
-          alClic={alertas ? abrirAlertas : undefined}
-          estado={vencidos > 0 ? "critico" : porVencer > 0 ? "aviso" : undefined}
-        >
-          {alertas ? `${porVencer} por vencer · ver detalle` : "cargando..."}
-        </Indicador>
-      </div>
-
-      {/* ---------- Graficas ---------- */}
-      <div className="grid-2">
-        <div className="panel panel-body viz-root">
-          <h3 className="panel-title">Estado de la flota</h3>
-          <p className="section-desc" style={{ margin: "0 0 1rem" }}>
-            {flota.length} vehiculos registrados. Un vehiculo en camino que ademas tiene otro
-            viaje programado cuenta como en camino.
-          </p>
-          <BarraFlota segmentos={estadoFlota} />
-          <ul className="resumen-flota">
-            <li>
-              <span>Con SOAT y tecnomecanica al dia</span>
-              <strong>
-                {activos.filter((v) => alDia(v.fechaVencSoat) && alDia(v.fechaVencTecnomecanica)).length}{" "}
-                de {activos.length}
-              </strong>
-            </li>
-            <li>
-              <span>Sin proveedor de GPS asignado</span>
-              <strong>
-                {activos.filter((v) => !v.nitMonitoreoFlota).length}{" "}
-                <Link to="/catalogo">asignar</Link>
-              </strong>
-            </li>
-          </ul>
-        </div>
-
-        <div className="panel panel-body viz-root">
-          <h3 className="panel-title">Manifiestos expedidos, ultimos 14 dias</h3>
-          <p className="section-desc" style={{ margin: "0 0 1rem" }}>
-            Confirmados por el RNDC, por dia de expedicion.
-          </p>
-          <ColumnasPorDia viajes={confirmados} dias={14} ahora={ahora} />
-        </div>
-      </div>
-
-      {/* ---------- En camino ---------- */}
-      <div className="panel panel-body">
-        <h3 className="panel-title">Vehiculos en camino</h3>
-        <p className="section-desc" style={{ margin: "0 0 0.8rem" }}>
-          El avance es el tiempo transcurrido entre la cita de cargue y la de descargue, no la
-          posicion real del vehiculo.
-        </p>
-        <TablaViajes
-          viajes={enCamino}
-          vacio="No hay vehiculos en camino en este momento."
-          ahora={ahora}
-          conAvance
-          vehiculoPorId={vehiculoPorId}
-          conductorPorId={conductorPorId}
-          plantillaPorId={plantillaPorId}
+          icono={<IconoCheck />}
+          titulo="Viajes finalizados"
+          valor={finalizados30}
+          variacion={variacion(finalizados30, finalizadosPrevios)}
+          periodo="30 dias"
         />
-
-        {programados.length > 0 && (
-          <>
-            <h4 className="subtitulo-panel">Proximos a salir</h4>
-            <TablaViajes
-              viajes={programados.slice(0, 5)}
-              vacio=""
-              ahora={ahora}
-              vehiculoPorId={vehiculoPorId}
-              conductorPorId={conductorPorId}
-              plantillaPorId={plantillaPorId}
-            />
-          </>
-        )}
+        <Indicador icono={<IconoCalendario />} titulo="Proximos viajes" valor={programados.length} periodo="programados" />
+        <Indicador
+          icono={<IconoGrafica />}
+          titulo="Viajes esta semana"
+          valor={semanaActual.total}
+          variacion={variacion(semanaActual.total, semanaAnterior.total)}
+          periodo="vs. semana pasada"
+        />
       </div>
 
-      {/* ---------- Incidencias y manifiestos ---------- */}
-      <div className="grid-2">
-        <div className="panel panel-body">
-          <h3 className="panel-title">Viajes con incidencias</h3>
-          {incidencias.length === 0 ? (
-            <p className="section-desc">No hay viajes con incidencias. Todo al dia.</p>
-          ) : (
-            <table className="modern">
+      <div className="tablero-cuerpo">
+        <div className="tablero-principal">
+          {/* ---------- Documentos mas urgentes ---------- */}
+          <div className="alertas-destacadas">
+            <AlertaDestacada
+              alerta={docVehiculo}
+              icono={<IconoCamion />}
+              tono="rojo"
+              vacio="Ningun documento de vehiculo vencido ni por vencer."
+              alAbrir={abrirAlertas}
+            />
+            <AlertaDestacada
+              alerta={docConductor}
+              icono={<IconoConductores />}
+              tono="azul"
+              vacio="Ninguna licencia vencida ni por vencer."
+              alAbrir={abrirAlertas}
+            />
+          </div>
+
+          {/* ---------- Hoy ---------- */}
+          <div className="seccion-tabla">
+            <div className="encabezado-seccion">
+              <h2>Hoy:</h2>
+              <div className="pildoras">
+                <button className={hoyVista === "cargues" ? "activa" : ""} onClick={() => setHoyVista("cargues")}>
+                  Cargues
+                </button>
+                <button className={hoyVista === "descargues" ? "activa" : ""} onClick={() => setHoyVista("descargues")}>
+                  Descargues
+                </button>
+              </div>
+              <button className="boton-suave" onClick={() => navegar("/historial")}>
+                Ver todos
+              </button>
+            </div>
+            <table className="tabla-tablero">
+              <thead>
+                <tr>
+                  <th>Manifiesto</th>
+                  <th>Hora</th>
+                  <th>{hoyVista === "cargues" ? "Destino" : "Origen"}</th>
+                  <th>Cliente</th>
+                  <th>Estado</th>
+                  <th>Vehiculo</th>
+                  <th>Conductor</th>
+                </tr>
+              </thead>
               <tbody>
-                {incidencias.slice(0, 6).map((v) => (
-                  <tr key={v.id}>
-                    <td>
-                      <strong>#{v.id}</strong>
-                      <span className="dato-sec">{vehiculoPorId.get(v.vehiculoId)?.placa ?? "-"}</span>
-                    </td>
-                    <td style={{ whiteSpace: "normal" }}>
-                      <span className="badge badge-danger">{v.codigoError ?? v.estado}</span>
-                      <span className="dato-sec" title={v.mensajeError ?? ""}>
-                        {(v.mensajeError ?? "").slice(0, 90)}
-                        {(v.mensajeError ?? "").length > 90 ? "..." : ""}
-                      </span>
-                    </td>
-                    <td>
-                      <button className="btn-primary" onClick={() => setReintentando(v)}>
-                        Reintentar
-                      </button>
+                {deHoy.map((v) => fila(v, "destino"))}
+                {deHoy.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="vacio-tablero">
+                      No hay {hoyVista} programados para hoy.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
-          )}
-          {incidencias.length > 6 && (
-            <p className="resumen-catalogo">
-              Y {incidencias.length - 6} mas en el <Link to="/historial">Historial</Link>.
-            </p>
-          )}
+          </div>
+
+          {/* ---------- Ultimos viajes ---------- */}
+          <div className="seccion-tabla">
+            <div className="encabezado-seccion">
+              <h2>Ultimos viajes</h2>
+              <button className="boton-suave" onClick={() => navegar("/historial")}>
+                Ver todos
+              </button>
+            </div>
+            <table className="tabla-tablero">
+              <thead>
+                <tr>
+                  <th>Manifiesto</th>
+                  <th>Estado</th>
+                  <th>Ruta</th>
+                  <th>Cliente</th>
+                  <th>Llegada</th>
+                  <th>Vehiculo</th>
+                  <th>Conductor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ultimos.map((v) => fila(v, "ruta"))}
+                {ultimos.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="vacio-tablero">
+                      Aun no hay viajes.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        <div className="panel panel-body">
-          <h3 className="panel-title">Manifiestos para imprimir</h3>
-          <p className="section-desc" style={{ margin: "0 0 0.8rem" }}>
-            PDF oficial del Ministerio con el codigo QR. El conductor lo lleva todo el recorrido.
-          </p>
-          <table className="modern">
-            <tbody>
-              {imprimibles.map((v) => (
-                <FilaManifiesto
-                  key={v.id}
-                  viaje={v}
-                  placa={vehiculoPorId.get(v.vehiculoId)?.placa ?? "-"}
-                  remesas={remesasPorViaje[v.id]}
-                  alAlternar={() => alternarRemesas(v.id)}
-                />
-              ))}
-              {imprimibles.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="empty-row">
-                    Aun no hay manifiestos radicados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="tablero-lateral">
+          {/* ---------- Viajes por semana (en lugar de Cost & Profitability) ---------- */}
+          <div className="tarjeta">
+            <div className="encabezado-tarjeta">
+              <span className="titulo-tarjeta">
+                <IconoGrafica /> Viajes por semana
+              </span>
+              <select
+                value={semanaAtras}
+                onChange={(e) => setSemanaAtras(Number(e.target.value))}
+                className="selector-pequeno"
+              >
+                <option value={0}>Esta semana</option>
+                <option value={1}>Semana pasada</option>
+                <option value={2}>Hace 2 semanas</option>
+                <option value={3}>Hace 3 semanas</option>
+              </select>
+            </div>
+            <GraficaSemana actual={semanas[semanaAtras]} anterior={semanas[semanaAtras + 1]} />
+          </div>
+
+          {/* ---------- Seguimiento ---------- */}
+          <div className="tarjeta">
+            <div className="encabezado-tarjeta">
+              <span className="titulo-tarjeta">
+                <IconoMapa /> Seguimiento
+              </span>
+              <button className="boton-suave" onClick={() => navegar("/historial")}>
+                Mas
+              </button>
+            </div>
+            <MapaSeguimiento puntos={puntos} />
+            <p className="nota-mapa">
+              {enCamino.length === 0
+                ? "No hay vehiculos en camino."
+                : `${puntos.length} de ${enCamino.length} en camino con ubicacion. `}
+              Posicion estimada entre cargue y descargue segun las citas; no es GPS.
+            </p>
+          </div>
         </div>
       </div>
-
-      {reintentando && (
-        <ReintentarViaje
-          viaje={reintentando}
-          alCerrar={() => setReintentando(null)}
-          alTerminar={historial.recargar}
-        />
-      )}
-    </>
+    </div>
   );
 }
 
@@ -276,17 +308,29 @@ export default function Dashboard() {
 // Reglas
 // ---------------------------------------------------------------------------
 
-function fecha(valor: string | null): number {
-  return valor ? new Date(valor).getTime() : Number.POSITIVE_INFINITY;
+const DIA = 86_400_000;
+type EstadoViaje = "En camino" | "Programado" | "Finalizado" | "Anulado" | "Con incidencia";
+
+function estadoViaje(v: Viaje, ahora: Date): EstadoViaje {
+  if (v.estado === "ANULADO") return "Anulado";
+  if (v.estado !== "CONFIRMADO") return "Con incidencia";
+  const ini = new Date(v.fechaHoraCargue).getTime();
+  const fin = v.fechaHoraDescargue ? new Date(v.fechaHoraDescargue).getTime() : ini;
+  if (ahora.getTime() < ini) return "Programado";
+  if (ahora.getTime() <= fin) return "En camino";
+  return "Finalizado";
 }
 
-/** Entre la cita de cargue y la de descargue. Sin cita de descargue no se puede afirmar. */
-function estaEnCamino(v: Viaje, ahora: Date): boolean {
-  if (!v.fechaHoraDescargue) return false;
-  return new Date(v.fechaHoraCargue) <= ahora && ahora <= new Date(v.fechaHoraDescargue);
+function claseEstado(e: EstadoViaje): string {
+  return {
+    "En camino": "estado-azul",
+    Programado: "estado-gris",
+    Finalizado: "estado-verde",
+    Anulado: "estado-neutro",
+    "Con incidencia": "estado-rojo",
+  }[e];
 }
 
-/** Fraccion (0 a 1) del tiempo transcurrido entre cargue y descargue. */
 function avance(v: Viaje, ahora: Date): number {
   const ini = new Date(v.fechaHoraCargue).getTime();
   const fin = v.fechaHoraDescargue ? new Date(v.fechaHoraDescargue).getTime() : ini;
@@ -294,21 +338,70 @@ function avance(v: Viaje, ahora: Date): number {
   return Math.min(1, Math.max(0, (ahora.getTime() - ini) / (fin - ini)));
 }
 
-/** Documento vigente hoy (columna DATE, se compara el dia). Sin fecha no cuenta como al dia. */
-function alDia(fecha: string | null): boolean {
-  return !!fecha && fecha.slice(0, 10) >= hoyColombia();
-}
-
 /** "AAAA-MM-DD" del dia en Colombia. */
 function claveDia(d: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(d);
 }
 
+function hora(valor: string | null): string {
+  return valor
+    ? new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(valor))
+    : "";
+}
+const soloHora = hora;
+
+/** "DD/MM" en hora de Colombia (no del texto UTC: de noche seria el dia siguiente). */
+function fechaCorta(valor: string): string {
+  const [, m, d] = claveDia(new Date(valor)).split("-");
+  return `${d}/${m}`;
+}
+
 function ruta(p: PlantillaViaje | undefined): string {
   if (!p) return "-";
-  const origen = p.remitente?.ciudad ?? p.municipioOrigen ?? "?";
-  const destino = p.destinatario?.ciudad ?? p.municipioDestino ?? "?";
-  return `${origen} → ${destino}`;
+  return `${corto(p.remitente?.ciudad)} → ${corto(p.destinatario?.ciudad)}`;
+}
+/** "SOACHA CUNDINAMARCA" -> "Soacha": el municipio sin el departamento. */
+function corto(ciudad: string | null | undefined): string {
+  if (!ciudad) return "?";
+  const primera = ciudad.split(" ")[0];
+  return primera.charAt(0) + primera.slice(1).toLowerCase();
+}
+
+/** Variacion porcentual; null si no hay base para comparar. */
+function variacion(actual: number, previo: number): number | null {
+  if (previo === 0) return null;
+  return Math.round(((actual - previo) / previo) * 100);
+}
+
+interface Semana {
+  total: number;
+  /** Lunes a domingo. */
+  porDia: number[];
+  etiqueta: string;
+}
+
+/**
+ * Viajes confirmados por semana (lunes a domingo, hora de Colombia), por fecha
+ * de expedicion. Devuelve la semana actual y las 4 anteriores.
+ */
+function viajesPorSemana(viajes: Viaje[], ahora: Date): Semana[] {
+  const [a, m, d] = claveDia(ahora).split("-").map(Number);
+  const hoyUtc = Date.UTC(a, m - 1, d);
+  const diaSemana = (new Date(hoyUtc).getUTCDay() + 6) % 7; // 0 = lunes
+  const lunes = hoyUtc - diaSemana * DIA;
+  return Array.from({ length: 5 }, (_, s) => {
+    const inicio = lunes - s * 7 * DIA;
+    const porDia = Array(7).fill(0);
+    for (const v of viajes) {
+      const [va, vm, vd] = claveDia(new Date(v.fechaCreacion)).split("-").map(Number);
+      const i = (Date.UTC(va, vm - 1, vd) - inicio) / DIA;
+      if (i >= 0 && i < 7) porDia[i]++;
+    }
+    const fin = new Date(inicio + 6 * DIA);
+    const ini = new Date(inicio);
+    const f = (x: Date) => `${String(x.getUTCDate()).padStart(2, "0")}/${String(x.getUTCMonth() + 1).padStart(2, "0")}`;
+    return { total: porDia.reduce((x, y) => x + y, 0), porDia, etiqueta: `${f(ini)} - ${f(fin)}` };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -316,319 +409,145 @@ function ruta(p: PlantillaViaje | undefined): string {
 // ---------------------------------------------------------------------------
 
 function Indicador({
-  etiqueta,
+  icono,
+  titulo,
   valor,
-  children,
-  destacado,
-  estado,
-  alClic,
+  variacion: v,
+  periodo,
 }: {
-  etiqueta: string;
-  valor: number | string;
-  children?: ReactNode;
-  destacado?: boolean;
-  estado?: "critico" | "aviso";
-  alClic?: () => void;
-}) {
-  const clases = ["kpi-tile", destacado ? "kpi-destacado" : "", estado ? `kpi-${estado}` : "", alClic ? "kpi-clic" : ""]
-    .filter(Boolean)
-    .join(" ");
-  const contenido = (
-    <>
-      <span className="kpi-etiqueta">
-        {/* El estado lleva icono ademas del color. */}
-        {estado === "critico" && "✖ "}
-        {estado === "aviso" && "⚠ "}
-        {etiqueta}
-      </span>
-      <span className="kpi-valor">{typeof valor === "number" ? valor.toLocaleString("es-CO") : valor}</span>
-      {children && <span className="kpi-detalle">{children}</span>}
-    </>
-  );
-  return alClic ? (
-    <button type="button" className={clases} onClick={alClic}>
-      {contenido}
-    </button>
-  ) : (
-    <div className={clases}>{contenido}</div>
-  );
-}
-
-interface SegmentoFlota {
-  id: "camino" | "programado" | "disponible" | "inactivo";
-  etiqueta: string;
+  icono: ReactNode;
+  titulo: string;
   valor: number;
-}
-
-/**
- * Parte-de-un-todo: una barra apilada horizontal. Cada categoria tiene color
- * fijo (no depende del orden ni de cuantas haya) y la leyenda lleva siempre la
- * cantidad y el porcentaje, asi la identidad nunca depende solo del color.
- */
-function BarraFlota({ segmentos }: { segmentos: SegmentoFlota[] }) {
-  const [foco, setFoco] = useState<string | null>(null);
-  const total = segmentos.reduce((s, x) => s + x.valor, 0);
-  const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
-  const visibles = segmentos.filter((s) => s.valor > 0);
-  const enFoco = segmentos.find((s) => s.id === foco);
-
-  return (
-    <>
-      <div className="barra-apilada" role="img" aria-label="Estado de la flota">
-        {visibles.map((s) => (
-          <div
-            key={s.id}
-            className={`segmento serie-${s.id} ${foco && foco !== s.id ? "atenuado" : ""}`}
-            style={{ flexGrow: s.valor }}
-            onMouseEnter={() => setFoco(s.id)}
-            onMouseLeave={() => setFoco(null)}
-          />
-        ))}
-        {total === 0 && <div className="segmento serie-inactivo" style={{ flexGrow: 1 }} />}
-      </div>
-      <div className="tooltip-linea">
-        {enFoco ? `${enFoco.etiqueta}: ${enFoco.valor} vehiculo(s), ${pct(enFoco.valor)}%` : " "}
-      </div>
-      <ul className="leyenda">
-        {segmentos.map((s) => (
-          <li
-            key={s.id}
-            onMouseEnter={() => setFoco(s.id)}
-            onMouseLeave={() => setFoco(null)}
-          >
-            <span className={`muestra serie-${s.id}`} />
-            <span className="leyenda-etiqueta">{s.etiqueta}</span>
-            <span className="leyenda-valor">
-              {s.valor} <span className="dato-sec-inline">({pct(s.valor)}%)</span>
-            </span>
-          </li>
-        ))}
-      </ul>
-    </>
-  );
-}
-
-/**
- * Cambio en el tiempo con pocos puntos: columnas, una sola serie (sin
- * leyenda; el titulo dice que se mide). El valor se ve al pasar el mouse y el
- * dia con mas manifiestos lleva su numero encima.
- */
-function ColumnasPorDia({ viajes, dias, ahora }: { viajes: Viaje[]; dias: number; ahora: Date }) {
-  const [foco, setFoco] = useState<number | null>(null);
-  const [verTabla, setVerTabla] = useState(false);
-
-  const serie = Array.from({ length: dias }, (_, i) => {
-    const d = new Date(ahora.getTime() - (dias - 1 - i) * 86_400_000);
-    const clave = claveDia(d);
-    return {
-      clave,
-      etiqueta: `${clave.slice(8, 10)}/${clave.slice(5, 7)}`,
-      valor: viajes.filter((v) => claveDia(new Date(v.fechaCreacion)) === clave).length,
-    };
-  });
-  const maximo = Math.max(1, ...serie.map((s) => s.valor));
-  const iMax = serie.findIndex((s) => s.valor === maximo && maximo > 0);
-  // Marcas del eje redondas: 0, la mitad y el tope.
-  const tope = Math.max(2, Math.ceil(maximo / 2) * 2);
-
-  return (
-    <>
-      {verTabla ? (
-        <table className="modern">
-          <thead>
-            <tr>
-              <th>Dia</th>
-              <th>Manifiestos</th>
-            </tr>
-          </thead>
-          <tbody>
-            {serie.map((s) => (
-              <tr key={s.clave}>
-                <td>{s.etiqueta}</td>
-                <td className="numero">{s.valor}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <div className="columnas" role="img" aria-label="Manifiestos por dia">
-          <div className="columnas-eje">
-            <span>{tope}</span>
-            <span>{tope / 2}</span>
-            <span>0</span>
-          </div>
-          <div className="columnas-area">
-            <div className="columnas-rejilla" />
-            {serie.map((s, i) => (
-              <div
-                key={s.clave}
-                className="columna-banda"
-                onMouseEnter={() => setFoco(i)}
-                onMouseLeave={() => setFoco(null)}
-              >
-                {(i === iMax || foco === i) && s.valor > 0 && (
-                  <span className="columna-valor" style={{ bottom: `${(s.valor / tope) * 100}%` }}>
-                    {s.valor}
-                  </span>
-                )}
-                <div
-                  className={`columna ${foco !== null && foco !== i ? "atenuado" : ""}`}
-                  style={{ height: `${(s.valor / tope) * 100}%` }}
-                />
-                <span className="columna-etiqueta">{i % 2 === (dias - 1) % 2 ? s.etiqueta : ""}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      <div className="tooltip-linea">
-        {foco !== null
-          ? `${serie[foco].etiqueta}: ${serie[foco].valor} manifiesto(s)`
-          : " "}
-        <button type="button" className="btn-link" onClick={() => setVerTabla(!verTabla)}>
-          {verTabla ? "Ver grafica" : "Ver como tabla"}
-        </button>
-      </div>
-    </>
-  );
-}
-
-function TablaViajes({
-  viajes,
-  vacio,
-  ahora,
-  conAvance,
-  vehiculoPorId,
-  conductorPorId,
-  plantillaPorId,
-}: {
-  viajes: Viaje[];
-  vacio: string;
-  ahora: Date;
-  conAvance?: boolean;
-  vehiculoPorId: Map<number, Vehiculo>;
-  conductorPorId: Map<number, Conductor>;
-  plantillaPorId: Map<number, PlantillaViaje>;
+  variacion?: number | null;
+  periodo?: string;
 }) {
-  if (viajes.length === 0) return <p className="section-desc">{vacio}</p>;
   return (
-    <div className="tabla-scroll">
-      <table className="modern">
-        <thead>
-          <tr>
-            <th>Vehiculo</th>
-            <th>Conductor</th>
-            <th>Ruta</th>
-            <th>Cargue</th>
-            <th>Llegada (cita)</th>
-            {conAvance && <th>Avance</th>}
-            <th>Manifiesto</th>
-          </tr>
-        </thead>
-        <tbody>
-          {viajes.map((v) => {
-            const a = avance(v, ahora);
-            return (
-              <tr key={v.id}>
-                <td>
-                  <strong>{vehiculoPorId.get(v.vehiculoId)?.placa ?? "-"}</strong>
-                </td>
-                <td>{conductorPorId.get(v.conductorId)?.nombre ?? "-"}</td>
-                <td>{ruta(plantillaPorId.get(v.plantillaId))}</td>
-                <td>{fechaHora(v.fechaHoraCargue)}</td>
-                <td>{v.fechaHoraDescargue ? fechaHora(v.fechaHoraDescargue) : "-"}</td>
-                {conAvance && (
-                  <td style={{ minWidth: 140 }}>
-                    <div className="medidor" title={`${Math.round(a * 100)}% del tiempo pactado`}>
-                      <div className="medidor-relleno" style={{ width: `${a * 100}%` }} />
-                    </div>
-                    <span className="dato-sec">{Math.round(a * 100)}%</span>
-                  </td>
-                )}
-                <td>
-                  {v.consecutivoManifiesto ?? "-"}
-                  {v.numeroManifiestoRndc && <span className="dato-sec">{v.numeroManifiestoRndc}</span>}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="indicador">
+      <div className="indicador-titulo">
+        <span className="indicador-icono">{icono}</span>
+        {titulo}
+      </div>
+      <div className="indicador-fila">
+        <span className="indicador-valor">{valor.toLocaleString("es-CO")}</span>
+        {v !== undefined && v !== null && (
+          // Signo + flecha ademas del color: la variacion no depende solo del color.
+          <span className={`variacion ${v >= 0 ? "sube" : "baja"}`}>
+            {v >= 0 ? "▲ +" : "▼ "}
+            {v}%
+          </span>
+        )}
+        {periodo && <span className="indicador-periodo">{periodo}</span>}
+      </div>
     </div>
   );
 }
 
-function FilaManifiesto({
-  viaje,
-  placa,
-  remesas,
-  alAlternar,
+function AlertaDestacada({
+  alerta,
+  icono,
+  tono,
+  vacio,
+  alAbrir,
 }: {
-  viaje: Viaje;
-  placa: string;
-  remesas?: ViajeRemesa[];
-  alAlternar: () => void;
+  alerta: AlertaDocumento | undefined;
+  icono: ReactNode;
+  tono: "rojo" | "azul";
+  vacio: string;
+  alAbrir: () => void;
 }) {
-  const avisos = separarAvisos(viaje.avisos);
+  const dias = alerta?.diasRestantes ?? 0;
+  return (
+    <button className="alerta-destacada" onClick={alAbrir} title="Ver todos los documentos">
+      <span className={`alerta-icono ${tono}`}>{alerta ? icono : <IconoDocumento />}</span>
+      <span className="alerta-texto">
+        {alerta ? (
+          <>
+            <strong>
+              {alerta.origen.entidad === "conductor" ? "Conductor" : "Vehiculo"} {alerta.sujeto} · {alerta.tipo}
+            </strong>
+            <span>
+              {dias < 0 ? `Vencio hace ${Math.abs(dias)} dias` : dias === 0 ? "Vence hoy" : `Vence en ${dias} dias`}
+              {alerta.fechaVencimiento ? ` · ${soloDia(alerta.fechaVencimiento)}` : ""}
+            </span>
+          </>
+        ) : (
+          <span>{vacio}</span>
+        )}
+      </span>
+      <span className="alerta-flecha">
+        <IconoFlecha />
+      </span>
+    </button>
+  );
+}
+
+function AvatarConductor({ conductor }: { conductor: Conductor | undefined }) {
+  if (!conductor) return <span className="dato-sec">-</span>;
+  const iniciales = conductor.nombre
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("");
+  return (
+    <span className="avatar-conductor" title={conductor.nombre}>
+      {iniciales}
+    </span>
+  );
+}
+
+/**
+ * Viajes por dia de la semana elegida. Cada dia lleva dos barras: la semana
+ * anterior en azul claro (de fondo, para comparar) y la elegida en azul. Una
+ * sola metrica, dos periodos: el claro es solo referencia.
+ */
+function GraficaSemana({ actual, anterior }: { actual: Semana; anterior: Semana | undefined }) {
+  const [foco, setFoco] = useState<number | null>(null);
+  const dias = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
+  const maximo = Math.max(1, ...actual.porDia, ...(anterior?.porDia ?? []));
+  const promedio = actual.total / 7;
 
   return (
     <>
-      <tr>
-        <td>
-          <strong>{viaje.consecutivoManifiesto ?? `#${viaje.id}`}</strong>
-          <span className="dato-sec">
-            {placa} · radicado {viaje.numeroManifiestoRndc}
-          </span>
-        </td>
-        <td>{fechaHora(viaje.fechaHoraCargue)}</td>
-        <td style={{ whiteSpace: "nowrap" }}>
-          <button
-            className="btn-secondary"
-            onClick={() => window.open(api.urlPdfManifiesto(viaje.id), "_blank")}
+      <div className="grafica-semana" role="img" aria-label={`Viajes por dia, semana ${actual.etiqueta}`}>
+        {dias.map((d, i) => (
+          <div
+            key={d}
+            className="dia-columna"
+            onMouseEnter={() => setFoco(i)}
+            onMouseLeave={() => setFoco(null)}
           >
-            PDF
-          </button>
-          <button className="btn-secondary" style={{ marginLeft: "0.35rem" }} onClick={alAlternar}>
-            Remesas
-          </button>
-        </td>
-      </tr>
-
-      {avisos.length > 0 && (
-        <tr>
-          {/* maxWidth 0: sin esto la celda crece con el texto y empuja las demas
-              columnas fuera del panel en vez de recortar con "...". */}
-          <td colSpan={3} style={{ paddingTop: 0, maxWidth: 0 }}>
-            {/* Los avisos pueden ser largos: una linea, y el texto completo al pasar el mouse. */}
-            <span className="aviso-corto" title={avisos.join("\n")}>
-              ⚠ {avisos.length} aviso(s): {avisos[0]}
-            </span>
-          </td>
-        </tr>
-      )}
-
-      {remesas && (
-        <tr>
-          <td colSpan={3} style={{ background: "rgba(0,0,0,0.02)" }}>
-            {remesas.map((r) => (
-              <div key={r.id} style={{ padding: "0.25rem 0" }}>
-                {r.consecutivoRemesa} — radicado {r.numeroRemesaRndc ?? "pendiente"}
-                {r.numeroRemesaRndc && (
-                  <button
-                    className="btn-link"
-                    onClick={() => window.open(api.urlImprimirRemesa(r.id), "_blank")}
-                  >
-                    Imprimir soporte
-                  </button>
-                )}
-              </div>
-            ))}
-            {remesas.length === 0 && (
-              <span className="section-desc">Este viaje no tiene remesas registradas.</span>
-            )}
-          </td>
-        </tr>
-      )}
+            <div className="barras">
+              <div className="barra anterior" style={{ height: `${((anterior?.porDia[i] ?? 0) / maximo) * 100}%` }} />
+              <div className={`barra actual ${foco !== null && foco !== i ? "atenuado" : ""}`} style={{ height: `${(actual.porDia[i] / maximo) * 100}%` }} />
+            </div>
+            <span className="dia-etiqueta">{d}</span>
+          </div>
+        ))}
+      </div>
+      <div className="tooltip-linea">
+        {foco !== null
+          ? `${dias[foco]}: ${actual.porDia[foco]} viaje(s)${anterior ? ` · semana anterior ${anterior.porDia[foco]}` : ""}`
+          : `Semana ${actual.etiqueta}`}
+      </div>
+      <div className="totales-semana">
+        <div>
+          <strong>{actual.total}</strong>
+          <span>Viajes de la semana</span>
+        </div>
+        <div>
+          <strong>{anterior?.total ?? "-"}</strong>
+          <span>Semana anterior</span>
+        </div>
+        <div>
+          <strong>{promedio.toLocaleString("es-CO", { maximumFractionDigits: 1 })}</strong>
+          <span>Promedio diario</span>
+        </div>
+      </div>
+      <div className="leyenda-semana">
+        <span><i className="muestra-actual" /> Semana elegida</span>
+        <span><i className="muestra-anterior" /> Semana anterior</span>
+      </div>
     </>
   );
 }

@@ -190,6 +190,12 @@ export interface Viaje {
   /** Radicado del RNDC de la anulacion del manifiesto. */
   radicadoAnulacion: string | null;
   fechaAnulacion: string | null;
+  /**
+   * Auditoria: quien expidio y quien anulo el viaje. Los viajes anteriores al
+   * login no tienen usuario (llegan nulos).
+   */
+  creadoPorNombre?: string | null;
+  anuladoPorNombre?: string | null;
 }
 
 /** Vista previa de una anulacion: pasos, motivos y tope mensual. */
@@ -350,4 +356,16 @@ export interface PeticionDespacho {
   vacio2Origen?: string;
   vacio2Destino?: string;
   vacio2Valor?: number;
+}
+
+/** Usuario del sistema. Por ahora sin roles: todos pueden todo. */
+export interface Usuario {
+  id: number;
+  email: string;
+  nombre: string;
+  activo: boolean;
+  /** Entro con una clave temporal: debe cambiarla antes de seguir. */
+  debeCambiarClave: boolean;
+  ultimoAcceso: string | null;
+  creadoEn: string;
 }

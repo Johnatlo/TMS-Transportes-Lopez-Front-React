@@ -45,7 +45,10 @@ export default function Historial() {
             <tbody>
               {viajes.map((v) => (
                 <tr key={v.id}>
-                  <td>#{v.id}</td>
+                  <td>
+                    #{v.id}
+                    {v.creadoPorNombre && <span className="dato-sec">por {v.creadoPorNombre}</span>}
+                  </td>
                   <td>{fechaHora(v.fechaHoraCargue)}</td>
                   <td>
                     <span className={`badge ${claseEstado(v.estado)}`}>{v.estado}</span>
@@ -57,6 +60,12 @@ export default function Historial() {
                     )}
                     {v.radicadoAnulacion && (
                       <span className="dato-sec">Anulado: radicado {v.radicadoAnulacion}</span>
+                    )}
+                    {v.estado === "ANULADO" && v.anuladoPorNombre && (
+                      <span className="dato-sec">
+                        Anulado por {v.anuladoPorNombre}
+                        {v.fechaAnulacion ? ` · ${fechaHora(v.fechaAnulacion)}` : ""}
+                      </span>
                     )}
                   </td>
                   <td>{moneda(v.valorFleteReal)}</td>

@@ -11,7 +11,7 @@ import FormularioGenerico, {
 import ComboBuscable from "../componentes/ComboBuscable";
 import type { EmpresaMonitoreo, ParametrosEmpresa, Vehiculo } from "../api/tipos";
 
-type Pestana =
+export type Pestana =
   | "vehiculos"
   | "remolques"
   | "conductores"
@@ -37,8 +37,13 @@ const CON_ESTADO: Pestana[] = ["vehiculos", "remolques", "conductores"];
  */
 type Edicion = { modo: "crear" } | { modo: "editar"; id: number; original: Modelo };
 
-export default function Catalogo() {
-  const [pestana, setPestana] = useState<Pestana>("vehiculos");
+/**
+ * El catalogo se usa desde varias entradas del menu (Flota, Conductores,
+ * Clientes, Configuracion): cada una muestra solo sus pestanas. Sin la prop,
+ * se ven todas.
+ */
+export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pestanas?: Pestana[] }) {
+  const [pestana, setPestana] = useState<Pestana>(pestanas[0]);
   const [busqueda, setBusqueda] = useState("");
   const [verInactivos, setVerInactivos] = useState(false);
   const [soloTitularEmpresa, setSoloTitularEmpresa] = useState(false);
@@ -217,8 +222,9 @@ export default function Catalogo() {
       )}
 
       <div className="panel">
+        {pestanas.length > 1 && (
         <div className="toolbar" style={{ borderBottom: "none", paddingBottom: 0 }}>
-          {PESTANAS.map((p) => (
+          {PESTANAS.filter((p) => pestanas.includes(p.id)).map((p) => (
             <button
               key={p.id}
               className={pestana === p.id ? "btn-primary" : "btn-secondary"}
@@ -228,6 +234,7 @@ export default function Catalogo() {
             </button>
           ))}
         </div>
+        )}
 
         {pestana !== "empresa" && (
           <div className="toolbar">

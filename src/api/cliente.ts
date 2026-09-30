@@ -29,6 +29,7 @@ import type {
   ViajeRemesa,
   PreviaAnulacion,
   SugerenciaVehiculo,
+  Usuario,
 } from "./tipos";
 
 const BASE = "/api";
@@ -51,6 +52,9 @@ export class ErrorApi extends Error {
   }
 }
 
+/** Se dispara cuando el backend dice que no hay sesion valida. */
+export const EVENTO_SESION_VENCIDA = "tms:sesion-vencida";
+
 async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   let respuesta: Response;
   try {
@@ -71,6 +75,11 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   const cuerpo = texto ? JSON.parse(texto) : null;
 
   if (!respuesta.ok) {
+    // Sesion vencida o cerrada en otro lado: se avisa a toda la aplicacion
+    // (ProveedorSesion escucha este evento y vuelve a mostrar el login).
+    if (respuesta.status === 401 && cuerpo?.sesion === false) {
+      window.dispatchEvent(new Event(EVENTO_SESION_VENCIDA));
+    }
     const mensaje =
       cuerpo?.mensajeError ?? cuerpo?.error ?? `Error ${respuesta.status} del servidor`;
     throw new ErrorApi(mensaje, respuesta.status, cuerpo);
@@ -88,6 +97,38 @@ const del = <T>(ruta: string) => pedir<T>(ruta, { method: "DELETE" });
 // ---------------------------------------------------------------------------
 // Catalogo
 // ---------------------------------------------------------------------------
+
+/** Como se entrego una clave temporal: por correo, o en pantalla si no se pudo. */
+export interface EntregaClave {
+  enviadoPorCorreo: boolean;
+  claveTemporal?: string;
+  avisoCorreo?: string;
+}
+
+/** Sesion y usuarios. La cookie de sesion la maneja el navegador solo. */
+export const auth = {
+  sesion: () => get<Usuario>("/auth/sesion"),
+  login: (email: string, clave: string) => post<Usuario>("/auth/login", { email, clave }),
+  logout: () => post<void>("/auth/logout", {}),
+  cambiarClave: (actual: string, nueva: string) =>
+    post<Usuario>("/auth/cambiar-clave", { actual, nueva }),
+
+  listarUsuarios: () => get<Usuario[]>("/usuarios"),
+  /**
+   * La clave temporal se envia por correo. Solo si el correo no esta
+   * configurado o falla, llega en la respuesta (una sola vez).
+   */
+  crearUsuario: (email: string, nombre: string) =>
+    post<Usuario & EntregaClave>("/usuarios", { email, nombre }),
+  actualizarUsuario: (id: number, datos: { nombre?: string; activo?: boolean }) =>
+    put<Usuario>(`/usuarios/${id}`, datos),
+  restablecerClave: (id: number) => post<EntregaClave>(`/usuarios/${id}/restablecer-clave`, {}),
+
+  /** "Olvide mi contrasena": envia un codigo de 6 digitos al correo. */
+  recuperar: (email: string) => post<{ ok: boolean; minutos: number }>("/auth/recuperar", { email }),
+  confirmarRecuperacion: (email: string, codigo: string, nueva: string) =>
+    post<{ ok: boolean }>("/auth/recuperar/confirmar", { email, codigo, nueva }),
+};
 
 export const api = {
   getVehiculos: () => get<Vehiculo[]>("/catalogo/vehiculos"),
