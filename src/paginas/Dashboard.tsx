@@ -47,7 +47,17 @@ export default function Dashboard() {
   const conductorPorId = useMemo(() => new Map((conductores.datos ?? []).map((c) => [c.id, c])), [conductores.datos]);
   const plantillaPorId = useMemo(() => new Map((plantillas.datos ?? []).map((p) => [p.id, p])), [plantillas.datos]);
 
-  const confirmados = viajes.filter((v) => v.estado === "CONFIRMADO");
+  // Manifiestos expedidos y vigentes: los cumplidos siguen contando como viajes hechos.
+  const confirmados = viajes.filter((v) => v.estado === "CONFIRMADO" || v.estado === "CUMPLIDO");
+
+  // Viajes ya entregados que falta cumplir en el RNDC (5 dias habiles de plazo).
+  const porCumplir = viajes.filter(
+    (v) => v.plazoCumplido && v.fechaHoraDescargue && new Date(v.fechaHoraDescargue) <= ahora
+  );
+  const cumplidosVencidos = porCumplir.filter((v) => v.plazoCumplido!.vencido).length;
+  const cumplidosUrgentes = porCumplir.filter(
+    (v) => !v.plazoCumplido!.vencido && v.plazoCumplido!.diasHabilesRestantes <= 1
+  ).length;
   const enCamino = confirmados.filter((v) => estadoViaje(v, ahora) === "En camino");
   const programados = confirmados.filter((v) => estadoViaje(v, ahora) === "Programado");
 
@@ -182,6 +192,33 @@ export default function Dashboard() {
               vacio="Ninguna licencia vencida ni por vencer."
               alAbrir={abrirAlertas}
             />
+            <button
+              className="alerta-destacada"
+              onClick={() => navegar("/historial")}
+              title="Cumplir remesas y manifiestos en el historial"
+            >
+              <span className={`alerta-icono ${cumplidosVencidos > 0 ? "rojo" : "azul"}`}>
+                <IconoCheck />
+              </span>
+              <span className="alerta-texto">
+                {porCumplir.length > 0 ? (
+                  <>
+                    <strong>
+                      {porCumplir.length} viaje{porCumplir.length === 1 ? "" : "s"} por cumplir
+                    </strong>
+                    <span>
+                      {cumplidosVencidos > 0
+                        ? `${cumplidosVencidos} con el plazo vencido`
+                        : cumplidosUrgentes > 0
+                        ? `${cumplidosUrgentes} vence${cumplidosUrgentes === 1 ? "" : "n"} pronto`
+                        : "Dentro del plazo de 5 dias habiles"}
+                    </span>
+                  </>
+                ) : (
+                  <span>Ningun viaje entregado pendiente de cumplido.</span>
+                )}
+              </span>
+            </button>
           </div>
 
           {/* ---------- Hoy ---------- */}
@@ -313,6 +350,7 @@ type EstadoViaje = "En camino" | "Programado" | "Finalizado" | "Anulado" | "Con 
 
 function estadoViaje(v: Viaje, ahora: Date): EstadoViaje {
   if (v.estado === "ANULADO") return "Anulado";
+  if (v.estado === "CUMPLIDO") return "Finalizado";
   if (v.estado !== "CONFIRMADO") return "Con incidencia";
   const ini = new Date(v.fechaHoraCargue).getTime();
   const fin = v.fechaHoraDescargue ? new Date(v.fechaHoraDescargue).getTime() : ini;

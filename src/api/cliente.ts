@@ -264,6 +264,15 @@ export const api = {
   getRemesasDeViaje: (viajeId: number) =>
     get<ViajeRemesa[]>(`/despacho/${viajeId}/remesas`),
 
+  /** Cumplido normal de una remesa (proceso 5). Fechas en ISO. */
+  cumplirRemesa: (
+    remesaId: number,
+    datos: { cantidadEntregada: number; entradaCargue: string; entradaDescargue: string }
+  ) => post<{ viaje: Viaje; remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
+  /** Cumplido del manifiesto (proceso 6); exige todas las remesas cumplidas. */
+  cumplirManifiesto: (viajeId: number) =>
+    post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/cumplir`, {}),
+
   /** FOPAT causado y pendiente de pago, por mes. */
   getResumenFopat: () =>
     get<Array<{ mes: string; manifiestos: number; causado: number; pendiente: number }>>(
@@ -285,6 +294,19 @@ export const api = {
 // ---------------------------------------------------------------------------
 
 const FORMATO_MONEDA = new Intl.NumberFormat("es-CO");
+
+/**
+ * Formato que entiende <input type="datetime-local">: YYYY-MM-DDTHH:mm.
+ * Se arma con los componentes locales y no con toISOString(), que convierte a
+ * UTC y en Colombia adelantaria el reloj cinco horas.
+ */
+export function aInputLocal(fecha: Date): string {
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}` +
+    `T${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`
+  );
+}
 
 export function moneda(valor: number | null | undefined): string {
   if (valor === null || valor === undefined) return "-";

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DocumentosViaje } from "../componentes/DocumentosViaje";
-import { api, moneda } from "../api/cliente";
+import { api, moneda, aInputLocal } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { useMunicipios } from "../ganchos/useMunicipios";
 import { Avisos, Cargando } from "../componentes/Estado";
@@ -42,18 +42,6 @@ interface FilaRemesa {
   descargueEditado: boolean;
 }
 
-/**
- * Formato que entiende <input type="datetime-local">: YYYY-MM-DDTHH:mm.
- * Se arma con los componentes locales y no con toISOString(), que convierte a
- * UTC y en Colombia adelantaria el reloj cinco horas.
- */
-function aInputLocal(fecha: Date): string {
-  const dos = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}` +
-    `T${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`
-  );
-}
 
 /** Hoy, a la siguiente hora en punto. Es la cita de cargue mas frecuente. */
 function proximaHoraEnPunto(): Date {

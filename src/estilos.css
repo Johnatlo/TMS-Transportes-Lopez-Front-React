@@ -724,6 +724,8 @@ textarea { width: 100%; font: inherit; padding: 0.55rem 0.7rem; border: 1px soli
 .tablero-lateral { display: flex; flex-direction: column; gap: 1.1rem; }
 
 .alertas-destacadas { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+/* La tercera tarjeta (cumplidos pendientes) va a lo ancho, debajo de los documentos. */
+.alertas-destacadas > :nth-child(3) { grid-column: 1 / -1; }
 .alerta-destacada {
   display: flex; align-items: center; gap: 0.8rem; text-align: left; font: inherit; cursor: pointer;
   background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius);
@@ -921,3 +923,10 @@ button.avatar-usuario { border: none; cursor: pointer; font: inherit; font-size:
   font-size: 1.3rem; letter-spacing: 1px; padding: 0.6rem 0.9rem; border-radius: 10px;
   background: #f3f5f9; border: 1px dashed #c9d1de;
 }
+
+/* ---------- Cumplidos ---------- */
+.campos-cumplido { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.2rem 0.9rem; }
+.plazo-cumplido { display: block; font-size: 0.75rem; margin-top: 0.2rem; font-weight: 600; }
+.plazo-cumplido.ok { color: var(--color-text-muted); font-weight: 500; }
+.plazo-cumplido.pronto { color: #b45309; }
+.plazo-cumplido.vencido { color: #dc2626; }

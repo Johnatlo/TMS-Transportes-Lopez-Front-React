@@ -196,6 +196,12 @@ export interface Viaje {
    */
   creadoPorNombre?: string | null;
   anuladoPorNombre?: string | null;
+  /** Cumplido del manifiesto (proceso 6). */
+  radicadoCumplido?: string | null;
+  fechaCumplido?: string | null;
+  cumplidoPorNombre?: string | null;
+  /** Solo en el historial, para manifiestos vigentes sin cumplir. */
+  plazoCumplido?: PlazoCumplido;
 }
 
 /** Vista previa de una anulacion: pasos, motivos y tope mensual. */
@@ -232,6 +238,19 @@ export interface ViajeRemesa {
   /** Radicados de anulacion del cumplido inicial (54) y de la remesa (9). */
   radicadoAnulacionCumplido: string | null;
   radicadoAnulacion: string | null;
+  /** Cumplido (proceso 5): kilos entregados, entradas reales y radicado. */
+  cantidadEntregada: number | null;
+  entradaCargue: string | null;
+  entradaDescargue: string | null;
+  radicadoCumplido: string | null;
+  fechaCumplido: string | null;
+}
+
+/** Plazo del cumplido: 5 dias habiles desde la entrega (sin contar festivos). */
+export interface PlazoCumplido {
+  diasHabilesTranscurridos: number;
+  diasHabilesRestantes: number;
+  vencido: boolean;
 }
 
 export interface ParametrosEmpresa {
