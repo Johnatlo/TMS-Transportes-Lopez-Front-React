@@ -13,6 +13,7 @@
 
 import type {
   Conductor,
+  DatosRndc,
   EmpresaMonitoreo,
   Municipio,
   ParametrosEmpresa,
@@ -263,6 +264,18 @@ export const api = {
 
   getRemesasDeViaje: (viajeId: number) =>
     get<ViajeRemesa[]>(`/despacho/${viajeId}/remesas`),
+
+  /** Todo lo que el viaje envia al RNDC, sin enviar nada. */
+  getDatosRndc: (viajeId: number) => get<DatosRndc>(`/despacho/${viajeId}/datos-rndc`),
+  /**
+   * El RNDC dijo "DUPLICADO": la remesa (o el manifiesto) ya existia de un
+   * intento anterior. Se toma ese radicado, despues de que la persona confirma
+   * que es el mismo documento.
+   */
+  usarRemesaExistente: (remesaId: number) =>
+    post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/usar-existente`, {}),
+  usarManifiestoExistente: (viajeId: number) =>
+    post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/usar-manifiesto-existente`, {}),
 
   /** Cumplido normal de una remesa (proceso 5). Fechas en ISO. */
   cumplirRemesa: (

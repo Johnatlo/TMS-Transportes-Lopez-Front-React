@@ -246,6 +246,26 @@ export interface ViajeRemesa {
   fechaCumplido: string | null;
 }
 
+/**
+ * Todo lo que un viaje envia (o enviaria) al RNDC, etiqueta por etiqueta.
+ * Llega en cada error de despacho o reintento, y en GET /despacho/:id/datos-rndc.
+ */
+export interface DatosRndc {
+  manifiesto: Record<string, unknown> | null;
+  errorManifiesto: string | null;
+  remesas: Array<{
+    consecutivo: string | null;
+    estado: string;
+    radicado: string | null;
+    mensajeError: string | null;
+    datos: Record<string, unknown> | null;
+    error: string | null;
+  }>;
+  via: { codVia: string; descripcion: string; pisoSicetac: number | null } | null;
+  rutaVias: { origen: string; destino: string } | null;
+  valorFlete: number | null;
+}
+
 /** Plazo del cumplido: 5 dias habiles desde la entrega (sin contar festivos). */
 export interface PlazoCumplido {
   diasHabilesTranscurridos: number;

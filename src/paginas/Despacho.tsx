@@ -6,7 +6,17 @@ import { useMunicipios } from "../ganchos/useMunicipios";
 import { Avisos, Cargando } from "../componentes/Estado";
 import ComboBuscable from "../componentes/ComboBuscable";
 import Modal from "../componentes/Modal";
-import type { PlantillaViaje, Via, Viaje } from "../api/tipos";
+import DatosRndcEnviados from "../componentes/DatosRndc";
+import type { DatosRndc, PlantillaViaje, Via, Viaje, ViajeRemesa } from "../api/tipos";
+
+/** Radicado que el RNDC informa cuando un documento ya existe ("DUPLICADO:123"). */
+function radicadoDuplicado(texto: string | null | undefined): string | null {
+  const m = /DUPLICADO:\s*(\d+)/i.exec(texto ?? "");
+  return m ? m[1] : null;
+}
+
+/** Viaje que ya se guardo (y fallo en el RNDC), con lo que trae la respuesta de error. */
+type ViajeEnCurso = Viaje & { remesas?: ViajeRemesa[]; datosRndc?: DatosRndc };
 
 /** Tope del RNDC para este sistema. */
 const MAX_REMESAS = 5;
@@ -134,6 +144,18 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const [mensaje, setMensaje] = useState<{ tipo: "success" | "danger"; texto: string } | null>(null);
   /** Viaje recien expedido: se muestran sus documentos para imprimir. */
   const [viajeExpedido, setViajeExpedido] = useState<Viaje | null>(null);
+  /**
+   * Viaje guardado cuyo envio al RNDC fallo. Mientras exista, el boton reintenta
+   * ESE viaje en vez de crear otro: asi no se repite el numero ni se reenvian
+   * las remesas que el RNDC ya creo.
+   */
+  const [viajeEnCurso, setViajeEnCurso] = useState<ViajeEnCurso | null>(null);
+  const remesasEnCurso = (viajeEnCurso?.remesas ?? [])
+    .filter((r) => r.estado !== "ANULADA")
+    .sort((a, b) => a.orden - b.orden);
+  /** La carga i ya existe en el RNDC: no se puede cambiar. */
+  const cargaCreada = (i: number) => remesasEnCurso[i]?.estado === "CREADA";
+  const hayCargasCreadas = remesasEnCurso.some((r) => r.estado === "CREADA");
   const [avisos, setAvisos] = useState<string[]>([]);
 
   const listaPlantillas = plantillas.datos ?? [];
@@ -488,8 +510,47 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     setAvisos([]);
     setViajeExpedido(null);
 
+    // Datos del manifiesto, iguales para despacho nuevo y para reintento.
+    const valores = {
+      vehiculoId,
+      conductorId,
+      remolqueId,
+      valorFleteReal: fleteEfectivo,
+      codVia: codVia ?? undefined,
+      nitMonitoreoFlota: nitMonitoreo ?? undefined,
+      viajesDia: viajesDia ?? undefined,
+    };
+    const cargas = remesas.map((r) => ({
+      plantillaId: r.plantillaId!,
+      fechaHoraCargue: r.fechaHoraCargue,
+      fechaHoraDescargue: r.fechaHoraDescargue,
+      pesoReal: r.pesoReal ?? undefined,
+      cantidadReal: r.cantidadReal ?? undefined,
+      ordenServicioGenerador: r.ordenServicioGenerador || undefined,
+      valorFleteRemesa: r.valorFleteRemesa ?? undefined,
+    }));
+
     try {
-      const viaje = await api.despachar({
+      const viaje = viajeEnCurso
+        ? // Reintento del viaje ya guardado. Los vacios van como null para que
+          // borrar un dato en el formulario tambien lo borre en el viaje.
+          await api.reintentarViaje(viajeEnCurso.id, {
+            ...valores,
+            conductor2Id: conductor2Id ?? null,
+            codVia: codVia ?? null,
+            consecutivoManifiesto: consecutivoBase.trim(),
+            valorAnticipoManifiesto: valorAnticipo ?? 0,
+            retencionFopat: retencionFopat ?? null,
+            fechaPagoSaldo: fechaPagoSaldo || null,
+            vacio1Origen: vacio1Origen || null,
+            vacio1Destino: vacio1Destino || null,
+            vacio1Valor: vacio1Valor ?? 0,
+            vacio2Origen: vacio2Origen || null,
+            vacio2Destino: vacio2Destino || null,
+            vacio2Valor: vacio2Valor ?? 0,
+            remesas: cargas,
+          })
+        : await api.despachar({
         vehiculoId,
         conductorId,
         remolqueId,
@@ -521,6 +582,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       });
 
       setAvisos(viaje.avisos ? viaje.avisos.split(" | ") : []);
+      setViajeEnCurso(null);
       setViajeExpedido(viaje);
       setMensaje({
         tipo: "success",
@@ -529,6 +591,12 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     } catch (exc: any) {
       // Cuando el RNDC rechaza, el backend responde 422 con el viaje adentro.
       const cuerpo = exc?.cuerpo;
+      // Si la respuesta trae el viaje, quedo guardado: los siguientes envios lo
+      // reintentan a el. Si no lo trae (error antes de guardar), sigue siendo nuevo.
+      if (cuerpo?.id) {
+        setViajeEnCurso((previo) => ({ ...cuerpo, datosRndc: cuerpo.datosRndc ?? previo?.datosRndc }));
+        if (cuerpo.consecutivoManifiesto) setConsecutivoBase(cuerpo.consecutivoManifiesto);
+      }
       setAvisos(cuerpo?.avisos ? String(cuerpo.avisos).split(" | ") : []);
       setMensaje({
         tipo: "danger",
@@ -537,6 +605,56 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     } finally {
       setEnviando(false);
     }
+  }
+
+  /** El RNDC dijo que la remesa ya existe y la persona confirma que es esta. */
+  async function usarRemesaExistente(r: ViajeRemesa) {
+    const radicado = radicadoDuplicado(r.mensajeError);
+    if (
+      !window.confirm(
+        `El RNDC dice que la remesa ${r.consecutivoRemesa} ya existe (radicado ${radicado}).\n\n` +
+          "Usala SOLO si es esta misma remesa, creada en un intento anterior. Si es otra (por " +
+          "ejemplo, expedida desde el portal), cancela y cambia el numero en Valores."
+      )
+    )
+      return;
+    try {
+      const v = await api.usarRemesaExistente(r.id);
+      setViajeEnCurso((previo) => ({ ...v, datosRndc: previo?.datosRndc }));
+      setMensaje({ tipo: "success", texto: `${v.mensajeError ?? "Remesa tomada del RNDC."}` });
+    } catch (exc: any) {
+      setMensaje({ tipo: "danger", texto: exc?.message ?? "No se pudo tomar la remesa." });
+    }
+  }
+
+  async function usarManifiestoExistente() {
+    if (!viajeEnCurso) return;
+    const radicado = radicadoDuplicado(viajeEnCurso.errorCrudo);
+    if (
+      !window.confirm(
+        `El RNDC dice que el manifiesto ${viajeEnCurso.consecutivoManifiesto} ya existe (radicado ${radicado}).\n\n` +
+          "Usalo SOLO si es este mismo viaje, expedido en un intento anterior."
+      )
+    )
+      return;
+    try {
+      const v = await api.usarManifiestoExistente(viajeEnCurso.id);
+      setViajeEnCurso(null);
+      setViajeExpedido(v);
+      setMensaje({ tipo: "success", texto: `Manifiesto tomado del RNDC (radicado ${v.numeroManifiestoRndc}).` });
+    } catch (exc: any) {
+      setMensaje({ tipo: "danger", texto: exc?.message ?? "No se pudo tomar el manifiesto." });
+    }
+  }
+
+  /** Deja el viaje fallido en Viajes (para reintentarlo o anularlo alla) y arranca uno nuevo. */
+  function empezarOtroDespacho() {
+    setViajeEnCurso(null);
+    setMensaje(null);
+    api
+      .getSiguienteConsecutivo()
+      .then((r) => setConsecutivoBase(r.base))
+      .catch(() => setConsecutivoBase(""));
   }
 
   const puedeAvanzar =
@@ -554,6 +672,54 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       {mensaje && (
         <div className={`alert ${mensaje.tipo === "success" ? "success" : "danger"}`}>
           {mensaje.texto}
+        </div>
+      )}
+      {viajeEnCurso && (
+        <div className="alert warning viaje-en-curso">
+          <strong>
+            Este despacho ya quedo guardado como viaje #{viajeEnCurso.id} ({viajeEnCurso.estado}).
+          </strong>{" "}
+          Corrige lo que haga falta y vuelve a enviar: se reintenta ESTE mismo viaje, sin repetir el
+          numero ni reenviar lo que ya esta en el RNDC.
+          <ul>
+            {remesasEnCurso.map((r) => {
+              const dup = r.estado !== "CREADA" ? radicadoDuplicado(r.mensajeError) : null;
+              return (
+                <li key={r.id}>
+                  Remesa <strong>{r.consecutivoRemesa}</strong>:{" "}
+                  {r.estado === "CREADA" ? (
+                    <>creada en el RNDC (radicado {r.numeroRemesaRndc}). No se reenvia ni se puede cambiar.</>
+                  ) : dup ? (
+                    <>
+                      el RNDC dice que YA EXISTE (radicado {dup}).{" "}
+                      <button type="button" className="btn-link" onClick={() => usarRemesaExistente(r)}>
+                        Es esta misma: usar la que ya existe
+                      </button>
+                      . Si es otra, cambia el numero en Valores.
+                    </>
+                  ) : (
+                    <>pendiente: se enviara con lo que corrijas.</>
+                  )}
+                </li>
+              );
+            })}
+            {viajeEnCurso.estado === "MANIFIESTO_ERROR" && radicadoDuplicado(viajeEnCurso.errorCrudo) && (
+              <li>
+                El RNDC dice que el manifiesto YA EXISTE (radicado {radicadoDuplicado(viajeEnCurso.errorCrudo)}).{" "}
+                <button type="button" className="btn-link" onClick={usarManifiestoExistente}>
+                  Es este mismo viaje: usar el que ya existe
+                </button>
+              </li>
+            )}
+          </ul>
+          {viajeEnCurso.datosRndc && (
+            <div style={{ marginTop: "0.4rem" }}>
+              Debajo del formulario estan todos los datos que se enviaron al RNDC.
+            </div>
+          )}
+          <button type="button" className="btn-link" style={{ marginTop: "0.5rem" }} onClick={empezarOtroDespacho}>
+            Dejar este viaje en Viajes y empezar otro despacho
+          </button>
         </div>
       )}
       {/* Recien expedido: los documentos que debe llevar el conductor. */}
@@ -677,17 +843,28 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
           <div>
             {avisoTipoManifiesto && <div className="alert warning">{avisoTipoManifiesto}</div>}
 
+            {hayCargasCreadas && (
+              <div className="alert info">
+                Las cargas que ya estan creadas en el RNDC no se pueden cambiar, y no se pueden
+                agregar ni quitar cargas. Si una carga creada tiene un error, anula el viaje desde
+                Viajes y despacha de nuevo.
+              </div>
+            )}
             {remesas.map((r, i) => (
-              <div key={i} className="bloque-remesa">
+              <div key={i} className={`bloque-remesa ${cargaCreada(i) ? "bloqueada" : ""}`}>
                 <div className="bloque-remesa-titulo">
-                  <strong>Carga {i + 1}</strong>
-                  {remesas.length > 1 && (
+                  <strong>
+                    Carga {i + 1}
+                    {cargaCreada(i) && ` · creada en el RNDC (${remesasEnCurso[i].numeroRemesaRndc})`}
+                  </strong>
+                  {remesas.length > 1 && !hayCargasCreadas && (
                     <button type="button" className="btn-link" onClick={() => quitarRemesa(i)}>
                       Quitar
                     </button>
                   )}
                 </div>
 
+                <fieldset disabled={cargaCreada(i)}>
                 <label>Plantilla (cliente y mercancia)</label>
                 <ComboBuscable
                   opciones={listaPlantillas}
@@ -768,6 +945,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
                     </p>
                   </>
                 )}
+                </fieldset>
               </div>
             ))}
 
@@ -775,7 +953,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               type="button"
               className="btn-secundario"
               onClick={agregarRemesa}
-              disabled={remesas.length >= MAX_REMESAS}
+              disabled={remesas.length >= MAX_REMESAS || hayCargasCreadas}
             >
               + Agregar otra carga
             </button>
@@ -1018,6 +1196,9 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
           </div>
         </div>
       )}
+
+      {/* Todos los datos enviados al RNDC, debajo del formulario para no tapar lo que se corrige. */}
+      {viajeEnCurso?.datosRndc && <DatosRndcEnviados datos={viajeEnCurso.datosRndc} />}
     </>
   );
 
@@ -1034,7 +1215,11 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         </button>
       ) : (
         <button className="btn-primary" onClick={generarManifiesto} disabled={enviando}>
-          {enviando ? "Generando..." : "Generar manifiesto"}
+          {enviando
+            ? "Enviando al RNDC..."
+            : viajeEnCurso
+              ? `Reintentar viaje #${viajeEnCurso.id}`
+              : "Generar manifiesto"}
         </button>
       )}
     </>

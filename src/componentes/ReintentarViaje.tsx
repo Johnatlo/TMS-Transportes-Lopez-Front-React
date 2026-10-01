@@ -4,7 +4,14 @@ import { useDatos } from "../ganchos/useDatos";
 import { Cargando } from "./Estado";
 import Modal from "./Modal";
 import ComboBuscable from "./ComboBuscable";
-import type { Viaje } from "../api/tipos";
+import DatosRndcEnviados from "./DatosRndc";
+import type { Viaje, ViajeRemesa } from "../api/tipos";
+
+/** Radicado que el RNDC informa cuando un documento ya existe ("DUPLICADO:123"). */
+function radicadoDuplicado(texto: string | null | undefined): string | null {
+  const m = /DUPLICADO:\s*(\d+)/i.exec(texto ?? "");
+  return m ? m[1] : null;
+}
 
 /** Estados desde los que el backend acepta reintentar (ver despacho.ts). */
 export const ESTADOS_REINTENTABLES = ["VALIDACION_ERROR", "REMESA_ERROR", "MANIFIESTO_ERROR"];
@@ -31,6 +38,8 @@ type Correccion = {
   nitMonitoreoFlota: string | null;
   valorFleteReal: number | null;
   valorAnticipoManifiesto: number;
+  retencionFopat: number | null;
+  codVia: string | null;
   consecutivoManifiesto: string;
 };
 
@@ -42,6 +51,8 @@ function correccionDe(v: Viaje): Correccion {
     nitMonitoreoFlota: v.nitMonitoreoFlota,
     valorFleteReal: v.valorFleteReal,
     valorAnticipoManifiesto: v.valorAnticipoManifiesto,
+    retencionFopat: v.retencionFopat,
+    codVia: v.codVia,
     consecutivoManifiesto: v.consecutivoManifiesto ?? "",
   };
 }
@@ -78,6 +89,15 @@ export default function ReintentarViaje({
   const conductores = useDatos(() => api.getConductores(), []);
   const remolques = useDatos(() => api.getRemolques(), []);
   const empresas = useDatos(() => api.getEmpresasMonitoreo(), []);
+  // Todo lo que el viaje envia al RNDC. Se vuelve a pedir despues de cada intento
+  // (version), aunque el estado no cambie, porque los datos si pueden cambiar.
+  const [version, setVersion] = useState(0);
+  const datosRndc = useDatos(() => api.getDatosRndc(viaje.id), [viaje.id, viaje.estado, version]);
+  const ruta = datosRndc.datos?.rutaVias ?? null;
+  const vias = useDatos(
+    () => (ruta ? api.getVias(ruta.origen, ruta.destino) : Promise.resolve([])),
+    [ruta?.origen, ruta?.destino]
+  );
 
   const confirmado = viaje.estado === "CONFIRMADO";
   const fijar = <K extends keyof Correccion>(k: K, v: Correccion[K]) =>
@@ -109,6 +129,30 @@ export default function ReintentarViaje({
       }
     } finally {
       setEnviando(false);
+      setVersion((v) => v + 1);
+      alTerminar();
+    }
+  }
+
+  /** El RNDC dijo "ya existe" y la persona confirma que es el mismo documento. */
+  async function usarExistente(r: ViajeRemesa | null) {
+    const radicado = radicadoDuplicado(r ? r.mensajeError : viaje.errorCrudo);
+    const que = r ? `la remesa ${r.consecutivoRemesa}` : `el manifiesto ${viaje.consecutivoManifiesto}`;
+    if (
+      !window.confirm(
+        `El RNDC dice que ${que} ya existe (radicado ${radicado}).\n\n` +
+          "Usalo SOLO si es este mismo documento, creado en un intento anterior. Si es otro " +
+          "(por ejemplo, expedido desde el portal), cancela y cambia el numero."
+      )
+    )
+      return;
+    setErrorPeticion(null);
+    try {
+      setViaje(r ? await api.usarRemesaExistente(r.id) : await api.usarManifiestoExistente(viaje.id));
+    } catch (exc) {
+      setErrorPeticion(exc instanceof Error ? exc.message : "No se pudo tomar el documento");
+    } finally {
+      setVersion((v) => v + 1);
       alTerminar();
     }
   }
@@ -145,6 +189,14 @@ export default function ReintentarViaje({
               {viaje.mensajeError}
             </div>
           )}
+          {viaje.estado === "MANIFIESTO_ERROR" && radicadoDuplicado(viaje.errorCrudo) && (
+            <div className="alert warning">
+              El RNDC dice que el manifiesto YA EXISTE (radicado {radicadoDuplicado(viaje.errorCrudo)}).{" "}
+              <button type="button" className="btn-link" onClick={() => usarExistente(null)}>
+                Es este mismo viaje: usar el que ya existe
+              </button>
+            </div>
+          )}
         </>
       )}
       {errorPeticion && <div className="alert danger">{errorPeticion}</div>}
@@ -167,6 +219,7 @@ export default function ReintentarViaje({
                   <th>Remesa</th>
                   <th>Estado</th>
                   <th>Radicado RNDC</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -179,6 +232,13 @@ export default function ReintentarViaje({
                       </span>
                     </td>
                     <td>{r.numeroRemesaRndc ?? "-"}</td>
+                    <td>
+                      {r.estado !== "CREADA" && radicadoDuplicado(r.mensajeError) && (
+                        <button type="button" className="btn-link" onClick={() => usarExistente(r)}>
+                          Ya existe ({radicadoDuplicado(r.mensajeError)}): usarla
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -244,6 +304,32 @@ export default function ReintentarViaje({
             />
             <p className="section-desc">Actual: {moneda(original.valorFleteReal)}</p>
 
+            <label>Via</label>
+            <select value={form.codVia ?? ""} onChange={(e) => fijar("codVia", e.target.value || null)}>
+              <option value="">Via estandar de SICETAC (el RNDC la asigna)</option>
+              {(vias.datos ?? []).map((v) => (
+                <option key={v.codVia} value={v.codVia}>
+                  {v.descripcion}
+                  {v.valorSicetac ? ` — piso ${moneda(v.valorSicetac)}` : ""}
+                </option>
+              ))}
+            </select>
+
+            <label>Retencion FOPAT</label>
+            <input
+              type="number"
+              value={form.retencionFopat ?? ""}
+              onChange={(e) =>
+                fijar("retencionFopat", e.target.value === "" ? null : Number(e.target.value))
+              }
+            />
+            <p className="section-desc">
+              El RNDC exige exactamente el 0,1% del flete
+              {form.valorFleteReal ? ` (${moneda(Math.round(form.valorFleteReal * 0.001))})` : ""} si el
+              vehiculo pesa mas de 10,5 t. Si cambias el flete, cambia tambien el FOPAT. Vacio = se
+              calcula solo.
+            </p>
+
             <label>Anticipo</label>
             <input
               type="number"
@@ -263,6 +349,8 @@ export default function ReintentarViaje({
           </div>
         </div>
       )}
+
+      {datosRndc.datos && <DatosRndcEnviados datos={datosRndc.datos} />}
     </Modal>
   );
 }
