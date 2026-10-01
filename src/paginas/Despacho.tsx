@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { ESTADOS_REINTENTABLES } from "../componentes/ReintentarViaje";
 import { DocumentosViaje } from "../componentes/DocumentosViaje";
 import { api, moneda, aInputLocal } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
@@ -158,6 +160,19 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const hayCargasCreadas = remesasEnCurso.some((r) => r.estado === "CREADA");
   const [avisos, setAvisos] = useState<string[]>([]);
 
+  /**
+   * Viaje fallido abierto desde Viajes (/despacho?viaje=N): se carga completo en
+   * este formulario para corregir CUALQUIER dato y reintentarlo.
+   */
+  const [parametros, setParametros] = useSearchParams();
+  const viajeParaEditar = Number(parametros.get("viaje")) || null;
+  const [cargandoViaje, setCargandoViaje] = useState(false);
+  /**
+   * Via guardada en el viaje cargado. Al consultar las vias de la ruta se
+   * respeta esta en vez de preseleccionar la estandar (una sola vez).
+   */
+  const codViaCargadaRef = useRef<string | null>(null);
+
   const listaPlantillas = plantillas.datos ?? [];
   const listaVehiculos = (vehiculos.datos ?? []).filter((v) => v.activo);
   const listaConductores = (conductores.datos ?? []).filter((c) => c.activo);
@@ -255,8 +270,13 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         setVias(r.vias ?? []);
         setPeriodoSicetac(r.periodoUsado ?? null);
         setViasDesdeCache(!!r.desdeCache);
-        // La estandar se preselecciona: es la que el RNDC usaria de todos modos
-        // si no se manda CODVIA.
+        // Si se cargo un viaje, se respeta su via. Si no, la estandar se
+        // preselecciona: es la que el RNDC usaria si no se manda CODVIA.
+        if (codViaCargadaRef.current) {
+          setCodVia(codViaCargadaRef.current);
+          codViaCargadaRef.current = null;
+          return;
+        }
         const estandar = (r.vias ?? []).find((v) => v.esEstandar);
         if (estandar) setCodVia(estandar.codVia);
       })
@@ -264,6 +284,10 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         if (cancelado) return;
         setVias(exc?.cuerpo?.vias ?? []);
         setViasDesdeCache(true);
+        if (codViaCargadaRef.current) {
+          setCodVia(codViaCargadaRef.current);
+          codViaCargadaRef.current = null;
+        }
       })
       .finally(() => {
         if (!cancelado) setCargandoVias(false);
@@ -583,6 +607,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
 
       setAvisos(viaje.avisos ? viaje.avisos.split(" | ") : []);
       setViajeEnCurso(null);
+      if (viajeParaEditar) setParametros({}, { replace: true });
       setViajeExpedido(viaje);
       setMensaje({
         tipo: "success",
@@ -606,6 +631,104 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       setEnviando(false);
     }
   }
+
+  /**
+   * Pone en el formulario TODOS los datos de un viaje guardado. Todo cuenta
+   * como "escrito a mano", para que las sugerencias automaticas (remolque y
+   * conductor del vehiculo, tarifa de la plantilla, FOPAT calculado, via
+   * estandar, GPS del vehiculo) no pisen lo que el viaje ya tenia.
+   */
+  function cargarViajeEnFormulario(v: Viaje & { remesas: ViajeRemesa[] }, datos: DatosRndc | null) {
+    setRemolqueManual(true);
+    setConductorManual(true);
+    setMonitoreoEditado(true);
+    setFleteEditado(true);
+    setPorqueRemolque(null);
+    setPorqueConductor(null);
+
+    setVehiculoId(v.vehiculoId);
+    setConductorId(v.conductorId);
+    setConductor2Id(v.conductor2Id ?? null);
+    setRemolqueId(v.remolqueId ?? null);
+    setMonitoreoId(listaMonitoreo.find((e) => e.nit === v.nitMonitoreoFlota)?.id ?? null);
+    setConsecutivoBase(v.consecutivoManifiesto ?? "");
+
+    const filas = v.remesas.filter((r) => r.estado !== "ANULADA").sort((a, b) => a.orden - b.orden);
+    setRemesas(
+      filas.map((r) => ({
+        plantillaId: r.plantillaId,
+        fechaHoraCargue: aInputLocal(new Date(r.fechaHoraCargue)),
+        fechaHoraDescargue: aInputLocal(new Date(r.fechaHoraDescargue)),
+        pesoReal: r.pesoReal,
+        cantidadReal: r.cantidadReal,
+        ordenServicioGenerador: r.ordenServicioGenerador ?? "",
+        valorFleteRemesa: r.valorFleteRemesa,
+        descargueEditado: true,
+      }))
+    );
+
+    setValorFleteReal(v.valorFleteReal);
+    if (v.retencionFopat !== null && v.retencionFopat !== undefined) {
+      setFopatEditado(true);
+      setRetencionFopat(v.retencionFopat);
+    }
+    setValorAnticipo(v.valorAnticipoManifiesto || null);
+    setFechaPagoSaldo(v.fechaPagoSaldo ? String(v.fechaPagoSaldo).slice(0, 10) : "");
+    setViajesDia(v.viajesDia ?? null);
+    codViaCargadaRef.current = v.codVia ?? null;
+    setCodVia(v.codVia ?? null);
+
+    setMostrarVacios(!!(v.vacio1Origen || v.vacio2Origen));
+    setVacio1Origen(v.vacio1Origen ?? "");
+    setVacio1Destino(v.vacio1Destino ?? "");
+    setVacio1Valor(v.vacio1Valor || null);
+    setVacio2Origen(v.vacio2Origen ?? "");
+    setVacio2Destino(v.vacio2Destino ?? "");
+    setVacio2Valor(v.vacio2Valor || null);
+
+    setViajeEnCurso({ ...v, datosRndc: datos ?? undefined });
+    setViajeExpedido(null);
+    setAvisos(v.avisos ? v.avisos.split(" | ") : []);
+    setMensaje(v.mensajeError ? { tipo: "danger", texto: v.mensajeError } : null);
+    setPaso(0);
+  }
+
+  // Se carga cuando ya estan los catalogos: sin ellos no se puede resolver,
+  // por ejemplo, la empresa de monitoreo por su NIT.
+  const catalogosListos = !!(
+    plantillas.datos &&
+    vehiculos.datos &&
+    conductores.datos &&
+    remolques.datos &&
+    empresasMonitoreo.datos
+  );
+  useEffect(() => {
+    if (!viajeParaEditar || !catalogosListos) return;
+    let vigente = true;
+    setCargandoViaje(true);
+    Promise.all([api.getViaje(viajeParaEditar), api.getDatosRndc(viajeParaEditar).catch(() => null)])
+      .then(([v, datos]) => {
+        if (!vigente) return;
+        if (!ESTADOS_REINTENTABLES.includes(v.estado)) {
+          setMensaje({
+            tipo: "danger",
+            texto: `El viaje #${v.id} esta en estado ${v.estado}: no hay nada que corregir ni reintentar.`,
+          });
+          return;
+        }
+        cargarViajeEnFormulario(v, datos);
+      })
+      .catch((exc: any) => {
+        if (vigente) setMensaje({ tipo: "danger", texto: exc?.message ?? "No se pudo cargar el viaje." });
+      })
+      .finally(() => {
+        if (vigente) setCargandoViaje(false);
+      });
+    return () => {
+      vigente = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viajeParaEditar, catalogosListos]);
 
   /** El RNDC dijo que la remesa ya existe y la persona confirma que es esta. */
   async function usarRemesaExistente(r: ViajeRemesa) {
@@ -650,6 +773,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   /** Deja el viaje fallido en Viajes (para reintentarlo o anularlo alla) y arranca uno nuevo. */
   function empezarOtroDespacho() {
     setViajeEnCurso(null);
+    if (viajeParaEditar) setParametros({}, { replace: true });
     setMensaje(null);
     api
       .getSiguienteConsecutivo()
@@ -732,6 +856,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       <Avisos avisos={avisos} />
 
       {cargandoCatalogos && <Cargando que="catalogos" />}
+      {cargandoViaje && <Cargando que={`el viaje #${viajeParaEditar}`} />}
 
       {/* ---------- PASO 0 ---------- */}
       {!cargandoCatalogos && paso === 0 && (
@@ -1029,9 +1154,14 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             <select
               value={codVia ?? ""}
               onChange={(e) => setCodVia(e.target.value || null)}
-              disabled={vias.length === 0}
+              disabled={vias.length === 0 && !codVia}
             >
               <option value="">Via estandar de SICETAC (el RNDC la asigna)</option>
+              {/* Via guardada en el viaje que SICETAC no devolvio ahora: se muestra
+                  igual, para que no parezca que se perdio. */}
+              {codVia && !vias.some((v) => v.codVia === codVia) && (
+                <option value={codVia}>Via {codVia} (la que tenia el viaje)</option>
+              )}
               {vias.map((v) => (
                 <option key={v.codVia} value={v.codVia}>
                   {v.esEstandar ? "(estandar) " : ""}

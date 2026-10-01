@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api, fechaHora, moneda } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
-import ReintentarViaje, { esReintentable } from "../componentes/ReintentarViaje";
+import { esReintentable } from "../componentes/ReintentarViaje";
 import AnularViaje, { esAnulable } from "../componentes/AnularViaje";
 import CumplirViaje, { esCumplible } from "../componentes/CumplirViaje";
 import VentanaDocumentosViaje from "../componentes/DocumentosViaje";
@@ -14,8 +15,9 @@ import type { Viaje } from "../api/tipos";
  */
 export default function Historial() {
   const { datos, cargando, error, recargar } = useDatos(() => api.getHistorial(), []);
-  /** Viaje abierto en la ventana de reintento (null = ventana cerrada). */
-  const [reintentando, setReintentando] = useState<Viaje | null>(null);
+  // Reintentar abre el viaje completo en Despachar: ahi se puede corregir
+  // cualquier dato (cargas, citas, valores, via, FOPAT) antes de reenviarlo.
+  const navegar = useNavigate();
   /** Viaje abierto en la ventana de anulacion. */
   const [anulando, setAnulando] = useState<Viaje | null>(null);
   /** Viaje cuyos documentos (manifiesto y remesas) se van a imprimir. */
@@ -110,8 +112,8 @@ export default function Historial() {
                       </button>
                     )}
                     {esReintentable(v) && (
-                      <button className="btn-primary" onClick={() => setReintentando(v)}>
-                        Reintentar
+                      <button className="btn-primary" onClick={() => navegar(`/despacho?viaje=${v.id}`)}>
+                        Corregir y reintentar
                       </button>
                     )}
                     {esAnulable(v) && (
@@ -138,13 +140,6 @@ export default function Historial() {
         </div>
       </div>
 
-      {reintentando && (
-        <ReintentarViaje
-          viaje={reintentando}
-          alCerrar={() => setReintentando(null)}
-          alTerminar={recargar}
-        />
-      )}
       {imprimiendo && (
         <VentanaDocumentosViaje viaje={imprimiendo} alCerrar={() => setImprimiendo(null)} />
       )}

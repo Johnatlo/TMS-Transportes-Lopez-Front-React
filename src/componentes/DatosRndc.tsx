@@ -111,7 +111,10 @@ export default function DatosRndcEnviados({ datos }: { datos: DatosRndc }) {
 
   return (
     <details className="datos-rndc" open>
-      <summary>Todos los datos del manifiesto y las remesas (lo que se envia al RNDC)</summary>
+      <summary>
+        Datos del ultimo intento enviado al RNDC (manifiesto y remesas). Si corriges algo,
+        este panel se actualiza al volver a enviar.
+      </summary>
 
       <div className="datos-rndc-cuerpo">
         <h4>Via y piso de SICETAC</h4>

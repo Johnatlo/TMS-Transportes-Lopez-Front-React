@@ -265,6 +265,9 @@ export const api = {
   getRemesasDeViaje: (viajeId: number) =>
     get<ViajeRemesa[]>(`/despacho/${viajeId}/remesas`),
 
+  /** Un viaje con sus remesas. */
+  getViaje: (viajeId: number) => get<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}`),
+
   /** Todo lo que el viaje envia al RNDC, sin enviar nada. */
   getDatosRndc: (viajeId: number) => get<DatosRndc>(`/despacho/${viajeId}/datos-rndc`),
   /**
