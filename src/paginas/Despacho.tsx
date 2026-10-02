@@ -441,7 +441,8 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
 
   const avisoPisoSicetac = useMemo(() => {
     if (!viaSeleccionada?.valorSicetac) return null;
-    if (fleteEfectivo >= viaSeleccionada.valorSicetac) return null;
+    // Flete 0 = flota propia: SICETAC no aplica.
+    if (fleteEfectivo === 0 || fleteEfectivo >= viaSeleccionada.valorSicetac) return null;
     return `El flete esta por debajo del minimo de SICETAC para esta via (${moneda(viaSeleccionada.valorSicetac)}). El RNDC rechaza manifiestos por debajo del piso.`;
   }, [viaSeleccionada, fleteEfectivo]);
 
@@ -514,7 +515,8 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       });
       return;
     }
-    if (fleteEfectivo <= 0) {
+    // 0 es valido: flota propia (vehiculo a nombre de la empresa) va con valor 0.
+    if (valorFleteReal === null && !plantillaPrincipal?.valorFleteBase) {
       setMensaje({
         tipo: "danger",
         texto: "Escribe el valor del flete. La plantilla no tiene tarifa base cargada.",
