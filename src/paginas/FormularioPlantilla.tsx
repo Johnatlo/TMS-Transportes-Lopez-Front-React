@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { api } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { useMunicipios } from "../ganchos/useMunicipios";
@@ -30,6 +30,22 @@ const TIPOS_EMPAQUE = [
   { value: "17", label: "17 - Varios" },
 ];
 
+/**
+ * Partidas arancelarias (capitulo + partida, 4 digitos) del negocio de la
+ * empresa: papel y carton. Nombres del Sistema Armonizado. Las que ya usan las
+ * plantillas se agregan solas y van primero, ordenadas por uso.
+ */
+const MERCANCIAS_FRECUENTES: Record<string, string> = {
+  "4707": "Papel o carton para reciclar (desperdicios y desechos)",
+  "4808": "Papel y carton corrugados, rizados o plisados",
+  "4805": "Los demas papeles y cartones sin estucar, en bobinas u hojas",
+  "4804": "Papel y carton Kraft sin estucar, en bobinas u hojas",
+  "4819": "Cajas, sacos y envases de papel o carton",
+};
+
+/** "004707" -> "4707": la lista trabaja con los 4 digitos. */
+const partidaDe = (codigo: string | null | undefined) => (codigo ?? "").replace(/\D/g, "").replace(/^00(?=\d{4}$)/, "");
+
 const UNIDADES_PRODUCTO = [
   { value: "KGM", label: "Kilogramos" },
   { value: "UN", label: "Unidades" },
@@ -59,6 +75,8 @@ export default function FormularioPlantilla({
   alGuardar: () => void;
 }) {
   const terceros = useDatos(() => api.getTerceros(), []);
+  // Para la lista de codigos de mercancia: los que ya usan las plantillas.
+  const todasPlantillas = useDatos(() => api.getPlantillas(), []);
   const municipios = useMunicipios(terceros.datos);
   const editando = !!plantilla;
   const [paso, setPaso] = useState(0);
@@ -79,6 +97,8 @@ export default function FormularioPlantilla({
   // Paso 2
   const [tipoMercancia, setTipoMercancia] = useState(plantilla?.tipoMercancia ?? "");
   const [codMercancia, setCodMercancia] = useState(plantilla?.codMercancia ?? "");
+  /** El codigo no esta en la lista: se escribe a mano. */
+  const [escribiendoOtro, setEscribiendoOtro] = useState(false);
   const [subpartidaCode, setSubpartidaCode] = useState(plantilla?.subpartidaCode ?? "");
   const [codigoArancelCode, setCodigoArancelCode] = useState(plantilla?.codigoArancelCode ?? "");
   const [unidadMedidaProducto, setUnidadMedidaProducto] = useState(
@@ -148,6 +168,34 @@ export default function FormularioPlantilla({
     const codigo = terceroPorId(id)?.codMunicipioRndc;
     if (codigo) setMunicipioDestino(codigo);
   }
+
+  /**
+   * Opciones de la lista: los codigos que ya usan las plantillas (por uso),
+   * luego las partidas frecuentes del negocio. Si la plantilla tiene un codigo
+   * que no esta en ninguna de las dos, se agrega para que se vea.
+   */
+  const opcionesMercancia = useMemo(() => {
+    const usos = new Map<string, { usos: number; descripcion: string | null }>();
+    for (const p of todasPlantillas.datos ?? []) {
+      const c = partidaDe(p.codMercancia);
+      if (c.length !== 4) continue;
+      const previo = usos.get(c);
+      usos.set(c, { usos: (previo?.usos ?? 0) + 1, descripcion: previo?.descripcion ?? p.tipoMercancia ?? null });
+    }
+    const actual = partidaDe(codMercancia);
+    const codigos = [
+      ...[...usos.entries()].sort((a, b) => b[1].usos - a[1].usos).map(([c]) => c),
+      ...Object.keys(MERCANCIAS_FRECUENTES),
+      ...(actual.length === 4 ? [actual] : []),
+    ];
+    return [...new Set(codigos)].map((codigo) => ({
+      codigo,
+      nombre: MERCANCIAS_FRECUENTES[codigo] ?? usos.get(codigo)?.descripcion ?? "Codigo usado antes",
+      usos: usos.get(codigo)?.usos ?? 0,
+      descripcionUsada: usos.get(codigo)?.descripcion ?? null,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todasPlantillas.datos]);
 
   const rutaCompleta = /^\d{8}$/.test(municipioOrigen) && /^\d{8}$/.test(municipioDestino);
 
@@ -399,13 +447,39 @@ export default function FormularioPlantilla({
             <p className="section-desc">Maximo 60 caracteres.</p>
 
             <label>Codigo de mercancia (capitulo + partida)</label>
-            <input
-              value={codMercancia}
-              onChange={(e) => setCodMercancia(e.target.value)}
-              placeholder="4707"
-            />
+            <select
+              value={escribiendoOtro ? "otro" : partidaDe(codMercancia)}
+              onChange={(e) => {
+                if (e.target.value === "otro") {
+                  setEscribiendoOtro(true);
+                  return;
+                }
+                setEscribiendoOtro(false);
+                setCodMercancia(e.target.value);
+                // Si aun no hay descripcion, se propone la que se usa con ese codigo.
+                const opcion = opcionesMercancia.find((o) => o.codigo === e.target.value);
+                if (opcion && !tipoMercancia.trim()) setTipoMercancia(opcion.descripcionUsada ?? "");
+              }}
+            >
+              <option value="">Elige el codigo...</option>
+              {opcionesMercancia.map((o) => (
+                <option key={o.codigo} value={o.codigo}>
+                  {o.codigo} - {o.nombre}
+                  {o.usos > 0 ? ` (en ${o.usos} plantilla${o.usos === 1 ? "" : "s"})` : ""}
+                </option>
+              ))}
+              <option value="otro">Otro codigo (escribirlo)...</option>
+            </select>
+            {escribiendoOtro && (
+              <input
+                value={codMercancia}
+                onChange={(e) => setCodMercancia(e.target.value)}
+                placeholder="4 digitos, ej. 4707"
+                autoFocus
+              />
+            )}
             <p className="section-desc">
-              4 digitos. Si escribes solo esos, se guardan como 004707.
+              Se guarda con los dos ceros a la izquierda (4707 queda 004707), como lo pide el RNDC.
             </p>
 
             <label>Subpartida (opcional, 2 digitos)</label>
