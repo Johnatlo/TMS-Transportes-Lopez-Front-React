@@ -4,6 +4,7 @@ import { useDatos } from "../ganchos/useDatos";
 import { useMunicipios } from "../ganchos/useMunicipios";
 import Modal from "../componentes/Modal";
 import ComboBuscable from "../componentes/ComboBuscable";
+import { MERCANCIAS_COMUNES } from "../api/mercancias";
 import type { Municipio, PlantillaViaje, Tercero } from "../api/tipos";
 
 const PASOS = ["Identificacion", "Partes", "Mercancia", "Tiempos", "Manifiesto"];
@@ -29,19 +30,6 @@ const TIPOS_EMPAQUE = [
   { value: "0", label: "0 - Paquetes general fraccionada (max. 2 kg por unidad)" },
   { value: "17", label: "17 - Varios" },
 ];
-
-/**
- * Partidas arancelarias (capitulo + partida, 4 digitos) del negocio de la
- * empresa: papel y carton. Nombres del Sistema Armonizado. Las que ya usan las
- * plantillas se agregan solas y van primero, ordenadas por uso.
- */
-const MERCANCIAS_FRECUENTES: Record<string, string> = {
-  "4707": "Papel o carton para reciclar (desperdicios y desechos)",
-  "4808": "Papel y carton corrugados, rizados o plisados",
-  "4805": "Los demas papeles y cartones sin estucar, en bobinas u hojas",
-  "4804": "Papel y carton Kraft sin estucar, en bobinas u hojas",
-  "4819": "Cajas, sacos y envases de papel o carton",
-};
 
 /** "004707" -> "4707": la lista trabaja con los 4 digitos. */
 const partidaDe = (codigo: string | null | undefined) => (codigo ?? "").replace(/\D/g, "").replace(/^00(?=\d{4}$)/, "");
@@ -185,12 +173,12 @@ export default function FormularioPlantilla({
     const actual = partidaDe(codMercancia);
     const codigos = [
       ...[...usos.entries()].sort((a, b) => b[1].usos - a[1].usos).map(([c]) => c),
-      ...Object.keys(MERCANCIAS_FRECUENTES),
+      ...Object.keys(MERCANCIAS_COMUNES),
       ...(actual.length === 4 ? [actual] : []),
     ];
     return [...new Set(codigos)].map((codigo) => ({
       codigo,
-      nombre: MERCANCIAS_FRECUENTES[codigo] ?? usos.get(codigo)?.descripcion ?? "Codigo usado antes",
+      nombre: MERCANCIAS_COMUNES[codigo] ?? usos.get(codigo)?.descripcion ?? "Codigo usado antes",
       usos: usos.get(codigo)?.usos ?? 0,
       descripcionUsada: usos.get(codigo)?.descripcion ?? null,
     }));
@@ -447,29 +435,30 @@ export default function FormularioPlantilla({
             <p className="section-desc">Maximo 60 caracteres.</p>
 
             <label>Codigo de mercancia (capitulo + partida)</label>
-            <select
-              value={escribiendoOtro ? "otro" : partidaDe(codMercancia)}
-              onChange={(e) => {
-                if (e.target.value === "otro") {
-                  setEscribiendoOtro(true);
-                  return;
+            {!escribiendoOtro && (
+              <ComboBuscable
+                opciones={opcionesMercancia}
+                valor={partidaDe(codMercancia) || null}
+                alCambiar={(codigo) => {
+                  setCodMercancia(codigo ?? "");
+                  // Si aun no hay descripcion, se propone la que se usa con ese codigo.
+                  const opcion = opcionesMercancia.find((o) => o.codigo === codigo);
+                  if (opcion && !tipoMercancia.trim()) setTipoMercancia(opcion.descripcionUsada ?? "");
+                }}
+                obtenerId={(o) => o.codigo}
+                obtenerEtiqueta={(o) =>
+                  `${o.codigo} - ${o.nombre}${o.usos > 0 ? ` (en ${o.usos} plantilla${o.usos === 1 ? "" : "s"})` : ""}`
                 }
-                setEscribiendoOtro(false);
-                setCodMercancia(e.target.value);
-                // Si aun no hay descripcion, se propone la que se usa con ese codigo.
-                const opcion = opcionesMercancia.find((o) => o.codigo === e.target.value);
-                if (opcion && !tipoMercancia.trim()) setTipoMercancia(opcion.descripcionUsada ?? "");
-              }}
+                placeholder="Busca por nombre o codigo: cemento, carbon, 2523..."
+              />
+            )}
+            <button
+              type="button"
+              className="btn-link"
+              onClick={() => setEscribiendoOtro(!escribiendoOtro)}
             >
-              <option value="">Elige el codigo...</option>
-              {opcionesMercancia.map((o) => (
-                <option key={o.codigo} value={o.codigo}>
-                  {o.codigo} - {o.nombre}
-                  {o.usos > 0 ? ` (en ${o.usos} plantilla${o.usos === 1 ? "" : "s"})` : ""}
-                </option>
-              ))}
-              <option value="otro">Otro codigo (escribirlo)...</option>
-            </select>
+              {escribiendoOtro ? "Elegir de la lista" : "No esta en la lista: escribir el codigo"}
+            </button>
             {escribiendoOtro && (
               <input
                 value={codMercancia}
