@@ -283,7 +283,15 @@ export const api = {
   /** Cumplido normal de una remesa (proceso 5). Fechas en ISO. */
   cumplirRemesa: (
     remesaId: number,
-    datos: { cantidadEntregada: number; entradaCargue: string; entradaDescargue: string }
+    datos: {
+      cantidadEntregada: number;
+      llegadaCargue: string;
+      entradaCargue: string;
+      salidaCargue: string;
+      llegadaDescargue: string;
+      entradaDescargue: string;
+      salidaDescargue: string;
+    }
   ) => post<{ viaje: Viaje; remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
   /** Cumplido del manifiesto (proceso 6); exige todas las remesas cumplidas. */
   cumplirManifiesto: (viajeId: number) =>

@@ -11,26 +11,43 @@ export function esCumplible(v: Pick<Viaje, "estado">): boolean {
 }
 
 /** Lo que el usuario escribe para cumplir UNA remesa. */
-interface FormularioRemesa {
+/** Los seis tiempos logisticos del cumplido, en el orden en que ocurren. */
+const TIEMPOS = [
+  ["llegadaCargue", "Llegada al cargue"],
+  ["entradaCargue", "Entrada al cargue"],
+  ["salidaCargue", "Salida del cargue"],
+  ["llegadaDescargue", "Llegada al descargue"],
+  ["entradaDescargue", "Entrada al descargue"],
+  ["salidaDescargue", "Salida del descargue"],
+] as const;
+type Tiempo = (typeof TIEMPOS)[number][0];
+
+interface FormularioRemesa extends Record<Tiempo, string> {
   kilos: string;
-  entradaCargue: string; // formato de <input type="datetime-local">
-  entradaDescargue: string;
   enviando: boolean;
   error: string | null;
 }
 
 /**
- * Valores iniciales de una remesa: lo cargado y las citas pactadas. La entrada
- * al descargue no puede ser futura, asi que si la cita aun no llega se propone
- * la hora actual.
+ * Valores iniciales de una remesa: lo cargado y las citas que se pusieron al
+ * despachar. Llegada y entrada a la hora de la cita, salida una hora despues.
+ * Nada puede ser futuro: si la cita del descargue aun no llega, se propone la
+ * hora actual. Todo se puede corregir antes de enviar.
  */
 function formularioInicial(r: ViajeRemesa): FormularioRemesa {
-  const ahora = new Date();
-  const citaDescargue = new Date(r.fechaHoraDescargue);
+  const ahora = Date.now();
+  const HORA = 3_600_000;
+  const hasta = (ms: number) => aInputLocal(new Date(Math.min(ms, ahora)));
+  const cargue = new Date(r.fechaHoraCargue).getTime();
+  const descargue = Math.min(new Date(r.fechaHoraDescargue).getTime(), ahora - HORA);
   return {
     kilos: r.pesoReal ? String(r.pesoReal) : "",
-    entradaCargue: aInputLocal(new Date(r.fechaHoraCargue)),
-    entradaDescargue: aInputLocal(citaDescargue > ahora ? ahora : citaDescargue),
+    llegadaCargue: hasta(cargue),
+    entradaCargue: hasta(cargue),
+    salidaCargue: hasta(cargue + HORA),
+    llegadaDescargue: hasta(descargue),
+    entradaDescargue: hasta(descargue),
+    salidaDescargue: hasta(descargue + HORA),
     enviando: false,
     error: r.mensajeError,
   };
@@ -89,10 +106,14 @@ export default function CumplirViaje({
     try {
       const resp = await api.cumplirRemesa(r.id, {
         cantidadEntregada: Number(f.kilos),
-        // El input da hora local sin zona; new Date() la interpreta como local
-        // y toISOString() la lleva a UTC para el backend.
-        entradaCargue: new Date(f.entradaCargue).toISOString(),
-        entradaDescargue: new Date(f.entradaDescargue).toISOString(),
+        // Van tal cual se escribieron (hora de Colombia, sin zona): el backend
+        // las interpreta como hora de Colombia, sin importar el reloj del equipo.
+        llegadaCargue: f.llegadaCargue,
+        entradaCargue: f.entradaCargue,
+        salidaCargue: f.salidaCargue,
+        llegadaDescargue: f.llegadaDescargue,
+        entradaDescargue: f.entradaDescargue,
+        salidaDescargue: f.salidaDescargue,
       });
       setRemesas(resp.remesas);
       setViaje(resp.viaje);
@@ -257,27 +278,21 @@ function FormularioCumplido({
             onChange={(e) => alCambiar({ kilos: e.target.value })}
           />
         </div>
-        <div>
-          <label>Entrada al cargue</label>
-          <input
-            type="datetime-local"
-            max={ahora}
-            value={f.entradaCargue}
-            onChange={(e) => alCambiar({ entradaCargue: e.target.value })}
-          />
-        </div>
-        <div>
-          <label>Entrada al descargue</label>
-          <input
-            type="datetime-local"
-            max={ahora}
-            value={f.entradaDescargue}
-            onChange={(e) => alCambiar({ entradaDescargue: e.target.value })}
-          />
-        </div>
+        {TIEMPOS.map(([campo, etiqueta]) => (
+          <div key={campo}>
+            <label>{etiqueta}</label>
+            <input
+              type="datetime-local"
+              max={ahora}
+              value={f[campo]}
+              onChange={(e) => alCambiar({ [campo]: e.target.value } as Partial<FormularioRemesa>)}
+            />
+          </div>
+        ))}
       </div>
       <div className="section-desc">
-        La llegada y la salida las completa el RNDC con los tiempos del GPS.
+        Vienen con las citas que se pusieron al despachar; corrigelas con las horas reales.
+        Hora de Colombia.
       </div>
       {f.error && (
         <div className="alert danger" style={{ whiteSpace: "pre-wrap" }}>
@@ -287,7 +302,7 @@ function FormularioCumplido({
       <button
         className="btn-primary"
         onClick={alCumplir}
-        disabled={f.enviando || !f.kilos || !f.entradaCargue || !f.entradaDescargue}
+        disabled={f.enviando || !f.kilos || TIEMPOS.some(([campo]) => !f[campo])}
       >
         {f.enviando ? "Cumpliendo en el RNDC..." : "Cumplir remesa"}
       </button>
