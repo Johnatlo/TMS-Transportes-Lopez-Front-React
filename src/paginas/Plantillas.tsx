@@ -4,11 +4,11 @@ import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import Modal from "../componentes/Modal";
 import FormularioPlantilla from "./FormularioPlantilla";
+import TablaDatos from "../componentes/TablaDatos";
 import type { PlantillaViaje, RutaConTarifa } from "../api/tipos";
 
 export default function Plantillas() {
   const plantillas = useDatos(() => api.getPlantillas(), []);
-  const [busqueda, setBusqueda] = useState("");
   const [modalNueva, setModalNueva] = useState(false);
   /** Plantilla abierta para editar, o null si no hay ninguna. */
   const [editando, setEditando] = useState<PlantillaViaje | null>(null);
@@ -29,81 +29,72 @@ export default function Plantillas() {
     }
   }
 
-  const texto = busqueda.toLowerCase();
-  const lista = (plantillas.datos ?? []).filter((p) =>
-    p.nombre.toLowerCase().includes(texto)
-  );
 
   return (
     <>
       <div className="panel">
-        <div className="toolbar">
-          <input
-            className="search-input"
-            placeholder="Buscar plantilla..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
-          <button className="btn-secondary" onClick={() => setModalTarifas(true)}>
-            Actualizar tarifas
-          </button>
-          <button className="btn-icon-round" title="Nueva plantilla" onClick={() => setModalNueva(true)}>
-            +
-          </button>
-        </div>
-
-        {plantillas.cargando && <Cargando que="plantillas" />}
+        {plantillas.cargando && !plantillas.datos && <Cargando que="plantillas" />}
         {plantillas.error && (
           <ErrorCarga mensaje={plantillas.error} alReintentar={plantillas.recargar} />
         )}
 
-        {!plantillas.cargando && (
-          <div className="tabla-scroll">
-            <table className="modern">
-              <thead>
-                <tr>
-                  <th>Nombre</th>
-                  <th>Ruta</th>
-                  <th>Contratante</th>
-                  <th>Tarifa</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lista.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.nombre}</td>
-                    <td>
-                      {p.municipioOrigen && p.municipioDestino
-                        ? `${p.municipioOrigen} → ${p.municipioDestino}`
-                        : "Sin ruta"}
-                    </td>
-                    <td>{p.contratante?.nombre ?? "-"}</td>
-                    <td>{moneda(p.valorFleteBase)}</td>
-                    <td>
-                      <button className="btn-link" onClick={() => setEditando(p)}>
-                        Editar
-                      </button>{" "}
-                      <button
-                        className="btn-link"
-                        onClick={() => eliminar(p.id, p.nombre)}
-                        disabled={borrandoId === p.id}
-                      >
-                        {borrandoId === p.id ? "Eliminando..." : "Eliminar"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {lista.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="empty-row">
-                      Aun no tienes plantillas.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        {plantillas.datos && (
+          <TablaDatos
+            filas={plantillas.datos}
+            clave={(p) => p.id}
+            nombreArchivo="plantillas"
+            placeholderBusqueda="Buscar plantilla, ruta, cliente..."
+            vacio="No hay plantillas con estos criterios."
+            acciones={
+              <>
+                <button className="boton-barra" onClick={() => setModalTarifas(true)}>
+                  Actualizar tarifas
+                </button>
+                <button className="btn-icon-round" title="Nueva plantilla" onClick={() => setModalNueva(true)}>
+                  +
+                </button>
+              </>
+            }
+            columnas={[
+              { id: "nombre", titulo: "Nombre", valor: (p) => p.nombre, celda: (p) => <span className="principal">{p.nombre}</span> },
+              {
+                id: "ruta",
+                titulo: "Ruta",
+                valor: (p) => (p.municipioOrigen && p.municipioDestino ? `${p.municipioOrigen} → ${p.municipioDestino}` : "Sin ruta"),
+                celda: (p) => (p.municipioOrigen && p.municipioDestino ? `${p.municipioOrigen} → ${p.municipioDestino}` : "Sin ruta"),
+              },
+              {
+                id: "contratante",
+                titulo: "Contratante",
+                filtrable: true,
+                valor: (p) => p.contratante?.nombre ?? "-",
+                celda: (p) => p.contratante?.nombre ?? "-",
+              },
+              {
+                id: "mercancia",
+                titulo: "Mercancia",
+                filtrable: true,
+                valor: (p) => p.tipoMercancia ?? "",
+                celda: (p) => p.tipoMercancia ?? "-",
+              },
+              { id: "tarifa", titulo: "Tarifa", alinear: "derecha", valor: (p) => p.valorFleteBase ?? 0, celda: (p) => moneda(p.valorFleteBase) },
+              {
+                id: "acciones",
+                titulo: "",
+                etiquetaMovil: null,
+                celda: (p) => (
+                  <>
+                    <button className="btn-link" onClick={() => setEditando(p)}>
+                      Editar
+                    </button>{" "}
+                    <button className="btn-link" onClick={() => eliminar(p.id, p.nombre)} disabled={borrandoId === p.id}>
+                      {borrandoId === p.id ? "Eliminando..." : "Eliminar"}
+                    </button>
+                  </>
+                ),
+              },
+            ]}
+          />
         )}
       </div>
 

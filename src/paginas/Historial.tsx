@@ -7,6 +7,8 @@ import { esReintentable } from "../componentes/ReintentarViaje";
 import AnularViaje, { esAnulable } from "../componentes/AnularViaje";
 import CumplirViaje, { esCumplible } from "../componentes/CumplirViaje";
 import VentanaDocumentosViaje from "../componentes/DocumentosViaje";
+import TablaDatos, { Pastilla } from "../componentes/TablaDatos";
+import type { Columna, PestanaTabla } from "../componentes/TablaDatos";
 import type { Viaje } from "../api/tipos";
 
 /**
@@ -33,111 +35,144 @@ export default function Historial() {
 
   const viajes = datos ?? [];
 
+  const columnas: Columna<Viaje>[] = [
+    {
+      id: "viaje",
+      titulo: "Viaje",
+      etiquetaMovil: null,
+      claseCelda: "celda-viaje",
+      valor: (v) => v.id,
+      celda: (v) => (
+        <>
+          <span className="principal">#{v.id}</span>
+          {v.creadoPorNombre && <span className="dato-sec">por {v.creadoPorNombre}</span>}
+        </>
+      ),
+    },
+    {
+      id: "cargue",
+      titulo: "Cargue",
+      valor: (v) => v.fechaHoraCargue,
+      celda: (v) => fechaHora(v.fechaHoraCargue),
+    },
+    {
+      id: "estado",
+      titulo: "Estado",
+      filtrable: true,
+      valor: (v) => ETIQUETA_ESTADO[v.estado] ?? v.estado,
+      celda: (v) => (
+        <>
+          <Pastilla tono={tonoEstado(v.estado)}>{ETIQUETA_ESTADO[v.estado] ?? v.estado}</Pastilla>
+          {v.plazoCumplido && <PlazoCumplido dias={v.plazoCumplido.diasHabilesRestantes} />}
+          {v.estado === "CUMPLIDO" && v.cumplidoPorNombre && (
+            <span className="dato-sec">por {v.cumplidoPorNombre}</span>
+          )}
+        </>
+      ),
+    },
+    {
+      id: "manifiesto",
+      titulo: "Manifiesto",
+      valor: (v) => v.consecutivoManifiesto,
+      celda: (v) => (
+        <>
+          <span className="codigo principal">{v.consecutivoManifiesto ?? "-"}</span>
+          {v.numeroManifiestoRndc && <span className="dato-sec">Radicado {v.numeroManifiestoRndc}</span>}
+          {v.radicadoAnulacion && <span className="dato-sec">Anulado: radicado {v.radicadoAnulacion}</span>}
+          {v.estado === "ANULADO" && v.anuladoPorNombre && (
+            <span className="dato-sec">
+              Anulado por {v.anuladoPorNombre}
+              {v.fechaAnulacion ? ` · ${fechaHora(v.fechaAnulacion)}` : ""}
+            </span>
+          )}
+        </>
+      ),
+    },
+    {
+      id: "creadoPor",
+      titulo: "Despachado por",
+      filtrable: true,
+      valor: (v) => v.creadoPorNombre ?? "Sin usuario",
+      celda: (v) => v.creadoPorNombre ?? "-",
+    },
+    {
+      id: "flete",
+      titulo: "Flete",
+      alinear: "derecha",
+      valor: (v) => v.valorFleteReal ?? 0,
+      celda: (v) => moneda(v.valorFleteReal),
+    },
+    {
+      id: "fopat",
+      titulo: "FOPAT",
+      alinear: "derecha",
+      valor: (v) => v.retencionFopat ?? 0,
+      celda: (v) => moneda(v.retencionFopat),
+    },
+    {
+      id: "error",
+      titulo: "Error",
+      etiquetaMovil: null,
+      claseCelda: (v) => `celda-error ${v.mensajeError ? "" : "sin-error"}`,
+      valor: (v) => v.mensajeError ?? "",
+      // El error completo se ve en la ventana; aqui solo el comienzo.
+      celda: (v) =>
+        v.mensajeError ? (
+          <span className="dato-sec" title={v.mensajeError}>
+            {v.codigoError ? `${v.codigoError}: ` : ""}
+            {v.mensajeError.slice(0, 110)}
+            {v.mensajeError.length > 110 ? "..." : ""}
+          </span>
+        ) : (
+          "-"
+        ),
+    },
+    {
+      id: "acciones",
+      titulo: "",
+      etiquetaMovil: null,
+      claseCelda: "celda-acciones",
+      celda: (v) => (
+        <>
+          {(v.estado === "CONFIRMADO" || v.estado === "CUMPLIDO") && (
+            <button className="btn-primary" onClick={() => setImprimiendo(v)}>
+              Imprimir
+            </button>
+          )}
+          {esCumplible(v) && (
+            <button className="btn-secondary" onClick={() => setCumpliendo(v)}>
+              Cumplir
+            </button>
+          )}
+          {esReintentable(v) && (
+            <button className="btn-primary" onClick={() => navegar(`/despacho?viaje=${v.id}`)}>
+              Corregir y reintentar
+            </button>
+          )}
+          {esAnulable(v) && (
+            <button className="btn-secondary" onClick={() => setAnulando(v)}>
+              {v.estado === "ANULACION_ERROR" ? "Reintentar anulacion" : "Anular"}
+            </button>
+          )}
+        </>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="panel">
-        <div className="tabla-scroll">
-          {/* En el celular cada fila se ve como tarjeta (ver .tabla-viajes en
-              estilos.css); data-label es el titulo de cada dato en la tarjeta. */}
-          <table className="modern tabla-viajes">
-            <thead>
-              <tr>
-                <th>Viaje</th>
-                <th>Cargue</th>
-                <th>Estado</th>
-                <th>Manifiesto</th>
-                <th>Flete</th>
-                <th>FOPAT</th>
-                <th>Error</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {viajes.map((v) => (
-                <tr key={v.id}>
-                  <td className="celda-viaje">
-                    #{v.id}
-                    {v.creadoPorNombre && <span className="dato-sec">por {v.creadoPorNombre}</span>}
-                  </td>
-                  <td data-label="Cargue">{fechaHora(v.fechaHoraCargue)}</td>
-                  <td data-label="Estado">
-                    <span className={`badge ${claseEstado(v.estado)}`}>{v.estado}</span>
-                    {v.plazoCumplido && <PlazoCumplido dias={v.plazoCumplido.diasHabilesRestantes} />}
-                    {v.estado === "CUMPLIDO" && v.cumplidoPorNombre && (
-                      <span className="dato-sec">por {v.cumplidoPorNombre}</span>
-                    )}
-                  </td>
-                  <td data-label="Manifiesto">
-                    {v.consecutivoManifiesto ?? "-"}
-                    {v.numeroManifiestoRndc && (
-                      <span className="dato-sec">Radicado {v.numeroManifiestoRndc}</span>
-                    )}
-                    {v.radicadoAnulacion && (
-                      <span className="dato-sec">Anulado: radicado {v.radicadoAnulacion}</span>
-                    )}
-                    {v.estado === "ANULADO" && v.anuladoPorNombre && (
-                      <span className="dato-sec">
-                        Anulado por {v.anuladoPorNombre}
-                        {v.fechaAnulacion ? ` · ${fechaHora(v.fechaAnulacion)}` : ""}
-                      </span>
-                    )}
-                  </td>
-                  <td data-label="Flete">{moneda(v.valorFleteReal)}</td>
-                  <td data-label="FOPAT">{moneda(v.retencionFopat)}</td>
-                  {/* El error completo se ve en la ventana; aqui solo el comienzo. */}
-                  <td className={`celda-error ${v.mensajeError ? "" : "sin-error"}`}>
-                    {v.mensajeError ? (
-                      <span className="dato-sec" title={v.mensajeError}>
-                        {v.codigoError ? `${v.codigoError}: ` : ""}
-                        {v.mensajeError.slice(0, 110)}
-                        {v.mensajeError.length > 110 ? "..." : ""}
-                      </span>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td className="celda-acciones">
-                    {(v.estado === "CONFIRMADO" || v.estado === "CUMPLIDO") && (
-                      <button className="btn-primary" onClick={() => setImprimiendo(v)}>
-                        🖨 Imprimir
-                      </button>
-                    )}
-                    {esCumplible(v) && (
-                      <button
-                        className="btn-secondary"
-                        style={{ marginLeft: "0.35rem" }}
-                        onClick={() => setCumpliendo(v)}
-                      >
-                        Cumplir
-                      </button>
-                    )}
-                    {esReintentable(v) && (
-                      <button className="btn-primary" onClick={() => navegar(`/despacho?viaje=${v.id}`)}>
-                        Corregir y reintentar
-                      </button>
-                    )}
-                    {esAnulable(v) && (
-                      <button
-                        className="btn-secondary"
-                        style={{ marginLeft: "0.35rem" }}
-                        onClick={() => setAnulando(v)}
-                      >
-                        {v.estado === "ANULACION_ERROR" ? "Reintentar anulacion" : "Anular"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {viajes.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="empty-row">
-                    Aun no hay despachos registrados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* En el celular cada fila se ve como tarjeta (ver .tabla-viajes en estilos.css). */}
+        <TablaDatos
+          filas={viajes}
+          columnas={columnas}
+          clave={(v) => v.id}
+          pestanas={PESTANAS_VIAJES}
+          claseTabla="tabla-viajes"
+          nombreArchivo="viajes"
+          placeholderBusqueda="Buscar manifiesto, radicado, error..."
+          vacio="No hay viajes con estos criterios."
+        />
       </div>
 
       {imprimiendo && (
@@ -160,8 +195,35 @@ function PlazoCumplido({ dias }: { dias: number }) {
   return <span className="plazo-cumplido ok">Cumplir en {dias} dias habiles</span>;
 }
 
-function claseEstado(estado: string): string {
-  if (estado === "CONFIRMADO" || estado === "CUMPLIDO") return "badge-ok";
-  if (estado === "ANULADO") return "badge-neutral";
-  return "badge-danger";
+/** Nombre de cada estado para la gente (el codigo interno sigue en la base). */
+const ETIQUETA_ESTADO: Record<string, string> = {
+  CONFIRMADO: "Expedido",
+  CUMPLIDO: "Cumplido",
+  ANULADO: "Anulado",
+  VALIDACION_ERROR: "Error de validacion",
+  REMESA_ERROR: "Error en remesa",
+  MANIFIESTO_ERROR: "Error en manifiesto",
+  ANULACION_ERROR: "Error al anular",
+  REINTENTANDO: "Enviando...",
+  ANULANDO: "Anulando...",
+  CUMPLIENDO: "Cumpliendo...",
+};
+
+function tonoEstado(estado: string): "ok" | "aviso" | "error" | "info" | "neutro" {
+  if (estado === "CUMPLIDO") return "ok";
+  if (estado === "CONFIRMADO") return "info";
+  if (estado === "ANULADO") return "neutro";
+  if (["REINTENTANDO", "ANULANDO", "CUMPLIENDO"].includes(estado)) return "aviso";
+  return "error";
 }
+
+const ERRORES = ["VALIDACION_ERROR", "REMESA_ERROR", "MANIFIESTO_ERROR", "ANULACION_ERROR"];
+
+/** Pestanas de Viajes, como "In progress / Closed / All" del ejemplo. */
+const PESTANAS_VIAJES: PestanaTabla<Viaje>[] = [
+  { id: "curso", etiqueta: "En curso", incluye: (v) => v.estado === "CONFIRMADO" },
+  { id: "errores", etiqueta: "Con error", incluye: (v) => ERRORES.includes(v.estado) },
+  { id: "cumplidos", etiqueta: "Cumplidos", incluye: (v) => v.estado === "CUMPLIDO" },
+  { id: "anulados", etiqueta: "Anulados", incluye: (v) => v.estado === "ANULADO" },
+  { id: "todos", etiqueta: "Todos", incluye: () => true },
+];

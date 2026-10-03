@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Paginacion } from "../componentes/TablaDatos";
 import type { ReactElement } from "react";
 import { api, hoyColombia, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
@@ -584,13 +585,22 @@ function Tabla({
   columnas: string[];
   filas: ReactElement[];
 }) {
+  // De a 50 filas. Si cambia la lista (busqueda, filtros), vuelve a la primera.
+  const [pagina, setPagina] = useState(0);
+  useEffect(() => setPagina(0), [filas.length]);
+
   if (estado.cargando) return <Cargando />;
   if (estado.error) return <ErrorCarga mensaje={estado.error} alReintentar={estado.recargar} />;
+
+  const POR_PAGINA = 50;
+  const paginas = Math.max(1, Math.ceil(filas.length / POR_PAGINA));
+  const actual = Math.min(pagina, paginas - 1);
+  const enPagina = filas.slice(actual * POR_PAGINA, (actual + 1) * POR_PAGINA);
 
   return (
     <>
       <div className="tabla-scroll">
-        <table className="modern">
+        <table className="modern tabla">
           <thead>
             <tr>
               {columnas.map((c) => (
@@ -599,7 +609,7 @@ function Tabla({
             </tr>
           </thead>
           <tbody>
-            {filas}
+            {enPagina}
             {filas.length === 0 && (
               <tr>
                 <td colSpan={columnas.length} className="empty-row">
@@ -610,7 +620,14 @@ function Tabla({
           </tbody>
         </table>
       </div>
-      <p className="resumen-catalogo">{filas.length} registro(s)</p>
+      <Paginacion
+        total={filas.length}
+        desde={actual * POR_PAGINA}
+        hasta={actual * POR_PAGINA + enPagina.length}
+        pagina={actual}
+        paginas={paginas}
+        alCambiar={setPagina}
+      />
     </>
   );
 }

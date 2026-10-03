@@ -6,6 +6,7 @@ import { useDatos } from "../ganchos/useDatos";
 import { useSesion } from "../ganchos/useSesion";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import Modal from "../componentes/Modal";
+import TablaDatos, { Pastilla } from "../componentes/TablaDatos";
 import type { Usuario } from "../api/tipos";
 
 /**
@@ -64,59 +65,73 @@ export default function Usuarios() {
     <>
       {exito && <div className="alert success">{exito}</div>}
       {error && <div className="alert danger">{error}</div>}
-      <div className="panel panel-body">
-        <div className="encabezado-seccion">
-          <h2>Usuarios</h2>
-          <span className="resumen-catalogo">Todos los usuarios tienen los mismos permisos.</span>
-          <button className="btn-primary" style={{ marginLeft: "auto" }} onClick={() => setCreando(true)}>
-            + Nuevo usuario
-          </button>
-        </div>
-        <div className="tabla-scroll">
-          <table className="tabla-tablero">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>Estado</th>
-                <th>Ultimo acceso</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(lista.datos ?? []).map((u) => (
-                <tr key={u.id}>
-                  <td>
-                    <strong>{u.nombre}</strong>
-                    {u.id === yo?.id && <span className="dato-sec">(tu)</span>}
-                  </td>
-                  <td>{u.email}</td>
-                  <td>
-                    <span className={`etiqueta-estado ${u.activo ? "estado-verde" : "estado-neutro"}`}>
-                      {u.activo ? "Activo" : "Inactivo"}
-                    </span>
-                    {u.activo && u.debeCambiarClave && (
-                      <span className="etiqueta-estado estado-gris" style={{ marginLeft: 6 }}>
-                        Clave temporal
-                      </span>
-                    )}
-                  </td>
-                  <td>{u.ultimoAcceso ? fechaHora(u.ultimoAcceso) : "Nunca"}</td>
-                  <td style={{ textAlign: "right" }}>
-                    <button className="boton-suave" onClick={() => restablecer(u)}>
-                      Restablecer contrasena
+      <div className="panel">
+        <TablaDatos
+          filas={lista.datos ?? []}
+          clave={(u) => u.id}
+          pestanas={[
+            { id: "activos", etiqueta: "Activos", incluye: (u) => u.activo },
+            { id: "inactivos", etiqueta: "Inactivos", incluye: (u) => !u.activo },
+            { id: "todos", etiqueta: "Todos", incluye: () => true },
+          ]}
+          placeholderBusqueda="Buscar nombre o email..."
+          acciones={
+            <button className="btn-primary" onClick={() => setCreando(true)}>
+              + Nuevo usuario
+            </button>
+          }
+          columnas={[
+            {
+              id: "nombre",
+              titulo: "Nombre",
+              valor: (u) => u.nombre,
+              celda: (u) => (
+                <>
+                  <span className="principal">{u.nombre}</span>
+                  {u.id === yo?.id && <span className="dato-sec">(tu)</span>}
+                </>
+              ),
+            },
+            { id: "email", titulo: "Email", valor: (u) => u.email, celda: (u) => u.email },
+            {
+              id: "estado",
+              titulo: "Estado",
+              valor: (u) => (u.activo ? (u.debeCambiarClave ? "Clave temporal" : "Activo") : "Inactivo"),
+              celda: (u) =>
+                !u.activo ? (
+                  <Pastilla tono="neutro">Inactivo</Pastilla>
+                ) : u.debeCambiarClave ? (
+                  <Pastilla tono="aviso">Clave temporal</Pastilla>
+                ) : (
+                  <Pastilla tono="ok">Activo</Pastilla>
+                ),
+            },
+            {
+              id: "acceso",
+              titulo: "Ultimo acceso",
+              valor: (u) => u.ultimoAcceso ?? "",
+              celda: (u) => (u.ultimoAcceso ? fechaHora(u.ultimoAcceso) : "Nunca"),
+            },
+            {
+              id: "acciones",
+              titulo: "",
+              etiquetaMovil: null,
+              alinear: "derecha",
+              celda: (u) => (
+                <>
+                  <button className="boton-suave" onClick={() => restablecer(u)}>
+                    Restablecer contrasena
+                  </button>
+                  {u.id !== yo?.id && (
+                    <button className="btn-link" style={{ marginLeft: 8 }} onClick={() => cambiarEstado(u)}>
+                      {u.activo ? "Desactivar" : "Reactivar"}
                     </button>
-                    {u.id !== yo?.id && (
-                      <button className="btn-link" style={{ marginLeft: 8 }} onClick={() => cambiarEstado(u)}>
-                        {u.activo ? "Desactivar" : "Reactivar"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  )}
+                </>
+              ),
+            },
+          ]}
+        />
       </div>
 
       {creando && (

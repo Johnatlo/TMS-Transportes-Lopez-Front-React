@@ -1,0 +1,198 @@
+/* =========================================================================
+   TEMA - Transportes Lopez
+   Fuente unica de colores, fuentes y medidas. Se carga DESPUES de
+   estilos.css: las variables viejas (--color-*) apuntan aqui, asi todo el
+   sistema toma la paleta nueva sin reescribir cada regla.
+   Reglas de uso: GUIA-UI.md (raiz de frontend-react)
+   ========================================================================= */
+
+:root {
+  /* ---- Fuentes ---- */
+  --fuente-ui: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --fuente-codigo: "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+  /* Escala de texto (rem sobre 16px) */
+  --texto-xs: 0.72rem;   /* 11.5px: contadores, etiquetas de columna */
+  --texto-sm: 0.8125rem; /* 13px: tablas, ayudas */
+  --texto-base: 0.875rem;/* 14px: formularios y cuerpo */
+  --texto-md: 1rem;      /* 16px: titulos de seccion */
+  --texto-lg: 1.25rem;   /* 20px: titulo de pagina */
+  --texto-xl: 1.6rem;    /* 25.6px: indicadores del tablero */
+
+  /* ---- Marca (azul del logo) ---- */
+  --marca-50: #eef4ff;
+  --marca-100: #dce8fd;
+  --marca-200: #b9d1fa;
+  --marca-400: #4f8de6;
+  --marca-500: #2b6fd6;
+  --marca-600: #1a56c2;   /* primario: botones, enlaces, pestana activa */
+  --marca-700: #154397;
+  --marca-900: #0d2654;   /* textos fuertes sobre fondo de marca */
+  --cielo-400: #5aa9e6;   /* acento secundario (las curvas del logo) */
+
+  /* ---- Neutros ---- */
+  --gris-0: #ffffff;
+  --gris-25: #fbfcfe;
+  --gris-50: #f5f7fa;     /* fondo de la aplicacion */
+  --gris-100: #eef1f5;    /* fondo de encabezados de tabla, hover */
+  --gris-200: #e3e7ee;    /* bordes */
+  --gris-300: #cdd4df;
+  --gris-500: #6b7486;    /* texto secundario */
+  --gris-700: #374151;    /* texto de tabla */
+  --gris-900: #111827;    /* texto principal */
+
+  /* ---- Estados (texto / fondo / punto) ---- */
+  --ok-700: #11734f;   --ok-50: #e8f6ef;   --ok-500: #19a46c;
+  --aviso-700: #a8590a; --aviso-50: #fdf4e4; --aviso-500: #f0a020;
+  --error-700: #c0262d; --error-50: #fdeced; --error-500: #e5484d;
+  --info-700: #154397;  --info-50: #eef4ff;  --info-500: #2b6fd6;
+  --neutro-700: #4b5563; --neutro-50: #f1f3f6; --neutro-500: #9aa3b2;
+
+  /* ---- Forma ---- */
+  --radio-sm: 8px;
+  --radio-md: 12px;
+  --radio-lg: 16px;
+  --sombra-1: 0 1px 2px rgba(13, 38, 84, 0.05);
+  --sombra-2: 0 8px 24px rgba(13, 38, 84, 0.10);
+
+  /* ---- Compatibilidad: variables que ya usa estilos.css ---- */
+  --color-bg: var(--gris-50);
+  --color-surface: var(--gris-0);
+  --color-sidebar: var(--gris-0);
+  --color-accent: var(--marca-600);
+  --color-accent-dark: var(--marca-700);
+  --color-accent-suave: var(--marca-50);
+  --color-text: var(--gris-900);
+  --color-text-muted: var(--gris-500);
+  --color-border: var(--gris-200);
+  --color-success-bg: var(--ok-50);
+  --color-success-text: var(--ok-700);
+  --color-warning-bg: var(--aviso-50);
+  --color-warning-text: var(--aviso-700);
+  --color-danger-bg: var(--error-50);
+  --color-danger-text: var(--error-700);
+  --color-info-bg: var(--info-50);
+  --color-info-text: var(--info-700);
+  --radius: var(--radio-lg);
+  --shadow-card: var(--sombra-1);
+}
+
+body {
+  font-family: var(--fuente-ui);
+  font-size: var(--texto-base);
+  -webkit-font-smoothing: antialiased;
+  color: var(--color-text);
+}
+button, input, select, textarea { font-family: inherit; }
+code, .codigo { font-family: var(--fuente-codigo); font-size: 0.92em; }
+
+/* =========================================================================
+   Tablas (componentes/TablaDatos.tsx)
+   ========================================================================= */
+.tabla-datos { display: flex; flex-direction: column; }
+
+.tabla-barra {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap;
+  padding: 0.75rem 1rem; border-bottom: 1px solid var(--gris-200);
+}
+.tabla-pestanas { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.tabla-pestanas button {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.4rem 0.75rem; border-radius: var(--radio-sm);
+  border: 1px solid transparent; background: none; cursor: pointer;
+  font-size: var(--texto-sm); font-weight: 500; color: var(--gris-500);
+}
+.tabla-pestanas button:hover { color: var(--gris-900); background: var(--gris-50); }
+.tabla-pestanas button.activa {
+  color: var(--gris-900); background: var(--gris-0); border-color: var(--gris-200);
+  box-shadow: inset 0 -2px 0 var(--marca-600);
+}
+.tabla-pestanas .contador {
+  min-width: 1.4rem; padding: 0 0.35rem; border-radius: 999px; text-align: center;
+  font-size: var(--texto-xs); font-weight: 600; background: var(--gris-100); color: var(--gris-700);
+}
+.tabla-pestanas button.activa .contador { background: var(--marca-50); color: var(--marca-700); }
+
+.tabla-herramientas { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-left: auto; }
+.tabla-buscar {
+  width: 220px; margin: 0; padding: 0.42rem 0.7rem; font-size: var(--texto-sm);
+  border: 1px solid var(--gris-200); border-radius: var(--radio-sm); background: var(--gris-0);
+}
+.boton-barra {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.42rem 0.7rem; border-radius: var(--radio-sm); cursor: pointer;
+  border: 1px solid transparent; background: none; color: var(--gris-700);
+  font-size: var(--texto-sm); font-weight: 500;
+}
+.boton-barra:hover:not(:disabled) { background: var(--gris-100); }
+.boton-barra.activo { background: var(--marca-50); color: var(--marca-700); }
+.boton-barra:disabled { opacity: 0.45; cursor: default; }
+
+.tabla-filtros {
+  display: flex; align-items: flex-end; gap: 0.8rem; flex-wrap: wrap;
+  padding: 0.7rem 1rem; background: var(--gris-25); border-bottom: 1px solid var(--gris-200);
+}
+.tabla-filtros label { display: flex; flex-direction: column; gap: 0.2rem; margin: 0; font-size: var(--texto-xs); color: var(--gris-500); font-weight: 500; }
+.tabla-filtros select { margin: 0; min-width: 160px; padding: 0.35rem 0.5rem; font-size: var(--texto-sm); }
+
+table.tabla { width: 100%; border-collapse: collapse; font-size: var(--texto-sm); color: var(--gris-700); }
+table.tabla th {
+  position: sticky; top: 0; z-index: 1;
+  text-align: left; padding: 0.6rem 0.9rem; white-space: nowrap; user-select: none;
+  background: var(--gris-50); border-bottom: 1px solid var(--gris-200);
+  font-size: var(--texto-xs); font-weight: 600; color: var(--gris-500); letter-spacing: 0.01em;
+}
+table.tabla th.ordenable { cursor: pointer; }
+table.tabla th.ordenable:hover { color: var(--gris-900); }
+table.tabla .flecha-orden { margin-left: 0.25rem; color: var(--marca-600); }
+table.tabla td { padding: 0.62rem 0.9rem; border-bottom: 1px solid var(--gris-100); vertical-align: middle; white-space: nowrap; }
+table.tabla tbody tr:hover { background: var(--gris-25); }
+table.tabla tbody tr.fila-clic { cursor: pointer; }
+table.tabla tbody tr.fila-clic:hover { background: var(--marca-50); }
+table.tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
+table.tabla td strong, table.tabla .principal { color: var(--gris-900); font-weight: 600; }
+table.tabla .dato-sec { font-size: var(--texto-xs); }
+table.tabla .btn-primary, table.tabla .btn-secondary { padding: 0.32rem 0.7rem; font-size: var(--texto-xs); }
+
+.tabla-paginacion {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap;
+  padding: 0.65rem 1rem; font-size: var(--texto-xs); color: var(--gris-500);
+}
+.tabla-paginas { display: flex; align-items: center; gap: 0.2rem; }
+.tabla-paginas button {
+  min-width: 1.9rem; height: 1.9rem; padding: 0 0.4rem; border-radius: var(--radio-sm);
+  border: 1px solid var(--gris-200); background: var(--gris-0); color: var(--gris-700);
+  font-size: var(--texto-xs); cursor: pointer;
+}
+.tabla-paginas button:hover:not(:disabled) { background: var(--gris-100); }
+.tabla-paginas button.actual { background: var(--marca-600); border-color: var(--marca-600); color: #fff; }
+.tabla-paginas button:disabled { opacity: 0.4; cursor: default; }
+.tabla-paginas .puntos { padding: 0 0.2rem; }
+
+/* ---- Pastillas de estado ---- */
+.pastilla {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.16rem 0.55rem 0.16rem 0.45rem; border-radius: 999px; white-space: nowrap;
+  font-size: var(--texto-xs); font-weight: 600;
+}
+.pastilla::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pastilla-ok { background: var(--ok-50); color: var(--ok-700); }
+.pastilla-aviso { background: var(--aviso-50); color: var(--aviso-700); }
+.pastilla-error { background: var(--error-50); color: var(--error-700); }
+.pastilla-info { background: var(--info-50); color: var(--info-700); }
+.pastilla-neutro { background: var(--neutro-50); color: var(--neutro-700); }
+
+/* Las tablas viejas (modern / tablero) toman la misma tipografia compacta. */
+table.modern, .tabla-tablero { font-size: var(--texto-sm); }
+table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
+.badge { font-size: var(--texto-xs); }
+
+@media (max-width: 820px) {
+  .tabla-barra { padding: 0.65rem 0.75rem; }
+  .tabla-herramientas { margin-left: 0; width: 100%; }
+  .tabla-buscar { flex: 1; width: auto; font-size: 16px; }
+  .tabla-filtros select { font-size: 16px; }
+  table.tabla th { position: static; }
+  /* En tarjeta los montos van como el resto de datos, a la izquierda. */
+  .tabla-viajes td.num { text-align: left; }
+}
