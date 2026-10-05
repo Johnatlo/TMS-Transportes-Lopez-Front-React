@@ -231,7 +231,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         `el destino ${municipioDestino} no es el municipio de descargue de ninguna carga (${[...new Set(descargues)].join(", ")})`
       );
     return problemas.length
-      ? `La ruta no calza con las cargas: ${problemas.join("; ")}. El sistema no dejara enviar el manifiesto. Corrige la ruta de la plantilla o registra el trayecto en vacio.`
+      ? `La ruta no calza con las cargas: ${problemas.join("; ")}. Lo mas probable es que el RNDC rechace el manifiesto. Corrige la ruta de la plantilla o registra el trayecto en vacio.`
       : null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [municipioOrigen, municipioDestino, remesas, listaPlantillas, mostrarVacios, vacio1Origen, vacio2Destino]);
