@@ -99,6 +99,21 @@ const del = <T>(ruta: string) => pedir<T>(ruta, { method: "DELETE" });
 // Catalogo
 // ---------------------------------------------------------------------------
 
+/** Cumplido de una remesa tal como quedo en el RNDC (o en el sistema, si el RNDC no responde). */
+export interface CumplidoRegistrado {
+  fuente: "RNDC" | "sistema";
+  noCumplida?: boolean;
+  radicado?: string | null;
+  fechaRegistro?: string | null;
+  cantidadEntregada?: number | null;
+  llegadaCargue?: string | null;
+  entradaCargue?: string | null;
+  salidaCargue?: string | null;
+  llegadaDescargue?: string | null;
+  entradaDescargue?: string | null;
+  salidaDescargue?: string | null;
+}
+
 /** Respuesta de GET /despacho/:id/cumplir/previa. */
 export interface PreviaCumplidoManifiesto {
   valorFlete: number;
@@ -332,6 +347,16 @@ export const api = {
     }
   ) => post<{ viaje: Viaje; remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
   /** Cumplido del manifiesto (proceso 6); exige todas las remesas cumplidas. */
+  /** Lo que quedo registrado en el cumplido de una remesa (leido del RNDC). */
+  getCumplidoRemesa: (remesaId: number) =>
+    get<CumplidoRegistrado>(`/despacho/remesas/${remesaId}/cumplido`),
+  /** Anula el cumplido de una remesa (proceso 28) para corregirlo. */
+  anularCumplidoRemesa: (remesaId: number, motivo: string, observaciones: string) =>
+    post<{ viaje: Viaje; remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/anular-cumplido`, {
+      motivo,
+      observaciones,
+    }),
+
   /** Valores de partida para la ventana de cumplido del manifiesto. */
   getPreviaCumplidoManifiesto: (viajeId: number) =>
     get<PreviaCumplidoManifiesto>(`/despacho/${viajeId}/cumplir/previa`),

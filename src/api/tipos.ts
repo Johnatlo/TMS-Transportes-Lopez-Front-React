@@ -242,6 +242,10 @@ export interface ViajeRemesa {
   cantidadEntregada: number | null;
   entradaCargue: string | null;
   entradaDescargue: string | null;
+  llegadaCargue?: string | null;
+  salidaCargue?: string | null;
+  llegadaDescargue?: string | null;
+  salidaDescargue?: string | null;
   radicadoCumplido: string | null;
   fechaCumplido: string | null;
 }

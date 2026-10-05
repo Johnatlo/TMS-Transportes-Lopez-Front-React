@@ -200,3 +200,8 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 /* Cumplido del manifiesto: tabla de tiempos logisticos */
 .tiempos-logisticos { margin: 0 0 1rem; padding: 0.75rem; border: 1px solid var(--gris-200); border-radius: var(--radio-md); background: var(--gris-25); }
 .tiempos-logisticos table.tabla td, .tiempos-logisticos table.tabla th { padding: 0.4rem 0.6rem; }
+
+/* Cumplido de remesa: datos registrados y anulacion */
+.detalle-cumplido table.tabla th, .detalle-cumplido table.tabla td { padding: 0.35rem 0.6rem; }
+.detalle-cumplido table.tabla tbody th { background: none; position: static; text-align: left; }
+.anular-cumplido { margin-top: 0.6rem; padding: 0.7rem; border: 1px solid var(--error-50); border-radius: var(--radio-md); background: #fffafa; }

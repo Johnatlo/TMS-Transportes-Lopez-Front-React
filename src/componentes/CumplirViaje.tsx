@@ -4,7 +4,7 @@ import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "./Estado";
 import Modal from "./Modal";
 import type { Viaje, ViajeRemesa } from "../api/tipos";
-import type { TiemposLogisticos } from "../api/cliente";
+import type { CumplidoRegistrado, TiemposLogisticos } from "../api/cliente";
 
 /** Solo se cumplen viajes con manifiesto vigente (ver despacho.ts). */
 export function esCumplible(v: Pick<Viaje, "estado">): boolean {
@@ -39,16 +39,18 @@ function formularioInicial(r: ViajeRemesa): FormularioRemesa {
   const ahora = Date.now();
   const HORA = 3_600_000;
   const hasta = (ms: number) => aInputLocal(new Date(Math.min(ms, ahora)));
+  // Si ya se habia cumplido (y se anulo para corregir), se parte de lo reportado.
+  const previo = (v: string | null | undefined, defecto: string) => (v ? aInputLocal(new Date(v)) : defecto);
   const cargue = new Date(r.fechaHoraCargue).getTime();
   const descargue = Math.min(new Date(r.fechaHoraDescargue).getTime(), ahora - HORA);
   return {
-    kilos: r.pesoReal ? String(r.pesoReal) : "",
-    llegadaCargue: hasta(cargue),
-    entradaCargue: hasta(cargue),
-    salidaCargue: hasta(cargue + HORA),
-    llegadaDescargue: hasta(descargue),
-    entradaDescargue: hasta(descargue),
-    salidaDescargue: hasta(descargue + HORA),
+    kilos: r.cantidadEntregada ? String(r.cantidadEntregada) : r.pesoReal ? String(r.pesoReal) : "",
+    llegadaCargue: previo(r.llegadaCargue, hasta(cargue)),
+    entradaCargue: previo(r.entradaCargue, hasta(cargue)),
+    salidaCargue: previo(r.salidaCargue, hasta(cargue + HORA)),
+    llegadaDescargue: previo(r.llegadaDescargue, hasta(descargue)),
+    entradaDescargue: previo(r.entradaDescargue, hasta(descargue)),
+    salidaDescargue: previo(r.salidaDescargue, hasta(descargue + HORA)),
     enviando: false,
     error: r.mensajeError,
   };
@@ -241,15 +243,17 @@ export default function CumplirViaje({
           </div>
           <div>
             {r.estado === "CUMPLIDA" ? (
-              <div className="alert success" style={{ margin: 0 }}>
-                Cumplida · radicado <strong>{r.radicadoCumplido}</strong>
-                <div className="dato-sec">
-                  Entregados {r.cantidadEntregada ?? "-"} kg · entrada al cargue{" "}
-                  {r.entradaCargue ? fechaHora(r.entradaCargue) : "-"} · entrada al descargue{" "}
-                  {r.entradaDescargue ? fechaHora(r.entradaDescargue) : "-"}
-                </div>
-                {r.mensajeError && <div className="dato-sec">{r.mensajeError}</div>}
-              </div>
+              <DetalleCumplido
+                remesa={r}
+                manifiestoCumplido={cumplido}
+                alAnular={(resp) => {
+                  setRemesas(resp.remesas);
+                  setViaje(resp.viaje);
+                  const nueva = resp.remesas.find((x) => x.id === r.id);
+                  if (nueva) setFormularios((f) => ({ ...f, [r.id]: formularioInicial(nueva) }));
+                  alTerminar();
+                }}
+              />
             ) : formularios[r.id] ? (
               <FormularioCumplido
                 f={formularios[r.id]}
@@ -536,6 +540,106 @@ function TablaTiempos({
           ? ` Valor hora de SICETAC para esta via: ${moneda(t.valorHora)}.`
           : ` No se pudo consultar el valor hora de SICETAC${t.errorSicetac ? ` (${t.errorSicetac})` : ""}.`}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Lo que quedo registrado en el cumplido de una remesa, leido del RNDC, para
+ * revisar que esta bien. Si algo esta mal, se anula el cumplido (proceso 28)
+ * y la remesa vuelve al formulario con esos mismos datos para corregirlos.
+ */
+function DetalleCumplido({
+  remesa,
+  manifiestoCumplido,
+  alAnular,
+}: {
+  remesa: ViajeRemesa;
+  manifiestoCumplido: boolean;
+  alAnular: (r: { viaje: Viaje; remesas: ViajeRemesa[] }) => void;
+}) {
+  const datos = useDatos(() => api.getCumplidoRemesa(remesa.id), [remesa.id]);
+  const [anulando, setAnulando] = useState(false);
+  const [motivo, setMotivo] = useState("D");
+  const [observaciones, setObservaciones] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const d: CumplidoRegistrado | null = datos.datos;
+  const f = (v: string | null | undefined) => (v ? fechaHora(v) : "-");
+
+  async function anular() {
+    setEnviando(true);
+    setError(null);
+    try {
+      alAnular(await api.anularCumplidoRemesa(remesa.id, motivo, observaciones));
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo anular el cumplido");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="detalle-cumplido">
+      <div className="alert success" style={{ margin: "0 0 0.6rem" }}>
+        Cumplida · radicado <strong>{d?.radicado ?? remesa.radicadoCumplido}</strong>
+        {d?.fechaRegistro ? ` · registrado ${d.fechaRegistro}` : ""}
+      </div>
+      {datos.cargando && !d && <div className="dato-sec">Consultando el cumplido en el RNDC...</div>}
+      {d && !d.noCumplida && (
+        <table className="tabla">
+          <tbody>
+            <tr><th>Kilos entregados</th><td className="num" colSpan={3}>{d.cantidadEntregada ?? "-"}</td></tr>
+            <tr><th /><th>Llegada</th><th>Entrada</th><th>Salida</th></tr>
+            <tr><th>Cargue</th><td>{f(d.llegadaCargue)}</td><td>{f(d.entradaCargue)}</td><td>{f(d.salidaCargue)}</td></tr>
+            <tr><th>Descargue</th><td>{f(d.llegadaDescargue)}</td><td>{f(d.entradaDescargue)}</td><td>{f(d.salidaDescargue)}</td></tr>
+          </tbody>
+        </table>
+      )}
+      {d?.noCumplida && (
+        <div className="alert warning">El RNDC no tiene esta remesa como cumplida (puede que se anulo en el portal).</div>
+      )}
+      {d && (
+        <div className="dato-sec" style={{ marginTop: "0.3rem" }}>
+          {d.fuente === "RNDC" ? "Datos registrados en el RNDC." : "El RNDC no respondio: datos enviados desde este sistema."}
+        </div>
+      )}
+
+      {!anulando ? (
+        <button type="button" className="btn-link" style={{ marginTop: "0.5rem" }} onClick={() => setAnulando(true)}>
+          Algo esta mal: anular este cumplido para corregirlo
+        </button>
+      ) : (
+        <div className="anular-cumplido">
+          {manifiestoCumplido && (
+            <div className="alert warning">
+              El manifiesto ya esta cumplido: el RNDC no deja anular el cumplido de la remesa hasta
+              anular primero el del manifiesto (en el portal).
+            </div>
+          )}
+          <div className="campos-cumplido">
+            <div>
+              <label>Motivo</label>
+              <select value={motivo} onChange={(e) => setMotivo(e.target.value)}>
+                <option value="D">D - Error de digitacion</option>
+                <option value="O">O - Otro</option>
+              </select>
+            </div>
+            <div>
+              <label>Observaciones</label>
+              <input value={observaciones} maxLength={200} placeholder="Que se va a corregir"
+                onChange={(e) => setObservaciones(e.target.value)} />
+            </div>
+          </div>
+          {error && <div className="alert danger" style={{ whiteSpace: "pre-wrap" }}>{error}</div>}
+          <button type="button" className="btn-danger" onClick={anular} disabled={enviando}>
+            {enviando ? "Anulando en el RNDC..." : "Anular cumplido"}
+          </button>{" "}
+          <button type="button" className="btn-link" onClick={() => setAnulando(false)}>
+            Cancelar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
