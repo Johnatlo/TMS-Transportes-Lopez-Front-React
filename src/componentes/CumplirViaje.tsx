@@ -4,7 +4,7 @@ import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "./Estado";
 import Modal from "./Modal";
 import type { Viaje, ViajeRemesa } from "../api/tipos";
-import type { CumplidoRegistrado, TiemposLogisticos } from "../api/cliente";
+import type { CumplidoRegistrado, TiemposGps, TiemposLogisticos } from "../api/cliente";
 
 /** Solo se cumplen viajes con manifiesto vigente (ver despacho.ts). */
 export function esCumplible(v: Pick<Viaje, "estado">): boolean {
@@ -12,6 +12,9 @@ export function esCumplible(v: Pick<Viaje, "estado">): boolean {
 }
 
 /** Lo que el usuario escribe para cumplir UNA remesa. */
+/** Tiempos que puede traer el cumplido inicial del GPS. */
+const CAMPOS_GPS = ["llegadaCargue", "salidaCargue", "llegadaDescargue", "salidaDescargue"] as const;
+
 /** Los seis tiempos logisticos del cumplido, en el orden en que ocurren. */
 const TIEMPOS = [
   ["llegadaCargue", "Llegada al cargue"],
@@ -79,6 +82,8 @@ export default function CumplirViaje({
   const carga = useDatos(() => api.getRemesasDeViaje(viaje.id), [viaje.id]);
   const [remesas, setRemesas] = useState<ViajeRemesa[] | null>(null);
   const [formularios, setFormularios] = useState<Record<number, FormularioRemesa>>({});
+  /** Tiempos del GPS de cada remesa pendiente (bloqueados en el formulario). */
+  const [gps, setGps] = useState<Record<number, TiemposGps>>({});
   const [enviandoManifiesto, setEnviandoManifiesto] = useState(false);
   const [errorManifiesto, setErrorManifiesto] = useState<string | null>(null);
 
@@ -87,12 +92,27 @@ export default function CumplirViaje({
   useEffect(() => {
     if (!carga.datos) return;
     setRemesas(carga.datos);
-    setFormularios(
-      Object.fromEntries(
-        carga.datos.filter((r) => r.estado === "CREADA").map((r) => [r.id, formularioInicial(r)])
-      )
-    );
+    const pendientesCarga = carga.datos.filter((r) => r.estado === "CREADA");
+    setFormularios(Object.fromEntries(pendientesCarga.map((r) => [r.id, formularioInicial(r)])));
+    // Lo que ya reporto el GPS se trae del RNDC y reemplaza la cita en el formulario.
+    for (const r of pendientesCarga) cargarGps(r.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carga.datos]);
+
+  function cargarGps(id: number) {
+    api
+      .getGpsRemesa(id)
+      .then((g) => {
+        setGps((prev) => ({ ...prev, [id]: g }));
+        const cambios: Partial<FormularioRemesa> = {};
+        for (const campo of CAMPOS_GPS) {
+          const v = g[campo];
+          if (v) cambios[campo] = aInputLocal(new Date(v));
+        }
+        setFormularios((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], ...cambios } } : prev));
+      })
+      .catch(() => setGps((prev) => ({ ...prev, [id]: { consultado: false } })));
+  }
 
   const activas = (remesas ?? []).filter((r) => r.estado !== "ANULADA");
   const pendientes = activas.filter((r) => r.estado !== "CUMPLIDA");
@@ -250,13 +270,17 @@ export default function CumplirViaje({
                   setRemesas(resp.remesas);
                   setViaje(resp.viaje);
                   const nueva = resp.remesas.find((x) => x.id === r.id);
-                  if (nueva) setFormularios((f) => ({ ...f, [r.id]: formularioInicial(nueva) }));
+                  if (nueva) {
+                    setFormularios((f) => ({ ...f, [r.id]: formularioInicial(nueva) }));
+                    cargarGps(r.id);
+                  }
                   alTerminar();
                 }}
               />
             ) : formularios[r.id] ? (
               <FormularioCumplido
                 f={formularios[r.id]}
+                gps={gps[r.id]}
                 alCambiar={(c) => cambiar(r.id, c)}
                 alCumplir={() => cumplirRemesa(r)}
               />
@@ -393,10 +417,12 @@ export default function CumplirViaje({
 
 function FormularioCumplido({
   f,
+  gps,
   alCambiar,
   alCumplir,
 }: {
   f: FormularioRemesa;
+  gps?: TiemposGps;
   alCambiar: (cambios: Partial<FormularioRemesa>) => void;
   alCumplir: () => void;
 }) {
@@ -413,22 +439,34 @@ function FormularioCumplido({
             onChange={(e) => alCambiar({ kilos: e.target.value })}
           />
         </div>
-        {TIEMPOS.map(([campo, etiqueta]) => (
-          <div key={campo}>
-            <label>{etiqueta}</label>
-            <input
-              type="datetime-local"
-              max={ahora}
-              value={f[campo]}
-              onChange={(e) => alCambiar({ [campo]: e.target.value } as Partial<FormularioRemesa>)}
-            />
-          </div>
-        ))}
+        {TIEMPOS.map(([campo, etiqueta]) => {
+          // Lo que reporto el GPS no se edita: el RNDC usa ese valor (como el portal).
+          const delGps = !!(gps && (CAMPOS_GPS as readonly string[]).includes(campo) && gps[campo as (typeof CAMPOS_GPS)[number]]);
+          return (
+            <div key={campo}>
+              <label>
+                {etiqueta}
+                {delGps && <span className="pastilla pastilla-info" style={{ marginLeft: 6 }}>GPS</span>}
+              </label>
+              <input
+                type="datetime-local"
+                max={ahora}
+                value={f[campo]}
+                disabled={delGps}
+                onChange={(e) => alCambiar({ [campo]: e.target.value } as Partial<FormularioRemesa>)}
+              />
+            </div>
+          );
+        })}
       </div>
       <div className="section-desc">
-        Vienen con las citas del despacho; corrigelas con las horas reales (hora de Colombia). Si
-        el GPS ya reporto la llegada y la salida, el RNDC usa las suyas y solo toma las entradas,
-        como en el portal; si no hay GPS, se envian estas.
+        {gps === undefined
+          ? "Consultando en el RNDC lo que reporto el GPS..."
+          : !gps.consultado
+            ? "No se pudo consultar el GPS en el RNDC: se envian estas horas y, si el RNDC tiene las del GPS, usa las suyas."
+            : gps.radicado
+              ? "Las marcadas GPS las reporto el GPS al RNDC: no se editan ni se reenvian, como en el portal. Completa las demas (hora de Colombia)."
+              : "El GPS no reporto tiempos para esta remesa: escribe las seis horas reales (hora de Colombia)."}
       </div>
       {f.error && (
         <div className="alert danger" style={{ whiteSpace: "pre-wrap" }}>

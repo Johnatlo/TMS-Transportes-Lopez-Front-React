@@ -99,6 +99,16 @@ const del = <T>(ruta: string) => pedir<T>(ruta, { method: "DELETE" });
 // Catalogo
 // ---------------------------------------------------------------------------
 
+/** Cumplido inicial del GPS. consultado=false: no se pudo preguntar al RNDC. */
+export interface TiemposGps {
+  consultado: boolean;
+  radicado?: string | null;
+  llegadaCargue?: string | null;
+  salidaCargue?: string | null;
+  llegadaDescargue?: string | null;
+  salidaDescargue?: string | null;
+}
+
 /** Cumplido de una remesa tal como quedo en el RNDC (o en el sistema, si el RNDC no responde). */
 export interface CumplidoRegistrado {
   fuente: "RNDC" | "sistema";
@@ -347,6 +357,8 @@ export const api = {
     }
   ) => post<{ viaje: Viaje; remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
   /** Cumplido del manifiesto (proceso 6); exige todas las remesas cumplidas. */
+  /** Tiempos que ya reporto el GPS (cumplido inicial): se muestran bloqueados. */
+  getGpsRemesa: (remesaId: number) => get<TiemposGps>(`/despacho/remesas/${remesaId}/gps`),
   /** Lo que quedo registrado en el cumplido de una remesa (leido del RNDC). */
   getCumplidoRemesa: (remesaId: number) =>
     get<CumplidoRegistrado>(`/despacho/remesas/${remesaId}/cumplido`),
