@@ -426,8 +426,9 @@ function FormularioCumplido({
         ))}
       </div>
       <div className="section-desc">
-        Vienen con las citas que se pusieron al despachar; corrigelas con las horas reales.
-        Hora de Colombia.
+        Vienen con las citas del despacho; corrigelas con las horas reales (hora de Colombia). Si
+        el GPS ya reporto la llegada y la salida, el RNDC usa las suyas y solo toma las entradas,
+        como en el portal; si no hay GPS, se envian estas.
       </div>
       {f.error && (
         <div className="alert danger" style={{ whiteSpace: "pre-wrap" }}>
