@@ -196,3 +196,7 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
   /* En tarjeta los montos van como el resto de datos, a la izquierda. */
   .tabla-viajes td.num { text-align: left; }
 }
+
+/* Cumplido del manifiesto: tabla de tiempos logisticos */
+.tiempos-logisticos { margin: 0 0 1rem; padding: 0.75rem; border: 1px solid var(--gris-200); border-radius: var(--radio-md); background: var(--gris-25); }
+.tiempos-logisticos table.tabla td, .tiempos-logisticos table.tabla th { padding: 0.4rem 0.6rem; }

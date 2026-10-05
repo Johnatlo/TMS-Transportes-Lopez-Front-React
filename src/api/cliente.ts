@@ -112,6 +112,29 @@ export interface PreviaCumplidoManifiesto {
   retencionFopat: number | null;
   motivosDescuento: Record<string, string>;
   motivosAdicional: string[];
+  tiempos: TiemposLogisticos;
+}
+
+/** Pactado contra ejecutado (minutos), como el bloque "Tiempos logisticos" del portal. */
+export interface TiemposLogisticos {
+  remesas: Array<{
+    consecutivo: string | null;
+    fuente: "RNDC" | "sistema" | null;
+    pactadoCargue: number | null;
+    pactadoDescargue: number | null;
+    ejecutadoCargue: number | null;
+    ejecutadoDescargue: number | null;
+  }>;
+  pactadoCargue: number | null;
+  pactadoDescargue: number | null;
+  ejecutadoCargue: number | null;
+  ejecutadoDescargue: number | null;
+  /** Valor hora de SICETAC de la via del viaje. */
+  valorHora: number | null;
+  errorSicetac: string | null;
+  /** (ejecutado - pactado) en horas x valor hora. Positivo = adicional; negativo = descuento. */
+  diferenciaValorCargue: number | null;
+  diferenciaValorDescargue: number | null;
 }
 
 /** Como se entrego una clave temporal: por correo, o en pantalla si no se pudo. */

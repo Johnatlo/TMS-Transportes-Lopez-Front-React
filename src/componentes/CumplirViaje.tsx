@@ -4,6 +4,7 @@ import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "./Estado";
 import Modal from "./Modal";
 import type { Viaje, ViajeRemesa } from "../api/tipos";
+import type { TiemposLogisticos } from "../api/cliente";
 
 /** Solo se cumplen viajes con manifiesto vigente (ver despacho.ts). */
 export function esCumplible(v: Pick<Viaje, "estado">): boolean {
@@ -277,6 +278,19 @@ export default function CumplirViaje({
             {previa.cargando && !p && <div className="dato-sec">Cargando valores...</div>}
             {p && (
               <>
+                <TablaTiempos
+                  t={p.tiempos}
+                  alUsar={(campo, valor) => {
+                    if (valor >= 0) setCm((c) => ({ ...c, [campo]: String(valor) }));
+                    else
+                      // Menos tiempo del pactado: descuento con motivo T.
+                      setCm((c) => ({
+                        ...c,
+                        valorDescuentoFlete: String(num(c.valorDescuentoFlete) + -valor),
+                        motivoDescuento: "T",
+                      }));
+                  }}
+                />
                 <div className="campos-cumplido">
                   <div>
                     <label>Fecha entrega de documentos</label>
@@ -451,3 +465,77 @@ export function AvisoPlazo({ dias }: { dias: number }) {
  * nombra "Variacion en ruta"; los demas se muestran con su codigo del RNDC.
  */
 const ETIQUETA_ADICIONAL: Record<string, string> = {};
+
+/** 63 -> "1 h 3 min". */
+function duracion(min: number | null): string {
+  if (min === null) return "-";
+  const signo = min < 0 ? "-" : "";
+  const m = Math.abs(min);
+  return `${signo}${Math.floor(m / 60)} h ${m % 60} min`;
+}
+
+/**
+ * Tiempos logisticos del manifiesto: pactados contra los que registro el GPS
+ * (o los del cumplido de cada remesa), y el valor que eso suma o resta con el
+ * valor hora de SICETAC. Es la misma comparacion que muestra el portal al
+ * cumplir; el valor es una sugerencia que se aplica con un clic.
+ */
+function TablaTiempos({
+  t,
+  alUsar,
+}: {
+  t: TiemposLogisticos;
+  alUsar: (campo: "valorAdicionalHorasCargue" | "valorAdicionalHorasDescargue", valor: number) => void;
+}) {
+  const filas = [
+    { nombre: "Cargue", pact: t.pactadoCargue, ejec: t.ejecutadoCargue, valor: t.diferenciaValorCargue, campo: "valorAdicionalHorasCargue" as const },
+    { nombre: "Descargue", pact: t.pactadoDescargue, ejec: t.ejecutadoDescargue, valor: t.diferenciaValorDescargue, campo: "valorAdicionalHorasDescargue" as const },
+  ];
+  const fuentes = [...new Set(t.remesas.map((r) => r.fuente).filter(Boolean))];
+  return (
+    <div className="tiempos-logisticos">
+      <div className="section-title" style={{ fontSize: "var(--texto-sm)" }}>Tiempos logisticos</div>
+      <table className="tabla">
+        <thead>
+          <tr>
+            <th />
+            <th className="num">Pactado</th>
+            <th className="num">Ejecutado (GPS)</th>
+            <th className="num">Diferencia</th>
+            <th className="num">Valor</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map((f) => {
+            const dif = f.ejec !== null && f.pact !== null ? f.ejec - f.pact : null;
+            return (
+              <tr key={f.nombre}>
+                <td className="principal">{f.nombre}</td>
+                <td className="num">{duracion(f.pact)}</td>
+                <td className="num">{duracion(f.ejec)}</td>
+                <td className="num" style={{ color: dif && dif > 0 ? "var(--aviso-700)" : dif && dif < 0 ? "var(--ok-700)" : undefined }}>
+                  {dif === null ? "-" : `${dif > 0 ? "+" : ""}${duracion(dif)}`}
+                </td>
+                <td className="num">{f.valor === null ? "-" : moneda(f.valor)}</td>
+                <td>
+                  {f.valor ? (
+                    <button type="button" className="btn-link" onClick={() => alUsar(f.campo, f.valor!)}>
+                      {f.valor > 0 ? "Usar como adicional" : "Usar como descuento"}
+                    </button>
+                  ) : null}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <div className="dato-sec" style={{ marginTop: "0.4rem" }}>
+        Ejecutado = salida menos entrada{fuentes.includes("RNDC") ? ", segun el RNDC (GPS o cumplido de la remesa)" : fuentes.includes("sistema") ? ", segun lo reportado al cumplir las remesas" : ""}.
+        {t.valorHora !== null
+          ? ` Valor hora de SICETAC para esta via: ${moneda(t.valorHora)}.`
+          : ` No se pudo consultar el valor hora de SICETAC${t.errorSicetac ? ` (${t.errorSicetac})` : ""}.`}
+      </div>
+    </div>
+  );
+}
