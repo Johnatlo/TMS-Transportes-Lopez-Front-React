@@ -126,11 +126,51 @@ export default function CumplirViaje({
     }
   }
 
+  // ---- Cumplido del manifiesto: valores como en el portal del RNDC ----
+  const previa = useDatos(() => api.getPreviaCumplidoManifiesto(viaje.id), [viaje.id]);
+  const [cm, setCm] = useState({
+    fechaEntregaDocumentos: aInputLocal(new Date()).slice(0, 10),
+    valorAdicionalHorasCargue: "",
+    valorAdicionalHorasDescargue: "",
+    valorAdicionalFlete: "",
+    motivoValorAdicional: "",
+    valorDescuentoFlete: "",
+    motivoDescuento: "",
+    valorSobreanticipo: "",
+    observaciones: "",
+  });
+  // Retencion y FOPAT se recalculan solos hasta que se escriben a mano.
+  const [retefuenteManual, setRetefuenteManual] = useState<string | null>(null);
+  const [fopatManual, setFopatManual] = useState<string | null>(null);
+  const num = (v: string) => (v.trim() === "" ? 0 : Number(v));
+  const p = previa.datos;
+  const valorFinal = p
+    ? p.valorFlete +
+      num(cm.valorAdicionalHorasCargue) +
+      num(cm.valorAdicionalHorasDescargue) +
+      num(cm.valorAdicionalFlete) -
+      num(cm.valorDescuentoFlete)
+    : 0;
+  const retefuenteCalculada = p
+    ? p.titularEsRegimenSimple
+      ? 0
+      : Math.round(Math.max(0, valorFinal - p.vacio1Valor - p.vacio2Valor) * (p.tarifaRetencionFuente ?? 0.01))
+    : 0;
+  const fopatCalculado = p?.aplicaFopat ? Math.round(valorFinal * 0.001) : 0;
+  const retefuente = retefuenteManual !== null ? num(retefuenteManual) : retefuenteCalculada;
+  const fopat = fopatManual !== null ? num(fopatManual) : fopatCalculado;
+  const neto = valorFinal - retefuente - fopat;
+  const saldo = neto - (p?.valorAnticipo ?? 0) - num(cm.valorSobreanticipo);
+
   async function cumplirManifiesto() {
     setEnviandoManifiesto(true);
     setErrorManifiesto(null);
     try {
-      const r = await api.cumplirManifiesto(viaje.id);
+      const r = await api.cumplirManifiesto(viaje.id, {
+        ...cm,
+        retencionFuente: retefuenteManual !== null ? num(retefuenteManual) : undefined,
+        retencionFopat: fopatManual !== null ? num(fopatManual) : undefined,
+      });
       setViaje(r);
       setRemesas(r.remesas);
     } catch (exc) {
@@ -179,10 +219,8 @@ export default function CumplirViaje({
         <>
           {viaje.plazoCumplido && <AvisoPlazo dias={viaje.plazoCumplido.diasHabilesRestantes} />}
           <div className="alert info">
-            Este es el <strong>cumplido normal</strong>: el viaje se hizo como se pacto. Si hubo
-            suspension (accidente, varada, siniestro) o hay que pagar adicionales o aplicar
-            descuentos, hazlo en el portal del RNDC: la guia del Ministerio aun no publica esos
-            campos para el webservice.
+            Este es el <strong>cumplido normal</strong>, con adicionales y descuentos si los hubo. Si
+            el viaje se suspendio (accidente, varada, siniestro), hazlo en el portal del RNDC.
           </div>
         </>
       )}
@@ -231,13 +269,92 @@ export default function CumplirViaje({
           <div>
             <div className="section-title">Manifiesto</div>
             <div className="section-desc">
-              Se cumple con el valor y el FOPAT con los que se expidio.
+              Los mismos datos del portal del RNDC. La retencion y el FOPAT se recalculan sobre el
+              valor final; puedes corregirlos a mano.
             </div>
           </div>
           <div>
-            <div className="dato-sec">
-              Valor a pagar {moneda(viaje.valorFleteReal)} · FOPAT {moneda(viaje.retencionFopat)}
-            </div>
+            {previa.cargando && !p && <div className="dato-sec">Cargando valores...</div>}
+            {p && (
+              <>
+                <div className="campos-cumplido">
+                  <div>
+                    <label>Fecha entrega de documentos</label>
+                    <input
+                      type="date"
+                      value={cm.fechaEntregaDocumentos}
+                      onChange={(e) => setCm({ ...cm, fechaEntregaDocumentos: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label>Valor del manifiesto</label>
+                    <input value={moneda(p.valorFlete)} disabled />
+                  </div>
+                  <div>
+                    <label>Adicional x tiempos de cargue</label>
+                    <input type="number" min="0" value={cm.valorAdicionalHorasCargue}
+                      onChange={(e) => setCm({ ...cm, valorAdicionalHorasCargue: e.target.value })} />
+                  </div>
+                  <div>
+                    <label>Adicional x tiempos de descargue</label>
+                    <input type="number" min="0" value={cm.valorAdicionalHorasDescargue}
+                      onChange={(e) => setCm({ ...cm, valorAdicionalHorasDescargue: e.target.value })} />
+                  </div>
+                  <div>
+                    <label>Otros valores adicionales</label>
+                    <input type="number" min="0" value={cm.valorAdicionalFlete}
+                      onChange={(e) => setCm({ ...cm, valorAdicionalFlete: e.target.value })} />
+                  </div>
+                  <div>
+                    <label>Motivo del adicional</label>
+                    <select value={cm.motivoValorAdicional} disabled={!num(cm.valorAdicionalFlete)}
+                      onChange={(e) => setCm({ ...cm, motivoValorAdicional: e.target.value })}>
+                      <option value="">Elige...</option>
+                      {p.motivosAdicional.map((m) => (
+                        <option key={m} value={m}>{ETIQUETA_ADICIONAL[m] ?? m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Descuento por tiempos reales</label>
+                    <input type="number" min="0" value={cm.valorDescuentoFlete}
+                      onChange={(e) => setCm({ ...cm, valorDescuentoFlete: e.target.value })} />
+                  </div>
+                  <div>
+                    <label>Motivo del descuento</label>
+                    <select value={cm.motivoDescuento} disabled={!num(cm.valorDescuentoFlete)}
+                      onChange={(e) => setCm({ ...cm, motivoDescuento: e.target.value })}>
+                      <option value="">Elige...</option>
+                      {Object.entries(p.motivosDescuento).map(([k, v]) => (
+                        <option key={k} value={k}>{k} - {v}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Retencion en la fuente</label>
+                    <input type="number" min="0" value={retefuenteManual ?? String(retefuenteCalculada)}
+                      onChange={(e) => setRetefuenteManual(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Retencion FOPAT (0,1%)</label>
+                    <input type="number" min="0" value={fopatManual ?? String(fopatCalculado)}
+                      onChange={(e) => setFopatManual(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Sobreanticipos</label>
+                    <input type="number" min="0" value={cm.valorSobreanticipo}
+                      onChange={(e) => setCm({ ...cm, valorSobreanticipo: e.target.value })} />
+                  </div>
+                </div>
+                <label>Observaciones</label>
+                <input value={cm.observaciones} maxLength={200}
+                  onChange={(e) => setCm({ ...cm, observaciones: e.target.value })} />
+                <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
+                  Valor a pagar <strong>{moneda(valorFinal)}</strong> · Neto {moneda(neto)} · Anticipo{" "}
+                  {moneda(p.valorAnticipo)} · Saldo a pagar <strong>{moneda(saldo)}</strong>
+                </div>
+              </>
+            )}
             {pendientes.length > 0 && (
               <div className="dato-sec">
                 Falta{pendientes.length > 1 ? "n" : ""} cumplir{" "}
@@ -328,3 +445,9 @@ export function AvisoPlazo({ dias }: { dias: number }) {
     </div>
   );
 }
+
+/**
+ * Motivos de "otros valores adicionales" (CMA170 lista C, R y O). La guia solo
+ * nombra "Variacion en ruta"; los demas se muestran con su codigo del RNDC.
+ */
+const ETIQUETA_ADICIONAL: Record<string, string> = {};

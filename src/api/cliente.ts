@@ -99,6 +99,21 @@ const del = <T>(ruta: string) => pedir<T>(ruta, { method: "DELETE" });
 // Catalogo
 // ---------------------------------------------------------------------------
 
+/** Respuesta de GET /despacho/:id/cumplir/previa. */
+export interface PreviaCumplidoManifiesto {
+  valorFlete: number;
+  valorAnticipo: number;
+  vacio1Valor: number;
+  vacio2Valor: number;
+  tarifaRetencionFuente?: number;
+  titularEsRegimenSimple: boolean;
+  aplicaFopat: boolean;
+  retencionFuente: number;
+  retencionFopat: number | null;
+  motivosDescuento: Record<string, string>;
+  motivosAdicional: string[];
+}
+
 /** Como se entrego una clave temporal: por correo, o en pantalla si no se pudo. */
 export interface EntregaClave {
   enviadoPorCorreo: boolean;
@@ -294,8 +309,11 @@ export const api = {
     }
   ) => post<{ viaje: Viaje; remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
   /** Cumplido del manifiesto (proceso 6); exige todas las remesas cumplidas. */
-  cumplirManifiesto: (viajeId: number) =>
-    post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/cumplir`, {}),
+  /** Valores de partida para la ventana de cumplido del manifiesto. */
+  getPreviaCumplidoManifiesto: (viajeId: number) =>
+    get<PreviaCumplidoManifiesto>(`/despacho/${viajeId}/cumplir/previa`),
+  cumplirManifiesto: (viajeId: number, datos: Record<string, unknown> = {}) =>
+    post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/cumplir`, datos),
 
   /** FOPAT causado y pendiente de pago, por mes. */
   getResumenFopat: () =>
