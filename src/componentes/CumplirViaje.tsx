@@ -578,7 +578,7 @@ function PisoSicetac({
       Piso SICETAC del cumplido: <strong>{moneda(piso.valor)}</strong>
       <div className="dato-sec">
         {piso.conHorasEjecutadas
-          ? `Movilizacion ${moneda(piso.valorMoviliza)} + ${horas(piso.horas)} h ejecutadas de cargue y descargue. Al despachar, con ${horas(piso.horasPactadas)} h pactadas, era ${moneda(piso.valorDespacho)}.`
+          ? `Movilizacion ${moneda(piso.valorMoviliza)} + ${horas(piso.horas)} h de cargue y descargue contadas desde la llegada (la espera cuenta, como en el RNDC). Al despachar, con ${horas(piso.horasPactadas)} h pactadas, era ${moneda(piso.valorDespacho)}.`
           : `Con ${horas(piso.horasPactadas)} h pactadas: aun no hay tiempos ejecutados de las remesas.`}
       </div>
       <div className="dato-sec">
@@ -651,8 +651,8 @@ function TablaTiempos({
   alUsar: (campo: "valorAdicionalHorasCargue" | "valorAdicionalHorasDescargue", valor: number) => void;
 }) {
   const filas = [
-    { nombre: "Cargue", pact: t.pactadoCargue, ejec: t.ejecutadoCargue, valor: t.diferenciaValorCargue, campo: "valorAdicionalHorasCargue" as const },
-    { nombre: "Descargue", pact: t.pactadoDescargue, ejec: t.ejecutadoDescargue, valor: t.diferenciaValorDescargue, campo: "valorAdicionalHorasDescargue" as const },
+    { nombre: "Cargue", pact: t.pactadoCargue, ejec: t.ejecutadoCargue, espera: t.conEsperaCargue, valor: t.diferenciaValorCargue, campo: "valorAdicionalHorasCargue" as const },
+    { nombre: "Descargue", pact: t.pactadoDescargue, ejec: t.ejecutadoDescargue, espera: t.conEsperaDescargue, valor: t.diferenciaValorDescargue, campo: "valorAdicionalHorasDescargue" as const },
   ];
   const fuentes = [...new Set(t.remesas.map((r) => r.fuente).filter(Boolean))];
   return (
@@ -664,6 +664,7 @@ function TablaTiempos({
             <th />
             <th className="num">Pactado</th>
             <th className="num">Ejecutado (GPS)</th>
+            <th className="num">Con espera</th>
             <th className="num">Diferencia</th>
             <th className="num">Valor</th>
             <th />
@@ -671,12 +672,15 @@ function TablaTiempos({
         </thead>
         <tbody>
           {filas.map((f) => {
-            const dif = f.ejec !== null && f.pact !== null ? f.ejec - f.pact : null;
+            // La diferencia que paga el RNDC cuenta desde la llegada (con espera).
+            const horasRndc = f.espera ?? f.ejec;
+            const dif = horasRndc !== null && f.pact !== null ? horasRndc - f.pact : null;
             return (
               <tr key={f.nombre}>
                 <td className="principal">{f.nombre}</td>
                 <td className="num">{duracion(f.pact)}</td>
                 <td className="num">{duracion(f.ejec)}</td>
+                <td className="num">{duracion(f.espera)}</td>
                 <td className="num" style={{ color: dif && dif > 0 ? "var(--aviso-700)" : dif && dif < 0 ? "var(--ok-700)" : undefined }}>
                   {dif === null ? "-" : `${dif > 0 ? "+" : ""}${duracion(dif)}`}
                 </td>
@@ -694,7 +698,8 @@ function TablaTiempos({
         </tbody>
       </table>
       <div className="dato-sec" style={{ marginTop: "0.4rem" }}>
-        Ejecutado = salida menos entrada{fuentes.includes("RNDC") ? ", segun el RNDC (GPS o cumplido de la remesa)" : fuentes.includes("sistema") ? ", segun lo reportado al cumplir las remesas" : ""}.
+        Ejecutado = salida menos entrada, como lo muestra el portal. Con espera = salida menos
+        llegada: con esas horas valida el RNDC el piso del cumplido, y son las que se pagan{fuentes.includes("RNDC") ? ", segun el RNDC (GPS o cumplido de la remesa)" : fuentes.includes("sistema") ? ", segun lo reportado al cumplir las remesas" : ""}.
         {t.valorHora !== null
           ? ` Valor hora de SICETAC para esta via: ${moneda(t.valorHora)}.`
           : ` No se pudo consultar el valor hora de SICETAC${t.errorSicetac ? ` (${t.errorSicetac})` : ""}.`}

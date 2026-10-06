@@ -227,6 +227,9 @@ export interface TiemposLogisticos {
   pactadoDescargue: number | null;
   ejecutadoCargue: number | null;
   ejecutadoDescargue: number | null;
+  /** Minutos desde la llegada hasta la salida (la espera cuenta): los usa el RNDC para el piso. */
+  conEsperaCargue: number | null;
+  conEsperaDescargue: number | null;
   /** Valor hora de SICETAC de la via del viaje. */
   valorHora: number | null;
   errorSicetac: string | null;
