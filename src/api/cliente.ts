@@ -449,6 +449,13 @@ export const api = {
   /** Valores de partida para la ventana de cumplido del manifiesto. */
   getPreviaCumplidoManifiesto: (viajeId: number) =>
     get<PreviaCumplidoManifiesto>(`/despacho/${viajeId}/cumplir/previa`),
+  /** Adopta los cumplidos hechos en el portal del RNDC (solo lectura alla). */
+  sincronizarCumplido: (viajeId: number) =>
+    post<{ adoptados: string[]; error?: string; viaje?: Viaje; remesas?: ViajeRemesa[] }>(
+      `/despacho/${viajeId}/cumplir/sincronizar`,
+      {}
+    ),
+
   cumplirManifiesto: (viajeId: number, datos: Record<string, unknown> = {}) =>
     post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/cumplir`, datos),
 

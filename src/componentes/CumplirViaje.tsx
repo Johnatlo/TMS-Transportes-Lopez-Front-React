@@ -86,12 +86,32 @@ export default function CumplirViaje({
   const [gps, setGps] = useState<Record<number, TiemposGps>>({});
   const [enviandoManifiesto, setEnviandoManifiesto] = useState(false);
   const [errorManifiesto, setErrorManifiesto] = useState<string | null>(null);
+  /** Lo cumplido en el portal que se trajo del RNDC al abrir. null = consultando. */
+  const [sincronia, setSincronia] = useState<{ adoptados: string[]; error?: string } | null>(null);
+
+  // Al abrir se pregunta al RNDC si algo ya se cumplio en el portal: esas
+  // remesas (o el manifiesto) se marcan cumplidas aqui y no se piden de nuevo.
+  useEffect(() => {
+    api
+      .sincronizarCumplido(viajeInicial.id)
+      .then((r) => {
+        setSincronia({ adoptados: r.adoptados, error: r.error });
+        if (r.adoptados.length > 0) {
+          if (r.viaje) setViaje(r.viaje);
+          if (r.remesas) setRemesas(r.remesas);
+          alTerminar();
+        }
+      })
+      .catch((exc) => setSincronia({ adoptados: [], error: exc instanceof Error ? exc.message : String(exc) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viajeInicial.id]);
 
   // Cuando llegan las remesas del servidor se copian al estado local (que se
   // actualiza con cada cumplido) y se arma un formulario para cada pendiente.
   useEffect(() => {
     if (!carga.datos) return;
-    setRemesas(carga.datos);
+    // Si la sincronizacion ya adopto algo, sus remesas son mas nuevas que estas.
+    setRemesas((previas) => previas ?? carga.datos);
     const pendientesCarga = carga.datos.filter((r) => r.estado === "CREADA");
     setFormularios(Object.fromEntries(pendientesCarga.map((r) => [r.id, formularioInicial(r)])));
     // Lo que ya reporto el GPS se trae del RNDC y reemplaza la cita en el formulario.
@@ -219,8 +239,8 @@ export default function CumplirViaje({
             <button
               className="btn-primary"
               onClick={cumplirManifiesto}
-              disabled={pendientes.length > 0 || enviandoManifiesto}
-              title={pendientes.length > 0 ? "Primero cumple todas las remesas" : undefined}
+              disabled={enviandoManifiesto}
+              title={pendientes.length > 0 ? "El RNDC exige todas las remesas cumplidas: si falta alguna, lo rechazara" : undefined}
             >
               {enviandoManifiesto ? "Cumpliendo en el RNDC..." : "Cumplir manifiesto"}
             </button>
@@ -228,6 +248,18 @@ export default function CumplirViaje({
         </>
       }
     >
+      {sincronia === null && <div className="dato-sec">Consultando en el RNDC si algo ya se cumplio en el portal...</div>}
+      {sincronia && sincronia.adoptados.length > 0 && (
+        <div className="alert info">
+          Se trajo del RNDC lo cumplido en el portal:
+          <ul style={{ margin: "0.3rem 0 0", paddingLeft: "1.1rem" }}>
+            {sincronia.adoptados.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {sincronia?.error && <div className="dato-sec">{sincronia.error} Se muestra lo registrado en este sistema.</div>}
       {cumplido ? (
         <div className="alert success">
           Manifiesto cumplido en el RNDC. Radicado <strong>{viaje.radicadoCumplido}</strong>
@@ -398,9 +430,10 @@ export default function CumplirViaje({
               </>
             )}
             {pendientes.length > 0 && (
-              <div className="dato-sec">
+              <div className="alert warning">
                 Falta{pendientes.length > 1 ? "n" : ""} cumplir{" "}
-                {pendientes.map((r) => r.consecutivoRemesa).join(", ")}.
+                {pendientes.map((r) => r.consecutivoRemesa).join(", ")}. El RNDC exige todas las remesas
+                cumplidas antes del manifiesto: si lo envias asi, lo rechazara.
               </div>
             )}
             {(errorManifiesto || (viaje.mensajeError && viaje.mensajeError.startsWith("Cumplido"))) && (
