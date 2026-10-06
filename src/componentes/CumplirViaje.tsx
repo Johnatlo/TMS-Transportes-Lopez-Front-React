@@ -423,7 +423,14 @@ export default function CumplirViaje({
                 <label>Observaciones</label>
                 <input value={cm.observaciones} maxLength={200}
                   onChange={(e) => setCm({ ...cm, observaciones: e.target.value })} />
-                <PisoSicetac tiempos={p.tiempos} valorFinal={valorFinal} alReintentar={previa.recargar} />
+                <PisoSicetac
+                  tiempos={p.tiempos}
+                  valorFinal={valorFinal}
+                  alReintentar={previa.recargar}
+                  alCompletar={(falta) =>
+                    setCm({ ...cm, valorAdicionalHorasCargue: String(num(cm.valorAdicionalHorasCargue) + falta) })
+                  }
+                />
                 <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
                   Valor a pagar <strong>{moneda(valorFinal)}</strong> · Neto {moneda(neto)} · Anticipo{" "}
                   {moneda(p.valorAnticipo)} · Saldo a pagar <strong>{moneda(saldo)}</strong>
@@ -542,10 +549,13 @@ function PisoSicetac({
   tiempos,
   valorFinal,
   alReintentar,
+  alCompletar,
 }: {
   tiempos: TiemposLogisticos;
   valorFinal: number;
   alReintentar: () => void;
+  /** Suma lo que falta al adicional por horas de cargue. */
+  alCompletar: (falta: number) => void;
 }) {
   const piso = tiempos.piso;
   if (!piso) {
@@ -562,19 +572,34 @@ function PisoSicetac({
   const flotaPropia = valorFinal === 0;
   const falta = piso.valor - valorFinal;
   const tono = flotaPropia ? "info" : falta > 0 ? "warning" : "success";
+  const horas = (h: number) => h.toLocaleString("es-CO", { maximumFractionDigits: 2 });
   return (
     <div className={`alert ${tono}`} style={{ marginTop: "0.6rem" }}>
-      Piso SICETAC que exige el RNDC: <strong>{moneda(piso.valor)}</strong>
+      Piso SICETAC del cumplido: <strong>{moneda(piso.valor)}</strong>
+      <div className="dato-sec">
+        {piso.conHorasEjecutadas
+          ? `Movilizacion ${moneda(piso.valorMoviliza)} + ${horas(piso.horas)} h ejecutadas de cargue y descargue. Al despachar, con ${horas(piso.horasPactadas)} h pactadas, era ${moneda(piso.valorDespacho)}.`
+          : `Con ${horas(piso.horasPactadas)} h pactadas: aun no hay tiempos ejecutados de las remesas.`}
+      </div>
       <div className="dato-sec">
         Via {piso.codVia ?? "estandar"}
-        {piso.via ? ` (${piso.via.slice(0, 70)})` : ""} · {piso.horasPactadas.toLocaleString("es-CO", { maximumFractionDigits: 2 })} h pactadas
+        {piso.via ? ` (${piso.via.slice(0, 70)})` : ""}
         {piso.periodo ? ` · periodo ${piso.periodo}` : ""}
+        {piso.guardadoEn ? ` · SICETAC no respondio: valores guardados el ${fechaHora(piso.guardadoEn)}` : ""}
       </div>
-      {flotaPropia
-        ? "Valor a pagar 0 (flota propia): el piso no aplica."
-        : falta > 0
-          ? `El valor a pagar (${moneda(valorFinal)}) queda ${moneda(falta)} por debajo: el RNDC rechazara el cumplido.`
-          : `El valor a pagar (${moneda(valorFinal)}) cumple el piso.`}
+      {flotaPropia ? (
+        "Valor a pagar 0 (flota propia): el piso no aplica."
+      ) : falta > 0 ? (
+        <>
+          El valor a pagar ({moneda(valorFinal)}) queda <strong>{moneda(falta)}</strong> por debajo: el RNDC
+          rechazara el cumplido (CMA045).{" "}
+          <button type="button" className="btn-enlace" onClick={() => alCompletar(falta)}>
+            Sumar {moneda(falta)} al adicional por horas de cargue
+          </button>
+        </>
+      ) : (
+        `El valor a pagar (${moneda(valorFinal)}) cumple el piso.`
+      )}
     </div>
   );
 }

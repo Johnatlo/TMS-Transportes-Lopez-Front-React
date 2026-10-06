@@ -234,7 +234,21 @@ export interface TiemposLogisticos {
    * Piso SICETAC de la via con las horas pactadas: el valor a pagar del
    * cumplido debe ser igual o mayor [Guia Cumplido 3.4 y 3.9].
    */
-  piso: { valor: number; codVia: string | null; via: string | null; periodo: string | null; horasPactadas: number } | null;
+  piso: {
+    /** Piso del cumplido: movilizacion + valor hora x horas ejecutadas (o pactadas si no hay tiempos). */
+    valor: number;
+    conHorasEjecutadas: boolean;
+    horas: number;
+    /** Piso con las horas pactadas, el que se verifico al despachar. */
+    valorDespacho: number;
+    horasPactadas: number;
+    valorMoviliza: number;
+    codVia: string | null;
+    via: string | null;
+    periodo: string | null;
+    /** Si SICETAC no respondio y se usaron los valores guardados: cuando se obtuvieron. */
+    guardadoEn: string | null;
+  } | null;
   /** (ejecutado - pactado) en horas x valor hora. Positivo = adicional; negativo = descuento. */
   diferenciaValorCargue: number | null;
   diferenciaValorDescargue: number | null;
