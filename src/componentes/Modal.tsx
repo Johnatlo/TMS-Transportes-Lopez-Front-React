@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 /**
  * Ventana modal. Equivale a modal.component de Angular y reutiliza sus mismas
@@ -7,6 +7,10 @@ import { Fragment, useEffect } from "react";
  *
  * `pasos` dibuja el indicador del asistente cuando la ventana tiene varios
  * pasos; si se omite, la ventana es simple.
+ *
+ * Solo se cierra con la X o con Escape: un clic fuera no la cierra, para no
+ * perder lo escrito. Se puede maximizar con el boton de la cabecera o cambiar
+ * de tamano arrastrando la esquina inferior derecha.
  */
 export default function Modal({
   titulo,
@@ -25,6 +29,8 @@ export default function Modal({
   pie?: ReactNode;
   alCerrar: () => void;
 }) {
+  const [maximizada, setMaximizada] = useState(false);
+
   // Escape cierra la ventana: en el despacho nocturno se agradece no tener que
   // buscar el boton con el mouse.
   useEffect(() => {
@@ -36,18 +42,23 @@ export default function Modal({
   }, [alCerrar]);
 
   return (
-    <div className="modal-overlay" onClick={alCerrar}>
-      {/* Sin stopPropagation, hacer clic dentro del formulario cerraria la
-          ventana y se perderia lo que se llevaba escrito. */}
-      <div
-        className={`modal-card ${ancho === "wide" ? "wide" : ""}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="modal-overlay">
+      <div className={`modal-card ${ancho === "wide" ? "wide" : ""} ${maximizada ? "maximizada" : ""}`}>
         <div className="modal-header">
           <h2>{titulo}</h2>
-          <button className="modal-close" onClick={alCerrar} aria-label="Cerrar">
-            ×
-          </button>
+          <div className="modal-botones">
+            <button
+              className="modal-close"
+              onClick={() => setMaximizada((m) => !m)}
+              aria-label={maximizada ? "Restaurar tamano" : "Maximizar"}
+              title={maximizada ? "Restaurar tamano" : "Maximizar"}
+            >
+              {maximizada ? "🗗" : "🗖"}
+            </button>
+            <button className="modal-close" onClick={alCerrar} aria-label="Cerrar" title="Cerrar">
+              ×
+            </button>
+          </div>
         </div>
 
         {pasos && pasos.length > 1 && (

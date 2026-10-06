@@ -268,14 +268,22 @@ input:focus, select:focus { outline: 2px solid var(--color-accent); outline-offs
 .modal-card {
   background: white;
   border-radius: 14px;
-  width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
+  /* Ancho inicial; arrastrando la esquina (resize) se agranda o encoge hasta
+     el borde de la pantalla. */
+  width: min(560px, 100%);
+  max-width: 100%;
+  max-height: calc(100vh - 2rem);
+  min-width: min(320px, 100%);
+  min-height: 180px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  resize: both;
 }
-.modal-card.wide { max-width: 720px; }
+.modal-card.wide { width: min(720px, 100%); }
+/* Maximizada: !important para ganarle al tamano que deja el arrastre. */
+.modal-card.maximizada { width: 100% !important; height: calc(100vh - 2rem) !important; max-height: none; resize: none; }
+.modal-botones { display: flex; align-items: center; gap: 0.15rem; }
 .modal-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 1.1rem 1.4rem;
@@ -283,7 +291,7 @@ input:focus, select:focus { outline: 2px solid var(--color-accent); outline-offs
 }
 .modal-header h2 { font-size: 1.1rem; }
 .modal-close { background: none; border: none; font-size: 1.3rem; color: var(--color-text-muted); padding: 0.2rem 0.5rem; }
-.modal-body { padding: 1.4rem; overflow-y: auto; }
+.modal-body { padding: 1.4rem; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 .modal-footer {
   display: flex; align-items: center; justify-content: flex-end; gap: 0.6rem;
   padding: 1rem 1.4rem;
