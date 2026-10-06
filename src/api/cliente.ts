@@ -230,6 +230,11 @@ export interface TiemposLogisticos {
   /** Valor hora de SICETAC de la via del viaje. */
   valorHora: number | null;
   errorSicetac: string | null;
+  /**
+   * Piso SICETAC de la via con las horas pactadas: el valor a pagar del
+   * cumplido debe ser igual o mayor [Guia Cumplido 3.4 y 3.9].
+   */
+  piso: { valor: number; codVia: string | null; via: string | null; periodo: string | null; horasPactadas: number } | null;
   /** (ejecutado - pactado) en horas x valor hora. Positivo = adicional; negativo = descuento. */
   diferenciaValorCargue: number | null;
   diferenciaValorDescargue: number | null;

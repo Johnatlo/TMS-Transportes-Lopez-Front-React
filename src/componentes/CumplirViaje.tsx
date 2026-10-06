@@ -423,6 +423,7 @@ export default function CumplirViaje({
                 <label>Observaciones</label>
                 <input value={cm.observaciones} maxLength={200}
                   onChange={(e) => setCm({ ...cm, observaciones: e.target.value })} />
+                <PisoSicetac tiempos={p.tiempos} valorFinal={valorFinal} alReintentar={previa.recargar} />
                 <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
                   Valor a pagar <strong>{moneda(valorFinal)}</strong> · Neto {moneda(neto)} · Anticipo{" "}
                   {moneda(p.valorAnticipo)} · Saldo a pagar <strong>{moneda(saldo)}</strong>
@@ -473,21 +474,37 @@ function FormularioCumplido({
           />
         </div>
         {TIEMPOS.map(([campo, etiqueta]) => {
-          // Lo que reporto el GPS no se edita: el RNDC usa ese valor (como el portal).
-          const delGps = !!(gps && (CAMPOS_GPS as readonly string[]).includes(campo) && gps[campo as (typeof CAMPOS_GPS)[number]]);
+          // Lo del GPS viene puesto y se puede corregir. Si queda igual no se
+          // reenvia (como el portal); si se cambia, va el valor escrito.
+          const crudo = gps && (CAMPOS_GPS as readonly string[]).includes(campo) ? gps[campo as (typeof CAMPOS_GPS)[number]] : null;
+          const delGps = crudo ? aInputLocal(new Date(crudo)) : null;
+          const editado = delGps !== null && f[campo] !== delGps;
           return (
             <div key={campo}>
               <label>
                 {etiqueta}
-                {delGps && <span className="pastilla pastilla-info" style={{ marginLeft: 6 }}>GPS</span>}
+                {delGps && !editado && <span className="pastilla pastilla-info" style={{ marginLeft: 6 }}>GPS</span>}
+                {editado && (
+                  <>
+                    <span className="pastilla pastilla-aviso" style={{ marginLeft: 6 }}>Editado</span>
+                    <button
+                      type="button"
+                      className="btn-enlace"
+                      style={{ marginLeft: 6 }}
+                      onClick={() => alCambiar({ [campo]: delGps } as Partial<FormularioRemesa>)}
+                    >
+                      Usar el del GPS
+                    </button>
+                  </>
+                )}
               </label>
               <input
                 type="datetime-local"
                 max={ahora}
                 value={f[campo]}
-                disabled={delGps}
                 onChange={(e) => alCambiar({ [campo]: e.target.value } as Partial<FormularioRemesa>)}
               />
+              {editado && <span className="dato-sec">GPS: {fechaHora(crudo)}</span>}
             </div>
           );
         })}
@@ -498,7 +515,7 @@ function FormularioCumplido({
           : !gps.consultado
             ? "No se pudo consultar el GPS en el RNDC: se envian estas horas y, si el RNDC tiene las del GPS, usa las suyas."
             : gps.radicado
-              ? "Las marcadas GPS las reporto el GPS al RNDC: no se editan ni se reenvian, como en el portal. Completa las demas (hora de Colombia)."
+              ? "Las marcadas GPS las reporto el GPS al RNDC: si las dejas igual no se reenvian, como en el portal. Puedes corregirlas; en ese caso se envia tu hora y el RNDC decide si la acepta (si no, responde CRE111). Completa las demas (hora de Colombia)."
               : "El GPS no reporto tiempos para esta remesa: escribe las seis horas reales (hora de Colombia)."}
       </div>
       {f.error && (
@@ -514,6 +531,51 @@ function FormularioCumplido({
         {f.enviando ? "Cumpliendo en el RNDC..." : "Cumplir remesa"}
       </button>
     </>
+  );
+}
+
+/**
+ * Piso SICETAC contra el valor a pagar del cumplido. El RNDC rechaza un valor
+ * a pagar menor [Guia Cumplido 3.4 y 3.9.1], salvo flota propia (valor 0).
+ */
+function PisoSicetac({
+  tiempos,
+  valorFinal,
+  alReintentar,
+}: {
+  tiempos: TiemposLogisticos;
+  valorFinal: number;
+  alReintentar: () => void;
+}) {
+  const piso = tiempos.piso;
+  if (!piso) {
+    return (
+      <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
+        Piso SICETAC: no se pudo consultar{tiempos.errorSicetac ? ` (${tiempos.errorSicetac})` : ""}.{" "}
+        {/* SICETAC a veces responde RNDC13 y al repetir funciona. */}
+        <button type="button" className="btn-enlace" onClick={alReintentar}>
+          Consultar de nuevo
+        </button>
+      </div>
+    );
+  }
+  const flotaPropia = valorFinal === 0;
+  const falta = piso.valor - valorFinal;
+  const tono = flotaPropia ? "info" : falta > 0 ? "warning" : "success";
+  return (
+    <div className={`alert ${tono}`} style={{ marginTop: "0.6rem" }}>
+      Piso SICETAC que exige el RNDC: <strong>{moneda(piso.valor)}</strong>
+      <div className="dato-sec">
+        Via {piso.codVia ?? "estandar"}
+        {piso.via ? ` (${piso.via.slice(0, 70)})` : ""} · {piso.horasPactadas.toLocaleString("es-CO", { maximumFractionDigits: 2 })} h pactadas
+        {piso.periodo ? ` · periodo ${piso.periodo}` : ""}
+      </div>
+      {flotaPropia
+        ? "Valor a pagar 0 (flota propia): el piso no aplica."
+        : falta > 0
+          ? `El valor a pagar (${moneda(valorFinal)}) queda ${moneda(falta)} por debajo: el RNDC rechazara el cumplido.`
+          : `El valor a pagar (${moneda(valorFinal)}) cumple el piso.`}
+    </div>
   );
 }
 

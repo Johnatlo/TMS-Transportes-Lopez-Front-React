@@ -220,3 +220,7 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 .detalle-datos dd { margin: 0.1rem 0 0; font-size: 0.85rem; color: var(--gris-900); overflow-wrap: anywhere; }
 .detalle-datos dd .principal, .detalle-datos dd .dato-sec { display: block; }
 .detalle-avisos { margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--gris-700); }
+
+/* Boton con aspecto de enlace (acciones pequenas dentro de una etiqueta) */
+.btn-enlace { background: none; border: none; padding: 0; color: var(--marca-600); font-size: 0.75rem; text-decoration: underline; cursor: pointer; }
+.btn-enlace:hover { color: var(--marca-700); }
