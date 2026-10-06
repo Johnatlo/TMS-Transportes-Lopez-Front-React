@@ -99,6 +99,79 @@ const del = <T>(ruta: string) => pedir<T>(ruta, { method: "DELETE" });
 // Catalogo
 // ---------------------------------------------------------------------------
 
+/** Una fila del libro de consecutivos (una por remesa). */
+export interface FilaConsecutivo {
+  viajeId: number;
+  remesaId: number;
+  orden: number;
+  fechaPlanillada: string;
+  placa: string | null;
+  cliente: string | null;
+  pesoReal: number | null;
+  valorManifiesto: number | null;
+  retencionFopat: number | null;
+  valorAnticipo: number | null;
+  citaCargue: string;
+  citaDescargue: string;
+  consecutivoManifiesto: string | null;
+  radicadoManifiesto: string | null;
+  consecutivoRemesa: string | null;
+  radicadoRemesa: string | null;
+  estadoViaje: string;
+  estadoRemesa: string;
+  codMunicipioCargue: string | null;
+  municipioCargue: string | null;
+  producto: string | null;
+  codMercancia: string | null;
+  remitenteTipoId: string | null;
+  remitenteNit: string | null;
+  remitenteNombre: string | null;
+  codMunicipioDescargue: string | null;
+  municipioDescargue: string | null;
+  destinatarioTipoId: string | null;
+  destinatarioNit: string | null;
+  destinatarioNombre: string | null;
+  conductor: string | null;
+  creadoPor: string | null;
+}
+
+export interface TerceroDetalle {
+  nombre: string;
+  nit: string;
+  tipoId: string;
+  sede: string;
+  ciudad: string | null;
+  codMunicipio: string | null;
+  direccion: string | null;
+}
+
+/** Respuesta de GET /despacho/:id/detalle. */
+export interface DetalleViaje {
+  viaje: Viaje;
+  tipoManifiesto: string | null;
+  origen: string | null;
+  destino: string | null;
+  vehiculo: { placa: string; marca: string | null; configuracion: string | null; titular: string | null; titularId: string | null; titularTipoId: string | null } | null;
+  remolque: { placa: string } | null;
+  conductor: { nombre: string; cedula: string; licencia: string | null } | null;
+  conductor2: { nombre: string; cedula: string } | null;
+  monitoreo: { nombre: string | null; nit: string } | null;
+  remesas: Array<
+    ViajeRemesa & {
+      plantilla: string | null;
+      producto: string | null;
+      codMercancia: string | null;
+      codTipoEmpaque: string | null;
+      unidadMedidaProducto: string | null;
+      pactoCargue: string | null;
+      pactoDescargue: string | null;
+      contratante: TerceroDetalle | null;
+      remitente: TerceroDetalle | null;
+      destinatario: TerceroDetalle | null;
+    }
+  >;
+}
+
 /** Cumplido inicial del GPS. consultado=false: no se pudo preguntar al RNDC. */
 export interface TiemposGps {
   consultado: boolean;
@@ -296,6 +369,10 @@ export const api = {
   despachar: (datos: PeticionDespacho) => post<Viaje>("/despacho", datos),
 
   getHistorial: () => get<Viaje[]>("/despacho/historial"),
+  /** Libro de consecutivos: una fila por remesa, como la hoja de control. */
+  getConsecutivos: () => get<FilaConsecutivo[]>("/despacho/consecutivos"),
+  /** Todo lo que se registro al despachar un viaje. */
+  getDetalleViaje: (viajeId: number) => get<DetalleViaje>(`/despacho/${viajeId}/detalle`),
 
   /** Siguiente numero disponible. Es una sugerencia, no una reserva. */
   /** Remolque y conductor que suele usar el vehiculo (historial o catalogo). */

@@ -7,16 +7,22 @@ import { esReintentable } from "../componentes/ReintentarViaje";
 import AnularViaje, { esAnulable } from "../componentes/AnularViaje";
 import CumplirViaje, { esCumplible } from "../componentes/CumplirViaje";
 import VentanaDocumentosViaje from "../componentes/DocumentosViaje";
+import DetalleViaje from "../componentes/DetalleViaje";
+import LibroConsecutivos from "../componentes/LibroConsecutivos";
 import TablaDatos, { Pastilla } from "../componentes/TablaDatos";
 import type { Columna, PestanaTabla } from "../componentes/TablaDatos";
 import type { Viaje } from "../api/tipos";
+import { ERRORES, ETIQUETA_ESTADO, tonoEstado } from "./estadosViaje";
 
 /**
  * Historial de despachos. Migrada completa por ser la mas simple: sirve para
  * ver el patron minimo (useDatos + tabla) sin el ruido del Dashboard.
  */
 export default function Historial() {
-  const { datos, cargando, error, recargar } = useDatos(() => api.getHistorial(), []);
+  const { datos, cargando, error, recargar } = useDatos(
+    () => api.getHistorial(),
+    [],
+  );
   // Reintentar abre el viaje completo en Despachar: ahi se puede corregir
   // cualquier dato (cargas, citas, valores, via, FOPAT) antes de reenviarlo.
   const navegar = useNavigate();
@@ -26,6 +32,10 @@ export default function Historial() {
   const [imprimiendo, setImprimiendo] = useState<Viaje | null>(null);
   /** Viaje abierto en la ventana de cumplido. */
   const [cumpliendo, setCumpliendo] = useState<Viaje | null>(null);
+  /** Viaje abierto en la ventana de detalle (clic en una fila). */
+  const [viendo, setViendo] = useState<number | null>(null);
+  /** Viajes (uno por fila) o libro de consecutivos (una fila por remesa). */
+  const [vista, setVista] = useState<"viajes" | "consecutivos">("viajes");
 
   // Solo la primera carga muestra "Cargando". Las recargas (despues de cumplir,
   // anular o reintentar) dejan la tabla y la ventana abierta en pantalla: si se
@@ -45,7 +55,9 @@ export default function Historial() {
       celda: (v) => (
         <>
           <span className="principal">#{v.id}</span>
-          {v.creadoPorNombre && <span className="dato-sec">por {v.creadoPorNombre}</span>}
+          {v.creadoPorNombre && (
+            <span className="dato-sec">por {v.creadoPorNombre}</span>
+          )}
         </>
       ),
     },
@@ -62,8 +74,12 @@ export default function Historial() {
       valor: (v) => ETIQUETA_ESTADO[v.estado] ?? v.estado,
       celda: (v) => (
         <>
-          <Pastilla tono={tonoEstado(v.estado)}>{ETIQUETA_ESTADO[v.estado] ?? v.estado}</Pastilla>
-          {v.plazoCumplido && <PlazoCumplido dias={v.plazoCumplido.diasHabilesRestantes} />}
+          <Pastilla tono={tonoEstado(v.estado)}>
+            {ETIQUETA_ESTADO[v.estado] ?? v.estado}
+          </Pastilla>
+          {v.plazoCumplido && (
+            <PlazoCumplido dias={v.plazoCumplido.diasHabilesRestantes} />
+          )}
           {v.estado === "CUMPLIDO" && v.cumplidoPorNombre && (
             <span className="dato-sec">por {v.cumplidoPorNombre}</span>
           )}
@@ -76,9 +92,17 @@ export default function Historial() {
       valor: (v) => v.consecutivoManifiesto,
       celda: (v) => (
         <>
-          <span className="codigo principal">{v.consecutivoManifiesto ?? "-"}</span>
-          {v.numeroManifiestoRndc && <span className="dato-sec">Radicado {v.numeroManifiestoRndc}</span>}
-          {v.radicadoAnulacion && <span className="dato-sec">Anulado: radicado {v.radicadoAnulacion}</span>}
+          <span className="codigo principal">
+            {v.consecutivoManifiesto ?? "-"}
+          </span>
+          {v.numeroManifiestoRndc && (
+            <span className="dato-sec">Radicado {v.numeroManifiestoRndc}</span>
+          )}
+          {v.radicadoAnulacion && (
+            <span className="dato-sec">
+              Anulado: radicado {v.radicadoAnulacion}
+            </span>
+          )}
           {v.estado === "ANULADO" && v.anuladoPorNombre && (
             <span className="dato-sec">
               Anulado por {v.anuladoPorNombre}
@@ -132,8 +156,9 @@ export default function Historial() {
       titulo: "",
       etiquetaMovil: null,
       claseCelda: "celda-acciones",
+      // Los botones no abren tambien el detalle de la fila.
       celda: (v) => (
-        <>
+        <span className="acciones-fila" onClick={(e) => e.stopPropagation()}>
           {(v.estado === "CONFIRMADO" || v.estado === "CUMPLIDO") && (
             <button className="btn-primary" onClick={() => setImprimiendo(v)}>
               Imprimir
@@ -145,44 +170,83 @@ export default function Historial() {
             </button>
           )}
           {esReintentable(v) && (
-            <button className="btn-primary" onClick={() => navegar(`/despacho?viaje=${v.id}`)}>
+            <button
+              className="btn-primary"
+              onClick={() => navegar(`/despacho?viaje=${v.id}`)}
+            >
               Corregir y reintentar
             </button>
           )}
           {esAnulable(v) && (
             <button className="btn-secondary" onClick={() => setAnulando(v)}>
-              {v.estado === "ANULACION_ERROR" ? "Reintentar anulacion" : "Anular"}
+              {v.estado === "ANULACION_ERROR"
+                ? "Reintentar anulacion"
+                : "Anular"}
             </button>
           )}
-        </>
+        </span>
       ),
     },
   ];
 
   return (
     <>
+      <div className="tabla-pestanas selector-vista">
+        <button
+          className={vista === "viajes" ? "activa" : ""}
+          onClick={() => setVista("viajes")}
+        >
+          Viajes
+        </button>
+        <button
+          className={vista === "consecutivos" ? "activa" : ""}
+          onClick={() => setVista("consecutivos")}
+        >
+          Consecutivos manifiestos y remesas
+        </button>
+      </div>
       <div className="panel">
-        {/* En el celular cada fila se ve como tarjeta (ver .tabla-viajes en estilos.css). */}
-        <TablaDatos
-          filas={viajes}
-          columnas={columnas}
-          clave={(v) => v.id}
-          pestanas={PESTANAS_VIAJES}
-          claseTabla="tabla-viajes"
-          nombreArchivo="viajes"
-          placeholderBusqueda="Buscar manifiesto, radicado, error..."
-          vacio="No hay viajes con estos criterios."
-        />
+        {vista === "consecutivos" ? (
+          <LibroConsecutivos alAbrirViaje={setViendo} />
+        ) : (
+          /* En el celular cada fila se ve como tarjeta (ver .tabla-viajes en estilos.css). */
+          <TablaDatos
+            filas={viajes}
+            columnas={columnas}
+            clave={(v) => v.id}
+            pestanas={PESTANAS_VIAJES}
+            claseTabla="tabla-viajes"
+            nombreArchivo="viajes"
+            placeholderBusqueda="Buscar manifiesto, radicado, error..."
+            vacio="No hay viajes con estos criterios."
+            alClicFila={(v) => setViendo(v.id)}
+          />
+        )}
       </div>
 
+      {viendo !== null && (
+        <DetalleViaje viajeId={viendo} alCerrar={() => setViendo(null)} />
+      )}
+
       {imprimiendo && (
-        <VentanaDocumentosViaje viaje={imprimiendo} alCerrar={() => setImprimiendo(null)} />
+        <VentanaDocumentosViaje
+          viaje={imprimiendo}
+          alCerrar={() => setImprimiendo(null)}
+        />
       )}
       {anulando && (
-        <AnularViaje viaje={anulando} alCerrar={() => setAnulando(null)} alTerminar={recargar} />
+        <AnularViaje
+          viaje={anulando}
+          alCerrar={() => setAnulando(null)}
+          alTerminar={recargar}
+        />
       )}
       {cumpliendo && (
-        <CumplirViaje viaje={cumpliendo} alCerrar={() => setCumpliendo(null)} alTerminar={recargar} />
+        <CumplirViaje
+          viaje={cumpliendo}
+          alCerrar={() => setCumpliendo(null)}
+          alTerminar={recargar}
+        />
       )}
     </>
   );
@@ -190,40 +254,44 @@ export default function Historial() {
 
 /** Dias habiles que quedan para cumplir, en la columna de estado. */
 function PlazoCumplido({ dias }: { dias: number }) {
-  if (dias < 0) return <span className="plazo-cumplido vencido">Cumplido vencido ({-dias} d)</span>;
-  if (dias <= 1) return <span className="plazo-cumplido pronto">Cumplir: queda{dias === 1 ? " 1 dia" : "n 0 dias"}</span>;
-  return <span className="plazo-cumplido ok">Cumplir en {dias} dias habiles</span>;
+  if (dias < 0)
+    return (
+      <span className="plazo-cumplido vencido">
+        Cumplido vencido ({-dias} d)
+      </span>
+    );
+  if (dias <= 1)
+    return (
+      <span className="plazo-cumplido pronto">
+        Cumplir: queda{dias === 1 ? " 1 dia" : "n 0 dias"}
+      </span>
+    );
+  return (
+    <span className="plazo-cumplido ok">Cumplir en {dias} dias habiles</span>
+  );
 }
-
-/** Nombre de cada estado para la gente (el codigo interno sigue en la base). */
-const ETIQUETA_ESTADO: Record<string, string> = {
-  CONFIRMADO: "Expedido",
-  CUMPLIDO: "Cumplido",
-  ANULADO: "Anulado",
-  VALIDACION_ERROR: "Error de validacion",
-  REMESA_ERROR: "Error en remesa",
-  MANIFIESTO_ERROR: "Error en manifiesto",
-  ANULACION_ERROR: "Error al anular",
-  REINTENTANDO: "Enviando...",
-  ANULANDO: "Anulando...",
-  CUMPLIENDO: "Cumpliendo...",
-};
-
-function tonoEstado(estado: string): "ok" | "aviso" | "error" | "info" | "neutro" {
-  if (estado === "CUMPLIDO") return "ok";
-  if (estado === "CONFIRMADO") return "info";
-  if (estado === "ANULADO") return "neutro";
-  if (["REINTENTANDO", "ANULANDO", "CUMPLIENDO"].includes(estado)) return "aviso";
-  return "error";
-}
-
-const ERRORES = ["VALIDACION_ERROR", "REMESA_ERROR", "MANIFIESTO_ERROR", "ANULACION_ERROR"];
 
 /** Pestanas de Viajes, como "In progress / Closed / All" del ejemplo. */
 const PESTANAS_VIAJES: PestanaTabla<Viaje>[] = [
-  { id: "curso", etiqueta: "En curso", incluye: (v) => v.estado === "CONFIRMADO" },
-  { id: "errores", etiqueta: "Con error", incluye: (v) => ERRORES.includes(v.estado) },
-  { id: "cumplidos", etiqueta: "Cumplidos", incluye: (v) => v.estado === "CUMPLIDO" },
-  { id: "anulados", etiqueta: "Anulados", incluye: (v) => v.estado === "ANULADO" },
+  {
+    id: "curso",
+    etiqueta: "En curso",
+    incluye: (v) => v.estado === "CONFIRMADO",
+  },
+  {
+    id: "errores",
+    etiqueta: "Con error",
+    incluye: (v) => ERRORES.includes(v.estado),
+  },
+  {
+    id: "cumplidos",
+    etiqueta: "Cumplidos",
+    incluye: (v) => v.estado === "CUMPLIDO",
+  },
+  {
+    id: "anulados",
+    etiqueta: "Anulados",
+    incluye: (v) => v.estado === "ANULADO",
+  },
   { id: "todos", etiqueta: "Todos", incluye: () => true },
 ];

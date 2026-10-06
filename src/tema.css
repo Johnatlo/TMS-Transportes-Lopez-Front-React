@@ -205,3 +205,18 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 .detalle-cumplido table.tabla th, .detalle-cumplido table.tabla td { padding: 0.35rem 0.6rem; }
 .detalle-cumplido table.tabla tbody th { background: none; position: static; text-align: left; }
 .anular-cumplido { margin-top: 0.6rem; padding: 0.7rem; border: 1px solid var(--error-50); border-radius: var(--radio-md); background: #fffafa; }
+
+/* Viajes: selector de vista y detalle de solo lectura */
+.selector-vista { margin-bottom: 0.75rem; }
+.acciones-fila { display: contents; }
+.detalle-viaje { display: flex; flex-direction: column; gap: 1rem; }
+.detalle-cabecera { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.detalle-seccion h4 {
+  margin: 0 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--gris-200);
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gris-500);
+}
+.detalle-datos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.55rem 1.2rem; margin: 0; }
+.detalle-datos dt { font-size: 0.72rem; color: var(--gris-500); }
+.detalle-datos dd { margin: 0.1rem 0 0; font-size: 0.85rem; color: var(--gris-900); overflow-wrap: anywhere; }
+.detalle-datos dd .principal, .detalle-datos dd .dato-sec { display: block; }
+.detalle-avisos { margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--gris-700); }
