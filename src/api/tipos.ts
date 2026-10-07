@@ -38,6 +38,8 @@ export interface Vehiculo {
   aplicaFopat: boolean;
   /** Proveedor de GPS por defecto del vehiculo (NIT de la EMF). */
   nitMonitoreoFlota: string | null;
+  /** Flota propia (LOPEZ o MYC) o TERCERO. */
+  flota?: "LOPEZ" | "MYC" | "TERCERO";
   /** Propietario segun la tarjeta de propiedad. Informativo. */
   propietarioNit: string | null;
   /** Nombre del titular del manifiesto. Informativo: no viaja al RNDC. */

@@ -353,7 +353,12 @@ export function Paginacion({
 }
 
 /** Pastilla de estado con punto de color (ver GUIA-UI.md, "Estados"). */
-export function Pastilla({ tono, children }: { tono: "ok" | "aviso" | "error" | "info" | "neutro"; children: ReactNode }) {
+export type TonoPastilla =
+  | "ok" | "aviso" | "error" | "info" | "neutro"
+  // Colores del cuadro pagos (los mismos significados del Excel).
+  | "morado" | "verde" | "azul" | "naranja" | "amarillo";
+
+export function Pastilla({ tono, children }: { tono: TonoPastilla; children: ReactNode }) {
   return <span className={`pastilla pastilla-${tono}`}>{children}</span>;
 }
 

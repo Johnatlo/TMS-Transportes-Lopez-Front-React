@@ -5,6 +5,7 @@ import Despacho from "./paginas/Despacho";
 import Plantillas from "./paginas/Plantillas";
 import Catalogo from "./paginas/Catalogo";
 import Historial from "./paginas/Historial";
+import CuadroCentral from "./paginas/cuadro/CuadroCentral";
 import Usuarios from "./paginas/Usuarios";
 import Login from "./paginas/Login";
 import CambiarClave from "./componentes/CambiarClave";
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/despacho" element={<Despacho />} />
         <Route path="/historial" element={<Historial />} />
+        <Route path="/cuadro" element={<CuadroCentral />} />
         <Route path="/plantillas" element={<Plantillas />} />
         <Route path="/clientes" element={<Catalogo key="clientes" pestanas={["terceros"]} />} />
         <Route

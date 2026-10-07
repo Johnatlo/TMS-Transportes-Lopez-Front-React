@@ -573,3 +573,103 @@ export function soloFecha(valor: string | null | undefined): string {
 export function separarAvisos(avisos: string | null | undefined): string[] {
   return avisos ? avisos.split(" | ").filter(Boolean) : [];
 }
+
+// ---------------------------------------------------------------------------
+// Cuadro pagos (control operativo y financiero de los viajes)
+// ---------------------------------------------------------------------------
+export type EstadoPapeles = "EN_RUTA" | "CONDUCTOR" | "PARQUEADERO" | "OFICINA" | "RADICADO";
+export type Flota = "LOPEZ" | "MYC" | "TERCERO";
+export type EstadoCuadro = "ANULADO" | "PAGADO" | "FACTURADO" | "FACTURADO_SIN_DATOS" | "RADICADO" | "SIN_RADICAR" | "EN_RUTA";
+
+export interface FilaCuadro {
+  id: number;
+  fecha: string;
+  vehiculoId: number | null;
+  placa: string;
+  flota: Flota;
+  conductor: string | null;
+  empresa: string;
+  viajeId: number | null;
+  viajeRemesaId: number | null;
+  manifiesto: string | null;
+  remesa: string | null;
+  remision: string | null;
+  pesoKg: number | null;
+  tipoFlete: "KILO" | "FIJO";
+  tarifaKilo: number | null;
+  valorFijo: number | null;
+  valorFlete: number | null;
+  fechaDescargue: string | null;
+  estadoPapeles: EstadoPapeles;
+  flujoCorame: boolean;
+  fechaRadicado: string | null;
+  facturado: boolean;
+  facturaNumero: string | null;
+  facturaFecha: string | null;
+  facturaFechaPago: string | null;
+  fechaPagoSaldo: string | null;
+  venceSaldo: string | null;
+  revisadoContabilidadPor: string | null;
+  revisadoContabilidadEn: string | null;
+  revisadoGerenciaPor: string | null;
+  revisadoGerenciaEn: string | null;
+  anulado: boolean;
+  totalAnticipos: number;
+  anticiposSinPagar: number;
+  notas: number;
+  ultimaNota: string | null;
+  estado: EstadoCuadro;
+  todoPagado: boolean;
+}
+
+export interface AnticipoBomba {
+  id: number;
+  bombaId: number;
+  bomba: string;
+  ciudad: string | null;
+  valor: number;
+  fecha: string;
+  fechaPago: string | null;
+  nota: string | null;
+  creadoPor: string | null;
+}
+
+export interface NotaCuadro {
+  id: number;
+  texto: string;
+  creadaEn: string;
+  autor: string | null;
+}
+
+export interface DetalleCuadro extends FilaCuadro {
+  anticipos: AnticipoBomba[];
+  listaNotas: NotaCuadro[];
+}
+
+export interface Bomba {
+  id: number;
+  nombre: string;
+  ciudad: string | null;
+  activa: boolean;
+}
+
+export const apiCuadro = {
+  listar: () => get<FilaCuadro[]>("/cuadro"),
+  obtener: (id: number) => get<DetalleCuadro>(`/cuadro/${id}`),
+  crear: (datos: Record<string, unknown>) => post<DetalleCuadro>("/cuadro", datos),
+  actualizar: (id: number, datos: Record<string, unknown>) => put<DetalleCuadro>(`/cuadro/${id}`, datos),
+  borrar: (id: number) => del<{ ok: true }>(`/cuadro/${id}`),
+  revisar: (id: number, quien: "CONTABILIDAD" | "GERENCIA", revisado: boolean) =>
+    post<DetalleCuadro>(`/cuadro/${id}/revision`, { quien, revisado }),
+  facturar: (ids: number[], facturaNumero: string, facturaFecha: string) =>
+    post<{ actualizados: number }>("/cuadro/facturar", { ids, facturaNumero, facturaFecha }),
+  agregarNota: (id: number, texto: string) => post<DetalleCuadro>(`/cuadro/${id}/notas`, { texto }),
+  borrarNota: (id: number, notaId: number) => del<DetalleCuadro>(`/cuadro/${id}/notas/${notaId}`),
+  agregarAnticipo: (id: number, datos: Record<string, unknown>) => post<DetalleCuadro>(`/cuadro/${id}/anticipos`, datos),
+  actualizarAnticipo: (id: number, anticipoId: number, datos: Record<string, unknown>) =>
+    put<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`, datos),
+  borrarAnticipo: (id: number, anticipoId: number) => del<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`),
+  bombas: () => get<Bomba[]>("/cuadro/bombas"),
+  crearBomba: (datos: { nombre: string; ciudad: string }) => post<{ id: number }>("/cuadro/bombas", datos),
+  actualizarBomba: (id: number, datos: Partial<Bomba>) => put<Bomba[]>(`/cuadro/bombas/${id}`, datos),
+};

@@ -224,3 +224,37 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 /* Boton con aspecto de enlace (acciones pequenas dentro de una etiqueta) */
 .btn-enlace { background: none; border: none; padding: 0; color: var(--marca-600); font-size: 0.75rem; text-decoration: underline; cursor: pointer; }
 .btn-enlace:hover { color: var(--marca-700); }
+
+/* Cuadro pagos: tonos con el significado de los colores del Excel */
+.pastilla-morado { background: #f1eafb; color: #6b3fa0; }
+.pastilla-verde { background: #e6f4ea; color: #1e7b3a; }
+.pastilla-azul { background: #e7effb; color: #1a56c2; }
+.pastilla-naranja { background: #fdf0e4; color: #b4570f; }
+.pastilla-amarillo { background: #fdf6d8; color: #8a6a00; }
+
+/* Cuadro pagos */  
+.campos-cuadro { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.6rem 1rem; }
+.campos-cuadro label { display: block; font-size: var(--texto-xs); color: var(--gris-500); margin-bottom: 0.2rem; }
+.campos-cuadro input, .campos-cuadro select { width: 100%; }
+.valor-calculado { padding: 0.45rem 0; font-weight: 600; color: var(--gris-900); }
+.check-linea { display: flex; align-items: center; gap: 0.45rem; font-size: var(--texto-sm); margin: 0.5rem 0; cursor: pointer; }
+.pasos-papeles { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.paso-papeles {
+  border: 1px solid var(--gris-200); background: #fff; color: var(--gris-700);
+  border-radius: 999px; padding: 0.3rem 0.8rem; font-size: var(--texto-sm); cursor: pointer;
+}
+.paso-papeles.hecho { background: var(--marca-50); border-color: var(--marca-50); color: var(--marca-700); }
+.paso-papeles.activo { background: var(--marca-600); border-color: var(--marca-600); color: #fff; font-weight: 600; }
+.revisiones { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.6rem; }
+.revision { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.6rem 0.7rem; border: 1px solid var(--gris-200); border-radius: var(--radio-md); }
+.nota-nueva { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.6rem; }
+.nota-nueva textarea { flex: 1; resize: vertical; font: inherit; }
+.lista-notas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.lista-notas li { padding: 0.5rem 0.7rem; background: var(--gris-50); border-radius: var(--radio-md); font-size: var(--texto-sm); }
+.nota-celda { display: block; max-width: 220px; white-space: normal; }
+.texto-vencido { color: var(--error-700); font-size: var(--texto-xs); font-weight: 600; }
+table.tabla-compacta th, table.tabla-compacta td { padding: 0.35rem 0.55rem; }
+.lista-facturar { margin-top: 0.8rem; max-height: 50vh; overflow: auto; border: 1px solid var(--gris-200); border-radius: var(--radio-md); }
+@media (max-width: 640px) { .nota-nueva { flex-direction: column; align-items: stretch; } }
+.check-linea input[type="checkbox"] { width: auto; flex: 0 0 auto; margin: 0; }
+.check-linea { justify-content: flex-start; text-align: left; }

@@ -1013,6 +1013,23 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[]): SeccionFormulario[] {
       ],
     },
     {
+      titulo: "Flota",
+      descripcion:
+        "Transportes Lopez y Transportes MYC son la flota propia. Los demas son terceros: se les paga aparte, a los 15 dias de entregar el viaje.",
+      campos: [
+        {
+          key: "flota",
+          label: "El vehiculo es de",
+          tipo: "select",
+          opciones: [
+            { value: "TERCERO", label: "Un tercero" },
+            { value: "LOPEZ", label: "Flota propia: Transportes Lopez" },
+            { value: "MYC", label: "Flota propia: Transportes MYC" },
+          ],
+        },
+      ],
+    },
+    {
       titulo: "Monitoreo",
       descripcion:
         "Proveedor de GPS del vehiculo. Se precarga en cada despacho y se puede cambiar para un viaje puntual.",
