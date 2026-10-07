@@ -1,17 +1,22 @@
+import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Shell from "./componentes/Shell";
-import Dashboard from "./paginas/Dashboard";
-import Despacho from "./paginas/Despacho";
-import Plantillas from "./paginas/Plantillas";
-import Catalogo from "./paginas/Catalogo";
-import Historial from "./paginas/Historial";
-import CuadroCentral from "./paginas/cuadro/CuadroCentral";
-import Usuarios from "./paginas/Usuarios";
 import Login from "./paginas/Login";
 import CambiarClave from "./componentes/CambiarClave";
 import PantallaAcceso from "./componentes/PantallaAcceso";
 import { Cargando } from "./componentes/Estado";
 import { useSesion } from "./ganchos/useSesion";
+
+// Cada pantalla se descarga al abrirla por primera vez, no toda la aplicacion
+// al entrar: el inicio carga mas rapido (sobre todo en el celular). Shell
+// muestra "Cargando" mientras llega (Suspense alrededor de su Outlet).
+const Dashboard = lazy(() => import("./paginas/Dashboard"));
+const Despacho = lazy(() => import("./paginas/Despacho"));
+const Historial = lazy(() => import("./paginas/Historial"));
+const CuadroCentral = lazy(() => import("./paginas/cuadro/CuadroCentral"));
+const Plantillas = lazy(() => import("./paginas/Plantillas"));
+const Catalogo = lazy(() => import("./paginas/Catalogo"));
+const Usuarios = lazy(() => import("./paginas/Usuarios"));
 
 /**
  * Clientes, Flota, Conductores y Configuracion son el mismo Catalogo con

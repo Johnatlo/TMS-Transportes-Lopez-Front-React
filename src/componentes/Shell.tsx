@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { api } from "../api/cliente";
@@ -6,6 +6,7 @@ import { useDatos } from "../ganchos/useDatos";
 import AlertasDocumentos from "./AlertasDocumentos";
 import CambiarClave from "./CambiarClave";
 import Modal from "./Modal";
+import { Cargando } from "./Estado";
 import { useSesion } from "../ganchos/useSesion";
 import {
   IconoCampana,
@@ -217,7 +218,10 @@ export default function Shell() {
           </div>
         </header>
         <div className="content">
-          <Outlet context={contexto} />
+          {/* Las pantallas se cargan bajo demanda (ver App.tsx): el menu sigue visible. */}
+          <Suspense fallback={<Cargando que="la pantalla" />}>
+            <Outlet context={contexto} />
+          </Suspense>
         </div>
       </div>
 
