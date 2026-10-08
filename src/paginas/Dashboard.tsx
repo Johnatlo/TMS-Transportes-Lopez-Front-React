@@ -1,3 +1,7 @@
+/**
+ * Pantalla de inicio: indicadores, documentos mas urgentes, viajes de hoy,
+ * ultimos viajes, viajes por semana y mapa de seguimiento.
+ */
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
@@ -23,12 +27,12 @@ import type { AlertaDocumento, Conductor, PlantillaViaje, Viaje } from "../api/t
  * indicadores arriba, los documentos mas urgentes, los viajes de hoy, los
  * ultimos viajes, los viajes por semana y el mapa de seguimiento.
  *
- * Todo se calcula en el navegador con listas que ya existen (los ultimos 100
+ * Todo se calcula en el navegador con listas que ya existen (historial de
  * viajes, vehiculos, conductores y plantillas). Si el volumen crece, conviene
  * mover los conteos al backend.
  *
- * El estado de un viaje sale de las CITAS de cargue y descargue del
- * manifiesto: el sistema aun no registra cumplidos ni posicion GPS.
+ * Un viaje cumplido es "Finalizado"; los demas toman su estado de las CITAS de
+ * cargue y descargue del manifiesto (el sistema no recibe la posicion GPS).
  */
 export default function Dashboard() {
   const navegar = useNavigate();
@@ -348,6 +352,11 @@ export default function Dashboard() {
 const DIA = 86_400_000;
 type EstadoViaje = "En camino" | "Programado" | "Finalizado" | "Anulado" | "Con incidencia";
 
+/**
+ * Estado para el tablero: Anulado, Finalizado (cumplido o ya paso la cita de
+ * descargue), Con incidencia (cualquier error), Programado (aun no carga) o En
+ * camino (entre la cita de cargue y la de descargue).
+ */
 function estadoViaje(v: Viaje, ahora: Date): EstadoViaje {
   if (v.estado === "ANULADO") return "Anulado";
   if (v.estado === "CUMPLIDO") return "Finalizado";
@@ -359,6 +368,7 @@ function estadoViaje(v: Viaje, ahora: Date): EstadoViaje {
   return "Finalizado";
 }
 
+/** Clase CSS del color de cada estado del tablero. */
 function claseEstado(e: EstadoViaje): string {
   return {
     "En camino": "estado-azul",
@@ -369,6 +379,10 @@ function claseEstado(e: EstadoViaje): string {
   }[e];
 }
 
+/**
+ * Fraccion del viaje recorrida (0 a 1) segun la hora actual entre la cita de
+ * cargue y la de descargue. Para la barra de progreso.
+ */
 function avance(v: Viaje, ahora: Date): number {
   const ini = new Date(v.fechaHoraCargue).getTime();
   const fin = v.fechaHoraDescargue ? new Date(v.fechaHoraDescargue).getTime() : ini;
@@ -381,6 +395,7 @@ function claveDia(d: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(d);
 }
 
+/** "HH:MM" en hora de Colombia; vacio sin valor. */
 function hora(valor: string | null): string {
   return valor
     ? new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(valor))
@@ -394,6 +409,7 @@ function fechaCorta(valor: string): string {
   return `${d}/${m}`;
 }
 
+/** "Ciudad origen -> ciudad destino" de una plantilla, con el municipio corto. */
 function ruta(p: PlantillaViaje | undefined): string {
   if (!p) return "-";
   return `${corto(p.remitente?.ciudad)} → ${corto(p.destinatario?.ciudad)}`;
@@ -446,6 +462,10 @@ function viajesPorSemana(viajes: Viaje[], ahora: Date): Semana[] {
 // Piezas
 // ---------------------------------------------------------------------------
 
+/**
+ * Tarjeta de indicador del tablero: icono, titulo, valor y la variacion
+ * frente al periodo anterior (con signo y flecha, no solo color).
+ */
 function Indicador({
   icono,
   titulo,
@@ -480,6 +500,10 @@ function Indicador({
   );
 }
 
+/**
+ * Tarjeta con el documento mas urgente (o un mensaje si no hay): quien, que
+ * documento y en cuantos dias vence. Al hacer clic abre todas las alertas.
+ */
 function AlertaDestacada({
   alerta,
   icono,
@@ -519,6 +543,7 @@ function AlertaDestacada({
   );
 }
 
+/** Circulo con las iniciales del conductor (su nombre completo al pasar el mouse). */
 function AvatarConductor({ conductor }: { conductor: Conductor | undefined }) {
   if (!conductor) return <span className="dato-sec">-</span>;
   const iniciales = conductor.nombre

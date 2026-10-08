@@ -1,3 +1,7 @@
+/**
+ * Pantalla Despachar: asistente para expedir un viaje (remesas y manifiesto)
+ * en el RNDC, y para corregir y reintentar un viaje fallido.
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ESTADOS_REINTENTABLES } from "../componentes/ReintentarViaje";
@@ -63,6 +67,7 @@ function proximaHoraEnPunto(): Date {
   return d;
 }
 
+/** Carga nueva vacia: cargue en la proxima hora en punto y descargue un dia despues. */
 function filaVacia(): FilaRemesa {
   const cargue = proximaHoraEnPunto();
   const descargue = new Date(cargue);
@@ -79,6 +84,16 @@ function filaVacia(): FilaRemesa {
   };
 }
 
+/**
+ * Pantalla Despachar: asistente de tres pasos para expedir un viaje.
+ *
+ * 1. Vehiculo y conductor (con el remolque y conductor habituales sugeridos).
+ * 2. Cargas: una o varias remesas, cada una desde una plantilla, con citas y peso.
+ * 3. Valores: flete, anticipo y via con su piso SICETAC.
+ * Al enviar, el backend expide las remesas y el manifiesto en el RNDC y la
+ * pantalla muestra los documentos. Si se abre con ?viaje=N, carga un viaje
+ * fallido completo para corregirlo y reintentarlo.
+ */
 export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const plantillas = useDatos(() => api.getPlantillas(), []);
   const vehiculos = useDatos(() => api.getVehiculos(), []);

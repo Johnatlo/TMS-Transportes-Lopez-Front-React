@@ -29,6 +29,11 @@ export interface SeccionFormulario {
 
 export type Modelo = Record<string, any>;
 
+/**
+ * Pinta un formulario por secciones (titulo y descripcion a la izquierda,
+ * campos a la derecha) a partir de la lista de campos. Cada cambio entrega un
+ * modelo NUEVO a alCambiar (nunca se muta el actual, para que React redibuje).
+ */
 export default function FormularioGenerico({
   secciones,
   modelo,
@@ -65,6 +70,10 @@ export default function FormularioGenerico({
   );
 }
 
+/**
+ * Un campo segun su tipo: casilla, lista desplegable o caja de texto, numero o
+ * fecha, con su ayuda debajo si la tiene.
+ */
 function Campo({
   campo,
   valor,

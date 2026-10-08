@@ -1,3 +1,7 @@
+/**
+ * Pantalla Viajes: lista de despachos y libro de consecutivos, con las
+ * acciones de cada viaje.
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, fechaHora, moneda } from "../api/cliente";
@@ -15,8 +19,11 @@ import type { Viaje } from "../api/tipos";
 import { ERRORES, ETIQUETA_ESTADO, tonoEstado } from "./estadosViaje";
 
 /**
- * Historial de despachos. Migrada completa por ser la mas simple: sirve para
- * ver el patron minimo (useDatos + tabla) sin el ruido del Dashboard.
+ * Pantalla Viajes: todos los despachos con su estado, plazo del cumplido y
+ * acciones (imprimir, cumplir, corregir y reintentar, anular). Tiene dos
+ * vistas: "Viajes" (uno por fila) y "Consecutivos manifiestos y remesas"
+ * (una fila por remesa, como el libro de control). Clic en una fila abre todo
+ * lo que se registro al despachar.
  */
 export default function Historial() {
   const { datos, cargando, error, recargar } = useDatos(

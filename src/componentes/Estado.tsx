@@ -3,10 +3,12 @@
  * "cargando", el de error y el de lista vacia.
  */
 
+/** Mensaje "Cargando ..." mientras llegan los datos. */
 export function Cargando({ que = "datos" }: { que?: string }) {
   return <p className="section-desc">Cargando {que}...</p>;
 }
 
+/** Mensaje de error al cargar datos, con boton "Reintentar" si se da alReintentar. */
 export function ErrorCarga({ mensaje, alReintentar }: { mensaje: string; alReintentar?: () => void }) {
   return (
     <div className="alert danger">
@@ -20,6 +22,7 @@ export function ErrorCarga({ mensaje, alReintentar }: { mensaje: string; alReint
   );
 }
 
+/** Mensaje para una lista sin resultados. */
 export function Vacio({ mensaje }: { mensaje: string }) {
   return <p className="section-desc">{mensaje}</p>;
 }

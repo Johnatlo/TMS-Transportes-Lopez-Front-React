@@ -13,6 +13,10 @@ export const ETIQUETA_ESTADO: Record<string, string> = {
   CUMPLIENDO: "Cumpliendo...",
 };
 
+/**
+ * Color de la pastilla de un estado de viaje: verde cumplido, azul expedido,
+ * gris anulado, amarillo mientras se envia, rojo los errores.
+ */
 export function tonoEstado(estado: string): "ok" | "aviso" | "error" | "info" | "neutro" {
   if (estado === "CUMPLIDO") return "ok";
   if (estado === "CONFIRMADO") return "info";

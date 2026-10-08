@@ -1,3 +1,7 @@
+/**
+ * Pantalla Usuarios: crear usuarios, activarlos o desactivarlos y
+ * restablecer su clave (temporal, por correo o en pantalla).
+ */
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { auth, fechaHora } from "../api/cliente";
@@ -151,6 +155,10 @@ export default function Usuarios() {
   );
 }
 
+/**
+ * Ventana para crear un usuario con correo y nombre. Al crearlo devuelve como
+ * se entrego la clave temporal (por correo o en pantalla).
+ */
 function NuevoUsuario({
   alCerrar,
   alCrear,
@@ -203,6 +211,10 @@ function NuevoUsuario({
   );
 }
 
+/**
+ * Muestra UNA vez la clave temporal cuando no se envio por correo (con el
+ * motivo, si lo hay), para dictarla o copiarla.
+ */
 function ClaveTemporal({
   email,
   clave,

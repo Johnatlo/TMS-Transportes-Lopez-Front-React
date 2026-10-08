@@ -1,3 +1,7 @@
+/**
+ * Ventana de documentos vencidos o por vencer (SOAT, tecnomecanica, licencia,
+ * poliza), con la fecha editable en la misma fila para ponerla al dia.
+ */
 import { useState } from "react";
 import { api, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";

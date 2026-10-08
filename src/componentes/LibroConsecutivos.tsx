@@ -1,3 +1,7 @@
+/**
+ * Libro de consecutivos de manifiestos y remesas: una fila por remesa, con
+ * las columnas de la hoja de control de la empresa.
+ */
 import { api, fechaHora, moneda } from "../api/cliente";
 import type { FilaConsecutivo } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
@@ -12,6 +16,10 @@ function estadoFila(f: FilaConsecutivo): string {
   if (f.estadoViaje === "CUMPLIDO" || f.estadoRemesa === "CUMPLIDA") return "Cumplido";
   return ETIQUETA_ESTADO[f.estadoViaje] ?? f.estadoViaje;
 }
+/**
+ * Color de la pastilla de estado: gris si anulado, verde si cumplido, y si no
+ * el tono del estado del viaje.
+ */
 function tonoFila(f: FilaConsecutivo) {
   if (f.estadoViaje === "ANULADO") return "neutro" as const;
   if (f.estadoViaje === "CUMPLIDO" || f.estadoRemesa === "CUMPLIDA") return "ok" as const;
@@ -34,6 +42,7 @@ const PESTANAS: PestanaTabla<FilaConsecutivo>[] = [
   { id: "errores", etiqueta: "Con error", incluye: (f) => ERRORES.includes(f.estadoViaje) },
 ];
 
+/** Nombre de remitente o destinatario y debajo su NIT o CC. */
 const persona = (tipo: string | null, nit: string | null, nombre: string | null) => (
   <>
     <span className="principal">{nombre ?? "-"}</span>

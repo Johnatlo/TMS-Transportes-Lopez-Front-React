@@ -1,3 +1,8 @@
+/**
+ * Pantallas de catalogo: Flota (vehiculos, remolques, monitoreo),
+ * Conductores, Clientes (terceros) y Configuracion (parametros de la
+ * empresa). Listas con su estado de documentos y formularios de crear/editar.
+ */
 import { useEffect, useState } from "react";
 import { Paginacion } from "../componentes/TablaDatos";
 import type { ReactElement } from "react";
@@ -576,6 +581,10 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
 // Piezas de apoyo
 // ---------------------------------------------------------------------------
 
+/**
+ * Tabla simple del catalogo con paginas de 50: muestra "Cargando" o el error
+ * mientras corresponde, y vuelve a la primera pagina cuando cambia la lista.
+ */
 function Tabla({
   estado,
   columnas,
@@ -632,6 +641,7 @@ function Tabla({
   );
 }
 
+/** Insignia del registro: Inactivo, Al dia o Revisar (documento vencido). */
 function EstadoRegistro({ activo, vigente }: { activo: boolean; vigente: boolean }) {
   if (!activo) return <span className="badge badge-neutral">Inactivo</span>;
   return (
@@ -850,6 +860,7 @@ const CONFIGURACIONES = [
   { value: "V4", label: "V4 - Volqueta 4 ejes" },
 ];
 
+/** true si la configuracion del vehiculo es una de las que acepta SICETAC. */
 function configuracionValida(c: string | null): boolean {
   return !!c && CONFIGURACIONES.some((o) => o.value === c);
 }
@@ -859,10 +870,12 @@ function vigente(fecha: string | null): boolean {
   return !fecha || fecha.slice(0, 10) >= hoyColombia();
 }
 
+/** Kilos con punto de miles y "kg"; "-" sin valor. */
 function kg(valor: number | null): string {
   return valor === null ? "-" : `${valor.toLocaleString("es-CO")} kg`;
 }
 
+/** Iniciales de las dos primeras palabras de un nombre (para el avatar). */
 function iniciales(nombre: string): string {
   return nombre
     .split(" ")
@@ -881,6 +894,7 @@ const NOMBRES: Record<Pestana, string> = {
   empresa: "",
 };
 
+/** Titulo de la ventana: "Nuevo vehiculo" o "Editar vehiculo SKN250". */
 function tituloModal(p: Pestana, edicion: Edicion, modelo: Modelo): string {
   if (edicion.modo === "crear") return `Nuevo ${NOMBRES[p]}`;
   const nombre = modelo.placa ?? modelo.nombre ?? "";
@@ -892,6 +906,10 @@ function tituloModal(p: Pestana, edicion: Edicion, modelo: Modelo): string {
 // el estado (activo/inactivo), que al crear no tiene sentido.
 // ---------------------------------------------------------------------------
 
+/**
+ * Seccion "Estado" del formulario (casilla Activo): un registro inactivo no
+ * aparece en el despacho pero se conserva para el historial.
+ */
 function seccionEstado(que: string): SeccionFormulario {
   return {
     titulo: "Estado",
@@ -900,6 +918,10 @@ function seccionEstado(que: string): SeccionFormulario {
   };
 }
 
+/**
+ * Secciones del formulario segun la pestana. Al editar se agrega la seccion
+ * de estado (activo/inactivo), que al crear no tiene sentido.
+ */
 function seccionesDe(
   p: Pestana,
   empresas: EmpresaMonitoreo[],

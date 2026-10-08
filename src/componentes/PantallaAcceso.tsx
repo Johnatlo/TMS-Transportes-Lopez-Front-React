@@ -1,3 +1,7 @@
+/**
+ * Marco de las pantallas sin sesion: tarjeta con logo y formulario a la
+ * izquierda y foto a la derecha.
+ */
 import type { ReactNode } from "react";
 import logo from "../assets/logo-empresa.png";
 

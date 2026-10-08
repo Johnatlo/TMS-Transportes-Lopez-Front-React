@@ -1,3 +1,7 @@
+/**
+ * Formulario para crear o editar una plantilla de viaje: terceros, ruta,
+ * mercancia, tiempos pactados y valores.
+ */
 import { useMemo, useState } from "react";
 import { api } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
@@ -745,6 +749,7 @@ function SelectorMunicipio({
   );
 }
 
+/** Lista desplegable para elegir un tercero (cliente, remitente o destinatario). */
 function SelectorTercero({
   etiqueta,
   valor,

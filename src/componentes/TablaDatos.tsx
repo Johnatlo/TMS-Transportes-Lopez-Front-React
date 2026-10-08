@@ -35,9 +35,23 @@ export interface PestanaTabla<T> {
 
 const POR_PAGINA = 50;
 
+/** Valor de una celda como texto (null y undefined -> ""). */
 const texto = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+/** Texto sin tildes y en minuscula, para buscar sin importar acentos ni mayusculas. */
 const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
+/**
+ * Tabla de listados con pestanas, busqueda, filtros, orden, exportacion y paginas.
+ *
+ * Como funciona (en este orden, con useMemo para no recalcular de mas):
+ * 1. Pestanas: filtra por la pestana activa y cuenta las filas de cada una.
+ * 2. Busqueda: compara el texto sin tildes contra el 'valor' de cada columna.
+ * 3. Filtros: un desplegable por columna 'filtrable' con sus valores reales.
+ * 4. Orden: clic en el encabezado (ascendente, descendente, sin orden).
+ * 5. Paginas de 50; al cambiar busqueda, filtros u orden vuelve a la primera.
+ * Exportar descarga un CSV (separado por ';', con BOM para que Excel lea las
+ * tildes) con todo lo filtrado, no solo la pagina visible.
+ */
 export default function TablaDatos<T>({
   filas,
   columnas,
@@ -311,7 +325,7 @@ export function Paginacion({
     const tabla = pie.current?.parentElement?.querySelector("table") ?? pie.current?.parentElement;
     tabla?.scrollIntoView({ block: "start", behavior: "smooth" });
   };
-  // Paginas a la vista: la primera, la ultima y dos a cada lado de la actual.
+  // Paginas a la vista: la primera, la ultima, la actual y una a cada lado.
   const numeros = [...new Set([0, paginas - 1, pagina - 1, pagina, pagina + 1])]
     .filter((p) => p >= 0 && p < paginas)
     .sort((a, b) => a - b);
@@ -352,21 +366,24 @@ export function Paginacion({
   );
 }
 
-/** Pastilla de estado con punto de color (ver GUIA-UI.md, "Estados"). */
+/** Colores posibles de una pastilla de estado. */
 export type TonoPastilla =
   | "ok" | "aviso" | "error" | "info" | "neutro"
   // Colores del cuadro pagos (los mismos significados del Excel).
   | "morado" | "verde" | "azul" | "naranja" | "amarillo";
 
+/** Pastilla de estado con punto de color (ver GUIA-UI.md, "Estados"). */
 export function Pastilla({ tono, children }: { tono: TonoPastilla; children: ReactNode }) {
   return <span className={`pastilla pastilla-${tono}`}>{children}</span>;
 }
 
+/** Icono del boton Filtros. */
 const IconoFiltro = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
     <path d="M4 6h16M7 12h10M10 18h4" />
   </svg>
 );
+/** Icono del boton Exportar. */
 const IconoExportar = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />

@@ -1,3 +1,7 @@
+/**
+ * Nombres, colores y reglas de presentacion del cuadro pagos (estados,
+ * papeles, flota, fechas y vencimiento de saldos).
+ */
 import type { EstadoCuadro, EstadoPapeles, FilaCuadro, Flota } from "../../api/cliente";
 import type { TonoPastilla } from "../../componentes/TablaDatos";
 
@@ -17,6 +21,10 @@ export const ETIQUETA_ESTADO_CUADRO: Record<EstadoCuadro, string> = {
   ANULADO: "Anulado",
 };
 
+/**
+ * Color de la pastilla de estado, con el significado de los colores del Excel.
+ * Todo pagado siempre es amarillo.
+ */
 export function tonoEstadoCuadro(f: Pick<FilaCuadro, "estado" | "todoPagado">): TonoPastilla {
   if (f.todoPagado) return "amarillo";
   switch (f.estado) {
@@ -35,6 +43,7 @@ export function tonoEstadoCuadro(f: Pick<FilaCuadro, "estado" | "todoPagado">): 
   }
 }
 
+/** Nombre del estado para mostrar; "Todo pagado" cuando ya se pago todo. */
 export const etiquetaEstadoCuadro = (f: Pick<FilaCuadro, "estado" | "todoPagado">) =>
   f.todoPagado ? "Todo pagado" : ETIQUETA_ESTADO_CUADRO[f.estado];
 

@@ -1,3 +1,7 @@
+/**
+ * Documentos de un viaje expedido: PDF oficial del manifiesto (con o sin logo)
+ * y remesas imprimibles.
+ */
 import { api } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "./Estado";

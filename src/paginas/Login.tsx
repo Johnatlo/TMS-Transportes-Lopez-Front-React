@@ -1,3 +1,6 @@
+/**
+ * Pantalla de inicio de sesion y recuperacion de contrasena por codigo al correo.
+ */
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useSesion } from "../ganchos/useSesion";

@@ -1,3 +1,7 @@
+/**
+ * Ventana para anular un viaje en el RNDC: muestra que se anulara y en que
+ * orden, pide los motivos y muestra los radicados de anulacion.
+ */
 import { useState } from "react";
 import { api, ErrorApi } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
@@ -14,6 +18,7 @@ const ESTADOS_ANULABLES = [
   "ANULACION_ERROR",
 ];
 
+/** true si el viaje se puede anular desde Viajes (estados de ESTADOS_ANULABLES). */
 export function esAnulable(v: Pick<Viaje, "estado">): boolean {
   return ESTADOS_ANULABLES.includes(v.estado);
 }
@@ -226,6 +231,10 @@ export default function AnularViaje({
   );
 }
 
+/**
+ * Mensaje final de una anulacion correcta, con los radicados de anulacion del
+ * manifiesto y de cada remesa.
+ */
 function ResultadoAnulado({ viaje, remesas }: { viaje: Viaje; remesas: ViajeRemesa[] | null }) {
   return (
     <>

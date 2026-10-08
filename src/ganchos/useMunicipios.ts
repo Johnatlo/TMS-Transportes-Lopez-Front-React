@@ -1,3 +1,6 @@
+/**
+ * Gancho con los municipios DIVIPOLA para buscar por nombre.
+ */
 import { useMemo } from "react";
 import { api } from "../api/cliente";
 import { useDatos } from "./useDatos";

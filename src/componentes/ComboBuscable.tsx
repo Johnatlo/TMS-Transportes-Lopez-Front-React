@@ -1,3 +1,7 @@
+/**
+ * Lista desplegable con buscador, para elegir entre muchos registros
+ * (vehiculos, conductores, terceros, plantillas, municipios).
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 
 /**

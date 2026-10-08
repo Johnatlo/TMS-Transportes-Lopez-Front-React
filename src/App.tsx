@@ -1,3 +1,8 @@
+/**
+ * Raiz de la aplicacion: sin sesion muestra el login; con clave temporal, el
+ * cambio obligatorio de clave; con sesion, el marco (Shell) y las rutas de
+ * cada pantalla, que se descargan al abrirlas por primera vez (React.lazy).
+ */
 import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Shell from "./componentes/Shell";

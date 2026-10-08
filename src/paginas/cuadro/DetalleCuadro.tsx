@@ -1,3 +1,7 @@
+/**
+ * Ventana de un viaje del cuadro pagos: papeles, datos, flete, factura, pago
+ * al dueno, revisiones, anticipos de bomba y notas.
+ */
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { apiCuadro, fechaHora, moneda } from "../../api/cliente";
@@ -25,9 +29,11 @@ const CAMPOS = [
 type Campo = (typeof CAMPOS)[number];
 type Formulario = Record<Campo, string>;
 
+/** Viaje -> valores del formulario, todos como texto (asi trabajan los inputs). */
 const aFormulario = (d: Detalle): Formulario =>
   Object.fromEntries(CAMPOS.map((c) => [c, d[c] === null || d[c] === undefined ? "" : String(d[c])])) as Formulario;
 
+/** Bloque con titulo (y algo extra al lado del titulo) dentro del detalle. */
 function Seccion({ titulo, children, extra }: { titulo: string; children: ReactNode; extra?: ReactNode }) {
   return (
     <section className="detalle-seccion">

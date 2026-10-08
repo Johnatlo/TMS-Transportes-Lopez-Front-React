@@ -1,3 +1,7 @@
+/**
+ * Sesion del usuario: proveedor de contexto y gancho para leerla. Vuelve al
+ * login cuando el backend avisa que la sesion vencio.
+ */
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { auth, EVENTO_SESION_VENCIDA } from "../api/cliente";
@@ -68,6 +72,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   );
 }
 
+/** Sesion actual (estado, usuario, entrar, salir). Debe usarse dentro de <ProveedorSesion>. */
 export function useSesion(): ContextoSesion {
   const c = useContext(Contexto);
   if (!c) throw new Error("useSesion debe usarse dentro de <ProveedorSesion>");

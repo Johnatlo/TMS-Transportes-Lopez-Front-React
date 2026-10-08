@@ -1,3 +1,8 @@
+/**
+ * Pantalla Cuadro pagos: seguimiento de cada viaje (con o sin manifiesto)
+ * desde que carga hasta que todo queda pagado. Reemplaza la hoja de Excel
+ * "CUADRO CENTRAL".
+ */
 import { useState } from "react";
 import { apiCuadro, moneda } from "../../api/cliente";
 import type { FilaCuadro } from "../../api/cliente";

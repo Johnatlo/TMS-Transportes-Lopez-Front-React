@@ -1,3 +1,7 @@
+/**
+ * Mapa (Leaflet) con la posicion ESTIMADA de los vehiculos en camino: en
+ * linea recta entre cargue y descargue segun el tiempo entre las citas.
+ */
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";

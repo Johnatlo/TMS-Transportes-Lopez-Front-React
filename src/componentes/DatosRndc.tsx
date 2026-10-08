@@ -1,3 +1,7 @@
+/**
+ * Muestra todos los datos del manifiesto y de cada remesa tal como van al
+ * RNDC, para revisar un viaje con error antes de reintentar.
+ */
 import { moneda } from "../api/cliente";
 import type { DatosRndc } from "../api/tipos";
 
@@ -80,6 +84,11 @@ const DINERO = new Set([
   "VALORANTICIPOMANIFIESTO",
 ]);
 
+/**
+ * Tabla etiqueta / valor de los datos que se envian al RNDC, con el nombre
+ * legible de cada etiqueta cuando se conoce (NOMBRES) y los montos con formato
+ * de moneda.
+ */
 function TablaCampos({ datos }: { datos: Record<string, unknown> }) {
   return (
     <table className="tabla-datos-rndc">

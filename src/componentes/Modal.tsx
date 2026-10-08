@@ -1,3 +1,7 @@
+/**
+ * Ventana modal comun: se cierra con la X o Escape (no con clic fuera), se
+ * puede maximizar o cambiar de tamano, y puede mostrar pasos de un asistente.
+ */
 import type { ReactNode } from "react";
 import { Fragment, useEffect, useState } from "react";
 

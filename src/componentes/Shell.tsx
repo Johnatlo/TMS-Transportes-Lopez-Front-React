@@ -1,3 +1,7 @@
+/**
+ * Marco de la aplicacion con sesion: menu lateral, barra superior (alertas,
+ * usuario) y el contenido de la pantalla actual.
+ */
 import { Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";

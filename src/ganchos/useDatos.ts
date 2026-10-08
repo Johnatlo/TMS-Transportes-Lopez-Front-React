@@ -1,3 +1,6 @@
+/**
+ * Gancho para cargar datos de la API con estados de carga, error y recarga.
+ */
 import { useCallback, useEffect, useState } from "react";
 import { ErrorApi } from "../api/cliente";
 

@@ -1,3 +1,6 @@
+/**
+ * Pantalla Plantillas: lista de plantillas de viaje y actualizacion de tarifas por ruta.
+ */
 import { useState } from "react";
 import { api, moneda, soloFecha } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
@@ -7,6 +10,11 @@ import FormularioPlantilla from "./FormularioPlantilla";
 import TablaDatos from "../componentes/TablaDatos";
 import type { PlantillaViaje, RutaConTarifa } from "../api/tipos";
 
+/**
+ * Pantalla Plantillas: lista de plantillas de viaje (nombre, ruta,
+ * contratante, mercancia y tarifa); crear, editar y eliminar (desactivar), y
+ * actualizar tarifas por ruta.
+ */
 export default function Plantillas() {
   const plantillas = useDatos(() => api.getPlantillas(), []);
   const [modalNueva, setModalNueva] = useState(false);

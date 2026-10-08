@@ -4,6 +4,7 @@
  */
 import type { ReactNode } from "react";
 
+/** Lienzo SVG comun de los iconos (24x24, trazo del color del texto, 18 px por defecto). */
 function Icono({ children, tamano = 18 }: { children: ReactNode; tamano?: number }) {
   return (
     <svg
@@ -22,6 +23,7 @@ function Icono({ children, tamano = 18 }: { children: ReactNode; tamano?: number
   );
 }
 
+/** Icono del menu Inicio. */
 export const IconoInicio = () => (
   <Icono>
     <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -31,6 +33,7 @@ export const IconoInicio = () => (
   </Icono>
 );
 
+/** Icono del menu Despachar. */
 export const IconoCamion = () => (
   <Icono>
     <path d="M3 6h11v10H3z" />
@@ -40,12 +43,14 @@ export const IconoCamion = () => (
   </Icono>
 );
 
+/** Icono del menu Viajes. */
 export const IconoViajes = () => (
   <Icono>
     <path d="M4 6h16M4 12h16M4 18h10" />
   </Icono>
 );
 
+/** Icono del menu Plantillas. */
 export const IconoPlantillas = () => (
   <Icono>
     <rect x="5" y="3" width="14" height="18" rx="2" />
@@ -53,6 +58,7 @@ export const IconoPlantillas = () => (
   </Icono>
 );
 
+/** Icono del menu Clientes. */
 export const IconoClientes = () => (
   <Icono>
     <circle cx="9" cy="8" r="3.2" />
@@ -62,6 +68,7 @@ export const IconoClientes = () => (
   </Icono>
 );
 
+/** Icono del menu Flota. */
 export const IconoFlota = () => (
   <Icono>
     <path d="M2 7h12v9H2z" />
@@ -72,6 +79,7 @@ export const IconoFlota = () => (
   </Icono>
 );
 
+/** Icono del menu Conductores. */
 export const IconoConductores = () => (
   <Icono>
     <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -80,6 +88,7 @@ export const IconoConductores = () => (
   </Icono>
 );
 
+/** Icono del menu Configuracion. */
 export const IconoConfiguracion = () => (
   <Icono>
     <circle cx="12" cy="12" r="3" />
@@ -87,12 +96,14 @@ export const IconoConfiguracion = () => (
   </Icono>
 );
 
+/** Icono para crear. */
 export const IconoMas = () => (
   <Icono>
     <path d="M12 5v14M5 12h14" />
   </Icono>
 );
 
+/** Icono de alertas. */
 export const IconoCampana = () => (
   <Icono>
     <path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
@@ -100,24 +111,28 @@ export const IconoCampana = () => (
   </Icono>
 );
 
+/** Icono de flecha a la derecha. */
 export const IconoFlecha = () => (
   <Icono tamano={16}>
     <path d="M7 17 17 7M9 7h8v8" />
   </Icono>
 );
 
+/** Icono para contraer el menu lateral. */
 export const IconoContraer = () => (
   <Icono>
     <path d="M4 6h10M4 12h7M4 18h10M20 8l-4 4 4 4" />
   </Icono>
 );
 
+/** Icono del menu en el celular. */
 export const IconoMenu = () => (
   <Icono>
     <path d="M4 6h16M4 12h16M4 18h16" />
   </Icono>
 );
 
+/** Icono de calendario. */
 export const IconoCalendario = () => (
   <Icono tamano={16}>
     <rect x="3.5" y="5" width="17" height="15" rx="2" />
@@ -125,6 +140,7 @@ export const IconoCalendario = () => (
   </Icono>
 );
 
+/** Icono de confirmacion. */
 export const IconoCheck = () => (
   <Icono tamano={16}>
     <circle cx="12" cy="12" r="9" />
@@ -132,12 +148,14 @@ export const IconoCheck = () => (
   </Icono>
 );
 
+/** Icono de grafica. */
 export const IconoGrafica = () => (
   <Icono tamano={16}>
     <path d="M4 19h16M7 16v-5M12 16V7M17 16v-8" />
   </Icono>
 );
 
+/** Icono de mapa. */
 export const IconoMapa = () => (
   <Icono tamano={16}>
     <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" />
@@ -145,6 +163,7 @@ export const IconoMapa = () => (
   </Icono>
 );
 
+/** Icono de documento (Cuadro pagos). */
 export const IconoDocumento = () => (
   <Icono tamano={18}>
     <path d="M6 3h8l4 4v14H6z" />
@@ -152,6 +171,7 @@ export const IconoDocumento = () => (
   </Icono>
 );
 
+/** Icono del menu Usuarios. */
 export const IconoUsuarios = () => (
   <Icono>
     <circle cx="12" cy="8" r="3.5" />
@@ -159,6 +179,7 @@ export const IconoUsuarios = () => (
   </Icono>
 );
 
+/** Icono para mostrar la contrasena. */
 export const IconoOjo = () => (
   <Icono tamano={17}>
     <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
@@ -166,6 +187,7 @@ export const IconoOjo = () => (
   </Icono>
 );
 
+/** Icono para ocultar la contrasena. */
 export const IconoOjoTachado = () => (
   <Icono tamano={17}>
     <path d="M9.9 5.8A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.6 3.4M6.3 7.3C3.9 9 2.5 12 2.5 12S6 18.5 12 18.5c1.6 0 3-.4 4.2-1.1" />

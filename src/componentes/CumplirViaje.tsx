@@ -1,3 +1,9 @@
+/**
+ * Ventana para cumplir un viaje en el RNDC: cada remesa (proceso 5) con sus
+ * tiempos (los del GPS vienen puestos) y luego el manifiesto (proceso 6) con
+ * valores, retenciones y el piso SICETAC del cumplido. Al abrir trae del RNDC
+ * lo que ya se cumplio en el portal.
+ */
 import { useEffect, useState } from "react";
 import { api, aInputLocal, ErrorApi, fechaHora, moneda } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
@@ -456,6 +462,15 @@ export default function CumplirViaje({
   );
 }
 
+/**
+ * Formulario del cumplido de UNA remesa: kilos entregados y los seis tiempos
+ * logisticos.
+ *
+ * Los tiempos que reporto el GPS vienen puestos con la pastilla "GPS"; si se
+ * cambian, se marcan "Editado" con el valor original y un boton para volver
+ * al del GPS. Ninguna hora puede ser futura. El boton se habilita con kilos y
+ * las seis horas llenas.
+ */
 function FormularioCumplido({
   f,
   gps,

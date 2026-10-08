@@ -1,3 +1,6 @@
+/**
+ * Ventana de solo lectura con todo lo registrado al despachar un viaje.
+ */
 import type { ReactNode } from "react";
 import { api, fechaHora, moneda, soloDia } from "../api/cliente";
 import type { TerceroDetalle } from "../api/cliente";
@@ -21,6 +24,7 @@ function Datos({ filas }: { filas: Array<[string, ReactNode]> }) {
   );
 }
 
+/** Bloque con titulo dentro del detalle del viaje. */
 function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
     <section className="detalle-seccion">
@@ -30,6 +34,7 @@ function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) 
   );
 }
 
+/** Nombre de un tercero y debajo su identificacion, sede y ciudad. */
 const tercero = (t: TerceroDetalle | null) =>
   t ? (
     <>

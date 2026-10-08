@@ -1,3 +1,7 @@
+/**
+ * Arranque de React: monta App dentro del enrutador (BrowserRouter) y del
+ * proveedor de sesion, y carga los estilos globales.
+ */
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

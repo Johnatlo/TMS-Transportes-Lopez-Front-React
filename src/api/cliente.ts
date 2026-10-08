@@ -43,6 +43,10 @@ const BASE = "/api";
  * pierde ese cuerpo, la pantalla no puede explicar que paso.
  */
 export class ErrorApi extends Error {
+  /**
+   * mensaje: texto para mostrar; estado: codigo HTTP (0 = sin conexion);
+   * cuerpo: la respuesta completa del backend (por ejemplo el viaje con su error).
+   */
   constructor(
     mensaje: string,
     public readonly estado: number,
@@ -56,6 +60,17 @@ export class ErrorApi extends Error {
 /** Se dispara cuando el backend dice que no hay sesion valida. */
 export const EVENTO_SESION_VENCIDA = "tms:sesion-vencida";
 
+/**
+ * Hace una peticion a la API (/api + ruta) y devuelve el JSON de respuesta.
+ *
+ * Como funciona:
+ * 1. fetch con Content-Type JSON; la cookie de sesion la manda el navegador.
+ * 2. Sin conexion: ErrorApi con estado 0 y un mensaje claro.
+ * 3. Respuesta vacia (204): devuelve null.
+ * 4. Error HTTP: si es 401 por sesion vencida avisa a toda la aplicacion
+ *    (EVENTO_SESION_VENCIDA, vuelve el login) y lanza ErrorApi con el mensaje
+ *    del backend y el cuerpo completo.
+ */
 async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   let respuesta: Response;
   try {
@@ -88,11 +103,15 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   return cuerpo as T;
 }
 
+/** GET a la API. */
 const get = <T>(ruta: string) => pedir<T>(ruta);
+/** POST a la API con el cuerpo en JSON. */
 const post = <T>(ruta: string, datos: unknown) =>
   pedir<T>(ruta, { method: "POST", body: JSON.stringify(datos) });
+/** PUT a la API con el cuerpo en JSON. */
 const put = <T>(ruta: string, datos: unknown) =>
   pedir<T>(ruta, { method: "PUT", body: JSON.stringify(datos) });
+/** DELETE a la API. */
 const del = <T>(ruta: string) => pedir<T>(ruta, { method: "DELETE" });
 
 // ---------------------------------------------------------------------------
@@ -266,12 +285,17 @@ export interface EntregaClave {
 
 /** Sesion y usuarios. La cookie de sesion la maneja el navegador solo. */
 export const auth = {
+  /** Usuario de la sesion actual (401 si no hay sesion). */
   sesion: () => get<Usuario>("/auth/sesion"),
+  /** Inicia sesion con correo y clave; el backend pone la cookie. */
   login: (email: string, clave: string) => post<Usuario>("/auth/login", { email, clave }),
+  /** Cierra la sesion y borra la cookie. */
   logout: () => post<void>("/auth/logout", {}),
+  /** Cambia la clave propia (pide la actual). */
   cambiarClave: (actual: string, nueva: string) =>
     post<Usuario>("/auth/cambiar-clave", { actual, nueva }),
 
+  /** Usuarios del sistema. */
   listarUsuarios: () => get<Usuario[]>("/usuarios"),
   /**
    * La clave temporal se envia por correo. Solo si el correo no esta
@@ -279,18 +303,27 @@ export const auth = {
    */
   crearUsuario: (email: string, nombre: string) =>
     post<Usuario & EntregaClave>("/usuarios", { email, nombre }),
+  /** Cambia nombre y/o estado activo de un usuario. */
   actualizarUsuario: (id: number, datos: { nombre?: string; activo?: boolean }) =>
     put<Usuario>(`/usuarios/${id}`, datos),
+  /** Genera una clave temporal nueva para un usuario (por correo, o en la respuesta). */
   restablecerClave: (id: number) => post<EntregaClave>(`/usuarios/${id}/restablecer-clave`, {}),
 
   /** "Olvide mi contrasena": envia un codigo de 6 digitos al correo. */
   recuperar: (email: string) => post<{ ok: boolean; minutos: number }>("/auth/recuperar", { email }),
+  /** Crea la clave nueva con el codigo de 6 digitos que llego al correo. */
   confirmarRecuperacion: (email: string, codigo: string, nueva: string) =>
     post<{ ok: boolean }>("/auth/recuperar/confirmar", { email, codigo, nueva }),
 };
 
+/**
+ * Llamadas de catalogo, despacho, cumplidos e impresion. Cada una corresponde
+ * a una ruta del backend (/api/catalogo/... y /api/despacho/...).
+ */
 export const api = {
+  /** Vehiculos del catalogo (activos e inactivos; sin los eliminados). */
   getVehiculos: () => get<Vehiculo[]>("/catalogo/vehiculos"),
+  /** Crea un vehiculo (o recupera uno eliminado con la misma placa). */
   crearVehiculo: (datos: Partial<Vehiculo>) =>
     post<Vehiculo>("/catalogo/vehiculos", datos),
   /** Lo que no se mande conserva su valor actual. */
@@ -304,35 +337,50 @@ export const api = {
 
   // ---------- Empresas de monitoreo de flota ----------
 
+  /** Empresas de monitoreo de flota (GPS) activas. */
   getEmpresasMonitoreo: () => get<EmpresaMonitoreo[]>("/catalogo/monitoreo"),
+  /** Registra una empresa de monitoreo de flota (GPS). */
   crearEmpresaMonitoreo: (datos: { nit: string; nombre: string }) =>
     post<EmpresaMonitoreo>("/catalogo/monitoreo", datos),
+  /** Cambia NIT y/o nombre de una empresa de monitoreo. */
   actualizarEmpresaMonitoreo: (id: number, datos: { nit?: string; nombre?: string }) =>
     put<EmpresaMonitoreo>(`/catalogo/monitoreo/${id}`, datos),
+  /** Desactiva una empresa de monitoreo. */
   eliminarEmpresaMonitoreo: (id: number) => del<void>(`/catalogo/monitoreo/${id}`),
   /** Proveedor de GPS por defecto de un vehiculo. */
   fijarMonitoreoVehiculo: (vehiculoId: number, nitMonitoreoFlota: string | null) =>
     put<Vehiculo>(`/catalogo/vehiculos/${vehiculoId}/monitoreo`, { nitMonitoreoFlota }),
 
+  /** Conductores del catalogo. */
   getConductores: () => get<Conductor[]>("/catalogo/conductores"),
+  /** Crea un conductor. */
   crearConductor: (datos: Partial<Conductor>) =>
     post<Conductor>("/catalogo/conductores", datos),
+  /** Edita un conductor; lo que no se mande no cambia. */
   actualizarConductor: (id: number, datos: Partial<Conductor>) =>
     put<Conductor>(`/catalogo/conductores/${id}`, datos),
 
+  /** Remolques del catalogo. */
   getRemolques: () => get<Remolque[]>("/catalogo/remolques"),
+  /** Crea un remolque. */
   crearRemolque: (datos: Partial<Remolque>) =>
     post<Remolque>("/catalogo/remolques", datos),
+  /** Edita un remolque; lo que no se mande no cambia. */
   actualizarRemolque: (id: number, datos: Partial<Remolque>) =>
     put<Remolque>(`/catalogo/remolques/${id}`, datos),
 
+  /** Clientes, remitentes y destinatarios. */
   getTerceros: () => get<Tercero[]>("/catalogo/terceros"),
+  /** Crea un tercero. avisoCoordenada trae el problema de su coordenada, si hay. */
   crearTercero: (datos: Partial<Tercero>) =>
     post<Tercero & { avisoCoordenada?: string | null }>("/catalogo/terceros", datos),
+  /** Edita un tercero. avisoCoordenada trae el problema de su coordenada, si hay. */
   actualizarTercero: (id: number, datos: Partial<Tercero>) =>
     put<Tercero & { avisoCoordenada?: string | null }>(`/catalogo/terceros/${id}`, datos),
 
+  /** Plantillas de viaje activas, con sus terceros. */
   getPlantillas: () => get<PlantillaViaje[]>("/catalogo/plantillas"),
+  /** Crea una plantilla de viaje. */
   crearPlantilla: (datos: Partial<PlantillaViaje>) =>
     post<PlantillaViaje>("/catalogo/plantillas", datos),
   /** Lo que no se mande conserva su valor actual. */
@@ -362,13 +410,19 @@ export const api = {
 
   // ---------- Tarifas por ruta ----------
 
+  /**
+   * Rutas de las plantillas activas con cuantas plantillas tiene cada una y su
+   * rango de tarifas: punto de partida para actualizar tarifas por ruta.
+   */
   getRutasConTarifas: () => get<RutaConTarifa[]>("/catalogo/tarifas/rutas"),
 
+  /** Plantillas que cambiarian al actualizar el flete base de una ruta, con su valor actual. */
   previsualizarTarifa: (origen: string, destino: string) =>
     get<Array<{ id: number; nombre: string; valorFleteBase: number | null }>>(
       `/catalogo/tarifas/previsualizar?origen=${origen}&destino=${destino}`
     ),
 
+  /** Fija el flete base de todas las plantillas de una ruta. Devuelve cuantas cambiaron. */
   actualizarTarifaRuta: (origen: string, destino: string, valorFleteBase: number) =>
     put<{ actualizadas: number; valorFleteBase: number }>("/catalogo/tarifas", {
       origen,
@@ -382,25 +436,32 @@ export const api = {
   getAlertas: (dias = 30, inactivos = false) =>
     get<ResumenAlertas>(`/catalogo/alertas?dias=${dias}${inactivos ? "&inactivos=1" : ""}`),
 
+  /** Parametros de la empresa (poliza, retencion...) y aviso de vigencia de la poliza. */
   getParametros: () => get<ParametrosEmpresa>("/catalogo/parametros"),
+  /** Guarda los parametros enviados; los demas no cambian. */
   guardarParametros: (datos: Partial<ParametrosEmpresa>) =>
     put<ParametrosEmpresa>("/catalogo/parametros", datos),
 
   // ---------- Despacho ----------
 
+  /**
+   * Despacha un viaje: el backend valida, expide las remesas y el manifiesto en
+   * el RNDC y devuelve el viaje (con su error si el RNDC lo rechazo).
+   */
   despachar: (datos: PeticionDespacho) => post<Viaje>("/despacho", datos),
 
+  /** Todos los viajes, con el plazo del cumplido de los que ya descargaron. */
   getHistorial: () => get<Viaje[]>("/despacho/historial"),
   /** Libro de consecutivos: una fila por remesa, como la hoja de control. */
   getConsecutivos: () => get<FilaConsecutivo[]>("/despacho/consecutivos"),
   /** Todo lo que se registro al despachar un viaje. */
   getDetalleViaje: (viajeId: number) => get<DetalleViaje>(`/despacho/${viajeId}/detalle`),
 
-  /** Siguiente numero disponible. Es una sugerencia, no una reserva. */
   /** Remolque y conductor que suele usar el vehiculo (historial o catalogo). */
   getSugerencias: (vehiculoId: number) =>
     get<SugerenciaVehiculo>(`/despacho/sugerencias/${vehiculoId}`),
 
+  /** Siguiente numero de manifiesto disponible. Es una sugerencia, no una reserva. */
   getSiguienteConsecutivo: () => get<{ base: string }>("/despacho/siguiente-consecutivo"),
 
   /**
@@ -424,6 +485,7 @@ export const api = {
     datos: { motivoManifiesto?: string; motivoCumplido: string; motivoRemesa: string; observaciones: string }
   ) => post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/anular`, datos),
 
+  /** Remesas de un viaje, en orden. */
   getRemesasDeViaje: (viajeId: number) =>
     get<ViajeRemesa[]>(`/despacho/${viajeId}/remesas`),
 
@@ -439,6 +501,7 @@ export const api = {
    */
   usarRemesaExistente: (remesaId: number) =>
     post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/usar-existente`, {}),
+  /** Toma el radicado de un manifiesto que el RNDC reporto como ya existente. */
   usarManifiestoExistente: (viajeId: number) =>
     post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/usar-manifiesto-existente`, {}),
 
@@ -455,8 +518,10 @@ export const api = {
       salidaDescargue: string;
     }
   ) => post<{ viaje: Viaje; remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
-  /** Cumplido del manifiesto (proceso 6); exige todas las remesas cumplidas. */
-  /** Tiempos que ya reporto el GPS (cumplido inicial): se muestran bloqueados. */
+  /**
+   * Tiempos que ya reporto el GPS (cumplido inicial, proceso 45). En el
+   * formulario vienen puestos y se pueden corregir.
+   */
   getGpsRemesa: (remesaId: number) => get<TiemposGps>(`/despacho/remesas/${remesaId}/gps`),
   /** Lo que quedo registrado en el cumplido de una remesa (leido del RNDC). */
   getCumplidoRemesa: (remesaId: number) =>
@@ -478,6 +543,11 @@ export const api = {
       {}
     ),
 
+  /**
+   * Cumple el manifiesto (proceso 6) con la fecha de entrega, adicionales,
+   * descuentos y retenciones. Antes adopta lo cumplido en el portal; el RNDC
+   * exige todas las remesas cumplidas y lo dice con su error si falta alguna.
+   */
   cumplirManifiesto: (viajeId: number, datos: Record<string, unknown> = {}) =>
     post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/cumplir`, datos),
 
@@ -494,6 +564,7 @@ export const api = {
   /** PDF oficial del RNDC; por defecto con el logo de la empresa estampado. */
   urlPdfManifiesto: (viajeId: number, original = false) =>
     `${BASE}/despacho/${viajeId}/manifiesto.pdf${original ? "?original=1" : ""}`,
+  /** Remesa imprimible (HTML con el formato oficial), para abrir en otra pestana. */
   urlImprimirRemesa: (remesaId: number) => `${BASE}/despacho/remesas/${remesaId}/imprimir`,
 };
 
@@ -516,6 +587,7 @@ export function aInputLocal(fecha: Date): string {
   );
 }
 
+/** Valor en pesos con punto de miles (4.019.761); "-" sin valor. */
 export function moneda(valor: number | null | undefined): string {
   if (valor === null || valor === undefined) return "-";
   return FORMATO_MONEDA.format(valor);
@@ -559,6 +631,7 @@ export function hoyColombia(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 }
 
+/** Solo la fecha (DD/MM/AAAA) de un instante, en hora de Colombia; "-" sin valor. */
 export function soloFecha(valor: string | null | undefined): string {
   if (!valor) return "-";
   return new Intl.DateTimeFormat("es-CO", {
@@ -653,23 +726,42 @@ export interface Bomba {
   activa: boolean;
 }
 
+/**
+ * Llamadas del cuadro pagos (/api/cuadro). Las que cambian algo devuelven el
+ * viaje actualizado con sus anticipos y notas.
+ */
 export const apiCuadro = {
+  /** Todos los viajes del cuadro. */
   listar: () => get<FilaCuadro[]>("/cuadro"),
+  /** Un viaje con anticipos y notas. */
   obtener: (id: number) => get<DetalleCuadro>(`/cuadro/${id}`),
+  /** Crea un viaje sin manifiesto. */
   crear: (datos: Record<string, unknown>) => post<DetalleCuadro>("/cuadro", datos),
+  /** Guarda los campos enviados de un viaje. */
   actualizar: (id: number, datos: Record<string, unknown>) => put<DetalleCuadro>(`/cuadro/${id}`, datos),
+  /** Borra un viaje creado a mano. */
   borrar: (id: number) => del<{ ok: true }>(`/cuadro/${id}`),
+  /** Marca o quita la revision de contabilidad o de gerencia. */
   revisar: (id: number, quien: "CONTABILIDAD" | "GERENCIA", revisado: boolean) =>
     post<DetalleCuadro>(`/cuadro/${id}/revision`, { quien, revisado }),
+  /** Asigna una factura (numero y fecha) a varios viajes. */
   facturar: (ids: number[], facturaNumero: string, facturaFecha: string) =>
     post<{ actualizados: number }>("/cuadro/facturar", { ids, facturaNumero, facturaFecha }),
+  /** Agrega una nota al viaje. */
   agregarNota: (id: number, texto: string) => post<DetalleCuadro>(`/cuadro/${id}/notas`, { texto }),
+  /** Borra una nota. */
   borrarNota: (id: number, notaId: number) => del<DetalleCuadro>(`/cuadro/${id}/notas/${notaId}`),
+  /** Registra un anticipo de bomba. */
   agregarAnticipo: (id: number, datos: Record<string, unknown>) => post<DetalleCuadro>(`/cuadro/${id}/anticipos`, datos),
+  /** Cambia la fecha de pago a la bomba o la nota de un anticipo. */
   actualizarAnticipo: (id: number, anticipoId: number, datos: Record<string, unknown>) =>
     put<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`, datos),
+  /** Quita un anticipo. */
   borrarAnticipo: (id: number, anticipoId: number) => del<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`),
+  /** Catalogo de bombas aliadas. */
   bombas: () => get<Bomba[]>("/cuadro/bombas"),
+  /** Crea una bomba. */
   crearBomba: (datos: { nombre: string; ciudad: string }) => post<{ id: number }>("/cuadro/bombas", datos),
+  /** Cambia nombre, ciudad o si esta activa; devuelve la lista. */
   actualizarBomba: (id: number, datos: Partial<Bomba>) => put<Bomba[]>(`/cuadro/bombas/${id}`, datos),
 };

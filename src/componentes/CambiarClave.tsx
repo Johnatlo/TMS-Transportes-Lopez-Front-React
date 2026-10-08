@@ -1,3 +1,7 @@
+/**
+ * Formulario para cambiar la propia contrasena (obligatorio con clave
+ * temporal, o voluntario desde el menu del avatar).
+ */
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { auth } from "../api/cliente";

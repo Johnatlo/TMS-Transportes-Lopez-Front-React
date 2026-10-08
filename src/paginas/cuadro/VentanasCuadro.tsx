@@ -1,3 +1,7 @@
+/**
+ * Ventanas auxiliares del cuadro pagos: nuevo viaje sin manifiesto, facturar
+ * varios viajes y catalogo de bombas aliadas.
+ */
 import { useMemo, useState } from "react";
 import { api, apiCuadro, moneda } from "../../api/cliente";
 import type { FilaCuadro } from "../../api/cliente";

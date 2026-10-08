@@ -1,3 +1,7 @@
+/**
+ * Ventana para retomar un viaje fallido: explica el error, muestra que
+ * remesas ya estan en el RNDC y deja corregir los datos del manifiesto.
+ */
 import { useState } from "react";
 import { api, ErrorApi, moneda } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
@@ -16,6 +20,7 @@ function radicadoDuplicado(texto: string | null | undefined): string | null {
 /** Estados desde los que el backend acepta reintentar (ver despacho.ts). */
 export const ESTADOS_REINTENTABLES = ["VALIDACION_ERROR", "REMESA_ERROR", "MANIFIESTO_ERROR"];
 
+/** true si el viaje quedo en un estado de error desde el que se puede reintentar. */
 export function esReintentable(v: Pick<Viaje, "estado">): boolean {
   return ESTADOS_REINTENTABLES.includes(v.estado);
 }
@@ -43,6 +48,7 @@ type Correccion = {
   consecutivoManifiesto: string;
 };
 
+/** Valores iniciales del formulario de correccion: los datos actuales del manifiesto. */
 function correccionDe(v: Viaje): Correccion {
   return {
     vehiculoId: v.vehiculoId,
