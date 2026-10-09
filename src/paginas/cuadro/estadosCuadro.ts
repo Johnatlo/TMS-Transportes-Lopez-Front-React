@@ -8,13 +8,15 @@ import type { TonoPastilla } from "../../componentes/TablaDatos";
 /**
  * Nombres y colores del cuadro pagos. Los tonos repiten los colores que se
  * usaban en el Excel para que el equipo los reconozca:
- * morado = sin radicar, verde = radicado, azul = facturado sin datos,
+ * morado = sin radicar, verde = listo para facturar (radicado), azul = facturado sin datos,
  * naranja = revisado por contabilidad (falta gerencia), amarillo = todo pagado.
  */
 export const ETIQUETA_ESTADO_CUADRO: Record<EstadoCuadro, string> = {
   EN_RUTA: "En proceso",
   SIN_RADICAR: "Sin radicar",
-  RADICADO: "Radicado",
+  // Internamente sigue siendo RADICADO (papeles radicados en el cliente); en
+  // pantalla se llama "Listo para facturar".
+  RADICADO: "Listo para facturar",
   FACTURADO_SIN_DATOS: "Facturado sin datos",
   FACTURADO: "Facturado",
   PAGADO: "Factura pagada",
@@ -52,7 +54,7 @@ export const ETIQUETA_PAPELES: Record<EstadoPapeles, string> = {
   CONDUCTOR: "Con el conductor",
   PARQUEADERO: "En el parqueadero",
   OFICINA: "Donde Don Alexander",
-  RADICADO: "Radicados",
+  RADICADO: "Listo para facturar",
 };
 
 /** Pasos de los papeles. Parqueadero y oficina solo para CORAME / Cartones America. */

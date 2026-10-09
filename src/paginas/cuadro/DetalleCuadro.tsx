@@ -184,7 +184,7 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
               />
               Pasa por parqueadero y oficina de Don Alexander (CORAME / Cartones America)
             </label>
-            {d.fechaRadicado && <div className="dato-sec">Radicados el {fechaCorta(d.fechaRadicado)}</div>}
+            {d.fechaRadicado && <div className="dato-sec">Listo para facturar desde el {fechaCorta(d.fechaRadicado)}</div>}
           </Seccion>
 
           <Seccion titulo="Viaje">

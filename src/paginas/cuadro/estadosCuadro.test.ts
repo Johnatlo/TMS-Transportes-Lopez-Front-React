@@ -17,7 +17,7 @@ describe("color y nombre del estado (los colores del Excel)", () => {
   const casos: Array<[FilaCuadro["estado"], string, string]> = [
     ["EN_RUTA", "neutro", "En proceso"],
     ["SIN_RADICAR", "morado", "Sin radicar"],
-    ["RADICADO", "verde", "Radicado"],
+    ["RADICADO", "verde", "Listo para facturar"],
     ["FACTURADO_SIN_DATOS", "azul", "Facturado sin datos"],
     ["FACTURADO", "info", "Facturado"],
     ["PAGADO", "ok", "Factura pagada"],
