@@ -228,8 +228,8 @@ export default function CuadroCentral() {
               <button className="boton-barra" onClick={() => setFacturando(true)}>
                 Facturar varios
               </button>
-              <button className="btn-icon-round" title="Nuevo viaje sin manifiesto" onClick={() => setNuevo(true)}>
-                +
+              <button className="btn-primary boton-con-texto" onClick={() => setNuevo(true)}>
+                Nuevo viaje sin manifiesto
               </button>
             </>
           }

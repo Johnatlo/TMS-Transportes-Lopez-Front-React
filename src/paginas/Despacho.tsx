@@ -252,6 +252,12 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   }, [municipioOrigen, municipioDestino, remesas, listaPlantillas, mostrarVacios, vacio1Origen, vacio2Destino]);
 
   const configuracion = listaVehiculos.find((v) => v.id === vehiculoId)?.configuracion ?? null;
+  /**
+   * Solo los tractocamiones llevan remolque: su configuracion tiene "S"
+   * (semirremolque: 3S3, 3S2, 2S3, 2S2). Los rigidos (camion de 3 o 2 ejes,
+   * volquetas) van sin remolque. Sin configuracion se pide, por si acaso.
+   */
+  const llevaRemolque = !configuracion || /S/i.test(configuracion);
 
   /** Horas pactadas de cargue y descargue, que entran en el piso de SICETAC. */
   const horasPactadas = plantillaPrincipal
@@ -485,8 +491,11 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   // -------------------------------------------------------------------------
 
   async function generarManifiesto() {
-    if (!vehiculoId || !conductorId || !remolqueId) {
-      setMensaje({ tipo: "danger", texto: "Completa vehiculo, conductor y remolque." });
+    if (!vehiculoId || !conductorId || (llevaRemolque && !remolqueId)) {
+      setMensaje({
+        tipo: "danger",
+        texto: llevaRemolque ? "Completa vehiculo, conductor y remolque." : "Completa vehiculo y conductor.",
+      });
       return;
     }
     // El RNDC lo exige (error MAN067): todo manifiesto debe decir que empresa
@@ -555,7 +564,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     const valores = {
       vehiculoId,
       conductorId,
-      remolqueId,
+      remolqueId: llevaRemolque ? remolqueId : null,
       valorFleteReal: fleteEfectivo,
       codVia: codVia ?? undefined,
       nitMonitoreoFlota: nitMonitoreo ?? undefined,
@@ -594,7 +603,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         : await api.despachar({
         vehiculoId,
         conductorId,
-        remolqueId,
+        remolqueId: llevaRemolque ? remolqueId : null,
         conductor2Id: conductor2Id ?? undefined,
         plantillaId: remesas[0].plantillaId!,
         consecutivoBase: consecutivoBase.trim(),
@@ -800,7 +809,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
 
   const puedeAvanzar =
     paso === 0
-      ? !!(vehiculoId && conductorId && remolqueId && monitoreoId)
+      ? !!(vehiculoId && conductorId && (remolqueId || !llevaRemolque) && monitoreoId)
       : paso === 1
         ? remesas.every((r) => r.plantillaId && r.fechaHoraCargue && r.fechaHoraDescargue)
         : true;
@@ -920,6 +929,12 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               </p>
             )}
 
+            {!llevaRemolque ? (
+              <p className="section-desc">
+                Vehiculo rigido (configuracion {configuracion}): va sin remolque.
+              </p>
+            ) : (
+            <>
             <label>Remolque (trailer) usado en este viaje</label>
             <ComboBuscable
               opciones={listaRemolques}
@@ -935,6 +950,8 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             />
             {porqueRemolque && remolqueId && (
               <p className="section-desc sugerencia">✓ Sugerido: {porqueRemolque}.</p>
+            )}
+            </>
             )}
 
             <label>Conductor</label>

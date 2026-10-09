@@ -374,7 +374,8 @@ export interface RemesaADespachar {
 export interface PeticionDespacho {
   vehiculoId: number;
   conductorId: number;
-  remolqueId: number;
+  /** null: vehiculo rigido, sin remolque. */
+  remolqueId: number | null;
   conductor2Id?: number;
   /** Una entrada por cada cliente o parada del viaje. Maximo 5. */
   remesas: RemesaADespachar[];

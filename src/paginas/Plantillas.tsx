@@ -58,8 +58,8 @@ export default function Plantillas() {
                 <button className="boton-barra" onClick={() => setModalTarifas(true)}>
                   Actualizar tarifas
                 </button>
-                <button className="btn-icon-round" title="Nueva plantilla" onClick={() => setModalNueva(true)}>
-                  +
+                <button className="btn-primary boton-con-texto" onClick={() => setModalNueva(true)}>
+                  Nueva plantilla
                 </button>
               </>
             }

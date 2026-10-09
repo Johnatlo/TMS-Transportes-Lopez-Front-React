@@ -22,7 +22,6 @@ import {
   IconoFlota,
   IconoInicio,
   IconoCamion,
-  IconoMas,
   IconoMenu,
   IconoPlantillas,
   IconoViajes,
@@ -177,8 +176,8 @@ export default function Shell() {
             <span className="crumb"> · {nombreEmpresa}</span>
           </h1>
           <div className="actions">
-            <button className="boton-redondo primario" title="Nuevo despacho" onClick={() => navegar("/despacho")}>
-              <IconoMas />
+            <button className="btn-primary boton-con-texto" onClick={() => navegar("/despacho")}>
+              Nuevo despacho
             </button>
             <button
               className="boton-redondo"

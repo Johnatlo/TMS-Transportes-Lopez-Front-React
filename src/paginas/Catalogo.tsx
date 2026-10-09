@@ -272,8 +272,8 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                 </label>
               )}
             </div>
-            <button className="btn-icon-round" title="Agregar" onClick={abrirNuevo}>
-              +
+            <button className="btn-primary boton-con-texto" onClick={abrirNuevo}>
+              {textoNuevo(pestana)}
             </button>
           </div>
         )}
@@ -893,6 +893,11 @@ const NOMBRES: Record<Pestana, string> = {
   monitoreo: "empresa de monitoreo",
   empresa: "",
 };
+
+/** Texto del boton de crear de cada pestana: "Nuevo vehiculo", "Nueva empresa de monitoreo"... */
+function textoNuevo(p: Pestana): string {
+  return p === "monitoreo" ? "Nueva empresa de monitoreo" : `Nuevo ${NOMBRES[p]}`;
+}
 
 /** Titulo de la ventana: "Nuevo vehiculo" o "Editar vehiculo SKN250". */
 function tituloModal(p: Pestana, edicion: Edicion, modelo: Modelo): string {

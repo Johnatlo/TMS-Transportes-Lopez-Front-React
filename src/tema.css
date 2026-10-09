@@ -258,3 +258,7 @@ table.tabla-compacta th, table.tabla-compacta td { padding: 0.35rem 0.55rem; }
 @media (max-width: 640px) { .nota-nueva { flex-direction: column; align-items: stretch; } }
 .check-linea input[type="checkbox"] { width: auto; flex: 0 0 auto; margin: 0; }
 .check-linea { justify-content: flex-start; text-align: left; }
+
+/* Botones de crear con texto (antes un "+" redondo): dicen lo que hacen. */
+.boton-con-texto { white-space: nowrap; }
+@media (max-width: 640px) { .topbar .boton-con-texto { padding: 0.45rem 0.7rem; font-size: var(--texto-sm); } }
