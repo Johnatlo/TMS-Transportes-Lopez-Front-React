@@ -32,7 +32,7 @@ const PESTANAS: PestanaTabla<FilaCuadro>[] = [
   { id: "activos", etiqueta: "Pendientes", incluye: (f) => !f.anulado && !f.todoPagado },
   { id: "proceso", etiqueta: "En proceso", incluye: (f) => f.estado === "EN_RUTA" },
   { id: "sinRadicar", etiqueta: "Sin radicar", incluye: (f) => f.estado === "SIN_RADICAR" },
-  { id: "listoParaFacturar", etiqueta: "Listo para facturar", incluye: (f) => f.estado === "LISTO_PARA_FACTURAR" },
+  { id: "listoParaFacturar", etiqueta: "Listo para facturar", incluye: (f) => f.estado === "RADICADO" },
   { id: "sinDatos", etiqueta: "Facturado sin datos", incluye: (f) => f.estado === "FACTURADO_SIN_DATOS" },
   { id: "facturados", etiqueta: "Facturados", incluye: (f) => f.estado === "FACTURADO" },
   { id: "gerencia", etiqueta: "Falta gerencia", incluye: (f) => !f.anulado && !!f.revisadoContabilidadPor && !f.revisadoGerenciaPor },

@@ -262,3 +262,12 @@ table.tabla-compacta th, table.tabla-compacta td { padding: 0.35rem 0.55rem; }
 /* Botones de crear con texto (antes un "+" redondo): dicen lo que hacen. */
 .boton-con-texto { white-space: nowrap; }
 @media (max-width: 640px) { .topbar .boton-con-texto { padding: 0.45rem 0.7rem; font-size: var(--texto-sm); } }
+
+/* Estado de la sincronizacion con el RNDC (pantalla Viajes) */
+.barra-sincronizacion {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap;
+  font-size: var(--texto-sm); color: var(--gris-700);
+  background: #fff; border: 1px solid var(--gris-200); border-radius: var(--radio-md);
+  padding: 0.55rem 0.8rem; margin-bottom: 0.75rem;
+}
+.barra-sincronizacion .dato-sec { display: block; }

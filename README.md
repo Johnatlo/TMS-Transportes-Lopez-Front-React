@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_250 funciones, componentes, métodos y rutas en 36 archivos._
+_256 funciones, componentes, métodos y rutas en 37 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (97)
+- [`src/api/cliente.ts`](#srcapiclientets) (99)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AnularViaje.tsx`](#srccomponentesanularviajetsx) (3)
 - [`src/componentes/CambiarClave.tsx`](#srccomponentescambiarclavetsx) (1)
@@ -188,6 +188,7 @@ _250 funciones, componentes, métodos y rutas en 36 archivos._
 - [`src/componentes/DetalleViaje.tsx`](#srccomponentesdetalleviajetsx) (4)
 - [`src/componentes/DocumentosViaje.tsx`](#srccomponentesdocumentosviajetsx) (2)
 - [`src/componentes/Estado.tsx`](#srccomponentesestadotsx) (4)
+- [`src/componentes/EstadoSincronizacion.tsx`](#srccomponentesestadosincronizaciontsx) (3)
 - [`src/componentes/FormularioGenerico.tsx`](#srccomponentesformulariogenericotsx) (2)
 - [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (22)
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
@@ -200,7 +201,7 @@ _250 funciones, componentes, métodos y rutas en 36 archivos._
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
 - [`src/ganchos/useSesion.tsx`](#srcganchosusesesiontsx) (2)
-- [`src/paginas/Catalogo.tsx`](#srcpaginascatalogotsx) (18)
+- [`src/paginas/Catalogo.tsx`](#srcpaginascatalogotsx) (19)
 - [`src/paginas/Dashboard.tsx`](#srcpaginasdashboardtsx) (15)
 - [`src/paginas/Despacho.tsx`](#srcpaginasdespachotsx) (6)
 - [`src/paginas/FormularioPlantilla.tsx`](#srcpaginasformularioplantillatsx) (4)
@@ -416,6 +417,12 @@ _250 funciones, componentes, métodos y rutas en 36 archivos._
 
   - **`api.getConsecutivos()`** · _método_
     Libro de consecutivos: una fila por remesa, como la hoja de control.
+
+  - **`api.getSincronizacion()`** · _método_
+    Estado de la sincronizacion automatica con el RNDC (cada 10 minutos).
+
+  - **`api.sincronizarRndc(completa)`** · _método_
+    Sincroniza ya: los ultimos dias, o todo desde septiembre con completa=true.
 
   - **`api.getDetalleViaje(viajeId)`** · _método_
     Todo lo que se registro al despachar un viaje.
@@ -769,6 +776,22 @@ _250 funciones, componentes, métodos y rutas en 36 archivos._
   Los avisos del backend no son errores: la operacion salio bien pero hay algo
   que el despachador debe saber (manifiesto tardio, coordenada sin precision).
 
+### `src/componentes/EstadoSincronizacion.tsx`
+
+> Barra con el estado de la sincronizacion automatica con el RNDC: cuando
+> corrio por ultima vez, que trajo (manifiestos del portal, cumplidos,
+> anulaciones) y un boton para sincronizar ya sin esperar la siguiente vuelta.
+
+- **`hace(iso)`** · _función_
+  "hace 3 min", "hace 2 h"... desde una fecha ISO.
+
+- **`textoResumen(r)`** · _función_
+  Frase con lo que cambio en la ultima sincronizacion, o null si no cambio nada.
+
+- **`EstadoSincronizacion({...})`** · _componente React_
+  Estado de la sincronizacion. `alSincronizar` se llama despues de una
+  sincronizacion manual, para recargar la lista de la pantalla.
+
 ### `src/componentes/FormularioGenerico.tsx`
 
 > Formulario construido a partir de una descripcion de campos.
@@ -1114,6 +1137,9 @@ _250 funciones, componentes, métodos y rutas en 36 archivos._
 
 - **`iniciales(nombre)`** · _función_
   Iniciales de las dos primeras palabras de un nombre (para el avatar).
+
+- **`textoNuevo(p)`** · _función_
+  Texto del boton de crear de cada pestana: "Nuevo vehiculo", "Nueva empresa de monitoreo"...
 
 - **`tituloModal(p, edicion, modelo)`** · _función_
   Titulo de la ventana: "Nuevo vehiculo" o "Editar vehiculo SKN250".

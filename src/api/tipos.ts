@@ -150,10 +150,17 @@ export interface PlantillaViaje {
 
 export interface Viaje {
   id: number;
-  /** Plantilla de la primera remesa: de ella sale la ruta del viaje. */
-  plantillaId: number;
-  vehiculoId: number;
-  conductorId: number;
+  /** Plantilla de la primera remesa: de ella sale la ruta del viaje. null en los viajes del portal. */
+  plantillaId: number | null;
+  /** null si el vehiculo o el conductor de un viaje del portal no estan en el catalogo. */
+  vehiculoId: number | null;
+  conductorId: number | null;
+  /** TMS: despachado desde el sistema. PORTAL: expedido en el portal del RNDC (lo trae la sincronizacion). */
+  origen?: "TMS" | "PORTAL";
+  /** Placa, cedula del conductor y remolque como los reporta el RNDC (viajes del portal). */
+  placaRndc?: string | null;
+  conductorRndc?: string | null;
+  remolqueRndc?: string | null;
   conductor2Id: number | null;
   remolqueId: number | null;
   fechaHoraCargue: string;
@@ -225,7 +232,10 @@ export interface PreviaAnulacion {
 export interface ViajeRemesa {
   id: number;
   viajeId: number;
-  plantillaId: number;
+  /** null en las remesas expedidas en el portal del RNDC. */
+  plantillaId: number | null;
+  /** Radicado del cumplido inicial del GPS (proceso 45), si existe. */
+  radicadoCumplidoInicial?: string | null;
   orden: number;
   consecutivoRemesa: string | null;
   numeroRemesaRndc: string | null;

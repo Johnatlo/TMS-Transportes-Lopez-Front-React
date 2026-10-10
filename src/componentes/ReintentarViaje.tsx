@@ -51,8 +51,9 @@ type Correccion = {
 /** Valores iniciales del formulario de correccion: los datos actuales del manifiesto. */
 function correccionDe(v: Viaje): Correccion {
   return {
-    vehiculoId: v.vehiculoId,
-    conductorId: v.conductorId,
+    // Solo se reintentan viajes del TMS, que siempre tienen vehiculo y conductor.
+    vehiculoId: v.vehiculoId ?? 0,
+    conductorId: v.conductorId ?? 0,
     remolqueId: v.remolqueId,
     nitMonitoreoFlota: v.nitMonitoreoFlota,
     valorFleteReal: v.valorFleteReal,

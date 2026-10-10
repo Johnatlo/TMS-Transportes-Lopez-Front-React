@@ -63,9 +63,14 @@ export function DocumentosViaje({ viaje }: { viaje: Viaje }) {
               <span className="dato-sec">Radicado {r.numeroRemesaRndc} · generada por la empresa</span>
             </div>
             <div className="documento-acciones">
-              <button className="btn-secondary" onClick={() => abrir(api.urlImprimirRemesa(r.id))}>
-                🖨 Imprimir remesa
-              </button>
+              {r.plantillaId ? (
+                <button className="btn-secondary" onClick={() => abrir(api.urlImprimirRemesa(r.id))}>
+                  🖨 Imprimir remesa
+                </button>
+              ) : (
+                // La remesa impresa se arma con la plantilla; las del portal se imprimen alla.
+                <span className="dato-sec">Expedida en el portal: imprimela desde el portal del RNDC.</span>
+              )}
             </div>
           </div>
         ))}

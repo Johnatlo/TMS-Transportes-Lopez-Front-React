@@ -454,6 +454,11 @@ export const api = {
   getHistorial: () => get<Viaje[]>("/despacho/historial"),
   /** Libro de consecutivos: una fila por remesa, como la hoja de control. */
   getConsecutivos: () => get<FilaConsecutivo[]>("/despacho/consecutivos"),
+  /** Estado de la sincronizacion automatica con el RNDC (cada 10 minutos). */
+  getSincronizacion: () => get<EstadoSincronizacion>("/despacho/sincronizacion"),
+  /** Sincroniza ya: los ultimos dias, o todo desde septiembre con completa=true. */
+  sincronizarRndc: (completa = false) =>
+    post<{ resumen: ResumenSincronizacion | null; estado: EstadoSincronizacion }>("/despacho/sincronizacion", { completa }),
   /** Todo lo que se registro al despachar un viaje. */
   getDetalleViaje: (viajeId: number) => get<DetalleViaje>(`/despacho/${viajeId}/detalle`),
 
@@ -765,3 +770,34 @@ export const apiCuadro = {
   /** Cambia nombre, ciudad o si esta activa; devuelve la lista. */
   actualizarBomba: (id: number, datos: Partial<Bomba>) => put<Bomba[]>(`/cuadro/bombas/${id}`, datos),
 };
+
+// ---------------------------------------------------------------------------
+// Sincronizacion con el RNDC
+// ---------------------------------------------------------------------------
+/** Lo que cambio en una sincronizacion (numeros de manifiesto o remesa). */
+export interface ResumenSincronizacion {
+  desde: string;
+  hasta: string;
+  manifiestosNuevos: string[];
+  remesasNuevas: string[];
+  adoptados: string[];
+  cumplidos: string[];
+  remesasCumplidas: string[];
+  anulados: string[];
+  remesasAnuladas: string[];
+  cumplidosIniciales: number;
+  anulacionesCumplidoInicial: number;
+  remesasAnuladasSinViaje: string[];
+  conflictos: string[];
+}
+
+export interface EstadoSincronizacion {
+  /** false si el backend esta en simulacion (no consulta al RNDC). */
+  activa: boolean;
+  corriendo: boolean;
+  ultimaEjecucion: string | null;
+  ultimoBarridoCompleto: string | null;
+  resumen: ResumenSincronizacion | null;
+  error: string | null;
+  cadaMinutos: number;
+}

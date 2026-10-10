@@ -98,13 +98,13 @@ export default function Dashboard() {
   const puntos = useMemo<PuntoMapa[]>(
     () =>
       enCamino.flatMap((v) => {
-        const p = plantillaPorId.get(v.plantillaId);
+        const p = plantillaPorId.get(v.plantillaId ?? -1);
         const o = p?.remitente;
         const d = p?.destinatario;
         if (!o || !d || !coordenadaValida(o.latitud, o.longitud) || !coordenadaValida(d.latitud, d.longitud)) return [];
         return [{
           id: v.id,
-          etiqueta: vehiculoPorId.get(v.vehiculoId)?.placa ?? `Viaje #${v.id}`,
+          etiqueta: vehiculoPorId.get(v.vehiculoId ?? -1)?.placa ?? v.placaRndc ?? `Viaje #${v.id}`,
           detalle: `${ruta(p)} · llega ${soloHora(v.fechaHoraDescargue)}`,
           origen: [o.latitud!, o.longitud!] as [number, number],
           destino: [d.latitud!, d.longitud!] as [number, number],
@@ -121,7 +121,7 @@ export default function Dashboard() {
   if (historial.error) return <ErrorCarga mensaje={historial.error} alReintentar={historial.recargar} />;
 
   const fila = (v: Viaje, columnaLugar: "destino" | "ruta") => {
-    const p = plantillaPorId.get(v.plantillaId);
+    const p = plantillaPorId.get(v.plantillaId ?? -1);
     const estado = estadoViaje(v, ahora);
     return (
       <tr key={v.id}>
@@ -148,9 +148,9 @@ export default function Dashboard() {
         ) : (
           <td>{v.fechaHoraDescargue ? `${fechaCorta(v.fechaHoraDescargue)} ${soloHora(v.fechaHoraDescargue)}` : "-"}</td>
         )}
-        <td>{vehiculoPorId.get(v.vehiculoId)?.placa ?? "-"}</td>
+        <td>{vehiculoPorId.get(v.vehiculoId ?? -1)?.placa ?? v.placaRndc ?? "-"}</td>
         <td>
-          <AvatarConductor conductor={conductorPorId.get(v.conductorId)} />
+          <AvatarConductor conductor={conductorPorId.get(v.conductorId ?? -1)} />
         </td>
       </tr>
     );

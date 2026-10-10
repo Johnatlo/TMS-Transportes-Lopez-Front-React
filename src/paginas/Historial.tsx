@@ -13,6 +13,7 @@ import CumplirViaje, { esCumplible } from "../componentes/CumplirViaje";
 import VentanaDocumentosViaje from "../componentes/DocumentosViaje";
 import DetalleViaje from "../componentes/DetalleViaje";
 import LibroConsecutivos from "../componentes/LibroConsecutivos";
+import EstadoSincronizacion from "../componentes/EstadoSincronizacion";
 import TablaDatos, { Pastilla } from "../componentes/TablaDatos";
 import type { Columna, PestanaTabla } from "../componentes/TablaDatos";
 import type { Viaje } from "../api/tipos";
@@ -62,8 +63,10 @@ export default function Historial() {
       celda: (v) => (
         <>
           <span className="principal">#{v.id}</span>
-          {v.creadoPorNombre && (
-            <span className="dato-sec">por {v.creadoPorNombre}</span>
+          {v.origen === "PORTAL" ? (
+            <Pastilla tono="neutro">Portal RNDC</Pastilla>
+          ) : (
+            v.creadoPorNombre && <span className="dato-sec">por {v.creadoPorNombre}</span>
           )}
         </>
       ),
@@ -123,8 +126,8 @@ export default function Historial() {
       id: "creadoPor",
       titulo: "Despachado por",
       filtrable: true,
-      valor: (v) => v.creadoPorNombre ?? "Sin usuario",
-      celda: (v) => v.creadoPorNombre ?? "-",
+      valor: (v) => (v.origen === "PORTAL" ? "Portal RNDC" : v.creadoPorNombre ?? "Sin usuario"),
+      celda: (v) => (v.origen === "PORTAL" ? "Portal RNDC" : v.creadoPorNombre ?? "-"),
     },
     {
       id: "flete",
@@ -198,6 +201,8 @@ export default function Historial() {
 
   return (
     <>
+      {/* Lo hecho en el portal del RNDC entra solo, cada 10 minutos. */}
+      <EstadoSincronizacion alSincronizar={recargar} />
       <div className="tabla-pestanas selector-vista">
         <button
           className={vista === "viajes" ? "activa" : ""}
