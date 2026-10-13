@@ -193,7 +193,7 @@ export function FacturarVarios({ filas, alCerrar, alTerminar }: { filas: FilaCua
           </select>
         </div>
         <div>
-          <label>Numero de factura</label>
+          <label>Consecutivo de factura</label>
           <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Opcional" />
         </div>
         <div>

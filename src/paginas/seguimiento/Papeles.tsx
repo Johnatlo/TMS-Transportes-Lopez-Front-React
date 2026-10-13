@@ -251,7 +251,7 @@ function RegistrarPapeles({
   alGuardar: () => void;
   alVerCuadro: () => void;
 }) {
-  const [estado, setEstado] = useState<EstadoPapeles>(fila.estadoPapeles === "EN_RUTA" ? "CONDUCTOR" : fila.estadoPapeles);
+  const [estado, setEstado] = useState<EstadoPapeles>(fila.estadoPapeles === "EN_RUTA" ? "DESCARGADO" : fila.estadoPapeles);
   const [tiene, setTiene] = useState(fila.papelesTiene ?? (fila.estadoPapeles === "EN_RUTA" ? fila.conductor ?? "" : ""));
   const [completos, setCompletos] = useState<"si" | "no" | "">(
     fila.papelesCompletos === null ? "" : fila.papelesCompletos ? "si" : "no"

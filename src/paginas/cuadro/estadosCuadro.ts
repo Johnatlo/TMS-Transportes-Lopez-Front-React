@@ -9,7 +9,8 @@ import type { TonoPastilla } from "../../componentes/TablaDatos";
  * Nombres y colores del cuadro pagos. Los tonos repiten los colores que se
  * usaban en el Excel para que el equipo los reconozca:
  * morado = sin radicar, verde = listo para facturar (radicado), azul = facturado sin datos,
- * naranja = revisado por contabilidad (falta gerencia), amarillo = todo pagado.
+ * naranja = revisado por contabilidad (falta gerencia), amarillo = todo pagado
+ * (el cliente le pago la factura a la empresa).
  */
 export const ETIQUETA_ESTADO_CUADRO: Record<EstadoCuadro, string> = {
   EN_RUTA: "En proceso",
@@ -19,7 +20,7 @@ export const ETIQUETA_ESTADO_CUADRO: Record<EstadoCuadro, string> = {
   RADICADO: "Listo para facturar",
   FACTURADO_SIN_DATOS: "Facturado sin datos",
   FACTURADO: "Facturado",
-  PAGADO: "Factura pagada",
+  PAGADO: "Todo pagado",
   ANULADO: "Anulado",
 };
 
@@ -39,7 +40,7 @@ export function tonoEstadoCuadro(f: Pick<FilaCuadro, "estado" | "todoPagado">): 
     case "FACTURADO":
       return "info";
     case "PAGADO":
-      return "ok";
+      return "amarillo";
     default:
       return "neutro";
   }
@@ -51,6 +52,7 @@ export const etiquetaEstadoCuadro = (f: Pick<FilaCuadro, "estado" | "todoPagado"
 
 export const ETIQUETA_PAPELES: Record<EstadoPapeles, string> = {
   EN_RUTA: "En ruta",
+  DESCARGADO: "Ya descargo",
   CONDUCTOR: "Con el conductor",
   PARQUEADERO: "En el parqueadero",
   OFICINA: "Donde Don Alexander",
@@ -59,7 +61,9 @@ export const ETIQUETA_PAPELES: Record<EstadoPapeles, string> = {
 
 /** Pasos de los papeles. Parqueadero y oficina solo para CORAME / Cartones America. */
 export const pasosPapeles = (flujoCorame: boolean): EstadoPapeles[] =>
-  flujoCorame ? ["EN_RUTA", "CONDUCTOR", "PARQUEADERO", "OFICINA", "RADICADO"] : ["EN_RUTA", "CONDUCTOR", "RADICADO"];
+  flujoCorame
+    ? ["EN_RUTA", "DESCARGADO", "CONDUCTOR", "PARQUEADERO", "OFICINA", "RADICADO"]
+    : ["EN_RUTA", "DESCARGADO", "CONDUCTOR", "RADICADO"];
 
 export const ETIQUETA_FLOTA: Record<Flota, string> = {
   LOPEZ: "Flota Lopez",

@@ -655,7 +655,7 @@ export function separarAvisos(avisos: string | null | undefined): string[] {
 // ---------------------------------------------------------------------------
 // Cuadro pagos (control operativo y financiero de los viajes)
 // ---------------------------------------------------------------------------
-export type EstadoPapeles = "EN_RUTA" | "CONDUCTOR" | "PARQUEADERO" | "OFICINA" | "RADICADO";
+export type EstadoPapeles = "EN_RUTA" | "DESCARGADO" | "CONDUCTOR" | "PARQUEADERO" | "OFICINA" | "RADICADO";
 export type Flota = "LOPEZ" | "MYC" | "TERCERO";
 export type EstadoCuadro = "ANULADO" | "PAGADO" | "FACTURADO" | "FACTURADO_SIN_DATOS" | "RADICADO" | "SIN_RADICAR" | "EN_RUTA";
 

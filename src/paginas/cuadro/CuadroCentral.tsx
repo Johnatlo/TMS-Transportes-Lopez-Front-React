@@ -21,13 +21,6 @@ import {
   tonoEstadoCuadro,
 } from "./estadosCuadro";
 
-/** "2026-09" -> "septiembre 2026", para filtrar por mes como las hojas del Excel. */
-const mes = (fecha: string) => {
-  const [a, m] = fecha.split("-");
-  const nombres = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-  return `${nombres[Number(m) - 1]} ${a}`;
-};
-
 const PESTANAS: PestanaTabla<FilaCuadro>[] = [
   { id: "activos", etiqueta: "Pendientes", incluye: (f) => !f.anulado && !f.todoPagado },
   { id: "proceso", etiqueta: "En proceso", incluye: (f) => f.estado === "EN_RUTA" },
@@ -44,7 +37,6 @@ const PESTANAS: PestanaTabla<FilaCuadro>[] = [
 
 const COLUMNAS: Columna<FilaCuadro>[] = [
   { id: "fecha", titulo: "Fecha", valor: (f) => f.fecha, celda: (f) => fechaCorta(f.fecha) },
-  { id: "mes", titulo: "Mes", filtrable: true, valor: (f) => mes(f.fecha), celda: (f) => mes(f.fecha) },
   {
     id: "placa",
     titulo: "Placa",
@@ -149,7 +141,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
         "-"
       ),
   },
-  { id: "pagoFactura", titulo: "Pago factura", valor: (f) => f.facturaFechaPago, celda: (f) => fechaCorta(f.facturaFechaPago) },
+  { id: "pagoFactura", titulo: "Pago a la empresa", valor: (f) => f.facturaFechaPago, celda: (f) => fechaCorta(f.facturaFechaPago) },
   {
     id: "pagoSaldo",
     titulo: "Pago saldo",

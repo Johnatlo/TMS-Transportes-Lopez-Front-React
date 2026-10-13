@@ -240,15 +240,19 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
               <input
                 type="checkbox"
                 checked={d.facturado}
-                disabled={!!d.facturaNumero}
+                disabled={!!d.facturaNumero && !!d.facturaFecha}
                 onChange={(e) => aplicar(() => apiCuadro.actualizar(id, { facturado: e.target.checked }))}
               />
-              Ya se facturo (aunque aun no tenga numero y fecha)
+              Ya se facturo (aunque aun no tenga consecutivo y fecha)
             </label>
             <div className="campos-cuadro">
-              {campo("facturaNumero", "Numero de factura")}
+              {campo("facturaNumero", "Consecutivo de factura")}
               {campo("facturaFecha", "Fecha de factura", "date")}
-              {campo("facturaFechaPago", "Fecha de pago del cliente", "date")}
+              {campo("facturaFechaPago", "Fecha de pago a la empresa", "date")}
+            </div>
+            <div className="dato-sec">
+              Queda "Facturado" cuando tiene consecutivo y fecha de factura. Queda "Todo pagado" cuando se llena la
+              fecha en que el cliente le pago la factura a la empresa.
             </div>
           </Seccion>
 

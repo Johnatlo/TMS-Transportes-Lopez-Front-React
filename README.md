@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_281 funciones, componentes, métodos y rutas en 40 archivos._
+_280 funciones, componentes, métodos y rutas en 40 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (108)
@@ -210,7 +210,7 @@ _281 funciones, componentes, métodos y rutas en 40 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (3)
-- [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (2)
+- [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (1)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (5)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (6)
@@ -1416,9 +1416,6 @@ _281 funciones, componentes, métodos y rutas en 40 archivos._
 > Pantalla Cuadro pagos: seguimiento de cada viaje (con o sin manifiesto)
 > desde que carga hasta que todo queda pagado. Reemplaza la hoja de Excel
 > "CUADRO CENTRAL".
-
-- **`mes(fecha)`** · _función_
-  "2026-09" -> "septiembre 2026", para filtrar por mes como las hojas del Excel.
 
 - **`CuadroCentral()`** · _componente React_
   Cuadro pagos: el control de cada viaje desde que carga hasta que todo
