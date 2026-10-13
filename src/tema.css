@@ -271,3 +271,9 @@ table.tabla-compacta th, table.tabla-compacta td { padding: 0.35rem 0.55rem; }
   padding: 0.55rem 0.8rem; margin-bottom: 0.75rem;
 }
 .barra-sincronizacion .dato-sec { display: block; }
+
+/* Seguimiento de papeles y cartera */
+.punto-contador.contador-aviso { background: #d97706; }
+.indicador-valor.indicador-dinero { font-size: 1.45rem; }
+.lista-notas li.fila-clic { cursor: pointer; }
+.lista-notas li.fila-clic:hover { background: var(--gris-100, #eef0f4); }

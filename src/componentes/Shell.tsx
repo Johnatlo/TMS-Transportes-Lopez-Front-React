@@ -5,9 +5,10 @@
 import { Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";
-import { api } from "../api/cliente";
+import { api, apiSeguimiento } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import AlertasDocumentos from "./AlertasDocumentos";
+import AlertasSeguimiento from "./AlertasSeguimiento";
 import CambiarClave from "./CambiarClave";
 import Modal from "./Modal";
 import { Cargando } from "./Estado";
@@ -22,7 +23,10 @@ import {
   IconoFlota,
   IconoInicio,
   IconoCamion,
+  IconoCartera,
   IconoMenu,
+  IconoPapeles,
+  IconoReloj,
   IconoPlantillas,
   IconoViajes,
   IconoUsuarios,
@@ -35,6 +39,8 @@ const SECCIONES: Array<{ ruta: string; etiqueta: string; icono: ReactNode }> = [
   { ruta: "/despacho", etiqueta: "Despachar", icono: <IconoCamion /> },
   { ruta: "/historial", etiqueta: "Viajes", icono: <IconoViajes /> },
   { ruta: "/cuadro", etiqueta: "Cuadro pagos", icono: <IconoDocumento /> },
+  { ruta: "/papeles", etiqueta: "Seguimiento papeles", icono: <IconoPapeles /> },
+  { ruta: "/cartera", etiqueta: "Cartera", icono: <IconoCartera /> },
   { ruta: "/plantillas", etiqueta: "Plantillas", icono: <IconoPlantillas /> },
   { ruta: "/clientes", etiqueta: "Clientes", icono: <IconoClientes /> },
   { ruta: "/flota", etiqueta: "Flota", icono: <IconoFlota /> },
@@ -53,6 +59,8 @@ export interface ContextoShell {
    * volver a pedirlos.
    */
   versionDocumentos: number;
+  /** Vuelve a pedir las alertas de seguimiento (tras registrar papeles, facturar o cobrar). */
+  recargarSeguimiento: () => void;
 }
 
 /**
@@ -90,6 +98,14 @@ export default function Shell() {
   const alertas = useDatos(() => api.getAlertas(30), []);
   const parametros = useDatos(() => api.getParametros(), []);
   const [verAlertas, setVerAlertas] = useState(false);
+  // Alertas de papeles, facturacion y cartera: se refrescan cada 5 minutos.
+  const seguimiento = useDatos(() => apiSeguimiento.alertas(), []);
+  const [verSeguimiento, setVerSeguimiento] = useState(false);
+  const recargarSeguimiento = seguimiento.recargar;
+  useEffect(() => {
+    const reloj = window.setInterval(recargarSeguimiento, 5 * 60_000);
+    return () => window.clearInterval(reloj);
+  }, [recargarSeguimiento]);
   const [versionDocumentos, setVersionDocumentos] = useState(0);
   const [contraido, setContraido] = useState(leerContraido);
   /**
@@ -126,7 +142,10 @@ export default function Shell() {
     alertas: alertas.datos,
     abrirAlertas: () => setVerAlertas(true),
     versionDocumentos,
+    recargarSeguimiento,
   };
+  const pendientesSeguimiento = seguimiento.datos?.alertas.length ?? 0;
+  const urgentesSeguimiento = seguimiento.datos?.urgentes ?? 0;
 
   return (
     <div className={`app-shell ${contraido ? "menu-contraido" : ""}`}>
@@ -181,6 +200,19 @@ export default function Shell() {
             </button>
             <button
               className="boton-redondo"
+              title={`Seguimiento: papeles, facturacion y cartera${urgentesSeguimiento ? ` (${urgentesSeguimiento} urgentes)` : ""}`}
+              onClick={() => setVerSeguimiento(true)}
+              disabled={!seguimiento.datos}
+            >
+              <IconoReloj />
+              {pendientesSeguimiento > 0 && (
+                <span className={`punto-contador ${urgentesSeguimiento > 0 ? "" : "contador-aviso"}`}>
+                  {pendientesSeguimiento > 99 ? "99+" : pendientesSeguimiento}
+                </span>
+              )}
+            </button>
+            <button
+              className="boton-redondo"
               title="Documentos vencidos o por vencer"
               onClick={() => setVerAlertas(true)}
               disabled={!alertas.datos}
@@ -232,6 +264,10 @@ export default function Shell() {
         <Modal titulo="Cambiar contrasena" alCerrar={() => setCambiandoClave(false)}>
           <CambiarClave alTerminar={() => setCambiandoClave(false)} />
         </Modal>
+      )}
+
+      {verSeguimiento && seguimiento.datos && (
+        <AlertasSeguimiento resumen={seguimiento.datos} alCerrar={() => setVerSeguimiento(false)} />
       )}
 
       {verAlertas && alertas.datos && (

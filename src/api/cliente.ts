@@ -696,6 +696,14 @@ export interface FilaCuadro {
   anticiposSinPagar: number;
   notas: number;
   ultimaNota: string | null;
+  /** Seguimiento de papeles: quien los tiene (conductor, parqueadero, Don Alexander...). */
+  papelesTiene: string | null;
+  /** true = estan todos, false = falta algo, null = no se ha preguntado. */
+  papelesCompletos: boolean | null;
+  papelesFaltan: string | null;
+  /** Ultima vez que alguien pregunto por los papeles. */
+  papelesRevisadoEn: string | null;
+  papelesRevisadoPor: string | null;
   estado: EstadoCuadro;
   todoPagado: boolean;
 }
@@ -769,6 +777,127 @@ export const apiCuadro = {
   crearBomba: (datos: { nombre: string; ciudad: string }) => post<{ id: number }>("/cuadro/bombas", datos),
   /** Cambia nombre, ciudad o si esta activa; devuelve la lista. */
   actualizarBomba: (id: number, datos: Partial<Bomba>) => put<Bomba[]>(`/cuadro/bombas/${id}`, datos),
+};
+
+// ---------------------------------------------------------------------------
+// Seguimiento de papeles y cartera (backend src/seguimiento.ts)
+// ---------------------------------------------------------------------------
+export type NivelAlerta = "urgente" | "atencion";
+
+/** Alerta de un viaje o de una factura, con sus motivos en texto. */
+export interface AlertaFila {
+  nivel: NivelAlerta;
+  motivos: string[];
+  /** Hay que comunicarse con el conductor (nadie ha preguntado hoy). */
+  comunicarse: boolean;
+}
+
+/** Viaje sin factura con su alerta de papeles y de facturacion. */
+export interface FilaSeguimiento extends FilaCuadro {
+  alertaPapeles: AlertaFila | null;
+  alertaFacturacion: AlertaFila | null;
+}
+
+export type TipoAlerta = "PAPELES" | "FACTURACION" | "CARTERA";
+
+/** Una alerta de la campana de seguimiento. */
+export interface AlertaSeguimiento {
+  tipo: TipoAlerta;
+  nivel: NivelAlerta;
+  titulo: string;
+  motivos: string[];
+  cuadroId?: number;
+  facturaNumero?: string;
+  empresa?: string;
+}
+
+export interface ResumenAlertasSeguimiento {
+  hoy: string;
+  urgentes: number;
+  alertas: AlertaSeguimiento[];
+}
+
+export interface GestionCobro {
+  id: number;
+  facturaNumero: string;
+  empresa: string;
+  texto: string;
+  compromisoPago: string | null;
+  autor: string | null;
+  creadaEn: string;
+}
+
+/** Una factura por cobrar (puede cubrir varios viajes). */
+export interface FacturaCartera {
+  facturaNumero: string;
+  empresa: string;
+  facturaFecha: string;
+  diasCredito: number;
+  vence: string;
+  /** Positivo: dias vencida. Negativo: dias que faltan. */
+  diasVencida: number;
+  valor: number;
+  viajesSinValor: number;
+  viajes: { id: number; fecha: string; placa: string; manifiesto: string | null; remision: string | null; valorFlete: number | null }[];
+  ultimaGestion: GestionCobro | null;
+  compromisoPago: string | null;
+  alerta: AlertaFila | null;
+}
+
+/** Totales de un cliente por edades de vencimiento. */
+export interface ResumenCliente {
+  empresa: string;
+  diasCredito: number;
+  facturas: number;
+  total: number;
+  porVencer: number;
+  vencido1a30: number;
+  vencido31a60: number;
+  vencido61a90: number;
+  vencidoMas90: number;
+}
+
+/** Plazo de credito y contacto de cobro de un cliente. */
+export interface PlazoCliente {
+  empresa: string;
+  diasCredito: number;
+  contacto: string | null;
+  telefono: string | null;
+  correo: string | null;
+}
+
+export interface Cartera {
+  hoy: string;
+  facturas: FacturaCartera[];
+  clientes: ResumenCliente[];
+  /** Facturados sin numero o sin fecha: no pueden calcular su vencimiento. */
+  sinDatos: FilaCuadro[];
+  plazos: PlazoCliente[];
+}
+
+/** Llamadas de Seguimiento papeles, Cartera y la campana de seguimiento. */
+export const apiSeguimiento = {
+  /** Alertas de papeles, facturacion y cartera. */
+  alertas: () => get<ResumenAlertasSeguimiento>("/seguimiento/alertas"),
+  /** Viajes sin factura con su alerta. */
+  papeles: () => get<FilaSeguimiento[]>("/seguimiento/papeles"),
+  /** Registra lo que se supo de los papeles; devuelve el viaje del cuadro. */
+  registrarPapeles: (id: number, datos: Record<string, unknown>) => post<DetalleCuadro>(`/seguimiento/papeles/${id}`, datos),
+  /** Facturas por cobrar, totales por cliente y facturados sin datos. */
+  cartera: () => get<Cartera>("/seguimiento/cartera"),
+  /** Guarda el plazo y el contacto de cobro de un cliente; devuelve todos. */
+  guardarPlazo: (datos: Partial<PlazoCliente>) => put<PlazoCliente[]>("/seguimiento/cartera/plazos", datos),
+  /** Gestiones de cobro de una factura. */
+  gestiones: (facturaNumero: string, empresa: string) =>
+    get<GestionCobro[]>(
+      `/seguimiento/cartera/gestiones?factura=${encodeURIComponent(facturaNumero)}&empresa=${encodeURIComponent(empresa)}`
+    ),
+  /** Anota una gestion de cobro; devuelve las de esa factura. */
+  agregarGestion: (datos: { facturaNumero: string; empresa: string; texto: string; compromisoPago?: string | null }) =>
+    post<GestionCobro[]>("/seguimiento/cartera/gestiones", datos),
+  /** Registra el pago de una factura (todos sus viajes). */
+  registrarPago: (facturaNumero: string, empresa: string, fecha: string) =>
+    post<{ viajes: number }>("/seguimiento/cartera/pago", { facturaNumero, empresa, fecha }),
 };
 
 // ---------------------------------------------------------------------------

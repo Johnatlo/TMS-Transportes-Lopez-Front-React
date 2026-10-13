@@ -185,6 +185,16 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
               Pasa por parqueadero y oficina de Don Alexander (CORAME / Cartones America)
             </label>
             {d.fechaRadicado && <div className="dato-sec">Listo para facturar desde el {fechaCorta(d.fechaRadicado)}</div>}
+            {/* Lo registrado en Seguimiento papeles (al comunicarse con el conductor). */}
+            {d.papelesRevisadoEn && (
+              <div className="dato-sec">
+                Ultimo seguimiento: {fechaHora(d.papelesRevisadoEn)}
+                {d.papelesRevisadoPor ? ` por ${d.papelesRevisadoPor}` : ""}
+                {d.papelesTiene ? ` · los tiene ${d.papelesTiene}` : ""}
+                {d.papelesCompletos === true ? " · completos" : ""}
+                {d.papelesCompletos === false ? ` · faltan: ${d.papelesFaltan ?? "?"}` : ""}
+              </div>
+            )}
           </Seccion>
 
           <Seccion titulo="Viaje">

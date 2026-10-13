@@ -194,3 +194,28 @@ export const IconoOjoTachado = () => (
     <path d="M9.9 9.9a2.8 2.8 0 0 0 4 4M3 3l18 18" />
   </Icono>
 );
+
+/** Icono del menu Seguimiento de papeles (tablilla con lista). */
+export const IconoPapeles = () => (
+  <Icono>
+    <rect x="5" y="4" width="14" height="17" rx="2" />
+    <path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3" />
+  </Icono>
+);
+
+/** Icono del menu Cartera (billete). */
+export const IconoCartera = () => (
+  <Icono>
+    <rect x="2.5" y="6" width="19" height="12" rx="2" />
+    <circle cx="12" cy="12" r="2.5" />
+    <path d="M6 9v.01M18 15v.01" />
+  </Icono>
+);
+
+/** Icono de alertas de seguimiento (reloj). */
+export const IconoReloj = () => (
+  <Icono>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.5V12l3 2" />
+  </Icono>
+);

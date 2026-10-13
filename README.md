@@ -175,11 +175,12 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_256 funciones, componentes, métodos y rutas en 37 archivos._
+_281 funciones, componentes, métodos y rutas en 40 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (99)
+- [`src/api/cliente.ts`](#srcapiclientets) (108)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
+- [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
 - [`src/componentes/AnularViaje.tsx`](#srccomponentesanularviajetsx) (3)
 - [`src/componentes/CambiarClave.tsx`](#srccomponentescambiarclavetsx) (1)
 - [`src/componentes/ComboBuscable.tsx`](#srccomponentescombobuscabletsx) (1)
@@ -190,7 +191,7 @@ _256 funciones, componentes, métodos y rutas en 37 archivos._
 - [`src/componentes/Estado.tsx`](#srccomponentesestadotsx) (4)
 - [`src/componentes/EstadoSincronizacion.tsx`](#srccomponentesestadosincronizaciontsx) (3)
 - [`src/componentes/FormularioGenerico.tsx`](#srccomponentesformulariogenericotsx) (2)
-- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (22)
+- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (25)
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
 - [`src/componentes/MapaSeguimiento.tsx`](#srccomponentesmapaseguimientotsx) (2)
 - [`src/componentes/Modal.tsx`](#srccomponentesmodaltsx) (1)
@@ -214,6 +215,8 @@ _256 funciones, componentes, métodos y rutas en 37 archivos._
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (6)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
+- [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
+- [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (6)
 
 ### `src/App.tsx`
 
@@ -576,6 +579,33 @@ _256 funciones, componentes, métodos y rutas en 37 archivos._
   - **`apiCuadro.actualizarBomba(id, datos)`** · _método_
     Cambia nombre, ciudad o si esta activa; devuelve la lista.
 
+- **`apiSeguimiento`** · _módulo_
+  Llamadas de Seguimiento papeles, Cartera y la campana de seguimiento.
+
+  - **`apiSeguimiento.alertas()`** · _método_
+    Alertas de papeles, facturacion y cartera.
+
+  - **`apiSeguimiento.papeles()`** · _método_
+    Viajes sin factura con su alerta.
+
+  - **`apiSeguimiento.registrarPapeles(id, datos)`** · _método_
+    Registra lo que se supo de los papeles; devuelve el viaje del cuadro.
+
+  - **`apiSeguimiento.cartera()`** · _método_
+    Facturas por cobrar, totales por cliente y facturados sin datos.
+
+  - **`apiSeguimiento.guardarPlazo(datos)`** · _método_
+    Guarda el plazo y el contacto de cobro de un cliente; devuelve todos.
+
+  - **`apiSeguimiento.gestiones(facturaNumero, empresa)`** · _método_
+    Gestiones de cobro de una factura.
+
+  - **`apiSeguimiento.agregarGestion(datos)`** · _método_
+    Anota una gestion de cobro; devuelve las de esa factura.
+
+  - **`apiSeguimiento.registrarPago(facturaNumero, empresa, fecha)`** · _método_
+    Registra el pago de una factura (todos sus viajes).
+
 ### `src/componentes/AlertasDocumentos.tsx`
 
 > Ventana de documentos vencidos o por vencer (SOAT, tecnomecanica, licencia,
@@ -601,6 +631,19 @@ _256 funciones, componentes, métodos y rutas en 37 archivos._
 - **`FilaAlerta({...})`** · _componente React_
   Una alerta. Tiene su propio estado de edicion: cada fila se edita por
   separado sin afectar a las demas.
+
+### `src/componentes/AlertasSeguimiento.tsx`
+
+> Ventana de alertas de seguimiento (boton del reloj en la barra superior):
+> papeles que hay que perseguir despues del descargue, viajes por facturar y
+> facturas por cobrar. Clic en una alerta lleva a su pantalla con ese viaje o
+> esa factura abiertos.
+
+- **`rutaDe(a)`** · _función_
+  Ruta de la pantalla que resuelve la alerta, con el viaje o la factura a abrir.
+
+- **`AlertasSeguimiento({...})`** · _componente React_
+  Lista de alertas por grupo; abre en el primer grupo que tenga algo.
 
 ### `src/componentes/AnularViaje.tsx`
 
@@ -880,6 +923,15 @@ _256 funciones, componentes, métodos y rutas en 37 archivos._
 
 - **`IconoOjoTachado()`** · _componente React_
   Icono para ocultar la contrasena.
+
+- **`IconoPapeles()`** · _componente React_
+  Icono del menu Seguimiento de papeles (tablilla con lista).
+
+- **`IconoCartera()`** · _componente React_
+  Icono del menu Cartera (billete).
+
+- **`IconoReloj()`** · _componente React_
+  Icono de alertas de seguimiento (reloj).
 
 ### `src/componentes/LibroConsecutivos.tsx`
 
@@ -1441,5 +1493,60 @@ _256 funciones, componentes, métodos y rutas en 37 archivos._
 - **`tonoEstado(estado)`** · _función_
   Color de la pastilla de un estado de viaje: verde cumplido, azul expedido,
   gris anulado, amarillo mientras se envia, rojo los errores.
+
+### `src/paginas/seguimiento/Cartera.tsx`
+
+> Pantalla Cartera: todo lo que los clientes le deben a la empresa. Cada
+> factura con numero y fecha entra aqui sola (desde el cuadro pagos) hasta
+> que se registra su pago. Vence a los dias de credito de cada cliente.
+
+- **`textoVencimiento(f)`** · _función_
+  "Vencida hace 12 dias", "Vence hoy", "Vence en 8 dias".
+
+- **`Indicador({...})`** · _componente React_
+  Un numero grande con su titulo, como los indicadores del Inicio.
+
+- **`Cartera()`** · _componente React_
+  Cartera: totales, edades por cliente y facturas por cobrar. Clic en una
+  factura abre sus viajes, las gestiones de cobro y el registro del pago.
+  Abre directo una factura con ?factura=<numero>&empresa=<cliente>.
+
+- **`DetalleFactura({...})`** · _componente React_
+  Una factura por cobrar: sus viajes, el contacto de cobro del cliente, las
+  gestiones (con la fecha que prometio pagar) y el registro del pago.
+
+- **`PlazosClientes({...})`** · _componente React_
+  Plazo de credito y contacto de cobro de cada cliente. Se listan los
+  clientes con plazo guardado y los que tienen facturas por cobrar; los que no
+  tienen plazo usan 30 dias.
+
+### `src/paginas/seguimiento/Papeles.tsx`
+
+> Pantalla Seguimiento de papeles: los viajes que ya descargaron y aun no
+> estan facturados. Muestra donde estan los papeles, quien los tiene, si
+> estan completos y a que conductores hay que llamar hoy (sobre todo en
+> CORAME / Cartones America).
+
+- **`diasDescargue(f)`** · _función_
+  Dias desde el descargue (null si no hay fecha o aun no llega).
+
+- **`alertaDe(f)`** · _función_
+  La alerta mas grave del viaje (papeles o facturacion).
+
+- **`motivosDe(f)`** · _función_
+  Motivos de las dos alertas juntos.
+
+- **`descargado(f)`** · _función_
+  Ya descargo: los papeles salieron de "en ruta" o paso la fecha de descargue.
+
+- **`Papeles()`** · _componente React_
+  Seguimiento de papeles: clic en un viaje abre "Registrar seguimiento" para
+  anotar lo que dijo el conductor. Abre directo un viaje con ?viaje=<id del
+  cuadro> (asi llegan las alertas de la campana).
+
+- **`RegistrarPapeles({...})`** · _componente React_
+  Ventana para registrar lo que se supo de los papeles (normalmente al
+  llamar al conductor): donde estan, quien los tiene, si estan completos,
+  que falta y una nota. Guardar apaga la alerta de "comunicarse" por hoy.
 
 <!-- REFERENCIA:FIN -->

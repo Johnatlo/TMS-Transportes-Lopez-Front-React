@@ -19,6 +19,8 @@ const Dashboard = lazy(() => import("./paginas/Dashboard"));
 const Despacho = lazy(() => import("./paginas/Despacho"));
 const Historial = lazy(() => import("./paginas/Historial"));
 const CuadroCentral = lazy(() => import("./paginas/cuadro/CuadroCentral"));
+const Papeles = lazy(() => import("./paginas/seguimiento/Papeles"));
+const Cartera = lazy(() => import("./paginas/seguimiento/Cartera"));
 const Plantillas = lazy(() => import("./paginas/Plantillas"));
 const Catalogo = lazy(() => import("./paginas/Catalogo"));
 const Usuarios = lazy(() => import("./paginas/Usuarios"));
@@ -52,6 +54,8 @@ export default function App() {
         <Route path="/despacho" element={<Despacho />} />
         <Route path="/historial" element={<Historial />} />
         <Route path="/cuadro" element={<CuadroCentral />} />
+        <Route path="/papeles" element={<Papeles />} />
+        <Route path="/cartera" element={<Cartera />} />
         <Route path="/plantillas" element={<Plantillas />} />
         <Route path="/clientes" element={<Catalogo key="clientes" pestanas={["terceros"]} />} />
         <Route
