@@ -20,7 +20,7 @@ describe("color y nombre del estado (los colores del Excel)", () => {
     ["RADICADO", "verde", "Listo para facturar"],
     ["FACTURADO_SIN_DATOS", "azul", "Facturado sin datos"],
     ["FACTURADO", "info", "Facturado"],
-    ["PAGADO", "amarillo", "Todo pagado"],
+    ["PAGADO", "ok", "Todo pagado"],
     ["ANULADO", "neutro", "Anulado"],
   ];
 
@@ -29,8 +29,8 @@ describe("color y nombre del estado (los colores del Excel)", () => {
     expect(etiquetaEstadoCuadro({ estado, todoPagado: false })).toBe(etiqueta);
   });
 
-  test("todo pagado es amarillo, sin importar el estado de la factura", () => {
-    expect(tonoEstadoCuadro({ estado: "PAGADO", todoPagado: true })).toBe("amarillo");
+  test("todo pagado es verde, sin importar el estado de la factura", () => {
+    expect(tonoEstadoCuadro({ estado: "PAGADO", todoPagado: true })).toBe("ok");
     expect(etiquetaEstadoCuadro({ estado: "PAGADO", todoPagado: true })).toBe("Todo pagado");
   });
 });

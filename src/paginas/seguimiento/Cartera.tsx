@@ -1,7 +1,9 @@
 /**
  * Pantalla Cartera: todo lo que los clientes le deben a la empresa. Cada
  * factura con numero y fecha entra aqui sola (desde el cuadro pagos) hasta
- * que se registra su pago. Vence a los dias de credito de cada cliente.
+ * que se registra la fecha pago factura. Vence en la fecha pago cliente (o, si
+ * no esta escrita, a los dias de credito del cliente); pasada, avisa para
+ * llamar y cobrar.
  */
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -55,7 +57,7 @@ const COLUMNAS: Columna<FacturaCartera>[] = [
       <>
         {fechaCorta(f.vence)}
         <span className={f.diasVencida > 0 ? "texto-vencido" : "dato-sec"}>{textoVencimiento(f)}</span>
-        <span className="dato-sec">{f.diasCredito} dias de credito</span>
+        <span className="dato-sec">{f.venceManual ? "Fecha pago cliente" : `${f.diasCredito} dias de credito`}</span>
       </>
     ),
   },
@@ -384,7 +386,8 @@ function DetalleFactura({
           <strong>{moneda(factura.valor)}</strong>
           <span className="dato-sec">Facturada el {fechaCorta(factura.facturaFecha)}</span>
           <span className="dato-sec">
-            Vence el {fechaCorta(factura.vence)} ({factura.diasCredito} dias de credito)
+            Vence el {fechaCorta(factura.vence)} (
+            {factura.venceManual ? "fecha pago cliente" : `${factura.diasCredito} dias de credito`})
           </span>
           <Pastilla tono={factura.diasVencida > 0 ? "error" : factura.alerta ? "aviso" : "ok"}>{textoVencimiento(factura)}</Pastilla>
         </div>
@@ -444,7 +447,8 @@ function DetalleFactura({
         <section className="detalle-seccion">
           <h4>Gestiones de cobro</h4>
           <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
-            Cada factura avisa todos los dias hasta que se paga. Anotar una gestion apaga su alerta hasta el dia siguiente.
+            Pasada la fecha pago cliente, la factura avisa todos los dias para llamar y cobrar hasta que se registra el
+            pago. Anotar una gestion apaga su alerta hasta el dia siguiente.
           </div>
           <div className="nota-nueva">
             <textarea rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Llame a tesoreria, dicen que pagan el viernes..." />
@@ -476,7 +480,7 @@ function DetalleFactura({
           <h4>Registrar pago</h4>
           <div className="nota-nueva">
             <div>
-              <label className="dato-sec">Fecha en que pago el cliente</label>
+              <label className="dato-sec">Fecha pago factura</label>
               <input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} />
             </div>
             <button className="btn-primary" onClick={registrarPago} disabled={enviando || !fechaPago}>
@@ -484,7 +488,8 @@ function DetalleFactura({
             </button>
           </div>
           <div className="dato-sec">
-            Pone la fecha de pago en los {factura.viajes.length} viaje(s) de la factura y la saca de la cartera.
+            Pone la fecha pago factura en los {factura.viajes.length} viaje(s): quedan en "Todo pagado" y la factura sale
+            de la cartera.
           </div>
         </section>
       </div>
@@ -538,8 +543,8 @@ function PlazosClientes({ datos, alCerrar, alCambiar }: { datos: DatosCartera; a
       }
     >
       <div className="section-desc" style={{ marginBottom: "0.8rem" }}>
-        Cada factura vence a los dias de credito de su cliente, contados desde la fecha de la factura. Si un cliente no
-        tiene plazo guardado se usan 30 dias.
+        Una factura vence en la fecha pago cliente escrita en el cuadro pagos. Si no la tiene, vence a los dias de
+        credito de su cliente contados desde la fecha de la factura (30 dias si el cliente no tiene plazo guardado).
       </div>
       {error && <div className="alert danger">{error}</div>}
       <table className="tabla tabla-compacta">

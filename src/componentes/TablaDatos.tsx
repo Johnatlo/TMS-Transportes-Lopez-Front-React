@@ -64,6 +64,7 @@ export default function TablaDatos<T>({
   vacio = "Sin resultados.",
   claseTabla = "",
   alClicFila,
+  claseFila,
 }: {
   filas: T[];
   columnas: Columna<T>[];
@@ -78,6 +79,8 @@ export default function TablaDatos<T>({
   vacio?: string;
   claseTabla?: string;
   alClicFila?: (fila: T) => void;
+  /** Clase extra de cada fila (ej. pintar de verde las que ya estan pagadas). */
+  claseFila?: (fila: T) => string | undefined;
 }) {
   const [pestana, setPestana] = useState(pestanaInicial ?? pestanas?.[0]?.id ?? "");
   const [busqueda, setBusqueda] = useState("");
@@ -265,7 +268,7 @@ export default function TablaDatos<T>({
             {enPagina.map((f) => (
               <tr
                 key={clave(f)}
-                className={alClicFila ? "fila-clic" : undefined}
+                className={[alClicFila ? "fila-clic" : "", claseFila?.(f) ?? ""].filter(Boolean).join(" ") || undefined}
                 onClick={alClicFila ? () => alClicFila(f) : undefined}
               >
                 {columnas.map((c) => {

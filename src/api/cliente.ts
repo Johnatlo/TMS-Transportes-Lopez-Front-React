@@ -684,6 +684,9 @@ export interface FilaCuadro {
   facturado: boolean;
   facturaNumero: string | null;
   facturaFecha: string | null;
+  /** "Fecha pago cliente": cuando vence la factura. */
+  facturaVence: string | null;
+  /** "Fecha pago factura": cuando el cliente pago. Con ella queda todo pagado. */
   facturaFechaPago: string | null;
   fechaPagoSaldo: string | null;
   venceSaldo: string | null;
@@ -758,8 +761,8 @@ export const apiCuadro = {
   revisar: (id: number, quien: "CONTABILIDAD" | "GERENCIA", revisado: boolean) =>
     post<DetalleCuadro>(`/cuadro/${id}/revision`, { quien, revisado }),
   /** Asigna una factura (numero y fecha) a varios viajes. */
-  facturar: (ids: number[], facturaNumero: string, facturaFecha: string) =>
-    post<{ actualizados: number }>("/cuadro/facturar", { ids, facturaNumero, facturaFecha }),
+  facturar: (ids: number[], facturaNumero: string, facturaFecha: string, facturaVence = "") =>
+    post<{ actualizados: number }>("/cuadro/facturar", { ids, facturaNumero, facturaFecha, facturaVence }),
   /** Agrega una nota al viaje. */
   agregarNota: (id: number, texto: string) => post<DetalleCuadro>(`/cuadro/${id}/notas`, { texto }),
   /** Borra una nota. */
@@ -833,7 +836,10 @@ export interface FacturaCartera {
   empresa: string;
   facturaFecha: string;
   diasCredito: number;
+  /** Fecha pago cliente, o fecha de factura + dias de credito si no esta escrita. */
   vence: string;
+  /** true si el vencimiento es la fecha pago cliente escrita en el cuadro. */
+  venceManual: boolean;
   /** Positivo: dias vencida. Negativo: dias que faltan. */
   diasVencida: number;
   valor: number;

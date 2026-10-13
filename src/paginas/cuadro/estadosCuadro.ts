@@ -9,8 +9,8 @@ import type { TonoPastilla } from "../../componentes/TablaDatos";
  * Nombres y colores del cuadro pagos. Los tonos repiten los colores que se
  * usaban en el Excel para que el equipo los reconozca:
  * morado = sin radicar, verde = listo para facturar (radicado), azul = facturado sin datos,
- * naranja = revisado por contabilidad (falta gerencia), amarillo = todo pagado
- * (el cliente le pago la factura a la empresa).
+ * naranja = revisado por contabilidad (falta gerencia). Todo pagado (ya hay
+ * fecha pago factura) va en verde y pinta toda la fila de verde.
  */
 export const ETIQUETA_ESTADO_CUADRO: Record<EstadoCuadro, string> = {
   EN_RUTA: "En proceso",
@@ -26,10 +26,10 @@ export const ETIQUETA_ESTADO_CUADRO: Record<EstadoCuadro, string> = {
 
 /**
  * Color de la pastilla de estado, con el significado de los colores del Excel.
- * Todo pagado siempre es amarillo.
+ * Todo pagado siempre es verde.
  */
 export function tonoEstadoCuadro(f: Pick<FilaCuadro, "estado" | "todoPagado">): TonoPastilla {
-  if (f.todoPagado) return "amarillo";
+  if (f.todoPagado) return "ok";
   switch (f.estado) {
     case "SIN_RADICAR":
       return "morado";
@@ -40,7 +40,7 @@ export function tonoEstadoCuadro(f: Pick<FilaCuadro, "estado" | "todoPagado">): 
     case "FACTURADO":
       return "info";
     case "PAGADO":
-      return "amarillo";
+      return "ok";
     default:
       return "neutro";
   }

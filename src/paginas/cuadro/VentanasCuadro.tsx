@@ -133,6 +133,7 @@ export function FacturarVarios({ filas, alCerrar, alTerminar }: { filas: FilaCua
   const [empresa, setEmpresa] = useState("");
   const [numero, setNumero] = useState("");
   const [fecha, setFecha] = useState(hoyColombia());
+  const [vence, setVence] = useState("");
   const [marcados, setMarcados] = useState<Set<number>>(new Set());
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,7 +152,7 @@ export function FacturarVarios({ filas, alCerrar, alTerminar }: { filas: FilaCua
     setEnviando(true);
     setError(null);
     try {
-      await apiCuadro.facturar([...marcados], numero, fecha);
+      await apiCuadro.facturar([...marcados], numero, fecha, vence);
       alTerminar();
       alCerrar();
     } catch (exc) {
@@ -177,7 +178,8 @@ export function FacturarVarios({ filas, alCerrar, alTerminar }: { filas: FilaCua
       }
     >
       <div className="section-desc" style={{ marginBottom: "0.8rem" }}>
-        Sin numero de factura, los viajes quedan como "Facturado sin datos" (azul) hasta completarlos.
+        Sin consecutivo de factura, los viajes quedan como "Facturado sin datos" (azul) hasta completarlos. Si no se
+        escribe la fecha pago cliente, la factura vence a los dias de credito del cliente.
       </div>
       {error && <div className="alert danger">{error}</div>}
       <div className="campos-cuadro">
@@ -199,6 +201,10 @@ export function FacturarVarios({ filas, alCerrar, alTerminar }: { filas: FilaCua
         <div>
           <label>Fecha de factura</label>
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </div>
+        <div>
+          <label>Fecha pago cliente (vence)</label>
+          <input type="date" value={vence} onChange={(e) => setVence(e.target.value)} />
         </div>
       </div>
       <div className="lista-facturar">

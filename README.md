@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_280 funciones, componentes, métodos y rutas en 40 archivos._
+_281 funciones, componentes, métodos y rutas en 40 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (108)
@@ -210,7 +210,7 @@ _280 funciones, componentes, métodos y rutas en 40 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (3)
-- [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (1)
+- [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (2)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (5)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (6)
@@ -552,7 +552,7 @@ _280 funciones, componentes, métodos y rutas en 40 archivos._
   - **`apiCuadro.revisar(id, quien, revisado)`** · _método_
     Marca o quita la revision de contabilidad o de gerencia.
 
-  - **`apiCuadro.facturar(ids, facturaNumero, facturaFecha)`** · _método_
+  - **`apiCuadro.facturar(ids, facturaNumero, facturaFecha, facturaVence)`** · _método_
     Asigna una factura (numero y fecha) a varios viajes.
 
   - **`apiCuadro.agregarNota(id, texto)`** · _método_
@@ -1417,6 +1417,9 @@ _280 funciones, componentes, métodos y rutas en 40 archivos._
 > desde que carga hasta que todo queda pagado. Reemplaza la hoja de Excel
 > "CUADRO CENTRAL".
 
+- **`cobroVencido(f)`** · _función_
+  Ya paso la fecha pago cliente y la factura no se ha pagado.
+
 - **`CuadroCentral()`** · _componente React_
   Cuadro pagos: el control de cada viaje desde que carga hasta que todo
   queda pagado, tenga o no manifiesto. Reemplaza la hoja "CUADRO PAGOS".
@@ -1466,7 +1469,7 @@ _280 funciones, componentes, métodos y rutas en 40 archivos._
 
 - **`tonoEstadoCuadro(f)`** · _función_
   Color de la pastilla de estado, con el significado de los colores del Excel.
-  Todo pagado siempre es amarillo.
+  Todo pagado siempre es verde.
 
 - **`etiquetaEstadoCuadro(f)`** · _función_
   Nombre del estado para mostrar; "Todo pagado" cuando ya se pago todo.
@@ -1495,7 +1498,9 @@ _280 funciones, componentes, métodos y rutas en 40 archivos._
 
 > Pantalla Cartera: todo lo que los clientes le deben a la empresa. Cada
 > factura con numero y fecha entra aqui sola (desde el cuadro pagos) hasta
-> que se registra su pago. Vence a los dias de credito de cada cliente.
+> que se registra la fecha pago factura. Vence en la fecha pago cliente (o, si
+> no esta escrita, a los dias de credito del cliente); pasada, avisa para
+> llamar y cobrar.
 
 - **`textoVencimiento(f)`** · _función_
   "Vencida hace 12 dias", "Vence hoy", "Vence en 8 dias".

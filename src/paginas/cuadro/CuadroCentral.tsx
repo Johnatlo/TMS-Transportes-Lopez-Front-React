@@ -17,9 +17,14 @@ import {
   ETIQUETA_PAPELES,
   etiquetaEstadoCuadro,
   fechaCorta,
+  hoyColombia,
   saldoVencido,
   tonoEstadoCuadro,
 } from "./estadosCuadro";
+
+/** Ya paso la fecha pago cliente y la factura no se ha pagado. */
+const cobroVencido = (f: FilaCuadro) =>
+  !f.anulado && !f.facturaFechaPago && !!f.facturaVence && f.facturaVence < hoyColombia();
 
 const PESTANAS: PestanaTabla<FilaCuadro>[] = [
   { id: "activos", etiqueta: "Pendientes", incluye: (f) => !f.anulado && !f.todoPagado },
@@ -29,6 +34,7 @@ const PESTANAS: PestanaTabla<FilaCuadro>[] = [
   { id: "sinDatos", etiqueta: "Facturado sin datos", incluye: (f) => f.estado === "FACTURADO_SIN_DATOS" },
   { id: "facturados", etiqueta: "Facturados", incluye: (f) => f.estado === "FACTURADO" },
   { id: "gerencia", etiqueta: "Falta gerencia", incluye: (f) => !f.anulado && !!f.revisadoContabilidadPor && !f.revisadoGerenciaPor },
+  { id: "cobrar", etiqueta: "Cobro vencido", incluye: cobroVencido },
   { id: "saldos", etiqueta: "Saldos vencidos", incluye: saldoVencido },
   { id: "pagados", etiqueta: "Todo pagado", incluye: (f) => f.todoPagado },
   { id: "anulados", etiqueta: "Anulados", incluye: (f) => f.anulado },
@@ -141,7 +147,21 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
         "-"
       ),
   },
-  { id: "pagoFactura", titulo: "Pago a la empresa", valor: (f) => f.facturaFechaPago, celda: (f) => fechaCorta(f.facturaFechaPago) },
+  {
+    id: "pagoCliente",
+    titulo: "Fecha pago cliente",
+    valor: (f) => f.facturaVence,
+    celda: (f) =>
+      f.facturaVence ? (
+        <>
+          {fechaCorta(f.facturaVence)}
+          {cobroVencido(f) && <span className="texto-vencido">Vencida: cobrar</span>}
+        </>
+      ) : (
+        "-"
+      ),
+  },
+  { id: "pagoFactura", titulo: "Fecha pago factura", valor: (f) => f.facturaFechaPago, celda: (f) => fechaCorta(f.facturaFechaPago) },
   {
     id: "pagoSaldo",
     titulo: "Pago saldo",
@@ -212,6 +232,7 @@ export default function CuadroCentral() {
           placeholderBusqueda="Buscar placa, empresa, remision, factura, nota..."
           vacio="No hay viajes con estos criterios."
           alClicFila={(f) => setAbierto(f.id)}
+          claseFila={(f) => (f.todoPagado ? "fila-todo-pagado" : undefined)}
           acciones={
             <>
               <button className="boton-barra" onClick={() => setVerBombas(true)}>

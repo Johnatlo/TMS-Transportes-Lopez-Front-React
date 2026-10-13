@@ -24,7 +24,7 @@ import {
 /** Campos del formulario: todo como texto, igual que los inputs. */
 const CAMPOS = [
   "fecha", "placa", "empresa", "conductor", "manifiesto", "remision", "pesoKg", "fechaDescargue",
-  "tipoFlete", "tarifaKilo", "valorFijo", "facturaNumero", "facturaFecha", "facturaFechaPago", "fechaPagoSaldo",
+  "tipoFlete", "tarifaKilo", "valorFijo", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "fechaPagoSaldo",
 ] as const;
 type Campo = (typeof CAMPOS)[number];
 type Formulario = Record<Campo, string>;
@@ -248,11 +248,12 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
             <div className="campos-cuadro">
               {campo("facturaNumero", "Consecutivo de factura")}
               {campo("facturaFecha", "Fecha de factura", "date")}
-              {campo("facturaFechaPago", "Fecha de pago a la empresa", "date")}
+              {campo("facturaVence", "Fecha pago cliente (vence)", "date")}
+              {campo("facturaFechaPago", "Fecha pago factura", "date")}
             </div>
             <div className="dato-sec">
-              Queda "Facturado" cuando tiene consecutivo y fecha de factura. Queda "Todo pagado" cuando se llena la
-              fecha en que el cliente le pago la factura a la empresa.
+              Queda "Facturado" con consecutivo y fecha de factura. La fecha pago cliente es cuando vence: si pasa sin
+              pago, la cartera avisa para llamar y cobrar. Con la fecha pago factura queda "Todo pagado" (fila verde).
             </div>
           </Seccion>
 
