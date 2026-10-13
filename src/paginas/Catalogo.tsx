@@ -6,7 +6,7 @@
 import { useEffect, useState } from "react";
 import { Paginacion } from "../componentes/TablaDatos";
 import type { ReactElement } from "react";
-import { api, hoyColombia, soloDia } from "../api/cliente";
+import { api, fechaHora, hoyColombia, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import Modal from "../componentes/Modal";
@@ -15,7 +15,7 @@ import FormularioGenerico, {
   type SeccionFormulario,
 } from "../componentes/FormularioGenerico";
 import ComboBuscable from "../componentes/ComboBuscable";
-import type { EmpresaMonitoreo, ParametrosEmpresa, Vehiculo } from "../api/tipos";
+import type { EmpresaMonitoreo, ParametrosEmpresa, RegistroRndc, Vehiculo } from "../api/tipos";
 
 export type Pestana =
   | "vehiculos"
@@ -36,6 +36,19 @@ const PESTANAS: Array<{ id: Pestana; etiqueta: string }> = [
 
 /** Pestanas cuyos registros se pueden desactivar (y por eso tienen filtro). */
 const CON_ESTADO: Pestana[] = ["vehiculos", "remolques", "conductores"];
+
+/**
+ * Pestanas que se pueden registrar en el RNDC desde aqui: terceros y
+ * conductores (proceso 11), vehiculos y remolques (proceso 12).
+ */
+const MAESTROS_RNDC = ["vehiculos", "remolques", "conductores", "terceros"] as const;
+
+/** "Vehiculo SKN250", "Conductor PEDRO PEREZ"... para los avisos del registro. */
+function tituloRegistro(p: Pestana, m: Modelo): string {
+  const nombre = m.placa ?? m.nombre ?? "";
+  const tipo = NOMBRES[p];
+  return `${tipo.charAt(0).toUpperCase()}${tipo.slice(1)} ${nombre}`.trim();
+}
 
 /**
  * El formulario se abre en uno de dos modos. Guardar el registro original (y
@@ -70,6 +83,8 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null);
   /** Aviso del backend sobre la coordenada de la sede recien guardada. */
   const [avisoCoordenada, setAvisoCoordenada] = useState<string | null>(null);
+  /** Resultado del ultimo registro en el RNDC (arriba de la tabla). */
+  const [avisoRndc, setAvisoRndc] = useState<string | null>(null);
 
   function cambiarPestana(p: Pestana) {
     setPestana(p);
@@ -99,22 +114,60 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
     edicion?.modo === "editar" ? soloCambios(edicion.original, modelo) : modelo;
   const hayCambios = Object.keys(cambiosPendientes).length > 0;
 
-  async function guardar() {
+  /**
+   * Guarda el formulario y, si `registrar`, crea o actualiza el registro en el
+   * RNDC con los datos guardados. Si el RNDC lo rechaza, la ventana sigue
+   * abierta (ya en modo edicion) con el mensaje del RNDC para corregir y
+   * volver a intentar; lo guardado en la aplicacion no se pierde.
+   */
+  async function guardar(registrar = false) {
     if (!edicion) return;
     setGuardando(true);
     setErrorGuardar(null);
     try {
+      let guardado: Modelo & { id?: number } = { ...modelo, id: edicion.modo === "editar" ? edicion.id : undefined };
       if (edicion.modo === "editar") {
-        await actualizar(pestana, edicion.id, cambiosPendientes);
+        if (hayCambios) guardado = await actualizar(pestana, edicion.id, cambiosPendientes);
       } else {
-        await crear(pestana, modelo);
+        guardado = await crear(pestana, modelo);
       }
-      setEdicion(null);
+      const maestro = MAESTROS_RNDC.find((m) => m === pestana);
+      if (!registrar || !maestro || !guardado.id) {
+        setEdicion(null);
+        return;
+      }
+      const r = await api.registrarEnRndc(maestro, guardado.id);
+      recargarPestana(pestana);
+      if (r.ok) {
+        setAvisoRndc(
+          [
+            r.yaEstabaIgual
+              ? `${tituloRegistro(pestana, guardado)}: el RNDC ya lo tenia con estos mismos datos (radicado ${r.radicado}).`
+              : `${tituloRegistro(pestana, guardado)} registrado en el RNDC. Radicado ${r.radicado}.`,
+            ...(r.avisos ?? []),
+          ].join("\n")
+        );
+        setEdicion(null);
+      } else {
+        // Queda abierto para corregir; lo guardado ya es la nueva base.
+        const copia = aModelo(guardado as object & { id: number });
+        setEdicion({ modo: "editar", id: guardado.id, original: copia });
+        setModelo(copia);
+        setErrorGuardar(`Se guardo en la aplicacion, pero el RNDC lo rechazo:\n${r.error}`);
+      }
     } catch (exc) {
       setErrorGuardar(exc instanceof Error ? exc.message : "No se pudo guardar");
     } finally {
       setGuardando(false);
     }
+  }
+
+  /** Vuelve a pedir la lista de la pestana (despues de registrar en el RNDC). */
+  function recargarPestana(p: Pestana) {
+    if (p === "vehiculos") vehiculos.recargar();
+    else if (p === "remolques") remolques.recargar();
+    else if (p === "conductores") conductores.recargar();
+    else if (p === "terceros") terceros.recargar();
   }
 
   /**
@@ -145,48 +198,62 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
     }
   }
 
-  async function crear(p: Pestana, datos: Modelo) {
+  /** Crea el registro y devuelve lo guardado (con su id). */
+  async function crear(p: Pestana, datos: Modelo): Promise<Modelo & { id?: number }> {
     if (p === "vehiculos") {
-      await api.crearVehiculo(datos);
+      const creado = await api.crearVehiculo(datos);
       vehiculos.recargar();
+      return aModelo(creado);
     } else if (p === "remolques") {
-      await api.crearRemolque(datos);
+      const creado = await api.crearRemolque(datos);
       remolques.recargar();
+      return aModelo(creado);
     } else if (p === "conductores") {
-      await api.crearConductor(datos);
+      const creado = await api.crearConductor(datos);
       conductores.recargar();
+      return aModelo(creado);
     } else if (p === "monitoreo") {
-      await api.crearEmpresaMonitoreo({ nit: datos.nit ?? "", nombre: datos.nombre ?? "" });
+      const creado = await api.crearEmpresaMonitoreo({ nit: datos.nit ?? "", nombre: datos.nombre ?? "" });
       monitoreo.recargar();
+      return aModelo(creado);
     } else if (p === "terceros") {
       // El backend revisa la coordenada y devuelve un aviso si algo no cuadra.
       // No rechaza el tercero: puede que la sede aun no la tenga en el portal.
       const creado = await api.crearTercero(datos);
       setAvisoCoordenada(creado.avisoCoordenada ?? null);
       terceros.recargar();
+      return aModelo(creado);
     }
+    return datos;
   }
 
-  async function actualizar(p: Pestana, id: number, cambios: Modelo) {
+  /** Guarda los cambios y devuelve el registro como quedo. */
+  async function actualizar(p: Pestana, id: number, cambios: Modelo): Promise<Modelo & { id?: number }> {
     if (p === "vehiculos") {
-      await api.actualizarVehiculo(id, cambios);
+      const guardado = await api.actualizarVehiculo(id, cambios);
       vehiculos.recargar();
+      return aModelo(guardado);
     } else if (p === "remolques") {
-      await api.actualizarRemolque(id, cambios);
+      const guardado = await api.actualizarRemolque(id, cambios);
       remolques.recargar();
+      return aModelo(guardado);
     } else if (p === "conductores") {
-      await api.actualizarConductor(id, cambios);
+      const guardado = await api.actualizarConductor(id, cambios);
       conductores.recargar();
+      return aModelo(guardado);
     } else if (p === "monitoreo") {
-      await api.actualizarEmpresaMonitoreo(id, cambios);
+      const guardado = await api.actualizarEmpresaMonitoreo(id, cambios);
       monitoreo.recargar();
       // El nombre de la EMF se muestra en la tabla de vehiculos.
       vehiculos.recargar();
+      return aModelo(guardado);
     } else if (p === "terceros") {
       const guardado = await api.actualizarTercero(id, cambios);
       setAvisoCoordenada(guardado.avisoCoordenada ?? null);
       terceros.recargar();
+      return aModelo(guardado);
     }
+    return { ...cambios, id };
   }
 
   const texto = busqueda.trim().toLowerCase();
@@ -218,6 +285,14 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
 
   return (
     <>
+      {avisoRndc && (
+        <div className="alert success" style={{ whiteSpace: "pre-line" }}>
+          {avisoRndc}
+          <button type="button" className="btn-link" onClick={() => setAvisoRndc(null)}>
+            Entendido
+          </button>
+        </div>
+      )}
       {avisoCoordenada && (
         <div className="alert warning">
           {avisoCoordenada}
@@ -309,6 +384,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                 "Vence SOAT",
                 "Vence tecno.",
                 "Estado",
+                "RNDC",
               ]}
               filas={listaVehiculos.map((v) => (
                 <tr
@@ -364,6 +440,9 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                       vigente={vigente(v.fechaVencSoat) && vigente(v.fechaVencTecnomecanica)}
                     />
                   </td>
+                  <td>
+                    <EstadoRndc registro={v} />
+                  </td>
                 </tr>
               ))}
             />
@@ -374,7 +453,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
         {pestana === "remolques" && (
           <Tabla
             estado={remolques}
-            columnas={["Placa", "Ejes", "Capacidad", "Vence SOAT", "Vence tecno.", "Estado"]}
+            columnas={["Placa", "Ejes", "Capacidad", "Vence SOAT", "Vence tecno.", "Estado", "RNDC"]}
             filas={listaRemolques.map((r) => (
               <tr
                 key={r.id}
@@ -398,6 +477,9 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                     vigente={vigente(r.fechaVencSoat) && vigente(r.fechaVencTecnomecanica)}
                   />
                 </td>
+                <td>
+                  <EstadoRndc registro={r} />
+                </td>
               </tr>
             ))}
           />
@@ -407,7 +489,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
         {pestana === "conductores" && (
           <Tabla
             estado={conductores}
-            columnas={["Conductor", "Identificacion", "Licencia", "Categoria", "Vence licencia", "Estado"]}
+            columnas={["Conductor", "Identificacion", "Licencia", "Categoria", "Vence licencia", "Estado", "RNDC"]}
             filas={listaConductores.map((c) => (
               <tr
                 key={c.id}
@@ -436,6 +518,9 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                 <td>
                   <EstadoRegistro activo={c.activo} vigente={vigente(c.fechaVencLicencia)} />
                 </td>
+                <td>
+                  <EstadoRndc registro={c} />
+                </td>
               </tr>
             ))}
           />
@@ -445,7 +530,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
         {pestana === "terceros" && (
           <Tabla
             estado={terceros}
-            columnas={["Identificacion", "Nombre", "Sede", "Direccion", "Telefono", "Municipio", "Coordenadas"]}
+            columnas={["Identificacion", "Nombre", "Sede", "Direccion", "Telefono", "Municipio", "Coordenadas", "RNDC"]}
             filas={listaTerceros.map((t) => (
               <tr key={t.id} className="fila-clic" onClick={() => abrirEdicion(t)}>
                 <td>
@@ -476,6 +561,9 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                     // cargue contra la sede.
                     <span className="badge badge-warning">faltan</span>
                   )}
+                </td>
+                <td>
+                  <EstadoRndc registro={t} />
                 </td>
               </tr>
             ))}
@@ -545,21 +633,48 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
               <button className="btn-secondary" onClick={() => setEdicion(null)}>
                 Cancelar
               </button>
-              <button
-                className="btn-primary"
-                onClick={guardar}
-                disabled={guardando || (edicion.modo === "editar" && !hayCambios)}
-              >
-                {guardando
-                  ? "Guardando..."
-                  : edicion.modo === "editar"
-                    ? "Guardar cambios"
-                    : "Guardar"}
-              </button>
+              {(MAESTROS_RNDC as readonly Pestana[]).includes(pestana) ? (
+                <>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => guardar(false)}
+                    disabled={guardando || (edicion.modo === "editar" && !hayCambios)}
+                  >
+                    Solo guardar
+                  </button>
+                  {/* Sin cambios tambien se puede (re)enviar al RNDC lo que ya esta guardado. */}
+                  <button className="btn-primary" onClick={() => guardar(true)} disabled={guardando}>
+                    {guardando
+                      ? "Enviando..."
+                      : edicion.modo === "editar" && !hayCambios
+                        ? "Registrar en el RNDC"
+                        : "Guardar y registrar en el RNDC"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="btn-primary"
+                  onClick={() => guardar(false)}
+                  disabled={guardando || (edicion.modo === "editar" && !hayCambios)}
+                >
+                  {guardando
+                    ? "Guardando..."
+                    : edicion.modo === "editar"
+                      ? "Guardar cambios"
+                      : "Guardar"}
+                </button>
+              )}
             </>
           }
         >
-          {errorGuardar && <div className="alert danger">{errorGuardar}</div>}
+          {errorGuardar && (
+            <div className="alert danger" style={{ whiteSpace: "pre-line" }}>
+              {errorGuardar}
+            </div>
+          )}
+          {edicion.modo === "editar" && (MAESTROS_RNDC as readonly Pestana[]).includes(pestana) && (
+            <EstadoRndc registro={edicion.original as RegistroRndc} detallado />
+          )}
           {pestana === "vehiculos" && titularEsEmpresa(modelo as Vehiculo, nitEmpresa) && (
             <div className="alert warning">
               El titular es el NIT de la empresa: el RNDC exigira valor a pagar 0 (MAN006). Para
@@ -638,6 +753,45 @@ function Tabla({
         alCambiar={setPagina}
       />
     </>
+  );
+}
+
+/**
+ * Estado del registro en el RNDC: registrado (con radicado), rechazado (con el
+ * mensaje en el titulo) o sin registrar desde la aplicacion. `detallado`
+ * muestra el mensaje completo (en la ventana de edicion).
+ */
+function EstadoRndc({ registro, detallado = false }: { registro: RegistroRndc; detallado?: boolean }) {
+  if (registro.rndcError) {
+    return detallado ? (
+      <div className="alert warning" style={{ whiteSpace: "pre-line" }}>
+        Ultimo intento de registro en el RNDC rechazado:{"\n"}
+        {registro.rndcError}
+      </div>
+    ) : (
+      <span className="badge badge-danger" title={registro.rndcError}>
+        Rechazado
+      </span>
+    );
+  }
+  if (registro.rndcRadicado) {
+    return detallado ? (
+      <div className="dato-sec" style={{ marginBottom: "0.6rem" }}>
+        Registrado en el RNDC desde la aplicacion: radicado {registro.rndcRadicado}
+        {registro.rndcEn ? ` (${fechaHora(registro.rndcEn)})` : ""}.
+      </div>
+    ) : (
+      <span className="badge badge-success" title={registro.rndcEn ? fechaHora(registro.rndcEn) : undefined}>
+        {registro.rndcRadicado}
+      </span>
+    );
+  }
+  return detallado ? (
+    <div className="dato-sec" style={{ marginBottom: "0.6rem" }}>
+      Aun no se ha registrado en el RNDC desde la aplicacion (puede que ya exista alla, creado en el portal).
+    </div>
+  ) : (
+    <span className="dato-sec">-</span>
   );
 }
 
@@ -1111,6 +1265,21 @@ const SECCIONES_CONDUCTOR: SeccionFormulario[] = [
     ],
   },
   {
+    titulo: "Direccion",
+    descripcion:
+      "En el RNDC el conductor se registra como tercero, y para eso exige direccion y municipio. El nombre lo toma el RNDC del registro oficial.",
+    campos: [
+      { key: "direccion", label: "Direccion", tipo: "text" },
+      { key: "ciudad", label: "Municipio", tipo: "text" },
+      {
+        key: "codMunicipioRndc",
+        label: "Cod. municipio (DIVIPOLA, 8 digitos)",
+        tipo: "text",
+        placeholder: "11001000",
+      },
+    ],
+  },
+  {
     titulo: "Licencia",
     descripcion:
       "Debe estar vigente en una fecha posterior al descargue de los viajes que vaya a hacer.",
@@ -1151,6 +1320,13 @@ const SECCIONES_TERCERO: SeccionFormulario[] = [
         label: 'Cod. de sede RNDC (por defecto "0")',
         tipo: "text",
         placeholder: "0",
+      },
+      {
+        key: "nombreSede",
+        label: "Nombre de la sede en el RNDC",
+        tipo: "text",
+        placeholder: "PLANTA YUMBO",
+        ayuda: "Con NIT el RNDC lo exige. Si se deja vacio se envia el municipio.",
       },
       { key: "ciudad", label: "Municipio", tipo: "text" },
       {

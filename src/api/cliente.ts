@@ -20,6 +20,7 @@ import type {
   PeticionDespacho,
   PlantillaViaje,
   Remolque,
+  ResultadoRegistroRndc,
   RespuestaViasSicetac,
   ResumenAlertas,
   RutaConTarifa,
@@ -377,6 +378,13 @@ export const api = {
   /** Edita un tercero. avisoCoordenada trae el problema de su coordenada, si hay. */
   actualizarTercero: (id: number, datos: Partial<Tercero>) =>
     put<Tercero & { avisoCoordenada?: string | null }>(`/catalogo/terceros/${id}`, datos),
+
+  /**
+   * Crea o actualiza en el RNDC un tercero, conductor, vehiculo o remolque con
+   * los datos que tiene hoy el catalogo (procesos 11 y 12).
+   */
+  registrarEnRndc: (maestro: "terceros" | "conductores" | "vehiculos" | "remolques", id: number) =>
+    post<ResultadoRegistroRndc>(`/catalogo/${maestro}/${id}/rndc`, {}),
 
   /** Plantillas de viaje activas, con sus terceros. */
   getPlantillas: () => get<PlantillaViaje[]>("/catalogo/plantillas"),

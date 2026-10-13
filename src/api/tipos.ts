@@ -9,7 +9,31 @@
  * solo donde hagan falta, no al recibirlas.
  */
 
-export interface Remolque {
+/**
+ * Ultimo registro en el RNDC de un tercero, conductor, vehiculo o remolque
+ * (procesos 11 y 12, ver backend src/rndc/maestros.ts).
+ */
+export interface RegistroRndc {
+  /** Radicado del ultimo registro aceptado. */
+  rndcRadicado?: string | null;
+  /** Cuando se registro. */
+  rndcEn?: string | null;
+  /** Mensaje del RNDC si el ultimo intento fue rechazado. */
+  rndcError?: string | null;
+}
+
+/** Respuesta de registrar un maestro en el RNDC. */
+export interface ResultadoRegistroRndc {
+  ok: boolean;
+  radicado: string | null;
+  /** El RNDC ya tenia exactamente esos datos. */
+  yaEstabaIgual: boolean;
+  error: string | null;
+  /** Lo que no se envio y por que (ej. un telefono de 7 digitos). */
+  avisos?: string[];
+}
+
+export interface Remolque extends RegistroRndc {
   id: number;
   placa: string;
   numEjes: number | null;
@@ -19,7 +43,7 @@ export interface Remolque {
   activo: boolean;
 }
 
-export interface Vehiculo {
+export interface Vehiculo extends RegistroRndc {
   id: number;
   placa: string;
   placaRemolque: string | null;
@@ -62,7 +86,7 @@ export interface EmpresaMonitoreo {
   nombre: string;
 }
 
-export interface Conductor {
+export interface Conductor extends RegistroRndc {
   id: number;
   cedula: string;
   nombre: string;
@@ -71,9 +95,13 @@ export interface Conductor {
   fechaVencLicencia: string | null;
   activo: boolean;
   codTipoId: string;
+  /** Direccion y municipio: el RNDC los exige para registrarlo como tercero. */
+  direccion?: string | null;
+  ciudad?: string | null;
+  codMunicipioRndc?: string | null;
 }
 
-export interface Tercero {
+export interface Tercero extends RegistroRndc {
   id: number;
   nit: string;
   nombre: string;
@@ -91,6 +119,8 @@ export interface Tercero {
    * y sirve para validar que la ruta calce con los sitios de cargue/descargue.
    */
   codMunicipioRndc: string | null;
+  /** Nombre de la sede en el RNDC (obligatorio con NIT). */
+  nombreSede?: string | null;
 }
 
 /** Municipio del catalogo DIVIPOLA. */

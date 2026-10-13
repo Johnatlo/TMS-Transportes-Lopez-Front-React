@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_281 funciones, componentes, métodos y rutas en 40 archivos._
+_284 funciones, componentes, métodos y rutas en 40 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (108)
+- [`src/api/cliente.ts`](#srcapiclientets) (109)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
 - [`src/componentes/AnularViaje.tsx`](#srccomponentesanularviajetsx) (3)
@@ -202,7 +202,7 @@ _281 funciones, componentes, métodos y rutas en 40 archivos._
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
 - [`src/ganchos/useSesion.tsx`](#srcganchosusesesiontsx) (2)
-- [`src/paginas/Catalogo.tsx`](#srcpaginascatalogotsx) (19)
+- [`src/paginas/Catalogo.tsx`](#srcpaginascatalogotsx) (21)
 - [`src/paginas/Dashboard.tsx`](#srcpaginasdashboardtsx) (15)
 - [`src/paginas/Despacho.tsx`](#srcpaginasdespachotsx) (6)
 - [`src/paginas/FormularioPlantilla.tsx`](#srcpaginasformularioplantillatsx) (4)
@@ -369,6 +369,10 @@ _281 funciones, componentes, métodos y rutas en 40 archivos._
 
   - **`api.actualizarTercero(id, datos)`** · _método_
     Edita un tercero. avisoCoordenada trae el problema de su coordenada, si hay.
+
+  - **`api.registrarEnRndc(maestro, id)`** · _método_
+    Crea o actualiza en el RNDC un tercero, conductor, vehiculo o remolque con
+    los datos que tiene hoy el catalogo (procesos 11 y 12).
 
   - **`api.getPlantillas()`** · _método_
     Plantillas de viaje activas, con sus terceros.
@@ -1144,6 +1148,9 @@ _281 funciones, componentes, métodos y rutas en 40 archivos._
 > Conductores, Clientes (terceros) y Configuracion (parametros de la
 > empresa). Listas con su estado de documentos y formularios de crear/editar.
 
+- **`tituloRegistro(p, m)`** · _función_
+  "Vehiculo SKN250", "Conductor PEDRO PEREZ"... para los avisos del registro.
+
 - **`Catalogo({...})`** · _componente React_
   El catalogo se usa desde varias entradas del menu (Flota, Conductores,
   Clientes, Configuracion): cada una muestra solo sus pestanas. Sin la prop,
@@ -1152,6 +1159,11 @@ _281 funciones, componentes, métodos y rutas en 40 archivos._
 - **`Tabla({...})`** · _componente React_
   Tabla simple del catalogo con paginas de 50: muestra "Cargando" o el error
   mientras corresponde, y vuelve a la primera pagina cuando cambia la lista.
+
+- **`EstadoRndc({...})`** · _componente React_
+  Estado del registro en el RNDC: registrado (con radicado), rechazado (con el
+  mensaje en el titulo) o sin registrar desde la aplicacion. `detallado`
+  muestra el mensaje completo (en la ventana de edicion).
 
 - **`EstadoRegistro({...})`** · _componente React_
   Insignia del registro: Inactivo, Al dia o Revisar (documento vencido).
