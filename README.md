@@ -175,10 +175,11 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_284 funciones, componentes, métodos y rutas en 40 archivos._
+_288 funciones, componentes, métodos y rutas en 41 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (109)
+- [`src/api/cliente.ts`](#srcapiclientets) (110)
+- [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
 - [`src/componentes/AnularViaje.tsx`](#srccomponentesanularviajetsx) (3)
@@ -327,6 +328,9 @@ _284 funciones, componentes, métodos y rutas en 40 archivos._
   - **`api.eliminarVehiculo(id)`** · _método_
     Borrado logico: el vehiculo sale de todas las listas pero se conserva
     para los viajes que ya lo usaron. Crear otra vez la misma placa lo recupera.
+
+  - **`api.getAccesoGps(id)`** · _método_
+    Link, usuario y clave de la plataforma GPS del vehiculo (para ver la hora de salida del cargue).
 
   - **`api.getEmpresasMonitoreo()`** · _método_
     Empresas de monitoreo de flota (GPS) activas.
@@ -609,6 +613,22 @@ _284 funciones, componentes, métodos y rutas en 40 archivos._
 
   - **`apiSeguimiento.registrarPago(facturaNumero, empresa, fecha)`** · _método_
     Registra el pago de una factura (todos sus viajes).
+
+### `src/componentes/AccesoGps.tsx`
+
+> Acceso a la plataforma GPS del vehiculo elegido en el despacho: link (abre
+> en otra pestana), usuario y clave con boton de copiar. Sirve para revisar a
+> que hora salio del sitio de cargue mientras se planilla.
+
+- **`esLinkSeguro(url)`** · _función_
+  Solo se enlaza un http(s): el backend ya lo exige, esto es una segunda barrera.
+
+- **`Copiar({...})`** · _componente React_
+  Boton que copia un texto al portapapeles y dice "Copiado" un momento.
+
+- **`AccesoGps({...})`** · _componente React_
+  Panel con el acceso al GPS del vehiculo. La clave se muestra oculta hasta
+  pulsar "Ver". Si no hay nada guardado, explica donde agregarlo.
 
 ### `src/componentes/AlertasDocumentos.tsx`
 

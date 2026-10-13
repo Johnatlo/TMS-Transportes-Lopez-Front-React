@@ -13,6 +13,7 @@ import { Avisos, Cargando } from "../componentes/Estado";
 import ComboBuscable from "../componentes/ComboBuscable";
 import Modal from "../componentes/Modal";
 import DatosRndcEnviados from "../componentes/DatosRndc";
+import AccesoGps from "../componentes/AccesoGps";
 import type { DatosRndc, PlantillaViaje, Via, Viaje, ViajeRemesa } from "../api/tipos";
 
 /** Radicado que el RNDC informa cuando un documento ya existe ("DUPLICADO:123"). */
@@ -880,6 +881,9 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         </div>
       )}
       <Avisos avisos={avisos} />
+      {/* Acceso al GPS del vehiculo en todos los pasos: se planilla con la
+          plataforma abierta en otra pestana para ver la hora de salida. */}
+      {vehiculoId && <AccesoGps vehiculoId={vehiculoId} />}
 
       {cargandoCatalogos && <Cargando que="catalogos" />}
       {cargandoViaje && <Cargando que={`el viaje #${viajeParaEditar}`} />}

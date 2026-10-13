@@ -43,6 +43,21 @@ const CON_ESTADO: Pestana[] = ["vehiculos", "remolques", "conductores"];
  */
 const MAESTROS_RNDC = ["vehiculos", "remolques", "conductores", "terceros"] as const;
 
+/**
+ * Campos que viajan al RNDC al registrar, por pestana (los mismos que arma
+ * backend/src/rndc/maestros.ts). Todo lo demas (acceso al GPS, flota, FOPAT,
+ * documentos...) es solo de la aplicacion.
+ */
+const CAMPOS_RNDC: Partial<Record<Pestana, readonly string[]>> = {
+  vehiculos: ["placa", "pesoVehiculoVacio", "codTipoIdTenedor", "numIdTenedor"],
+  remolques: ["placa"],
+  conductores: ["codTipoId", "cedula", "nombre", "direccion", "codMunicipioRndc"],
+  terceros: [
+    "codTipoId", "nit", "nombre", "direccion", "telefono", "codSede", "nombreSede",
+    "codMunicipioRndc", "latitud", "longitud",
+  ],
+};
+
 /** "Vehiculo SKN250", "Conductor PEDRO PEREZ"... para los avisos del registro. */
 function tituloRegistro(p: Pestana, m: Modelo): string {
   const nombre = m.placa ?? m.nombre ?? "";
@@ -113,6 +128,10 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
   const cambiosPendientes =
     edicion?.modo === "editar" ? soloCambios(edicion.original, modelo) : modelo;
   const hayCambios = Object.keys(cambiosPendientes).length > 0;
+  /** Campos de esta pestana que van al RNDC (undefined si no se registra alla). */
+  const camposRndc = CAMPOS_RNDC[pestana];
+  /** Algun cambio pendiente es de un campo que el RNDC tiene. */
+  const cambiaAlgoDelRndc = !!camposRndc && Object.keys(cambiosPendientes).some((k) => camposRndc.includes(k));
 
   /**
    * Guarda el formulario y, si `registrar`, crea o actualiza el registro en el
@@ -213,7 +232,11 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
       conductores.recargar();
       return aModelo(creado);
     } else if (p === "monitoreo") {
-      const creado = await api.crearEmpresaMonitoreo({ nit: datos.nit ?? "", nombre: datos.nombre ?? "" });
+      const creado = await api.crearEmpresaMonitoreo({
+        nit: datos.nit ?? "",
+        nombre: datos.nombre ?? "",
+        urlPlataforma: datos.urlPlataforma ?? null,
+      });
       monitoreo.recargar();
       return aModelo(creado);
     } else if (p === "terceros") {
@@ -453,7 +476,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
         {pestana === "remolques" && (
           <Tabla
             estado={remolques}
-            columnas={["Placa", "Ejes", "Capacidad", "Vence SOAT", "Vence tecno.", "Estado", "RNDC"]}
+            columnas={["Placa", "Ejes", "Capacidad", "Estado", "RNDC"]}
             filas={listaRemolques.map((r) => (
               <tr
                 key={r.id}
@@ -466,16 +489,8 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                 <td>{r.numEjes ?? "-"}</td>
                 <td>{kg(r.capacidadKg)}</td>
                 <td>
-                  <Vencimiento fecha={r.fechaVencSoat} />
-                </td>
-                <td>
-                  <Vencimiento fecha={r.fechaVencTecnomecanica} />
-                </td>
-                <td>
-                  <EstadoRegistro
-                    activo={r.activo}
-                    vigente={vigente(r.fechaVencSoat) && vigente(r.fechaVencTecnomecanica)}
-                  />
+                  {/* Los remolques no tienen SOAT ni tecnomecanica: solo activo o inactivo. */}
+                  <EstadoRegistro activo={r.activo} vigente />
                 </td>
                 <td>
                   <EstadoRndc registro={r} />
@@ -633,22 +648,28 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
               <button className="btn-secondary" onClick={() => setEdicion(null)}>
                 Cancelar
               </button>
-              {(MAESTROS_RNDC as readonly Pestana[]).includes(pestana) ? (
+              {camposRndc && (edicion.modo === "crear" || cambiaAlgoDelRndc) ? (
+                // Nuevo, o cambio algo que el RNDC tiene: se puede actualizar alla.
                 <>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => guardar(false)}
-                    disabled={guardando || (edicion.modo === "editar" && !hayCambios)}
-                  >
+                  <button className="btn-secondary" onClick={() => guardar(false)} disabled={guardando}>
                     Solo guardar
                   </button>
-                  {/* Sin cambios tambien se puede (re)enviar al RNDC lo que ya esta guardado. */}
                   <button className="btn-primary" onClick={() => guardar(true)} disabled={guardando}>
                     {guardando
                       ? "Enviando..."
-                      : edicion.modo === "editar" && !hayCambios
-                        ? "Registrar en el RNDC"
-                        : "Guardar y registrar en el RNDC"}
+                      : edicion.modo === "crear"
+                        ? "Guardar y registrar en el RNDC"
+                        : "Guardar y actualizar en el RNDC"}
+                  </button>
+                </>
+              ) : camposRndc && !hayCambios ? (
+                // Sin cambios: guardar no hace nada; solo se puede reenviar al RNDC.
+                <>
+                  <button className="btn-secondary" onClick={() => guardar(true)} disabled={guardando}>
+                    {guardando ? "Enviando..." : "Enviar de nuevo al RNDC"}
+                  </button>
+                  <button className="btn-primary" disabled>
+                    Guardar cambios
                   </button>
                 </>
               ) : (
@@ -672,8 +693,17 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
               {errorGuardar}
             </div>
           )}
-          {edicion.modo === "editar" && (MAESTROS_RNDC as readonly Pestana[]).includes(pestana) && (
+          {edicion.modo === "editar" && camposRndc && (
             <EstadoRndc registro={edicion.original as RegistroRndc} detallado />
+          )}
+          {camposRndc && (
+            <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
+              Los campos marcados <span className="marca-rndc">RNDC</span> se envian al RNDC cuando se registra. El
+              resto{pestana === "vehiculos" ? " (como el acceso al GPS)" : ""} solo se guarda en la aplicacion.
+            </div>
+          )}
+          {edicion.modo === "editar" && hayCambios && camposRndc && !cambiaAlgoDelRndc && (
+            <div className="alert info">Estos cambios son solo de la aplicacion: no hay nada que enviar al RNDC.</div>
           )}
           {pestana === "vehiculos" && titularEsEmpresa(modelo as Vehiculo, nitEmpresa) && (
             <div className="alert warning">
@@ -685,6 +715,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
             secciones={seccionesDe(pestana, empresasGps, edicion.modo === "editar")}
             modelo={modelo}
             alCambiar={setModelo}
+            camposRndc={camposRndc}
           />
         </Modal>
       )}
@@ -1223,6 +1254,27 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[]): SeccionFormulario[] {
         },
       ],
     },
+    {
+      titulo: "Acceso al GPS",
+      descripcion:
+        "Solo para uso interno: no se envia al RNDC (basta con Guardar). Al despachar aparecen el link, el usuario y la clave de este vehiculo para revisar a que hora salio del cargue. La clave se guarda cifrada.",
+      campos: [
+        {
+          key: "gpsUrl",
+          label: "Link de la plataforma",
+          tipo: "text",
+          placeholder: "https://...",
+          ayuda: "Si se deja vacio se usa el link de su empresa de monitoreo.",
+        },
+        { key: "gpsUsuario", label: "Usuario", tipo: "text" },
+        {
+          key: "gpsClave",
+          label: "Clave",
+          tipo: "password",
+          ayuda: "Dejala vacia para no cambiar la que esta guardada.",
+        },
+      ],
+    },
   ];
 }
 
@@ -1235,13 +1287,6 @@ const SECCIONES_REMOLQUE: SeccionFormulario[] = [
       { key: "placa", label: "Placa del remolque", tipo: "text", placeholder: "R37108" },
       { key: "numEjes", label: "Numero de ejes", tipo: "number", placeholder: "3" },
       { key: "capacidadKg", label: "Capacidad de carga (kg)", tipo: "number" },
-    ],
-  },
-  {
-    titulo: "Documentos",
-    campos: [
-      { key: "fechaVencSoat", label: "Vencimiento SOAT", tipo: "date" },
-      { key: "fechaVencTecnomecanica", label: "Vencimiento tecnomecanica", tipo: "date" },
     ],
   },
 ];
@@ -1357,6 +1402,13 @@ const SECCIONES_MONITOREO: SeccionFormulario[] = [
       "Copia el nombre y el NIT tal como aparecen en el desplegable del portal del RNDC.",
     campos: [
       { key: "nombre", label: "Nombre", tipo: "text", placeholder: "SAT CONTROL S.A.S" },
+      {
+        key: "urlPlataforma",
+        label: "Link de la plataforma GPS",
+        tipo: "text",
+        placeholder: "https://...",
+        ayuda: "Lo usan sus vehiculos que no tengan un link propio.",
+      },
       {
         key: "nit",
         label: "NIT",

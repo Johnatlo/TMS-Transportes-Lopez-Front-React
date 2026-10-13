@@ -15,7 +15,8 @@ export interface OpcionCampo {
 export interface CampoFormulario {
   key: string;
   label: string;
-  tipo: "text" | "number" | "date" | "select" | "checkbox";
+  /** "password": se escribe oculto y el navegador no lo autocompleta. */
+  tipo: "text" | "number" | "date" | "select" | "checkbox" | "password";
   opciones?: OpcionCampo[];
   placeholder?: string;
   ayuda?: string;
@@ -38,10 +39,13 @@ export default function FormularioGenerico({
   secciones,
   modelo,
   alCambiar,
+  camposRndc,
 }: {
   secciones: SeccionFormulario[];
   modelo: Modelo;
   alCambiar: (modelo: Modelo) => void;
+  /** Campos que se envian al RNDC al registrar: llevan la marca "RNDC". */
+  camposRndc?: readonly string[];
 }) {
   // Nunca se muta el modelo: se crea uno nuevo. Mutarlo no redibujaria nada.
   const fijar = (key: string, valor: unknown) => alCambiar({ ...modelo, [key]: valor });
@@ -61,6 +65,7 @@ export default function FormularioGenerico({
                 campo={campo}
                 valor={modelo[campo.key]}
                 alFijar={(v) => fijar(campo.key, v)}
+                vaAlRndc={!!camposRndc?.includes(campo.key)}
               />
             ))}
           </div>
@@ -78,11 +83,18 @@ function Campo({
   campo,
   valor,
   alFijar,
+  vaAlRndc = false,
 }: {
   campo: CampoFormulario;
   valor: any;
   alFijar: (valor: unknown) => void;
+  vaAlRndc?: boolean;
 }) {
+  const marca = vaAlRndc ? (
+    <span className="marca-rndc" title="Se envia al RNDC al registrar">
+      RNDC
+    </span>
+  ) : null;
   if (campo.tipo === "checkbox") {
     return (
       <>
@@ -94,6 +106,7 @@ function Campo({
             onChange={(e) => alFijar(e.target.checked)}
           />
           {campo.label}
+          {marca}
         </label>
         {campo.ayuda && <p className="section-desc">{campo.ayuda}</p>}
       </>
@@ -102,7 +115,10 @@ function Campo({
 
   return (
     <>
-      <label>{campo.label}</label>
+      <label>
+        {campo.label}
+        {marca}
+      </label>
       {campo.tipo === "select" ? (
         <select value={valor ?? ""} onChange={(e) => alFijar(e.target.value)}>
           <option value="" disabled>
@@ -129,6 +145,7 @@ function Campo({
         <input
           type={campo.tipo}
           placeholder={campo.placeholder}
+          autoComplete={campo.tipo === "password" ? "new-password" : undefined}
           value={valor ?? ""}
           onChange={(e) =>
             // Los numericos se guardan como number, pero el campo vacio queda

@@ -70,6 +70,24 @@ export interface Vehiculo extends RegistroRndc {
   nombreTenedor: string | null;
   /** Cedula del conductor que suele manejarlo (sugerencia del despacho). */
   cedulaConductorHabitual: string | null;
+  /** Link de la plataforma GPS de este vehiculo (si no, el de su empresa de monitoreo). */
+  gpsUrl?: string | null;
+  /** Usuario de la plataforma GPS. */
+  gpsUsuario?: string | null;
+  /** Si tiene clave del GPS guardada (la clave solo llega con getAccesoGps). */
+  gpsTieneClave?: boolean;
+}
+
+/** Como entrar a la plataforma GPS de un vehiculo (GET /vehiculos/:id/gps). */
+export interface AccesoGps {
+  placa: string;
+  /** Empresa de monitoreo del vehiculo. */
+  proveedor: string | null;
+  url: string | null;
+  usuario: string | null;
+  clave: string | null;
+  /** Si la clave guardada no se pudo leer (falta la llave de cifrado...). */
+  aviso: string | null;
 }
 
 /** Remolque y conductor sugeridos para un vehiculo, con el porque. */
@@ -84,6 +102,8 @@ export interface EmpresaMonitoreo {
   /** Lo que viaja en NITMONITOREOFLOTA. */
   nit: string;
   nombre: string;
+  /** Link de la plataforma GPS del proveedor. */
+  urlPlataforma?: string | null;
 }
 
 export interface Conductor extends RegistroRndc {
@@ -384,7 +404,7 @@ export interface ResumenAlertas {
   porVencer: AlertaDocumento[];
   sinFecha: AlertaDocumento[];
   diasAviso: number;
-  revisados: { vehiculos: number; remolques: number; conductores: number };
+  revisados: { vehiculos: number; conductores: number };
   incluyeInactivos: boolean;
 }
 

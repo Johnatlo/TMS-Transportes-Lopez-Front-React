@@ -281,3 +281,20 @@ table.tabla-compacta th, table.tabla-compacta td { padding: 0.35rem 0.55rem; }
 /* Cuadro pagos: con la fecha pago factura, toda la fila queda verde */
 tr.fila-todo-pagado > td { background: #e6f4ea; }
 tr.fila-todo-pagado:hover > td { background: #d5ecdc; }
+
+/* Despacho: acceso a la plataforma GPS del vehiculo */
+.acceso-gps {
+  display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem;
+  padding: 0.6rem 0.8rem; background: #fff; border: 1px solid var(--gris-200); border-radius: var(--radio-md);
+  font-size: var(--texto-sm);
+}
+.acceso-gps-titulo { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.acceso-gps-titulo a { margin-left: auto; text-decoration: none; }
+.acceso-gps-datos { display: flex; gap: 1.2rem; flex-wrap: wrap; }
+
+/* Catalogo: campos que viajan al RNDC al registrar */
+.marca-rndc {
+  display: inline-block; margin-left: 0.4rem; padding: 0 0.35rem; border-radius: 4px;
+  background: var(--marca-50); color: var(--marca-700); font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.03em; vertical-align: middle;
+}

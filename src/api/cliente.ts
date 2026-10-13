@@ -12,6 +12,7 @@
  */
 
 import type {
+  AccesoGps,
   Conductor,
   DatosRndc,
   EmpresaMonitoreo,
@@ -335,16 +336,18 @@ export const api = {
    * para los viajes que ya lo usaron. Crear otra vez la misma placa lo recupera.
    */
   eliminarVehiculo: (id: number) => del<void>(`/catalogo/vehiculos/${id}`),
+  /** Link, usuario y clave de la plataforma GPS del vehiculo (para ver la hora de salida del cargue). */
+  getAccesoGps: (id: number) => get<AccesoGps>(`/catalogo/vehiculos/${id}/gps`),
 
   // ---------- Empresas de monitoreo de flota ----------
 
   /** Empresas de monitoreo de flota (GPS) activas. */
   getEmpresasMonitoreo: () => get<EmpresaMonitoreo[]>("/catalogo/monitoreo"),
   /** Registra una empresa de monitoreo de flota (GPS). */
-  crearEmpresaMonitoreo: (datos: { nit: string; nombre: string }) =>
+  crearEmpresaMonitoreo: (datos: { nit: string; nombre: string; urlPlataforma?: string | null }) =>
     post<EmpresaMonitoreo>("/catalogo/monitoreo", datos),
   /** Cambia NIT y/o nombre de una empresa de monitoreo. */
-  actualizarEmpresaMonitoreo: (id: number, datos: { nit?: string; nombre?: string }) =>
+  actualizarEmpresaMonitoreo: (id: number, datos: { nit?: string; nombre?: string; urlPlataforma?: string | null }) =>
     put<EmpresaMonitoreo>(`/catalogo/monitoreo/${id}`, datos),
   /** Desactiva una empresa de monitoreo. */
   eliminarEmpresaMonitoreo: (id: number) => del<void>(`/catalogo/monitoreo/${id}`),

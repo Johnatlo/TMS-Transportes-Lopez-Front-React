@@ -192,8 +192,8 @@ export default function AlertasDocumentos({
         </table>
       </div>
       <p className="resumen-catalogo">
-        {lista.length} documento(s). Revisados: {fuente.revisados.vehiculos} vehiculos,{" "}
-        {fuente.revisados.remolques} remolques y {fuente.revisados.conductores} conductores
+        {lista.length} documento(s). Revisados: {fuente.revisados.vehiculos} vehiculos y{" "}
+        {fuente.revisados.conductores} conductores
         {fuente.incluyeInactivos ? " (activos e inactivos)" : " activos"}.
       </p>
     </Modal>
