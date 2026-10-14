@@ -298,3 +298,12 @@ tr.fila-todo-pagado:hover > td { background: #d5ecdc; }
   background: var(--marca-50); color: var(--marca-700); font-size: 0.65rem; font-weight: 700;
   letter-spacing: 0.03em; vertical-align: middle;
 }
+
+/* Envio a facturacion: barra de filtros y tabla editable con scroll */
+.barra-envio { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.barra-envio select, .barra-envio > input { width: auto; min-width: 14rem; }
+.tabla-envio { max-height: 62vh; overflow: auto; border: 1px solid var(--gris-200); border-radius: var(--radio-md); }
+.tabla-envio td { vertical-align: top; }
+.tabla-envio td .principal, .tabla-envio td .dato-sec { display: block; }
+.tabla-envio input, .tabla-envio select { width: 100%; }
+.tabla-envio input[type="checkbox"] { width: auto; }

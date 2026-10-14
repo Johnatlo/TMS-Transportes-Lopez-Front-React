@@ -24,6 +24,7 @@ import {
 /** Campos del formulario: todo como texto, igual que los inputs. */
 const CAMPOS = [
   "fecha", "placa", "empresa", "conductor", "manifiesto", "remision", "pesoKg", "fechaDescargue",
+  "pesoFacturadoKg", "notaFactura",
   "tipoFlete", "tarifaKilo", "valorFijo", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "fechaPagoSaldo",
 ] as const;
 type Campo = (typeof CAMPOS)[number];
@@ -220,18 +221,30 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
                 </select>
               </div>
               {f.tipoFlete === "KILO" ? campo("tarifaKilo", "Tarifa ($ por kilo)", "number", { min: 0, step: "0.01" }) : campo("valorFijo", "Valor fijo", "number", { min: 0 })}
+              {f.tipoFlete === "KILO" &&
+                campo("pesoFacturadoKg", "Peso facturado (kg)", "number", { min: 0, placeholder: f.pesoKg || "Igual al real" })}
               <div>
                 <label>Valor del flete</label>
                 <div className="valor-calculado">
                   {f.tipoFlete === "KILO"
-                    ? f.pesoKg && f.tarifaKilo
-                      ? moneda(Math.round(Number(f.pesoKg) * Number(f.tarifaKilo)))
+                    ? (f.pesoFacturadoKg || f.pesoKg) && f.tarifaKilo
+                      ? moneda(Math.round(Number(f.pesoFacturadoKg || f.pesoKg) * Number(f.tarifaKilo)))
                       : "Falta peso o tarifa"
                     : f.valorFijo
                       ? moneda(Number(f.valorFijo))
                       : "-"}
                 </div>
               </div>
+            </div>
+            <div style={{ marginTop: "0.6rem" }}>
+              <label>Nota de la factura (para la contadora)</label>
+              <textarea
+                rows={2}
+                style={{ width: "100%" }}
+                value={f.notaFactura}
+                onChange={(e) => setF({ ...f, notaFactura: e.target.value })}
+              />
+              {d.enviadoFacturarEn && <div className="dato-sec">Enviado a facturacion el {fechaHora(d.enviadoFacturarEn)}.</div>}
             </div>
           </Seccion>
 

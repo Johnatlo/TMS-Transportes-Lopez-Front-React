@@ -12,6 +12,7 @@ import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import DetalleCuadro from "./DetalleCuadro";
 import { FacturarVarios, NuevoViajeCuadro, VentanaBombas } from "./VentanasCuadro";
+import EnvioFacturacion from "./EnvioFacturacion";
 import {
   ETIQUETA_FLOTA,
   ETIQUETA_PAPELES,
@@ -215,6 +216,7 @@ export default function CuadroCentral() {
   const [nuevo, setNuevo] = useState(false);
   const [facturando, setFacturando] = useState(false);
   const [verBombas, setVerBombas] = useState(false);
+  const [enviandoFacturar, setEnviandoFacturar] = useState(false);
 
   if (cargando && !datos) return <Cargando que="el cuadro pagos " />;
   if (error) return <ErrorCarga mensaje={error} alReintentar={recargar} />;
@@ -237,6 +239,9 @@ export default function CuadroCentral() {
             <>
               <button className="boton-barra" onClick={() => setVerBombas(true)}>
                 Bombas
+              </button>
+              <button className="btn-primary boton-con-texto" onClick={() => setEnviandoFacturar(true)}>
+                Enviar a facturacion
               </button>
               <button className="boton-barra" onClick={() => setFacturando(true)}>
                 Facturar varios
@@ -263,6 +268,7 @@ export default function CuadroCentral() {
       )}
       {facturando && <FacturarVarios filas={filas} alCerrar={() => setFacturando(false)} alTerminar={recargar} />}
       {verBombas && <VentanaBombas alCerrar={() => setVerBombas(false)} />}
+      {enviandoFacturar && <EnvioFacturacion alCerrar={() => setEnviandoFacturar(false)} alCambiar={recargar} />}
     </>
   );
 }

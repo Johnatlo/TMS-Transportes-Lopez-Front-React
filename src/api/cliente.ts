@@ -688,6 +688,14 @@ export interface FilaCuadro {
   tarifaKilo: number | null;
   valorFijo: number | null;
   valorFlete: number | null;
+  /** Peso que se factura (el real o el minimo pactado). */
+  pesoFacturadoKg: number | null;
+  /** Tarifa de la matriz de fletes con que se facturo. */
+  tarifaFleteId: number | null;
+  /** Nota de la factura para la contadora. */
+  notaFactura: string | null;
+  /** Cuando se envio en el cuadro de facturacion. */
+  enviadoFacturarEn: string | null;
   fechaDescargue: string | null;
   estadoPapeles: EstadoPapeles;
   flujoCorame: boolean;
@@ -753,6 +761,39 @@ export interface Bomba {
   activa: boolean;
 }
 
+/** Tarifa de la matriz de fletes. */
+export interface TarifaFlete {
+  id: number;
+  /** Cliente y ruta, como en la matriz ("CORAME", "TOLUA BOGOTA"...). */
+  nombre: string;
+  /** Cliente que se factura. */
+  razonSocial: string | null;
+  valor: number | null;
+  /** TON: por tonelada. FIJO: por viaje. POR / POR3: ver observaciones. */
+  tipo: "TON" | "FIJO" | "POR" | "POR3";
+  /** Si va por menos de este peso se factura este (34000, 32000 kg). */
+  pesoMinimoKg: number | null;
+  observaciones: string | null;
+}
+
+/** Viaje listo para facturar, con el radicado de su remesa. */
+export interface FilaPorFacturar extends FilaCuadro {
+  radicadoRemesa: string | null;
+}
+
+/** Lo que se guarda de cada viaje al enviarlo a facturar. */
+export interface EnvioFacturacion {
+  id: number;
+  tarifaFleteId: number | null;
+  tipo: "TON" | "FIJO";
+  valorTon: number | null;
+  pesoFacturadoKg: number | null;
+  total: number | null;
+  remision: string;
+  notaFactura: string;
+  facturaNumero: string;
+}
+
 /**
  * Llamadas del cuadro pagos (/api/cuadro). Las que cambian algo devuelven el
  * viaje actualizado con sus anticipos y notas.
@@ -785,6 +826,16 @@ export const apiCuadro = {
     put<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`, datos),
   /** Quita un anticipo. */
   borrarAnticipo: (id: number, anticipoId: number) => del<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`),
+  /** La matriz de fletes. */
+  tarifas: () => get<TarifaFlete[]>("/cuadro/tarifas"),
+  /** Reemplaza la matriz completa con la importada del Excel. */
+  importarTarifas: (tarifas: Omit<TarifaFlete, "id">[]) => put<{ importadas: number }>("/cuadro/tarifas", { tarifas }),
+  /** Cambia una tarifa. */
+  actualizarTarifa: (id: number, datos: Partial<TarifaFlete>) => put<TarifaFlete>(`/cuadro/tarifas/${id}`, datos),
+  /** Viajes listos para facturar y la ultima tarifa usada con cada cliente. */
+  porFacturar: () => get<{ filas: FilaPorFacturar[]; ultimaTarifa: Record<string, number> }>("/cuadro/por-facturar"),
+  /** Guarda en cada viaje lo que va en el cuadro de la contadora. */
+  enviarFacturacion: (filas: EnvioFacturacion[]) => post<{ guardados: number }>("/cuadro/enviar-facturacion", { filas }),
   /** Catalogo de bombas aliadas. */
   bombas: () => get<Bomba[]>("/cuadro/bombas"),
   /** Crea una bomba. */

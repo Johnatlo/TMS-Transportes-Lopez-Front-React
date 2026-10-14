@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_288 funciones, componentes, métodos y rutas en 41 archivos._
+_321 funciones, componentes, métodos y rutas en 44 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (110)
+- [`src/api/cliente.ts`](#srcapiclientets) (115)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -213,8 +213,11 @@ _288 funciones, componentes, métodos y rutas en 41 archivos._
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (3)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (2)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (5)
+- [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (5)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (6)
+- [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
+- [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (16)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (6)
@@ -577,6 +580,21 @@ _288 funciones, componentes, métodos y rutas en 41 archivos._
 
   - **`apiCuadro.borrarAnticipo(id, anticipoId)`** · _método_
     Quita un anticipo.
+
+  - **`apiCuadro.tarifas()`** · _método_
+    La matriz de fletes.
+
+  - **`apiCuadro.importarTarifas(tarifas)`** · _método_
+    Reemplaza la matriz completa con la importada del Excel.
+
+  - **`apiCuadro.actualizarTarifa(id, datos)`** · _método_
+    Cambia una tarifa.
+
+  - **`apiCuadro.porFacturar()`** · _método_
+    Viajes listos para facturar y la ultima tarifa usada con cada cliente.
+
+  - **`apiCuadro.enviarFacturacion(filas)`** · _método_
+    Guarda en cada viaje lo que va en el cuadro de la contadora.
 
   - **`apiCuadro.bombas()`** · _método_
     Catalogo de bombas aliadas.
@@ -1478,6 +1496,31 @@ _288 funciones, componentes, métodos y rutas en 41 archivos._
 - **`Notas({...})`** · _componente React_
   Notas con autor y fecha, la mas reciente arriba.
 
+### `src/paginas/cuadro/EnvioFacturacion.tsx`
+
+> Envio a facturacion: arma el cuadro que se le manda a la contadora (factura
+> en World Office) con los viajes listos para facturar. Cada fila trae la
+> tarifa sugerida de la matriz de fletes y todo se puede ajustar antes de
+> descargar el Excel. Tambien: importar y editar la matriz de fletes.
+
+- **`enInput(n)`** · _función_
+  Texto de un numero para un input ("" si no hay).
+
+- **`deInput(s)`** · _función_
+  Valor de un input numerico (null si esta vacio o no es numero).
+
+- **`EnvioFacturacion({...})`** · _componente React_
+  Ventana del envio a facturacion. Al "Guardar y descargar Excel" guarda en
+  cada viaje marcado lo que se envia (tarifa, peso, valor, remision, nota,
+  factura) y descarga el cuadro agrupado por factura.
+
+- **`FilaEditable({...})`** · _componente React_
+  Una fila editable del cuadro de envio.
+
+- **`VentanaMatriz({...})`** · _componente React_
+  Matriz de fletes: importar el Excel "MATRIZ FLETES" (reemplaza la actual) y
+  ajustar valor, tipo y peso minimo de cada tarifa.
+
 ### `src/paginas/cuadro/VentanasCuadro.tsx`
 
 > Ventanas auxiliares del cuadro pagos: nuevo viaje sin manifiesto, facturar
@@ -1517,6 +1560,109 @@ _288 funciones, componentes, métodos y rutas en 41 archivos._
 
 - **`saldoVencido(f)`** · _función_
   Saldo de un tercero sin pagar y ya vencido (15 dias despues de descargar).
+
+### `src/paginas/cuadro/excelFacturacion.ts`
+
+> Excel del envio a facturacion (igual a docs/EJEMPLO CUADRO ENVIO DE
+> FACTURACION.png) y lectura del Excel de la matriz de fletes.
+>
+> exceljs se carga solo cuando se usa (import dinamico): es pesado y la
+> mayoria de las pantallas no lo necesitan.
+
+- **`fechaExcel(f)`** · _función_
+  "2026-10-05" -> Date a mediodia local (que Excel no lo corra de dia).
+
+- **`remisionExcel(r)`** · _función_
+  Remision como numero si es solo digitos (como en el ejemplo); si no, texto.
+
+- **`encabezado(hoja)`** · _función_
+  Pinta el encabezado de un bloque (fondo azul, negrita, centrado).
+
+- **`viaje(hoja, e)`** · _función_
+  Agrega un viaje al bloque con los formatos de cada columna.
+
+- **`descargarCuadroEnvio(bloques, nombreArchivo)`** · _función_
+  Arma el Excel del envio: un bloque por factura (encabezado azul y sus
+  viajes), separados por una fila vacia, como el ejemplo. Lo descarga.
+
+- **`valorCelda(v)`** · _función_
+  Valor de una celda de exceljs: el resultado si es formula, el texto si es enriquecido.
+
+- **`leerMatrizFletes(archivo)`** · _función_
+  Lee el Excel "MATRIZ FLETES": busca la fila de titulos (EMPRESA, RAZON
+  SOCIAL, VALOR, TIPO, OBSERVACIONES) y devuelve las filas de abajo.
+  Lanza Error si el archivo no tiene esa forma.
+
+### `src/paginas/cuadro/facturacion.ts`
+
+> Reglas del envio a facturacion (cuadro para la contadora): sugerir la
+> tarifa de la matriz de fletes, el peso a facturar, el total y la nota de la
+> factura, y agrupar los viajes por factura. Sin React: se prueban aparte
+> (facturacion.test.ts).
+
+- **`normalizarNombre(s)`** · _función_
+  Nombre comparable: mayusculas, sin tildes, sin puntuacion y sin sufijos
+  legales. "RECOLAM S.EN C." -> "RECOLAM"; "TOLUA ... S.A.S." -> "TOLUA ...".
+
+- **`palabras(s)`** · _función_
+  Palabras del nombre, sin la "S" final para que RECICLAJE y RECICLAJES coincidan.
+
+- **`parecido(empresa, tarifa)`** · _función_
+  Que tanto se parece una tarifa al cliente del viaje (0 = nada). Se compara
+  contra la razon social de la tarifa y contra su nombre:
+  3 = igual, 2 = uno contiene al otro, 1 = comparten la mayoria de palabras.
+
+- **`tarifasDelCliente(empresa, tarifas)`** · _función_
+  Las tarifas del cliente, la mas parecida primero y luego la de nombre mas corto.
+
+- **`sugerirTarifa(empresa, tarifas, ultimaId)`** · _función_
+  Tarifa sugerida para un viaje: la ultima usada con ese cliente; si no, la
+  mas parecida que no sea especial (-34 TON, clientes o ciudades adicionales,
+  urbano); si solo hay especiales, la primera. null si no hay ninguna.
+
+- **`pesoAFacturar(pesoKg, tarifa)`** · _función_
+  Peso a facturar: el real, o el minimo pactado si fue por menos (34000, 32000 kg).
+
+- **`totalPorPeso(pesoKg, valorTon)`** · _función_
+  Total por peso: toneladas x valor por tonelada, en pesos enteros.
+
+- **`placaConGuion(placa)`** · _función_
+  "SZP339" -> "SZP-339" (como va en la nota y en el cuadro).
+
+- **`miles(n)`** · _función_
+  34000 -> "34,000" (asi escriben las cifras en la nota).
+
+- **`notaFactura(d)`** · _función_
+  Nota de la factura, como la escriben a mano:
+  "REMISION 1111 TON 34,000 $150,000 SZP-339" (por peso) o
+  "REMISION 1111 $4,500,000 SZP-339" (fijo). CORAME / Cartones America van
+  con el numero del "transporte" en vez de la remision.
+
+- **`totalDe(e)`** · _función_
+  Total de una fila: por peso (TON) o el fijo.
+
+- **`notaDe(e)`** · _función_
+  La nota que corresponde a los datos de la fila.
+
+- **`aplicarTarifa(e, tarifa)`** · _función_
+  Aplica una tarifa a la fila: tipo, valor, peso a facturar y razon social. La
+  nota se rearma si no se edito a mano.
+
+- **`filaInicial(f, tarifas, ultimaId)`** · _función_
+  Fila inicial del cuadro de envio. Si el viaje ya se habia enviado, se parte
+  de lo guardado; si no, de la tarifa sugerida.
+
+- **`agruparPorFactura(filas)`** · _función_
+  Bloques del cuadro: los viajes con el mismo numero de factura van juntos
+  (en el orden en que aparece cada factura); los que no tienen numero van
+  cada uno en su propio bloque.
+
+- **`convertirMatriz(filas)`** · _función_
+  Convierte las filas del Excel "MATRIZ FLETES" en tarifas.
+
+  - Sin nombre: se ignora. Valor no numerico ("?"): sin valor.
+  - Las filas "X -34 TON" (fijo cuando va por menos de 34 toneladas) no son
+    una tarifa aparte: se convierten en peso minimo de 34000 kg de "X".
 
 ### `src/paginas/estadosViaje.ts`
 
