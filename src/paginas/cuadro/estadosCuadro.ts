@@ -18,6 +18,8 @@ export const ETIQUETA_ESTADO_CUADRO: Record<EstadoCuadro, string> = {
   // Internamente sigue siendo RADICADO (papeles radicados en el cliente); en
   // pantalla se llama "Listo para facturar".
   RADICADO: "Listo para facturar",
+  // Solo CORAME / Cartones America: los papeles ya quedaron radicados en el cliente.
+  RADICADOS: "Radicados",
   FACTURADO_SIN_DATOS: "Facturado sin datos",
   FACTURADO: "Facturado",
   PAGADO: "Todo pagado",
@@ -35,6 +37,8 @@ export function tonoEstadoCuadro(f: Pick<FilaCuadro, "estado" | "todoPagado">): 
       return "morado";
     case "RADICADO":
       return "verde";
+    case "RADICADOS":
+      return "turquesa";
     case "FACTURADO_SIN_DATOS":
       return "azul";
     case "FACTURADO":
@@ -57,12 +61,16 @@ export const ETIQUETA_PAPELES: Record<EstadoPapeles, string> = {
   PARQUEADERO: "En el parqueadero",
   OFICINA: "Donde Don Alexander",
   RADICADO: "Listo para facturar",
+  RADICADOS: "Radicados",
 };
 
-/** Pasos de los papeles. Parqueadero y oficina solo para CORAME / Cartones America. */
+/**
+ * Pasos de los papeles. Parqueadero, oficina y "radicados" (el ultimo, ya
+ * radicados en el cliente) solo para CORAME / Cartones America.
+ */
 export const pasosPapeles = (flujoCorame: boolean): EstadoPapeles[] =>
   flujoCorame
-    ? ["EN_RUTA", "DESCARGADO", "CONDUCTOR", "PARQUEADERO", "OFICINA", "RADICADO"]
+    ? ["EN_RUTA", "DESCARGADO", "CONDUCTOR", "PARQUEADERO", "OFICINA", "RADICADO", "RADICADOS"]
     : ["EN_RUTA", "DESCARGADO", "CONDUCTOR", "RADICADO"];
 
 export const ETIQUETA_FLOTA: Record<Flota, string> = {

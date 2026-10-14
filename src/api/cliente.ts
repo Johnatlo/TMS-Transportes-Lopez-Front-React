@@ -666,9 +666,10 @@ export function separarAvisos(avisos: string | null | undefined): string[] {
 // ---------------------------------------------------------------------------
 // Cuadro pagos (control operativo y financiero de los viajes)
 // ---------------------------------------------------------------------------
-export type EstadoPapeles = "EN_RUTA" | "DESCARGADO" | "CONDUCTOR" | "PARQUEADERO" | "OFICINA" | "RADICADO";
+export type EstadoPapeles = "EN_RUTA" | "DESCARGADO" | "CONDUCTOR" | "PARQUEADERO" | "OFICINA" | "RADICADO" | "RADICADOS";
 export type Flota = "LOPEZ" | "MYC" | "TERCERO";
-export type EstadoCuadro = "ANULADO" | "PAGADO" | "FACTURADO" | "FACTURADO_SIN_DATOS" | "RADICADO" | "SIN_RADICAR" | "EN_RUTA";
+export type EstadoCuadro =
+  | "ANULADO" | "PAGADO" | "FACTURADO" | "FACTURADO_SIN_DATOS" | "RADICADOS" | "RADICADO" | "SIN_RADICAR" | "EN_RUTA";
 
 export interface FilaCuadro {
   id: number;
@@ -730,16 +731,71 @@ export interface FilaCuadro {
   todoPagado: boolean;
 }
 
+/**
+ * Un tramo de anticipo (ida o vuelta) con su efectivo y su combustible. Es
+ * una fila del cuadro de anticipos y del detalle del viaje.
+ */
 export interface AnticipoBomba {
   id: number;
-  bombaId: number;
-  bomba: string;
-  ciudad: string | null;
-  valor: number;
+  /** Tanqueo del que sale (una sola factura de la bomba para ida y vuelta). */
+  tanqueoId: number | null;
+  tramo: "IDA" | "VUELTA";
   fecha: string;
+  placa: string | null;
+  /** Viaje al que se suma; null = vuelta pendiente del proximo viaje de la placa. */
+  cuadroViajeId: number | null;
+  empresa: string | null;
+  manifiesto: string | null;
+  efectivo: number;
+  combustible: number;
+  valor: number;
+  bombaId: number | null;
+  bomba: string | null;
+  facturaBomba: string | null;
+  fechaFacturaBomba: string | null;
+  idaYVuelta: boolean;
+  /** LOPEZ, MYC o TERCERO. */
+  flota: string | null;
   fechaPago: string | null;
   nota: string | null;
-  creadoPor: string | null;
+  /** Galones del tiquete de la bomba (para el cruce). */
+  galones: number | null;
+  /** Precio por galon con que se calculo el combustible. */
+  precioGalon: number | null;
+  /** Descuento en pesos que se resto (por la sociedad). */
+  descuento: number | null;
+  /** Combustible que se habia registrado antes de calcularlo con los galones. */
+  combustibleEntregado: number | null;
+}
+
+/** Cupo con la bomba y valores sugeridos para el cruce. */
+export interface ParametrosBomba {
+  cupoBomba: number;
+  precioGalonBomba: number;
+  descuentoGalonBomba: number;
+}
+
+/** Cuentas con la bomba. */
+export interface ResumenBomba extends ParametrosBomba {
+  /** Todo lo entregado en la bomba (efectivo y combustible). */
+  deuda: number;
+  pagado: number;
+  /** Lo que abono el socio directamente a la bomba. */
+  abonadoSocio: number;
+  /** deuda - pagado - abonado. */
+  pendiente: number;
+  /** cupo - pendiente. */
+  cupoDisponible: number;
+}
+
+/** Un abono del socio a la bomba, repartido entre viajes. */
+export interface AbonoSocio {
+  id: number;
+  socio: string;
+  fecha: string;
+  valor: number;
+  nota: string | null;
+  viajes: Array<{ cuadroViajeId: number; valor: number; placa: string | null; empresa: string | null; manifiesto: string | null; fecha: string | null }>;
 }
 
 export interface NotaCuadro {
@@ -826,6 +882,25 @@ export const apiCuadro = {
     put<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`, datos),
   /** Quita un anticipo. */
   borrarAnticipo: (id: number, anticipoId: number) => del<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`),
+  /** Cuadro de anticipos: todos los tramos (ida y vuelta), lo mas reciente primero. */
+  cuadroAnticipos: () => get<AnticipoBomba[]>("/cuadro/anticipos"),
+  /** Cambia fecha de pago, nota o viaje de un tramo; devuelve el cuadro de anticipos. */
+  actualizarTramo: (anticipoId: number, datos: Record<string, unknown>) =>
+    put<AnticipoBomba[]>(`/cuadro/anticipos/${anticipoId}`, datos),
+  /** Cuentas con la bomba: deuda, pagado, abonado por el socio, pendiente y cupo disponible. */
+  resumenBomba: () => get<ResumenBomba>("/cuadro/anticipos/resumen"),
+  /** Cambia el cupo con la bomba o el precio / descuento por galon sugeridos. */
+  guardarParametrosBomba: (datos: Partial<ParametrosBomba>) => put<ParametrosBomba>("/cuadro/anticipos/parametros", datos),
+  /** Abonos del socio a la bomba. */
+  abonosSocio: () => get<AbonoSocio[]>("/cuadro/abonos-socio"),
+  /** Registra un abono del socio; devuelve todos. */
+  registrarAbono: (datos: { socio: string; fecha: string; nota: string; viajes: Array<{ cuadroViajeId: number; valor: number }> }) =>
+    post<AbonoSocio[]>("/cuadro/abonos-socio", datos),
+  /** Borra un abono del socio; devuelve los que quedan. */
+  borrarAbono: (id: number) => del<AbonoSocio[]>(`/cuadro/abonos-socio/${id}`),
+  /** Factura de la bomba (numero, fecha) o bomba de un tanqueo; devuelve el cuadro de anticipos. */
+  actualizarTanqueo: (tanqueoId: number, datos: Record<string, unknown>) =>
+    put<AnticipoBomba[]>(`/cuadro/tanqueos/${tanqueoId}`, datos),
   /** La matriz de fletes. */
   tarifas: () => get<TarifaFlete[]>("/cuadro/tarifas"),
   /** Reemplaza la matriz completa con la importada del Excel. */

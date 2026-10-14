@@ -188,7 +188,7 @@ export function aplicarTarifa(e: FilaEnvio, tarifa: TarifaFlete | null): FilaEnv
 export function filaInicial(f: FilaPorFacturar, tarifas: TarifaFlete[], ultimaId?: number | null): FilaEnvio {
   const base: FilaEnvio = {
     fila: f,
-    incluir: f.estado === "RADICADO" && !f.enviadoFacturarEn,
+    incluir: (f.estado === "RADICADO" || f.estado === "RADICADOS") && !f.enviadoFacturarEn,
     tarifaId: null,
     razonSocial: f.empresa,
     tipo: "TON",

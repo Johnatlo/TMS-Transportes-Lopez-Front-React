@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useAltoTabla } from "../ganchos/useAltoTabla";
 
 /**
  * Tabla de listados del sistema (ver GUIA-UI.md, "Tablas").
@@ -82,6 +83,7 @@ export default function TablaDatos<T>({
   /** Clase extra de cada fila (ej. pintar de verde las que ya estan pagadas). */
   claseFila?: (fila: T) => string | undefined;
 }) {
+  const contenedor = useAltoTabla<HTMLDivElement>();
   const [pestana, setPestana] = useState(pestanaInicial ?? pestanas?.[0]?.id ?? "");
   const [busqueda, setBusqueda] = useState("");
   const [verFiltros, setVerFiltros] = useState(false);
@@ -247,7 +249,8 @@ export default function TablaDatos<T>({
         </div>
       )}
 
-      <div className="tabla-scroll">
+      {/* Alto limitado a la pantalla: la barra horizontal queda siempre a la vista. */}
+      <div className="tabla-scroll" ref={contenedor}>
         <table className={`tabla ${claseTabla}`}>
           <thead>
             <tr>
@@ -373,7 +376,7 @@ export function Paginacion({
 export type TonoPastilla =
   | "ok" | "aviso" | "error" | "info" | "neutro"
   // Colores del cuadro pagos (los mismos significados del Excel).
-  | "morado" | "verde" | "azul" | "naranja" | "amarillo";
+  | "morado" | "verde" | "azul" | "naranja" | "amarillo" | "turquesa";
 
 /** Pastilla de estado con punto de color (ver GUIA-UI.md, "Estados"). */
 export function Pastilla({ tono, children }: { tono: TonoPastilla; children: ReactNode }) {

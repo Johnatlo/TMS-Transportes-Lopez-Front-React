@@ -3,7 +3,8 @@
  * desde que carga hasta que todo queda pagado. Reemplaza la hoja de Excel
  * "CUADRO CENTRAL".
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiCuadro, moneda } from "../../api/cliente";
 import type { FilaCuadro } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
@@ -13,6 +14,8 @@ import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import DetalleCuadro from "./DetalleCuadro";
 import { FacturarVarios, NuevoViajeCuadro, VentanaBombas } from "./VentanasCuadro";
 import EnvioFacturacion from "./EnvioFacturacion";
+import Modal from "../../componentes/Modal";
+import Papeles from "../seguimiento/Papeles";
 import {
   ETIQUETA_FLOTA,
   ETIQUETA_PAPELES,
@@ -32,6 +35,7 @@ const PESTANAS: PestanaTabla<FilaCuadro>[] = [
   { id: "proceso", etiqueta: "En proceso", incluye: (f) => f.estado === "EN_RUTA" },
   { id: "sinRadicar", etiqueta: "Sin radicar", incluye: (f) => f.estado === "SIN_RADICAR" },
   { id: "listoParaFacturar", etiqueta: "Listo para facturar", incluye: (f) => f.estado === "RADICADO" },
+  { id: "radicados", etiqueta: "Radicados", incluye: (f) => f.estado === "RADICADOS" },
   { id: "sinDatos", etiqueta: "Facturado sin datos", incluye: (f) => f.estado === "FACTURADO_SIN_DATOS" },
   { id: "facturados", etiqueta: "Facturados", incluye: (f) => f.estado === "FACTURADO" },
   { id: "gerencia", etiqueta: "Falta gerencia", incluye: (f) => !f.anulado && !!f.revisadoContabilidadPor && !f.revisadoGerenciaPor },
@@ -83,6 +87,21 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
       ),
   },
   { id: "remision", titulo: "Remision", valor: (f) => f.remision, celda: (f) => <span className="codigo">{f.remision ?? "-"}</span> },
+  // Estado entre la remision y el peso.
+  {
+    id: "estado",
+    titulo: "Estado",
+    filtrable: true,
+    valor: (f) => etiquetaEstadoCuadro(f),
+    celda: (f) => (
+      <>
+        <Pastilla tono={tonoEstadoCuadro(f)}>{etiquetaEstadoCuadro(f)}</Pastilla>
+        {!f.anulado && !["RADICADO", "RADICADOS", "EN_RUTA"].includes(f.estadoPapeles) && (
+          <span className="dato-sec">Papeles: {ETIQUETA_PAPELES[f.estadoPapeles].toLowerCase()}</span>
+        )}
+      </>
+    ),
+  },
   {
     id: "peso",
     titulo: "Peso (kg)",
@@ -92,7 +111,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "anticipo",
-    titulo: "Anticipo bomba",
+    titulo: "Anticipos",
     alinear: "derecha",
     valor: (f) => f.totalAnticipos,
     celda: (f) =>
@@ -117,20 +136,6 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
           <span className="dato-sec">{f.tarifaKilo.toLocaleString("es-CO")} $/kg</span>
         )}
         {f.tipoFlete === "FIJO" && f.valorFijo !== null && <span className="dato-sec">Fijo</span>}
-      </>
-    ),
-  },
-  {
-    id: "estado",
-    titulo: "Estado",
-    filtrable: true,
-    valor: (f) => etiquetaEstadoCuadro(f),
-    celda: (f) => (
-      <>
-        <Pastilla tono={tonoEstadoCuadro(f)}>{etiquetaEstadoCuadro(f)}</Pastilla>
-        {!f.anulado && f.estadoPapeles !== "RADICADO" && f.estadoPapeles !== "EN_RUTA" && (
-          <span className="dato-sec">Papeles: {ETIQUETA_PAPELES[f.estadoPapeles].toLowerCase()}</span>
-        )}
       </>
     ),
   },
@@ -217,6 +222,17 @@ export default function CuadroCentral() {
   const [facturando, setFacturando] = useState(false);
   const [verBombas, setVerBombas] = useState(false);
   const [enviandoFacturar, setEnviandoFacturar] = useState(false);
+  /** Ventana de seguimiento de papeles: null cerrada; 0 abierta; id = abierta en ese viaje. */
+  const [papeles, setPapeles] = useState<number | null>(null);
+  const [parametros, setParametros] = useSearchParams();
+  // Las alertas de la campana llegan con ?papeles=<id del cuadro>.
+  useEffect(() => {
+    const id = parametros.get("papeles");
+    if (id !== null) {
+      setPapeles(Number(id) || 0);
+      setParametros({}, { replace: true });
+    }
+  }, [parametros, setParametros]);
 
   if (cargando && !datos) return <Cargando que="el cuadro pagos " />;
   if (error) return <ErrorCarga mensaje={error} alReintentar={recargar} />;
@@ -239,6 +255,9 @@ export default function CuadroCentral() {
             <>
               <button className="boton-barra" onClick={() => setVerBombas(true)}>
                 Bombas
+              </button>
+              <button className="boton-barra" onClick={() => setPapeles(0)}>
+                Seguimiento de papeles
               </button>
               <button className="btn-primary boton-con-texto" onClick={() => setEnviandoFacturar(true)}>
                 Enviar a facturacion
@@ -268,6 +287,11 @@ export default function CuadroCentral() {
       )}
       {facturando && <FacturarVarios filas={filas} alCerrar={() => setFacturando(false)} alTerminar={recargar} />}
       {verBombas && <VentanaBombas alCerrar={() => setVerBombas(false)} />}
+      {papeles !== null && (
+        <Modal titulo="Seguimiento de papeles" ancho="wide" alCerrar={() => setPapeles(null)}>
+          <Papeles viajeInicial={papeles || null} alCambiarCuadro={recargar} />
+        </Modal>
+      )}
       {enviandoFacturar && <EnvioFacturacion alCerrar={() => setEnviandoFacturar(false)} alCambiar={recargar} />}
     </>
   );

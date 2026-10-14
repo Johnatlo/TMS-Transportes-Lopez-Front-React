@@ -1,11 +1,10 @@
 /**
- * Pantalla Seguimiento de papeles: los viajes que ya descargaron y aun no
+ * Seguimiento de papeles (ventana del Cuadro pagos): los viajes que ya descargaron y aun no
  * estan facturados. Muestra donde estan los papeles, quien los tiene, si
  * estan completos y a que conductores hay que llamar hoy (sobre todo en
  * CORAME / Cartones America).
  */
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { apiSeguimiento, fechaHora } from "../../api/cliente";
 import type { AlertaFila, EstadoPapeles, FilaSeguimiento } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
@@ -37,13 +36,17 @@ const motivosDe = (f: FilaSeguimiento) => [...(f.alertaPapeles?.motivos ?? []), 
 const descargado = (f: FilaSeguimiento) =>
   f.estadoPapeles !== "EN_RUTA" || (!!f.fechaDescargue && f.fechaDescargue <= hoyColombia());
 
+/** Papeles listos para facturar: "listo para facturar" o, en CORAME, ya radicados. */
+const listos = (f: FilaSeguimiento) => f.estadoPapeles === "RADICADO" || f.estadoPapeles === "RADICADOS";
+
 const PESTANAS: PestanaTabla<FilaSeguimiento>[] = [
   { id: "comunicarse", etiqueta: "Comunicarse hoy", incluye: (f) => !!f.alertaPapeles?.comunicarse },
   { id: "urgentes", etiqueta: "Urgentes", incluye: (f) => alertaDe(f)?.nivel === "urgente" },
   { id: "faltan", etiqueta: "Faltan papeles", incluye: (f) => f.papelesCompletos === false },
-  { id: "corame", etiqueta: "CORAME / Cartones", incluye: (f) => f.flujoCorame && descargado(f) && f.estadoPapeles !== "RADICADO" },
-  { id: "descargados", etiqueta: "Descargados sin radicar", incluye: (f) => descargado(f) && f.estadoPapeles !== "RADICADO" },
-  { id: "porFacturar", etiqueta: "Por facturar", incluye: (f) => f.estadoPapeles === "RADICADO" || !!f.alertaFacturacion },
+  { id: "corame", etiqueta: "CORAME / Cartones", incluye: (f) => f.flujoCorame && descargado(f) && !listos(f) },
+  { id: "descargados", etiqueta: "Descargados sin radicar", incluye: (f) => descargado(f) && !listos(f) },
+  { id: "porFacturar", etiqueta: "Por facturar", incluye: (f) => listos(f) || !!f.alertaFacturacion },
+  { id: "radicados", etiqueta: "Radicados", incluye: (f) => f.estadoPapeles === "RADICADOS" },
   { id: "enRuta", etiqueta: "En ruta", incluye: (f) => !descargado(f) },
   { id: "todos", etiqueta: "Todos", incluye: () => true },
 ];
@@ -159,25 +162,22 @@ const COLUMNAS: Columna<FilaSeguimiento>[] = [
 ];
 
 /**
- * Seguimiento de papeles: clic en un viaje abre "Registrar seguimiento" para
- * anotar lo que dijo el conductor. Abre directo un viaje con ?viaje=<id del
- * cuadro> (asi llegan las alertas de la campana).
+ * Seguimiento de papeles (se abre como ventana desde el Cuadro pagos): clic en
+ * un viaje abre "Registrar seguimiento" para anotar lo que dijo el conductor.
+ * `viajeInicial` (id del cuadro) abre directo ese viaje: asi llegan las
+ * alertas de la campana. `alCambiarCuadro` refresca el cuadro pagos de atras.
  */
-export default function Papeles() {
+export default function Papeles({
+  viajeInicial = null,
+  alCambiarCuadro,
+}: {
+  viajeInicial?: number | null;
+  alCambiarCuadro?: () => void;
+}) {
   const { datos, cargando, error, recargar } = useDatos(() => apiSeguimiento.papeles(), []);
   const { recargarSeguimiento } = usarShell();
-  const [parametros, setParametros] = useSearchParams();
-  const [registrando, setRegistrando] = useState<number | null>(null);
+  const [registrando, setRegistrando] = useState<number | null>(viajeInicial);
   const [detalle, setDetalle] = useState<number | null>(null);
-
-  // Llegar desde una alerta abre ese viaje.
-  useEffect(() => {
-    const id = Number(parametros.get("viaje"));
-    if (id) {
-      setRegistrando(id);
-      setParametros({}, { replace: true });
-    }
-  }, [parametros, setParametros]);
 
   if (cargando && !datos) return <Cargando que="el seguimiento de papeles" />;
   if (error) return <ErrorCarga mensaje={error} alReintentar={recargar} />;
@@ -187,6 +187,7 @@ export default function Papeles() {
   const alCambiar = () => {
     recargar();
     recargarSeguimiento();
+    alCambiarCuadro?.();
   };
 
   return (

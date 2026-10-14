@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_321 funciones, componentes, métodos y rutas en 44 archivos._
+_343 funciones, componentes, métodos y rutas en 46 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (115)
+- [`src/api/cliente.ts`](#srcapiclientets) (123)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -200,6 +200,7 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 - [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (4)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
 - [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (7)
+- [`src/ganchos/useAltoTabla.ts`](#srcganchosusealtotablats) (1)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
 - [`src/ganchos/useSesion.tsx`](#srcganchosusesesiontsx) (2)
@@ -211,8 +212,9 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (3)
+- [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (10)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (2)
-- [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (5)
+- [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (7)
 - [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (5)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (6)
@@ -220,7 +222,7 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 - [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (16)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
-- [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (6)
+- [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
 
 ### `src/App.tsx`
 
@@ -580,6 +582,30 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 
   - **`apiCuadro.borrarAnticipo(id, anticipoId)`** · _método_
     Quita un anticipo.
+
+  - **`apiCuadro.cuadroAnticipos()`** · _método_
+    Cuadro de anticipos: todos los tramos (ida y vuelta), lo mas reciente primero.
+
+  - **`apiCuadro.actualizarTramo(anticipoId, datos)`** · _método_
+    Cambia fecha de pago, nota o viaje de un tramo; devuelve el cuadro de anticipos.
+
+  - **`apiCuadro.resumenBomba()`** · _método_
+    Cuentas con la bomba: deuda, pagado, abonado por el socio, pendiente y cupo disponible.
+
+  - **`apiCuadro.guardarParametrosBomba(datos)`** · _método_
+    Cambia el cupo con la bomba o el precio / descuento por galon sugeridos.
+
+  - **`apiCuadro.abonosSocio()`** · _método_
+    Abonos del socio a la bomba.
+
+  - **`apiCuadro.registrarAbono(datos)`** · _método_
+    Registra un abono del socio; devuelve todos.
+
+  - **`apiCuadro.borrarAbono(id)`** · _método_
+    Borra un abono del socio; devuelve los que quedan.
+
+  - **`apiCuadro.actualizarTanqueo(tanqueoId, datos)`** · _método_
+    Factura de la bomba (numero, fecha) o bomba de un tanqueo; devuelve el cuadro de anticipos.
 
   - **`apiCuadro.tarifas()`** · _método_
     La matriz de fletes.
@@ -966,14 +992,14 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 - **`IconoOjoTachado()`** · _componente React_
   Icono para ocultar la contrasena.
 
-- **`IconoPapeles()`** · _componente React_
-  Icono del menu Seguimiento de papeles (tablilla con lista).
-
 - **`IconoCartera()`** · _componente React_
   Icono del menu Cartera (billete).
 
 - **`IconoReloj()`** · _componente React_
   Icono de alertas de seguimiento (reloj).
+
+- **`IconoBomba()`** · _componente React_
+  Icono del menu Anticipos (surtidor de combustible).
 
 ### `src/componentes/LibroConsecutivos.tsx`
 
@@ -1129,6 +1155,19 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 
 - **`IconoExportar()`** · _componente React_
   Icono del boton Exportar.
+
+### `src/ganchos/useAltoTabla.ts`
+
+> Altura de una tabla para que quepa en la pantalla sin bajar la pagina: asi
+> su barra de desplazamiento horizontal queda siempre a la vista (antes estaba
+> al final de todas las filas).
+
+- **`useAltoTabla(reserva)`** · _función_
+  Devuelve una ref para el contenedor con scroll de la tabla. Le pone de
+  altura maxima lo que queda de pantalla desde donde empieza la tabla (con la
+  pagina arriba del todo), menos `reserva` px para lo que va debajo (la
+  paginacion, el margen). Se recalcula al cambiar el tamano de la ventana o
+  cuando cambia lo que hay encima (un aviso que aparece, filtros...).
 
 ### `src/ganchos/useDatos.ts`
 
@@ -1461,6 +1500,52 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
   Muestra UNA vez la clave temporal cuando no se envio por correo (con el
   motivo, si lo hay), para dictarla o copiarla.
 
+### `src/paginas/cuadro/CuadroAnticipos.tsx`
+
+> Pantalla Anticipos (como el Excel "cuadro de anticipos"): los anticipos de
+> efectivo y combustible de todos los viajes y las cuentas con la bomba.
+>
+> - Arriba: deuda a la bomba, pagado, abonado por el socio (el Zorro) y cupo
+>   de credito disponible (editable, junto con el precio y el descuento por
+>   galon sugeridos para el cruce).
+> - Vistas: por viaje (un tramo de ida o vuelta por fila), por tanqueo (ida y
+>   vuelta juntas), deuda pendiente, pagado a la bomba, abonos del socio y
+>   cruce con la relacion de la bomba: con los galones del tiquete, el
+>   combustible se calcula como en el Excel (galones x precio - descuento).
+
+- **`agruparPorTanqueo(tramos)`** · _función_
+  Agrupa los tramos por tanqueo (los anticipos viejos sin tanqueo quedan solos).
+
+- **`flotaTexto(f)`** · _función_
+  "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo.
+
+- **`enInput(n)`** · _función_
+  Texto de un numero para un input ("" si no hay).
+
+- **`deInput(s)`** · _función_
+  Valor de un input numerico (null si esta vacio o no es numero).
+
+- **`diferencia(t)`** · _función_
+  Lo que el tramo cambio con el cruce: combustible calculado - lo que se habia registrado.
+
+- **`Recorrido({...})`** · _componente React_
+  Recorrido (empresa del viaje) o la vuelta que aun espera el proximo viaje.
+
+- **`Indicador({...})`** · _componente React_
+  Un numero grande con su titulo, como los indicadores del Inicio.
+
+- **`CuadroAnticipos()`** · _componente React_
+  Pantalla Anticipos. Los anticipos se registran en cada viaje del Cuadro
+  pagos; aqui se ven todos, se corrobora la factura de la bomba, se registra
+  lo pagado y lo abonado por el socio, y se cruza con la relacion de la bomba.
+
+- **`VentanaCupo({...})`** · _componente React_
+  Cupo de credito con la bomba y precio / descuento por galon sugeridos para el cruce.
+
+- **`VentanaAbono({...})`** · _componente React_
+  Abono del socio directamente a la bomba: quien, cuando y cuanto a cada viaje
+  (los que se cargaron con el). El total es la suma de los viajes.
+
 ### `src/paginas/cuadro/CuadroCentral.tsx`
 
 > Pantalla Cuadro pagos: seguimiento de cada viaje (con o sin manifiesto)
@@ -1477,7 +1562,7 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 ### `src/paginas/cuadro/DetalleCuadro.tsx`
 
 > Ventana de un viaje del cuadro pagos: papeles, datos, flete, factura, pago
-> al dueno, revisiones, anticipos de bomba y notas.
+> al dueno, revisiones, anticipos (efectivo y combustible) y notas.
 
 - **`aFormulario(d)`** · _función_
   Viaje -> valores del formulario, todos como texto (asi trabajan los inputs).
@@ -1487,11 +1572,19 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 
 - **`DetalleCuadro({...})`** · _componente React_
   Un viaje del cuadro pagos: papeles, datos, flete, factura, pagos,
-  revisiones, anticipos de bomba y notas. Papeles, revisiones, anticipos y
+  revisiones, anticipos y notas. Papeles, revisiones, anticipos y
   notas se guardan al instante; los demas datos con "Guardar cambios".
 
+- **`anticipoVacio()`** · _función_
+  Formulario vacio de un anticipo nuevo (con la fecha de hoy al momento de pedirlo).
+
+- **`pesos(v)`** · _función_
+  Numero de un campo de pesos ("" -> 0).
+
 - **`Anticipos({...})`** · _componente React_
-  Anticipos entregados por las bombas aliadas (aparte del anticipo del manifiesto).
+  Anticipos del viaje (aparte del anticipo del manifiesto): cada tramo con su
+  efectivo y su combustible (bomba / EDS). Si el anticipo es de ida y vuelta,
+  el de vuelta queda guardado y se suma solo al proximo viaje de la placa.
 
 - **`Notas({...})`** · _componente React_
   Notas con autor y fecha, la mas reciente arriba.
@@ -1550,7 +1643,8 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
   Nombre del estado para mostrar; "Todo pagado" cuando ya se pago todo.
 
 - **`pasosPapeles(flujoCorame)`** · _función_
-  Pasos de los papeles. Parqueadero y oficina solo para CORAME / Cartones America.
+  Pasos de los papeles. Parqueadero, oficina y "radicados" (el ultimo, ya
+  radicados en el cliente) solo para CORAME / Cartones America.
 
 - **`hoyColombia()`** · _función_
   Fecha de hoy en Colombia, "AAAA-MM-DD".
@@ -1702,7 +1796,7 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 
 ### `src/paginas/seguimiento/Papeles.tsx`
 
-> Pantalla Seguimiento de papeles: los viajes que ya descargaron y aun no
+> Seguimiento de papeles (ventana del Cuadro pagos): los viajes que ya descargaron y aun no
 > estan facturados. Muestra donde estan los papeles, quien los tiene, si
 > estan completos y a que conductores hay que llamar hoy (sobre todo en
 > CORAME / Cartones America).
@@ -1719,10 +1813,14 @@ _321 funciones, componentes, métodos y rutas en 44 archivos._
 - **`descargado(f)`** · _función_
   Ya descargo: los papeles salieron de "en ruta" o paso la fecha de descargue.
 
-- **`Papeles()`** · _componente React_
-  Seguimiento de papeles: clic en un viaje abre "Registrar seguimiento" para
-  anotar lo que dijo el conductor. Abre directo un viaje con ?viaje=<id del
-  cuadro> (asi llegan las alertas de la campana).
+- **`listos(f)`** · _función_
+  Papeles listos para facturar: "listo para facturar" o, en CORAME, ya radicados.
+
+- **`Papeles({...})`** · _componente React_
+  Seguimiento de papeles (se abre como ventana desde el Cuadro pagos): clic en
+  un viaje abre "Registrar seguimiento" para anotar lo que dijo el conductor.
+  `viajeInicial` (id del cuadro) abre directo ese viaje: asi llegan las
+  alertas de la campana. `alCambiarCuadro` refresca el cuadro pagos de atras.
 
 - **`RegistrarPapeles({...})`** · _componente React_
   Ventana para registrar lo que se supo de los papeles (normalmente al

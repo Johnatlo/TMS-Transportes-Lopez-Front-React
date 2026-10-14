@@ -195,14 +195,6 @@ export const IconoOjoTachado = () => (
   </Icono>
 );
 
-/** Icono del menu Seguimiento de papeles (tablilla con lista). */
-export const IconoPapeles = () => (
-  <Icono>
-    <rect x="5" y="4" width="14" height="17" rx="2" />
-    <path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3" />
-  </Icono>
-);
-
 /** Icono del menu Cartera (billete). */
 export const IconoCartera = () => (
   <Icono>
@@ -217,5 +209,13 @@ export const IconoReloj = () => (
   <Icono>
     <circle cx="12" cy="12" r="8.5" />
     <path d="M12 7.5V12l3 2" />
+  </Icono>
+);
+
+/** Icono del menu Anticipos (surtidor de combustible). */
+export const IconoBomba = () => (
+  <Icono>
+    <path d="M4 20V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15M3 20h12M6 9h6" />
+    <path d="M14 8h2l3 3v6a1.5 1.5 0 0 1-3 0v-3h-2" />
   </Icono>
 );

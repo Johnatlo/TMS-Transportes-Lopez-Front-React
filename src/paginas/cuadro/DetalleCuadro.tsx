@@ -1,6 +1,6 @@
 /**
  * Ventana de un viaje del cuadro pagos: papeles, datos, flete, factura, pago
- * al dueno, revisiones, anticipos de bomba y notas.
+ * al dueno, revisiones, anticipos (efectivo y combustible) y notas.
  */
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
@@ -49,7 +49,7 @@ function Seccion({ titulo, children, extra }: { titulo: string; children: ReactN
 
 /**
  * Un viaje del cuadro pagos: papeles, datos, flete, factura, pagos,
- * revisiones, anticipos de bomba y notas. Papeles, revisiones, anticipos y
+ * revisiones, anticipos y notas. Papeles, revisiones, anticipos y
  * notas se guardan al instante; los demas datos con "Guardar cambios".
  */
 export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number; alCerrar: () => void; alCambiar: () => void }) {
@@ -325,21 +325,50 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
 
 type Aplicar = (accion: () => Promise<Detalle>, mensaje?: string) => Promise<void>;
 
-/** Anticipos entregados por las bombas aliadas (aparte del anticipo del manifiesto). */
+/** Formulario vacio de un anticipo nuevo (con la fecha de hoy al momento de pedirlo). */
+const anticipoVacio = () => ({
+  bombaId: "",
+  fecha: hoyColombia(),
+  efectivo: "",
+  combustible: "",
+  idaYVuelta: false,
+  efectivoVuelta: "",
+  combustibleVuelta: "",
+  facturaBomba: "",
+  nota: "",
+});
+
+/** Numero de un campo de pesos ("" -> 0). */
+const pesos = (v: string) => (v.trim() === "" ? 0 : Number(v) || 0);
+
+/**
+ * Anticipos del viaje (aparte del anticipo del manifiesto): cada tramo con su
+ * efectivo y su combustible (bomba / EDS). Si el anticipo es de ida y vuelta,
+ * el de vuelta queda guardado y se suma solo al proximo viaje de la placa.
+ */
 function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
   const bombas = useDatos(() => apiCuadro.bombas(), []);
-  const [nuevo, setNuevo] = useState({ bombaId: "", valor: "", fecha: hoyColombia(), nota: "" });
+  const [nuevo, setNuevo] = useState(anticipoVacio);
   const activas = (bombas.datos ?? []).filter((b) => b.activa);
+  const fijar = (c: Partial<ReturnType<typeof anticipoVacio>>) => setNuevo({ ...nuevo, ...c });
+  const totalIda = pesos(nuevo.efectivo) + pesos(nuevo.combustible);
+  const totalVuelta = pesos(nuevo.efectivoVuelta) + pesos(nuevo.combustibleVuelta);
+  const hayCombustible = pesos(nuevo.combustible) + (nuevo.idaYVuelta ? pesos(nuevo.combustibleVuelta) : 0) > 0;
+  const listo =
+    !!nuevo.fecha && totalIda > 0 && (!nuevo.idaYVuelta || totalVuelta > 0) && (!hayCombustible || !!nuevo.bombaId);
 
   return (
-    <Seccion titulo="Anticipos de bomba" extra={d.totalAnticipos ? <span className="dato-sec"> · total {moneda(d.totalAnticipos)}</span> : null}>
+    <Seccion titulo="Anticipos" extra={d.totalAnticipos ? <span className="dato-sec"> · total {moneda(d.totalAnticipos)}</span> : null}>
       {d.anticipos.length > 0 && (
         <table className="tabla tabla-compacta">
           <thead>
             <tr>
-              <th>Bomba</th>
+              <th>Tramo</th>
               <th>Fecha</th>
-              <th className="num">Valor</th>
+              <th className="num">Efectivo</th>
+              <th className="num">Combustible</th>
+              <th className="num">Total</th>
+              <th>Bomba / factura</th>
               <th>Pagado a la bomba</th>
               <th />
             </tr>
@@ -348,12 +377,18 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
             {d.anticipos.map((a) => (
               <tr key={a.id}>
                 <td>
-                  {a.bomba}
-                  {a.ciudad && <span className="dato-sec">{a.ciudad}</span>}
+                  <Pastilla tono={a.tramo === "VUELTA" ? "info" : "neutro"}>{a.tramo === "VUELTA" ? "Vuelta" : "Ida"}</Pastilla>
+                  {a.tramo === "VUELTA" && <span className="dato-sec">De un anticipo de ida y vuelta</span>}
                   {a.nota && <span className="dato-sec">{a.nota}</span>}
                 </td>
                 <td>{fechaCorta(a.fecha)}</td>
+                <td className="num">{moneda(a.efectivo)}</td>
+                <td className="num">{moneda(a.combustible)}</td>
                 <td className="num">{moneda(a.valor)}</td>
+                <td>
+                  {a.bomba ?? "Solo efectivo"}
+                  {a.facturaBomba && <span className="dato-sec">Factura {a.facturaBomba}</span>}
+                </td>
                 <td>
                   <input
                     type="date"
@@ -365,7 +400,13 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
                   <button
                     type="button"
                     className="btn-link"
-                    onClick={() => window.confirm("¿Quitar este anticipo?") && aplicar(() => apiCuadro.borrarAnticipo(d.id, a.id))}
+                    onClick={() =>
+                      window.confirm(
+                        a.tramo === "IDA" && a.idaYVuelta
+                          ? "¿Quitar este anticipo? Si su vuelta aun no se asigno a otro viaje, tambien se quita."
+                          : "¿Quitar este anticipo?"
+                      ) && aplicar(() => apiCuadro.borrarAnticipo(d.id, a.id))
+                    }
                   >
                     Quitar
                   </button>
@@ -377,9 +418,17 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
       )}
       <div className="campos-cuadro" style={{ marginTop: "0.5rem" }}>
         <div>
+          <label>Efectivo</label>
+          <input type="number" min="0" value={nuevo.efectivo} onChange={(e) => fijar({ efectivo: e.target.value })} />
+        </div>
+        <div>
+          <label>Combustible (bomba)</label>
+          <input type="number" min="0" value={nuevo.combustible} onChange={(e) => fijar({ combustible: e.target.value })} />
+        </div>
+        <div>
           <label>Bomba</label>
-          <select value={nuevo.bombaId} onChange={(e) => setNuevo({ ...nuevo, bombaId: e.target.value })}>
-            <option value="">Elige la bomba...</option>
+          <select value={nuevo.bombaId} onChange={(e) => fijar({ bombaId: e.target.value })}>
+            <option value="">{hayCombustible ? "Elige la bomba..." : "Ninguna (solo efectivo)"}</option>
             {activas.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.nombre}
@@ -390,29 +439,64 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
           {bombas.datos && activas.length === 0 && <span className="dato-sec">Agrega las bombas con el boton "Bombas" del cuadro.</span>}
         </div>
         <div>
-          <label>Valor</label>
-          <input type="number" min="0" value={nuevo.valor} onChange={(e) => setNuevo({ ...nuevo, valor: e.target.value })} />
+          <label>Fecha</label>
+          <input type="date" value={nuevo.fecha} onChange={(e) => fijar({ fecha: e.target.value })} />
         </div>
         <div>
-          <label>Fecha</label>
-          <input type="date" value={nuevo.fecha} onChange={(e) => setNuevo({ ...nuevo, fecha: e.target.value })} />
+          <label>N° factura de la bomba (opcional)</label>
+          <input value={nuevo.facturaBomba} maxLength={40} onChange={(e) => fijar({ facturaBomba: e.target.value })} />
         </div>
         <div>
           <label>Nota (opcional)</label>
-          <input value={nuevo.nota} maxLength={200} onChange={(e) => setNuevo({ ...nuevo, nota: e.target.value })} />
+          <input value={nuevo.nota} maxLength={200} onChange={(e) => fijar({ nota: e.target.value })} />
         </div>
       </div>
+
+      <div className="pregunta-recorrido">
+        <strong>¿El anticipo es de ida y vuelta o de un solo recorrido?</strong>
+        <label className="check-linea">
+          <input type="radio" name={`recorrido-${d.id}`} checked={!nuevo.idaYVuelta} onChange={() => fijar({ idaYVuelta: false })} />
+          Un solo recorrido
+        </label>
+        <label className="check-linea">
+          <input type="radio" name={`recorrido-${d.id}`} checked={nuevo.idaYVuelta} onChange={() => fijar({ idaYVuelta: true })} />
+          Ida y vuelta
+        </label>
+      </div>
+      {nuevo.idaYVuelta && (
+        <>
+          <div className="campos-cuadro">
+            <div>
+              <label>Efectivo de vuelta</label>
+              <input type="number" min="0" value={nuevo.efectivoVuelta} onChange={(e) => fijar({ efectivoVuelta: e.target.value })} />
+            </div>
+            <div>
+              <label>Combustible de vuelta</label>
+              <input
+                type="number"
+                min="0"
+                value={nuevo.combustibleVuelta}
+                onChange={(e) => fijar({ combustibleVuelta: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="dato-sec">
+            El anticipo de vuelta ({moneda(totalVuelta)}) se guarda con la misma bomba y fecha y se suma solo al
+            proximo viaje de {d.placa}.
+          </div>
+        </>
+      )}
       <button
         type="button"
         className="btn-secondary"
         style={{ marginTop: "0.5rem" }}
-        disabled={!nuevo.bombaId || !nuevo.valor || !nuevo.fecha}
+        disabled={!listo}
         onClick={async () => {
           await aplicar(() => apiCuadro.agregarAnticipo(d.id, nuevo), "Anticipo agregado.");
-          setNuevo({ bombaId: "", valor: "", fecha: hoyColombia(), nota: "" });
+          setNuevo(anticipoVacio());
         }}
       >
-        Agregar anticipo
+        Agregar anticipo{totalIda ? ` (${moneda(totalIda + (nuevo.idaYVuelta ? totalVuelta : 0))})` : ""}
       </button>
     </Seccion>
   );

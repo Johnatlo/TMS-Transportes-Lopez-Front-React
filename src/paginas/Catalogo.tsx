@@ -8,6 +8,7 @@ import { Paginacion } from "../componentes/TablaDatos";
 import type { ReactElement } from "react";
 import { api, fechaHora, hoyColombia, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
+import { useAltoTabla } from "../ganchos/useAltoTabla";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import Modal from "../componentes/Modal";
 import FormularioGenerico, {
@@ -743,6 +744,8 @@ function Tabla({
   // De a 50 filas. Si cambia la lista (busqueda, filtros), vuelve a la primera.
   const [pagina, setPagina] = useState(0);
   useEffect(() => setPagina(0), [filas.length]);
+  // Antes de los return: los ganchos van siempre en el mismo orden.
+  const contenedor = useAltoTabla<HTMLDivElement>();
 
   if (estado.cargando) return <Cargando />;
   if (estado.error) return <ErrorCarga mensaje={estado.error} alReintentar={estado.recargar} />;
@@ -754,7 +757,8 @@ function Tabla({
 
   return (
     <>
-      <div className="tabla-scroll">
+      {/* Alto limitado a la pantalla: la barra horizontal queda siempre a la vista. */}
+      <div className="tabla-scroll" ref={contenedor}>
         <table className="modern tabla">
           <thead>
             <tr>

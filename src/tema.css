@@ -231,6 +231,7 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 .pastilla-azul { background: #e7effb; color: #1a56c2; }
 .pastilla-naranja { background: #fdf0e4; color: #b4570f; }
 .pastilla-amarillo { background: #fdf6d8; color: #8a6a00; }
+.pastilla-turquesa { background: #e0f5f3; color: #0f766e; }
 
 /* Cuadro pagos */  
 .campos-cuadro { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.6rem 1rem; }
@@ -307,3 +308,29 @@ tr.fila-todo-pagado:hover > td { background: #d5ecdc; }
 .tabla-envio td .principal, .tabla-envio td .dato-sec { display: block; }
 .tabla-envio input, .tabla-envio select { width: 100%; }
 .tabla-envio input[type="checkbox"] { width: auto; }
+
+/*
+ * Tablas: en el computador la tabla se desplaza dentro de su propio recuadro,
+ * con altura maxima segun la pantalla. Asi la barra de desplazamiento
+ * horizontal queda siempre a la vista (antes estaba al final de todas las
+ * filas y habia que bajar hasta el fondo de la pagina para usarla), y los
+ * titulos de las columnas (position: sticky en table.tabla th) quedan fijos
+ * al bajar. En el celular no aplica: alla las filas se ven como tarjetas.
+ */
+@media (min-width: 821px) {
+  .tabla-scroll, .seccion-tabla {
+    overflow: auto;
+    max-height: calc(100vh - 14rem);
+    max-height: calc(100dvh - 14rem);
+  }
+  /* Encabezados fijos tambien en las tablas del Catalogo (table.modern). */
+  .tabla-scroll table.modern th { position: sticky; top: 0; z-index: 1; background: var(--color-surface, #fff); }
+}
+
+/* Anticipos: pregunta de ida y vuelta */
+.pregunta-recorrido { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin: 0.7rem 0 0.4rem; font-size: var(--texto-sm); }
+.pregunta-recorrido .check-linea { margin: 0; }
+.pregunta-recorrido input[type="radio"] { width: auto; margin: 0; }
+
+/* Abono del socio: una linea por viaje */
+.linea-abono { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }

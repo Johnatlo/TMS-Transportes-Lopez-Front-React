@@ -18,6 +18,7 @@ describe("color y nombre del estado (los colores del Excel)", () => {
     ["EN_RUTA", "neutro", "En proceso"],
     ["SIN_RADICAR", "morado", "Sin radicar"],
     ["RADICADO", "verde", "Listo para facturar"],
+    ["RADICADOS", "turquesa", "Radicados"],
     ["FACTURADO_SIN_DATOS", "azul", "Facturado sin datos"],
     ["FACTURADO", "info", "Facturado"],
     ["PAGADO", "ok", "Todo pagado"],
@@ -37,7 +38,7 @@ describe("color y nombre del estado (los colores del Excel)", () => {
 
 describe("pasos de los papeles", () => {
   test("CORAME / Cartones America: pasan por parqueadero y oficina de Don Alexander", () => {
-    expect(pasosPapeles(true)).toEqual(["EN_RUTA", "DESCARGADO", "CONDUCTOR", "PARQUEADERO", "OFICINA", "RADICADO"]);
+    expect(pasosPapeles(true)).toEqual(["EN_RUTA", "DESCARGADO", "CONDUCTOR", "PARQUEADERO", "OFICINA", "RADICADO", "RADICADOS"]);
   });
 
   test("los demas clientes: del conductor directo a radicado", () => {

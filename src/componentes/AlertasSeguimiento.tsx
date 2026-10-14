@@ -21,7 +21,7 @@ function rutaDe(a: AlertaSeguimiento): string {
   if (a.tipo === "CARTERA") {
     return `/cartera?factura=${encodeURIComponent(a.facturaNumero ?? "")}&empresa=${encodeURIComponent(a.empresa ?? "")}`;
   }
-  return `/papeles?viaje=${a.cuadroId}`;
+  return `/cuadro?papeles=${a.cuadroId}`;
 }
 
 /** Lista de alertas por grupo; abre en el primer grupo que tenga algo. */
