@@ -658,9 +658,10 @@ export function soloFecha(valor: string | null | undefined): string {
   }).format(new Date(valor));
 }
 
-/** Los avisos del backend vienen en un solo campo separados por " | ". */
-export function separarAvisos(avisos: string | null | undefined): string[] {
-  return avisos ? avisos.split(" | ").filter(Boolean) : [];
+/** Radicado que el RNDC informa cuando un documento ya existe ("DUPLICADO:123"). */
+export function radicadoDuplicado(texto: string | null | undefined): string | null {
+  const m = /DUPLICADO:\s*(\d+)/i.exec(texto ?? "");
+  return m ? m[1] : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -688,6 +689,8 @@ export interface FilaCuadro {
   tipoFlete: "KILO" | "FIJO";
   tarifaKilo: number | null;
   valorFijo: number | null;
+  /** Solo KILO: se suma a kilos x tarifa (POR: 300.000, POR3: 600.000). */
+  fleteAdicional: number | null;
   valorFlete: number | null;
   /** Peso que se factura (el real o el minimo pactado). */
   pesoFacturadoKg: number | null;
@@ -825,10 +828,12 @@ export interface TarifaFlete {
   /** Cliente que se factura. */
   razonSocial: string | null;
   valor: number | null;
-  /** TON: por tonelada. FIJO: por viaje. POR / POR3: ver observaciones. */
+  /** TON: por tonelada. FIJO: por viaje. POR / POR3: por tonelada + 300.000 / 600.000 (2 o 3 clientes). */
   tipo: "TON" | "FIJO" | "POR" | "POR3";
   /** Si va por menos de este peso se factura este (34000, 32000 kg). */
   pesoMinimoKg: number | null;
+  /** Peso que se factura siempre, sin importar el tiquete (33000 kg). */
+  pesoFijoKg: number | null;
   observaciones: string | null;
 }
 
@@ -843,6 +848,8 @@ export interface EnvioFacturacion {
   tarifaFleteId: number | null;
   tipo: "TON" | "FIJO";
   valorTon: number | null;
+  /** Adicional por clientes (POR / POR3); solo por tonelada. */
+  adicional: number | null;
   pesoFacturadoKg: number | null;
   total: number | null;
   remision: string;

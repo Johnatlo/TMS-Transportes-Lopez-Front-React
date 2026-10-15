@@ -83,8 +83,12 @@ export function sugerirTarifa(empresa: string, tarifas: TarifaFlete[], ultimaId?
   return delCliente.find((t) => !ESPECIAL.test(t.nombre)) ?? delCliente[0] ?? null;
 }
 
-/** Peso a facturar: el real, o el minimo pactado si fue por menos (34000, 32000 kg). */
+/**
+ * Peso a facturar: el fijo de la tarifa si lo tiene (33000 kg, sin importar el
+ * tiquete); si no, el real, o el minimo pactado si fue por menos (34000 kg).
+ */
 export function pesoAFacturar(pesoKg: number | null, tarifa: TarifaFlete | null): number | null {
+  if (tarifa?.pesoFijoKg) return tarifa.pesoFijoKg;
   if (pesoKg === null) return tarifa?.pesoMinimoKg ?? null;
   return tarifa?.pesoMinimoKg && pesoKg < tarifa.pesoMinimoKg ? tarifa.pesoMinimoKg : pesoKg;
 }
@@ -93,6 +97,19 @@ export function pesoAFacturar(pesoKg: number | null, tarifa: TarifaFlete | null)
 export function totalPorPeso(pesoKg: number | null, valorTon: number | null): number | null {
   if (pesoKg === null || valorTon === null) return null;
   return Math.round((pesoKg / 1000) * valorTon);
+}
+
+/** Lo que se suma por cada cliente de mas en el viaje (tarifas POR y POR3). */
+export const ADICIONAL_POR_CLIENTE = 300_000;
+
+/**
+ * Adicional de la tarifa, como en la formula del Excel: POR (2 clientes) suma
+ * 300.000 y POR3 (3 clientes) 600.000 al valor x toneladas. null en las demas.
+ */
+export function adicionalDe(tarifa: TarifaFlete | null): number | null {
+  if (tarifa?.tipo === "POR") return ADICIONAL_POR_CLIENTE;
+  if (tarifa?.tipo === "POR3") return 2 * ADICIONAL_POR_CLIENTE;
+  return null;
 }
 
 /** "SZP339" -> "SZP-339" (como va en la nota y en el cuadro). */
@@ -138,6 +155,8 @@ export interface FilaEnvio {
   razonSocial: string;
   tipo: "TON" | "FIJO";
   valorTon: number | null;
+  /** Solo en TON: se suma a toneladas x valor (POR / POR3). */
+  adicional: number | null;
   pesoFacturadoKg: number | null;
   /** Solo se escribe en FIJO; en TON se calcula. */
   totalFijo: number | null;
@@ -148,8 +167,12 @@ export interface FilaEnvio {
   notaEditada: boolean;
 }
 
-/** Total de una fila: por peso (TON) o el fijo. */
-export const totalDe = (e: FilaEnvio) => (e.tipo === "FIJO" ? e.totalFijo : totalPorPeso(e.pesoFacturadoKg, e.valorTon));
+/** Total de una fila: el fijo, o toneladas x valor + el adicional por clientes. */
+export function totalDe(e: FilaEnvio): number | null {
+  if (e.tipo === "FIJO") return e.totalFijo;
+  const porPeso = totalPorPeso(e.pesoFacturadoKg, e.valorTon);
+  return porPeso === null ? null : porPeso + (e.adicional ?? 0);
+}
 
 /** La nota que corresponde a los datos de la fila. */
 export const notaDe = (e: FilaEnvio) =>
@@ -164,8 +187,9 @@ export const notaDe = (e: FilaEnvio) =>
   });
 
 /**
- * Aplica una tarifa a la fila: tipo, valor, peso a facturar y razon social. La
- * nota se rearma si no se edito a mano.
+ * Aplica una tarifa a la fila: tipo, valor, adicional, peso a facturar y razon
+ * social. Una tarifa sin valor (vacio o "?" en la matriz) deja el valor vacio
+ * para escribirlo a mano. La nota se rearma si no se edito a mano.
  */
 export function aplicarTarifa(e: FilaEnvio, tarifa: TarifaFlete | null): FilaEnvio {
   const fijo = tarifa?.tipo === "FIJO";
@@ -173,8 +197,9 @@ export function aplicarTarifa(e: FilaEnvio, tarifa: TarifaFlete | null): FilaEnv
     ...e,
     tarifaId: tarifa?.id ?? null,
     tipo: fijo ? "FIJO" : "TON",
-    valorTon: fijo ? null : tarifa?.valor ?? e.valorTon,
-    totalFijo: fijo ? tarifa?.valor ?? e.totalFijo : null,
+    valorTon: fijo ? null : tarifa ? tarifa.valor : e.valorTon,
+    adicional: fijo ? null : adicionalDe(tarifa),
+    totalFijo: fijo ? tarifa.valor : null,
     pesoFacturadoKg: pesoAFacturar(e.fila.pesoKg, tarifa),
     razonSocial: tarifa?.razonSocial?.trim() || e.fila.empresa,
   };
@@ -193,6 +218,7 @@ export function filaInicial(f: FilaPorFacturar, tarifas: TarifaFlete[], ultimaId
     razonSocial: f.empresa,
     tipo: "TON",
     valorTon: null,
+    adicional: null,
     pesoFacturadoKg: f.pesoKg,
     totalFijo: null,
     remision: f.remision ?? "",
@@ -208,6 +234,7 @@ export function filaInicial(f: FilaPorFacturar, tarifas: TarifaFlete[], ultimaId
       razonSocial: tarifa?.razonSocial?.trim() || f.empresa,
       tipo: f.tipoFlete === "FIJO" ? "FIJO" : "TON",
       valorTon: f.tarifaKilo === null ? null : Math.round(f.tarifaKilo * 1000 * 100) / 100,
+      adicional: f.fleteAdicional,
       pesoFacturadoKg: f.pesoFacturadoKg ?? f.pesoKg,
       totalFijo: f.valorFijo,
       notaFactura: f.notaFactura ?? "",
@@ -258,6 +285,9 @@ export interface FilaMatrizCruda {
  * - Sin nombre: se ignora. Valor no numerico ("?"): sin valor.
  * - Las filas "X -34 TON" (fijo cuando va por menos de 34 toneladas) no son
  *   una tarifa aparte: se convierten en peso minimo de 34000 kg de "X".
+ * - "el peso debe de ser 33,000" en las observaciones: peso fijo de 33000 kg.
+ * - Un valor por tonelada menor de 1.000 esta escrito por kilo (PEGANTE
+ *   URBANO: 28,663636 x 33.000 kg = 945.900): se pasa a valor por tonelada.
  */
 export function convertirMatriz(filas: FilaMatrizCruda[]): Omit<TarifaFlete, "id">[] {
   const texto = (v: unknown) => String(v ?? "").replace(/\s+/g, " ").trim();
@@ -272,15 +302,26 @@ export function convertirMatriz(filas: FilaMatrizCruda[]): Omit<TarifaFlete, "id
       continue;
     }
     const valor = typeof f.valor === "number" ? f.valor : Number(texto(f.valor).replace(/,/g, ""));
-    const tipo = texto(f.tipo).toUpperCase();
+    const tipoTexto = texto(f.tipo).toUpperCase();
+    const tipo = (["TON", "FIJO", "POR", "POR3"].includes(tipoTexto) ? tipoTexto : "TON") as TarifaFlete["tipo"];
+    const observaciones = texto(f.observaciones) || null;
+    const pesoFijo = /peso debe de? ser (\d[\d.,]*)/i.exec(observaciones ?? "");
+    let conValor = Number.isFinite(valor) && texto(f.valor) !== "" ? valor : null;
+    if (conValor !== null && conValor > 0 && conValor < 1000 && tipo !== "FIJO") conValor *= 1000;
     tarifas.push({
       nombre,
       razonSocial: texto(f.razonSocial) || null,
-      valor: Number.isFinite(valor) && texto(f.valor) !== "" ? valor : null,
-      tipo: (["TON", "FIJO", "POR", "POR3"].includes(tipo) ? tipo : "TON") as TarifaFlete["tipo"],
+      valor: conValor,
+      tipo,
       pesoMinimoKg: null,
-      observaciones: texto(f.observaciones) || null,
+      pesoFijoKg: pesoFijo ? Number(pesoFijo[1].replace(/\D/g, "")) || null : null,
+      observaciones,
     });
   }
   return tarifas.map((t) => (minimos.has(normalizarNombre(t.nombre)) ? { ...t, pesoMinimoKg: 34000 } : t));
 }
+
+/** Texto de un numero para un input ("" si no hay). */
+export const enInput = (n: number | null) => (n === null ? "" : String(n));
+/** Valor de un input numerico (null si esta vacio o no es numero). */
+export const deInput = (s: string) => (s.trim() === "" || !Number.isFinite(Number(s)) ? null : Number(s));

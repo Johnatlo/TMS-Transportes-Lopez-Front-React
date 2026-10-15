@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_343 funciones, componentes, métodos y rutas en 46 archivos._
+_334 funciones, componentes, métodos y rutas en 48 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (123)
@@ -187,17 +187,19 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - [`src/componentes/ComboBuscable.tsx`](#srccomponentescombobuscabletsx) (1)
 - [`src/componentes/CumplirViaje.tsx`](#srccomponentescumplirviajetsx) (9)
 - [`src/componentes/DatosRndc.tsx`](#srccomponentesdatosrndctsx) (2)
-- [`src/componentes/DetalleViaje.tsx`](#srccomponentesdetalleviajetsx) (4)
+- [`src/componentes/DetalleViaje.tsx`](#srccomponentesdetalleviajetsx) (3)
 - [`src/componentes/DocumentosViaje.tsx`](#srccomponentesdocumentosviajetsx) (2)
 - [`src/componentes/Estado.tsx`](#srccomponentesestadotsx) (4)
 - [`src/componentes/EstadoSincronizacion.tsx`](#srccomponentesestadosincronizaciontsx) (3)
 - [`src/componentes/FormularioGenerico.tsx`](#srccomponentesformulariogenericotsx) (2)
-- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (25)
+- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (24)
+- [`src/componentes/Indicador.tsx`](#srccomponentesindicadortsx) (1)
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
 - [`src/componentes/MapaSeguimiento.tsx`](#srccomponentesmapaseguimientotsx) (2)
 - [`src/componentes/Modal.tsx`](#srccomponentesmodaltsx) (1)
 - [`src/componentes/PantallaAcceso.tsx`](#srccomponentespantallaaccesotsx) (1)
-- [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (4)
+- [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (3)
+- [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
 - [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (7)
 - [`src/ganchos/useAltoTabla.ts`](#srcganchosusealtotablats) (1)
@@ -205,23 +207,23 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
 - [`src/ganchos/useSesion.tsx`](#srcganchosusesesiontsx) (2)
 - [`src/paginas/Catalogo.tsx`](#srcpaginascatalogotsx) (21)
-- [`src/paginas/Dashboard.tsx`](#srcpaginasdashboardtsx) (15)
-- [`src/paginas/Despacho.tsx`](#srcpaginasdespachotsx) (6)
+- [`src/paginas/Dashboard.tsx`](#srcpaginasdashboardtsx) (14)
+- [`src/paginas/Despacho.tsx`](#srcpaginasdespachotsx) (5)
 - [`src/paginas/FormularioPlantilla.tsx`](#srcpaginasformularioplantillatsx) (4)
 - [`src/paginas/Historial.tsx`](#srcpaginashistorialtsx) (2)
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (3)
-- [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (10)
+- [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (7)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (2)
-- [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (7)
-- [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (5)
+- [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (6)
+- [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (3)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
-- [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (6)
+- [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (4)
 - [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
-- [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (16)
+- [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (19)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
-- [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
+- [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (4)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
 
 ### `src/App.tsx`
@@ -540,8 +542,8 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - **`soloFecha(valor)`** · _función_
   Solo la fecha (DD/MM/AAAA) de un instante, en hora de Colombia; "-" sin valor.
 
-- **`separarAvisos(avisos)`** · _función_
-  Los avisos del backend vienen en un solo campo separados por " | ".
+- **`radicadoDuplicado(texto)`** · _función_
+  Radicado que el RNDC informa cuando un documento ya existe ("DUPLICADO:123").
 
 - **`apiCuadro`** · _módulo_
   Llamadas del cuadro pagos (/api/cuadro). Las que cambian algo devuelven el
@@ -841,9 +843,6 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - **`Datos({...})`** · _componente React_
   Pares etiqueta / valor en dos columnas. Lo vacio se muestra como "-".
 
-- **`Seccion({...})`** · _componente React_
-  Bloque con titulo dentro del detalle del viaje.
-
 - **`tercero(t)`** · _función_
   Nombre de un tercero y debajo su identificacion, sede y ciudad.
 
@@ -953,9 +952,6 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - **`IconoConfiguracion()`** · _componente React_
   Icono del menu Configuracion.
 
-- **`IconoMas()`** · _componente React_
-  Icono para crear.
-
 - **`IconoCampana()`** · _componente React_
   Icono de alertas.
 
@@ -1000,6 +996,15 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 
 - **`IconoBomba()`** · _componente React_
   Icono del menu Anticipos (surtidor de combustible).
+
+### `src/componentes/Indicador.tsx`
+
+- **`Indicador({...})`** · _componente React_
+  Tarjeta de indicador (Inicio, Cartera, Anticipos): titulo, valor grande y,
+  opcional, un icono, la variacion frente al periodo anterior (con signo y
+  flecha, no solo color) y un detalle al lado.
+
+  `dinero` usa la letra de montos; `alerta` pinta el valor como vencido.
 
 ### `src/componentes/LibroConsecutivos.tsx`
 
@@ -1086,9 +1091,6 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 > Ventana para retomar un viaje fallido: explica el error, muestra que
 > remesas ya estan en el RNDC y deja corregir los datos del manifiesto.
 
-- **`radicadoDuplicado(texto)`** · _función_
-  Radicado que el RNDC informa cuando un documento ya existe ("DUPLICADO:123").
-
 - **`esReintentable(v)`** · _función_
   true si el viaje quedo en un estado de error desde el que se puede reintentar.
 
@@ -1101,6 +1103,11 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
   Muestra el error, que remesas ya estan en el RNDC y deja corregir los datos
   del manifiesto. Lo que se corrija en el Catalogo (por ejemplo el titular del
   vehiculo) tambien se toma: el backend relee todo al reintentar.
+
+### `src/componentes/Seccion.tsx`
+
+- **`Seccion({...})`** · _componente React_
+  Bloque con titulo (y, opcional, algo al lado del titulo) dentro de un detalle.
 
 ### `src/componentes/Shell.tsx`
 
@@ -1336,7 +1343,7 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - **`hora(valor)`** · _función_
   "HH:MM" en hora de Colombia; vacio sin valor.
 
-- **`fechaCorta(valor)`** · _función_
+- **`diaMes(valor)`** · _función_
   "DD/MM" en hora de Colombia (no del texto UTC: de noche seria el dia siguiente).
 
 - **`ruta(p)`** · _función_
@@ -1351,10 +1358,6 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - **`viajesPorSemana(viajes, ahora)`** · _función_
   Viajes confirmados por semana (lunes a domingo, hora de Colombia), por fecha
   de expedicion. Devuelve la semana actual y las 4 anteriores.
-
-- **`Indicador({...})`** · _componente React_
-  Tarjeta de indicador del tablero: icono, titulo, valor y la variacion
-  frente al periodo anterior (con signo y flecha, no solo color).
 
 - **`AlertaDestacada({...})`** · _componente React_
   Tarjeta con el documento mas urgente (o un mensaje si no hay): quien, que
@@ -1372,9 +1375,6 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 
 > Pantalla Despachar: asistente para expedir un viaje (remesas y manifiesto)
 > en el RNDC, y para corregir y reintentar un viaje fallido.
-
-- **`radicadoDuplicado(texto)`** · _función_
-  Radicado que el RNDC informa cuando un documento ya existe ("DUPLICADO:123").
 
 - **`consecutivoRemesa(base, orden)`** · _función_
   Consecutivo de cada remesa a partir del numero base del viaje.
@@ -1519,20 +1519,11 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - **`flotaTexto(f)`** · _función_
   "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo.
 
-- **`enInput(n)`** · _función_
-  Texto de un numero para un input ("" si no hay).
-
-- **`deInput(s)`** · _función_
-  Valor de un input numerico (null si esta vacio o no es numero).
-
 - **`diferencia(t)`** · _función_
   Lo que el tramo cambio con el cruce: combustible calculado - lo que se habia registrado.
 
 - **`Recorrido({...})`** · _componente React_
   Recorrido (empresa del viaje) o la vuelta que aun espera el proximo viaje.
-
-- **`Indicador({...})`** · _componente React_
-  Un numero grande con su titulo, como los indicadores del Inicio.
 
 - **`CuadroAnticipos()`** · _componente React_
   Pantalla Anticipos. Los anticipos se registran en cada viaje del Cuadro
@@ -1567,9 +1558,6 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - **`aFormulario(d)`** · _función_
   Viaje -> valores del formulario, todos como texto (asi trabajan los inputs).
 
-- **`Seccion({...})`** · _componente React_
-  Bloque con titulo (y algo extra al lado del titulo) dentro del detalle.
-
 - **`DetalleCuadro({...})`** · _componente React_
   Un viaje del cuadro pagos: papeles, datos, flete, factura, pagos,
   revisiones, anticipos y notas. Papeles, revisiones, anticipos y
@@ -1595,12 +1583,6 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 > en World Office) con los viajes listos para facturar. Cada fila trae la
 > tarifa sugerida de la matriz de fletes y todo se puede ajustar antes de
 > descargar el Excel. Tambien: importar y editar la matriz de fletes.
-
-- **`enInput(n)`** · _función_
-  Texto de un numero para un input ("" si no hay).
-
-- **`deInput(s)`** · _función_
-  Valor de un input numerico (null si esta vacio o no es numero).
 
 - **`EnvioFacturacion({...})`** · _componente React_
   Ventana del envio a facturacion. Al "Guardar y descargar Excel" guarda en
@@ -1645,12 +1627,6 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 - **`pasosPapeles(flujoCorame)`** · _función_
   Pasos de los papeles. Parqueadero, oficina y "radicados" (el ultimo, ya
   radicados en el cliente) solo para CORAME / Cartones America.
-
-- **`hoyColombia()`** · _función_
-  Fecha de hoy en Colombia, "AAAA-MM-DD".
-
-- **`fechaCorta(f)`** · _función_
-  "2026-09-30" -> "30/09/2026" (sin pasar por Date: no se corre de dia).
 
 - **`saldoVencido(f)`** · _función_
   Saldo de un tercero sin pagar y ya vencido (15 dias despues de descargar).
@@ -1715,10 +1691,15 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
   urbano); si solo hay especiales, la primera. null si no hay ninguna.
 
 - **`pesoAFacturar(pesoKg, tarifa)`** · _función_
-  Peso a facturar: el real, o el minimo pactado si fue por menos (34000, 32000 kg).
+  Peso a facturar: el fijo de la tarifa si lo tiene (33000 kg, sin importar el
+  tiquete); si no, el real, o el minimo pactado si fue por menos (34000 kg).
 
 - **`totalPorPeso(pesoKg, valorTon)`** · _función_
   Total por peso: toneladas x valor por tonelada, en pesos enteros.
+
+- **`adicionalDe(tarifa)`** · _función_
+  Adicional de la tarifa, como en la formula del Excel: POR (2 clientes) suma
+  300.000 y POR3 (3 clientes) 600.000 al valor x toneladas. null en las demas.
 
 - **`placaConGuion(placa)`** · _función_
   "SZP339" -> "SZP-339" (como va en la nota y en el cuadro).
@@ -1733,14 +1714,15 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
   con el numero del "transporte" en vez de la remision.
 
 - **`totalDe(e)`** · _función_
-  Total de una fila: por peso (TON) o el fijo.
+  Total de una fila: el fijo, o toneladas x valor + el adicional por clientes.
 
 - **`notaDe(e)`** · _función_
   La nota que corresponde a los datos de la fila.
 
 - **`aplicarTarifa(e, tarifa)`** · _función_
-  Aplica una tarifa a la fila: tipo, valor, peso a facturar y razon social. La
-  nota se rearma si no se edito a mano.
+  Aplica una tarifa a la fila: tipo, valor, adicional, peso a facturar y razon
+  social. Una tarifa sin valor (vacio o "?" en la matriz) deja el valor vacio
+  para escribirlo a mano. La nota se rearma si no se edito a mano.
 
 - **`filaInicial(f, tarifas, ultimaId)`** · _función_
   Fila inicial del cuadro de envio. Si el viaje ya se habia enviado, se parte
@@ -1757,6 +1739,15 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
   - Sin nombre: se ignora. Valor no numerico ("?"): sin valor.
   - Las filas "X -34 TON" (fijo cuando va por menos de 34 toneladas) no son
     una tarifa aparte: se convierten en peso minimo de 34000 kg de "X".
+  - "el peso debe de ser 33,000" en las observaciones: peso fijo de 33000 kg.
+  - Un valor por tonelada menor de 1.000 esta escrito por kilo (PEGANTE
+    URBANO: 28,663636 x 33.000 kg = 945.900): se pasa a valor por tonelada.
+
+- **`enInput(n)`** · _función_
+  Texto de un numero para un input ("" si no hay).
+
+- **`deInput(s)`** · _función_
+  Valor de un input numerico (null si esta vacio o no es numero).
 
 ### `src/paginas/estadosViaje.ts`
 
@@ -1776,9 +1767,6 @@ _343 funciones, componentes, métodos y rutas en 46 archivos._
 
 - **`textoVencimiento(f)`** · _función_
   "Vencida hace 12 dias", "Vence hoy", "Vence en 8 dias".
-
-- **`Indicador({...})`** · _componente React_
-  Un numero grande con su titulo, como los indicadores del Inicio.
 
 - **`Cartera()`** · _componente React_
   Cartera: totales, edades por cliente y facturas por cobrar. Clic en una

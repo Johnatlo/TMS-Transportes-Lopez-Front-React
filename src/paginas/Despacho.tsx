@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ESTADOS_REINTENTABLES } from "../componentes/ReintentarViaje";
 import { DocumentosViaje } from "../componentes/DocumentosViaje";
-import { api, moneda, aInputLocal } from "../api/cliente";
+import { api, moneda, aInputLocal, radicadoDuplicado } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { useMunicipios } from "../ganchos/useMunicipios";
 import { Avisos, Cargando } from "../componentes/Estado";
@@ -15,12 +15,6 @@ import Modal from "../componentes/Modal";
 import DatosRndcEnviados from "../componentes/DatosRndc";
 import AccesoGps from "../componentes/AccesoGps";
 import type { DatosRndc, PlantillaViaje, Via, Viaje, ViajeRemesa } from "../api/tipos";
-
-/** Radicado que el RNDC informa cuando un documento ya existe ("DUPLICADO:123"). */
-function radicadoDuplicado(texto: string | null | undefined): string | null {
-  const m = /DUPLICADO:\s*(\d+)/i.exec(texto ?? "");
-  return m ? m[1] : null;
-}
 
 /** Viaje que ya se guardo (y fallo en el RNDC), con lo que trae la respuesta de error. */
 type ViajeEnCurso = Viaje & { remesas?: ViajeRemesa[]; datosRndc?: DatosRndc };

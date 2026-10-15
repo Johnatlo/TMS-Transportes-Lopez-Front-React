@@ -3,19 +3,13 @@
  * remesas ya estan en el RNDC y deja corregir los datos del manifiesto.
  */
 import { useState } from "react";
-import { api, ErrorApi, moneda } from "../api/cliente";
+import { api, ErrorApi, moneda, radicadoDuplicado } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando } from "./Estado";
 import Modal from "./Modal";
 import ComboBuscable from "./ComboBuscable";
 import DatosRndcEnviados from "./DatosRndc";
 import type { Viaje, ViajeRemesa } from "../api/tipos";
-
-/** Radicado que el RNDC informa cuando un documento ya existe ("DUPLICADO:123"). */
-function radicadoDuplicado(texto: string | null | undefined): string | null {
-  const m = /DUPLICADO:\s*(\d+)/i.exec(texto ?? "");
-  return m ? m[1] : null;
-}
 
 /** Estados desde los que el backend acepta reintentar (ver despacho.ts). */
 export const ESTADOS_REINTENTABLES = ["VALIDACION_ERROR", "REMESA_ERROR", "MANIFIESTO_ERROR"];

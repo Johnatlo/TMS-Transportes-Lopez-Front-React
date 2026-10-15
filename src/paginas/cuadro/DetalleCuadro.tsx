@@ -3,12 +3,12 @@
  * al dueno, revisiones, anticipos (efectivo y combustible) y notas.
  */
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
 import { apiCuadro, fechaHora, moneda } from "../../api/cliente";
 import type { DetalleCuadro as Detalle, EstadoPapeles } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Modal from "../../componentes/Modal";
+import Seccion from "../../componentes/Seccion";
 import { Pastilla } from "../../componentes/TablaDatos";
 import {
   ETIQUETA_FLOTA,
@@ -25,7 +25,7 @@ import {
 const CAMPOS = [
   "fecha", "placa", "empresa", "conductor", "manifiesto", "remision", "pesoKg", "fechaDescargue",
   "pesoFacturadoKg", "notaFactura",
-  "tipoFlete", "tarifaKilo", "valorFijo", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "fechaPagoSaldo",
+  "tipoFlete", "tarifaKilo", "valorFijo", "fleteAdicional", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "fechaPagoSaldo",
 ] as const;
 type Campo = (typeof CAMPOS)[number];
 type Formulario = Record<Campo, string>;
@@ -33,19 +33,6 @@ type Formulario = Record<Campo, string>;
 /** Viaje -> valores del formulario, todos como texto (asi trabajan los inputs). */
 const aFormulario = (d: Detalle): Formulario =>
   Object.fromEntries(CAMPOS.map((c) => [c, d[c] === null || d[c] === undefined ? "" : String(d[c])])) as Formulario;
-
-/** Bloque con titulo (y algo extra al lado del titulo) dentro del detalle. */
-function Seccion({ titulo, children, extra }: { titulo: string; children: ReactNode; extra?: ReactNode }) {
-  return (
-    <section className="detalle-seccion">
-      <h4>
-        {titulo}
-        {extra}
-      </h4>
-      {children}
-    </section>
-  );
-}
 
 /**
  * Un viaje del cuadro pagos: papeles, datos, flete, factura, pagos,
@@ -223,12 +210,16 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
               {f.tipoFlete === "KILO" ? campo("tarifaKilo", "Tarifa ($ por kilo)", "number", { min: 0, step: "0.01" }) : campo("valorFijo", "Valor fijo", "number", { min: 0 })}
               {f.tipoFlete === "KILO" &&
                 campo("pesoFacturadoKg", "Peso facturado (kg)", "number", { min: 0, placeholder: f.pesoKg || "Igual al real" })}
+              {/* POR (2 clientes) suma 300.000 y POR3 (3 clientes) 600.000. */}
+              {f.tipoFlete === "KILO" && campo("fleteAdicional", "Adicional por clientes", "number", { min: 0, step: "300000", placeholder: "0" })}
               <div>
                 <label>Valor del flete</label>
                 <div className="valor-calculado">
                   {f.tipoFlete === "KILO"
                     ? (f.pesoFacturadoKg || f.pesoKg) && f.tarifaKilo
-                      ? moneda(Math.round(Number(f.pesoFacturadoKg || f.pesoKg) * Number(f.tarifaKilo)))
+                      ? moneda(
+                          Math.round(Number(f.pesoFacturadoKg || f.pesoKg) * Number(f.tarifaKilo)) + Number(f.fleteAdicional || 0)
+                        )
                       : "Falta peso o tarifa"
                     : f.valorFijo
                       ? moneda(Number(f.valorFijo))

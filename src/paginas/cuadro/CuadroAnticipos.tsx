@@ -17,10 +17,11 @@ import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import ComboBuscable from "../../componentes/ComboBuscable";
 import Modal from "../../componentes/Modal";
+import Indicador from "../../componentes/Indicador";
 import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import { fechaCorta, hoyColombia } from "./estadosCuadro";
-import { placaConGuion } from "./facturacion";
+import { deInput, enInput, placaConGuion } from "./facturacion";
 
 /** Un tanqueo: los tramos que salieron de una misma entrega en la bomba. */
 interface Tanqueo {
@@ -69,11 +70,6 @@ function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
 /** "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo. */
 const flotaTexto = (f: string | null) => (f === "LOPEZ" ? "LOPEZ" : f === "MYC" ? "M&C" : f === "TERCERO" ? "TERCERO" : "-");
 
-/** Texto de un numero para un input ("" si no hay). */
-const enInput = (n: number | null) => (n === null ? "" : String(n));
-/** Valor de un input numerico (null si esta vacio o no es numero). */
-const deInput = (s: string) => (s.trim() === "" || !Number.isFinite(Number(s)) ? null : Number(s));
-
 /** Lo que el tramo cambio con el cruce: combustible calculado - lo que se habia registrado. */
 const diferencia = (t: AnticipoBomba) => (t.galones === null || t.combustibleEntregado === null ? null : t.combustible - t.combustibleEntregado);
 
@@ -85,19 +81,6 @@ function Recorrido({ t }: { t: AnticipoBomba }) {
       {t.empresa ?? "-"}
       {t.manifiesto && <span className="dato-sec codigo">Manifiesto {t.manifiesto}</span>}
     </>
-  );
-}
-
-/** Un numero grande con su titulo, como los indicadores del Inicio. */
-function Indicador({ titulo, valor, detalle, alerta }: { titulo: string; valor: string; detalle?: string; alerta?: boolean }) {
-  return (
-    <div className="indicador">
-      <div className="indicador-titulo">{titulo}</div>
-      <div className="indicador-fila">
-        <span className={`indicador-valor indicador-dinero ${alerta ? "texto-vencido" : ""}`}>{valor}</span>
-        {detalle && <span className="indicador-periodo">{detalle}</span>}
-      </div>
-    </div>
   );
 }
 
@@ -368,10 +351,11 @@ export default function CuadroAnticipos() {
     <>
       {r && (
         <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
-          <Indicador titulo="Deuda con la bomba" valor={moneda(r.pendiente)} detalle={`de ${moneda(r.deuda)} entregado`} />
-          <Indicador titulo="Pagado a la bomba" valor={moneda(r.pagado)} />
-          <Indicador titulo="Abonado por el socio" valor={moneda(r.abonadoSocio)} detalle={`${abonos.length} abono(s)`} />
+          <Indicador dinero titulo="Deuda con la bomba" valor={moneda(r.pendiente)} detalle={`de ${moneda(r.deuda)} entregado`} />
+          <Indicador dinero titulo="Pagado a la bomba" valor={moneda(r.pagado)} />
+          <Indicador dinero titulo="Abonado por el socio" valor={moneda(r.abonadoSocio)} detalle={`${abonos.length} abono(s)`} />
           <Indicador
+            dinero
             titulo="Cupo disponible"
             valor={moneda(r.cupoDisponible)}
             detalle={`de ${moneda(r.cupoBomba)}`}

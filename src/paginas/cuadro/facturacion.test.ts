@@ -9,6 +9,7 @@ import {
   notaFactura,
   pesoAFacturar,
   placaConGuion,
+  adicionalDe,
   sugerirTarifa,
   totalDe,
   totalPorPeso,
@@ -21,7 +22,7 @@ const tarifa = (
   valor: number | null,
   tipo: TarifaFlete["tipo"] = "TON",
   pesoMinimoKg: number | null = null
-): TarifaFlete => ({ id: ++id, nombre, razonSocial, valor, tipo, pesoMinimoKg, observaciones: null });
+): TarifaFlete => ({ id: ++id, nombre, razonSocial, valor, tipo, pesoMinimoKg, pesoFijoKg: null, observaciones: null });
 
 // Nombres reales de la matriz.
 const MATRIZ = [
@@ -103,6 +104,7 @@ const viaje = (c: Partial<FilaPorFacturar> = {}): FilaPorFacturar =>
     tipoFlete: "KILO",
     tarifaKilo: null,
     valorFijo: null,
+    fleteAdicional: null,
     pesoFacturadoKg: null,
     tarifaFleteId: null,
     notaFactura: null,
@@ -151,6 +153,39 @@ describe("fila del cuadro de envio", () => {
   });
 });
 
+describe("tarifas POR y POR3 (2 y 3 clientes)", () => {
+  const dekorando = tarifa("DEKORANDO J&N", "DEKORANDO J&N", 195000, "TON");
+  const dos = tarifa("DEKORANDO J&N 2 CLIENTES", "DEKORANDO J&N", 195000, "POR");
+  const tres = tarifa("DEKORANDO J&N 3 CLIENTES", "DEKORANDO J&N", 195000, "POR3");
+  const fila = () => filaInicial(viaje({ empresa: "DEKORANDO J&N", pesoKg: 30000 }), []);
+
+  test("adicional de 300.000 por cada cliente de mas", () => {
+    expect(adicionalDe(dekorando)).toBeNull();
+    expect(adicionalDe(dos)).toBe(300000);
+    expect(adicionalDe(tres)).toBe(600000);
+  });
+  test("30 toneladas con 2 clientes: 195.000 x 30 + 300.000 = 6.150.000", () => {
+    const e = aplicarTarifa(fila(), dos);
+    expect(e.tipo).toBe("TON");
+    expect(totalDe(e)).toBe(6150000);
+    expect(totalDe(aplicarTarifa(fila(), tres))).toBe(6450000);
+    expect(totalDe(aplicarTarifa(fila(), dekorando))).toBe(5850000);
+  });
+  test("el adicional guardado vuelve al abrir un viaje ya enviado", () => {
+    const e = filaInicial(
+      viaje({ enviadoFacturarEn: "2026-10-12T15:00:00Z", tarifaKilo: 195, pesoFacturadoKg: 30000, fleteAdicional: 300000 }),
+      []
+    );
+    expect(totalDe(e)).toBe(6150000);
+  });
+  test("una tarifa sin valor deja el valor vacio para escribirlo a mano", () => {
+    const e = aplicarTarifa(aplicarTarifa(fila(), dos), tarifa("RECICLAMAS", null, null, "TON"));
+    expect(e.valorTon).toBeNull();
+    expect(e.adicional).toBeNull();
+    expect(totalDe(e)).toBeNull();
+  });
+});
+
 describe("bloques por factura", () => {
   test("misma factura junta; sin numero, cada uno aparte", () => {
     const bloques = agruparPorFactura([
@@ -181,5 +216,22 @@ describe("importar la matriz", () => {
       ["PEGANTE NEIVA", null, null, "FIJO"],
       ["CRISTIAN 2 CLIENTES", null, 200000, "POR"],
     ]);
+  });
+  test("PEGANTE URBANO: siempre 33.000 kg y el valor por kilo pasa a valor por tonelada", () => {
+    const [pegante] = convertirMatriz([
+      {
+        nombre: "PEGANTE URBANO",
+        razonSocial: "TP FORMULADOS SAS",
+        valor: 28.663636,
+        tipo: "TON",
+        observaciones: "en la factura el peso debe de ser 33,000 en la nota de la factura igual 33,000*28,663636",
+      },
+    ]);
+    expect(pegante.pesoFijoKg).toBe(33000);
+    expect(pegante.valor).toBeCloseTo(28663.636, 3);
+    expect(pegante.observaciones).toContain("33,000");
+    const e = aplicarTarifa(filaInicial(viaje({ empresa: "TP FORMULADOS SAS", pesoKg: 29150 }), []), { ...pegante, id: 99 });
+    expect(e.pesoFacturadoKg).toBe(33000);
+    expect(totalDe(e)).toBe(945900);
   });
 });

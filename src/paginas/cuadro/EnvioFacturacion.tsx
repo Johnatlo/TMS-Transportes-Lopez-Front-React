@@ -16,6 +16,8 @@ import {
   agruparPorFactura,
   aplicarTarifa,
   convertirMatriz,
+  deInput,
+  enInput,
   filaInicial,
   notaDe,
   tarifasDelCliente,
@@ -23,11 +25,6 @@ import {
 } from "./facturacion";
 import type { FilaEnvio } from "./facturacion";
 import { descargarCuadroEnvio, leerMatrizFletes } from "./excelFacturacion";
-
-/** Texto de un numero para un input ("" si no hay). */
-const enInput = (n: number | null) => (n === null ? "" : String(n));
-/** Valor de un input numerico (null si esta vacio o no es numero). */
-const deInput = (s: string) => (s.trim() === "" || !Number.isFinite(Number(s)) ? null : Number(s));
 
 /**
  * Ventana del envio a facturacion. Al "Guardar y descargar Excel" guarda en
@@ -81,6 +78,7 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
           tarifaFleteId: e.tarifaId,
           tipo: e.tipo,
           valorTon: e.valorTon,
+          adicional: e.tipo === "TON" ? e.adicional : null,
           pesoFacturadoKg: e.pesoFacturadoKg,
           total: totalDe(e),
           remision: e.remision,
@@ -266,7 +264,7 @@ function FilaEditable({
           alCambiar={(id) => alElegirTarifa(tarifas.find((t) => t.id === id) ?? null)}
           obtenerId={(t) => t.id}
           obtenerEtiqueta={(t) =>
-            `${t.nombre} · ${t.valor === null ? "sin valor" : t.valor.toLocaleString("es-CO")} ${t.tipo}${t.pesoMinimoKg ? ` · min ${t.pesoMinimoKg.toLocaleString("es-CO")} kg` : ""}`
+            `${t.nombre} · ${t.valor === null ? "sin valor" : t.valor.toLocaleString("es-CO")} ${t.tipo}${t.pesoMinimoKg ? ` · min ${t.pesoMinimoKg.toLocaleString("es-CO")} kg` : ""}${t.pesoFijoKg ? ` · siempre ${t.pesoFijoKg.toLocaleString("es-CO")} kg` : ""}`
           }
           placeholder={tarifas.length ? "Busca la tarifa..." : "Sin matriz"}
         />
@@ -287,7 +285,20 @@ function FilaEditable({
       </td>
       <td style={{ minWidth: 110 }}>
         {e.tipo === "TON" ? (
-          <input type="number" min={0} value={enInput(e.valorTon)} onChange={(x) => alCambiar({ valorTon: deInput(x.target.value) })} />
+          <>
+            <input type="number" min={0} value={enInput(e.valorTon)} onChange={(x) => alCambiar({ valorTon: deInput(x.target.value) })} />
+            <label className="dato-sec" style={{ marginTop: 4 }}>
+              Adicional clientes
+              <input
+                type="number"
+                min={0}
+                step={300000}
+                placeholder="0"
+                value={enInput(e.adicional)}
+                onChange={(x) => alCambiar({ adicional: deInput(x.target.value) })}
+              />
+            </label>
+          </>
         ) : (
           <span className="dato-sec">-</span>
         )}
@@ -382,7 +393,8 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
     >
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
         Importa el Excel "MATRIZ FLETES" (columnas EMPRESA, RAZON SOCIAL, VALOR, TIPO, OBSERVACIONES). Las filas
-        "-34 TON" se vuelven el peso minimo (34.000 kg) de su tarifa. Los cambios de abajo se guardan al salir de cada
+        "-34 TON" se vuelven el peso minimo (34.000 kg) de su tarifa. POR suma 300.000 (2 clientes) y POR3 600.000
+        (3 clientes) al valor por tonelada. Las tarifas sin valor o con "?" se escriben a mano al enviar. Los cambios de abajo se guardan al salir de cada
         campo.
       </div>
       {mensaje && <div className={`alert ${mensaje.tipo}`}>{mensaje.texto}</div>}
@@ -413,6 +425,7 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
               <th>Valor</th>
               <th>Tipo</th>
               <th>Peso minimo (kg)</th>
+              <th>Peso fijo (kg)</th>
               <th>Observaciones</th>
             </tr>
           </thead>
@@ -450,12 +463,22 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                     }
                   />
                 </td>
+                <td>
+                  <input
+                    type="number"
+                    min={0}
+                    defaultValue={enInput(t.pesoFijoKg)}
+                    placeholder="-"
+                    style={{ width: "7rem" }}
+                    onBlur={(e) => deInput(e.target.value) !== t.pesoFijoKg && guardar(t, { pesoFijoKg: deInput(e.target.value) })}
+                  />
+                </td>
                 <td className="dato-sec">{t.observaciones ?? ""}</td>
               </tr>
             ))}
             {tarifas.datos && lista.length === 0 && (
               <tr>
-                <td colSpan={6} className="dato-sec">
+                <td colSpan={7} className="dato-sec">
                   {tarifas.datos.length ? "Ninguna tarifa coincide." : "Aun no hay matriz: importa el Excel."}
                 </td>
               </tr>

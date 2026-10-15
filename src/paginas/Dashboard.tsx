@@ -9,6 +9,7 @@ import { api, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import { usarShell } from "../componentes/Shell";
+import Indicador from "../componentes/Indicador";
 import MapaSeguimiento, { coordenadaValida, type PuntoMapa } from "../componentes/MapaSeguimiento";
 import {
   IconoCalendario,
@@ -146,7 +147,7 @@ export default function Dashboard() {
             <span className={`etiqueta-estado ${claseEstado(estado)}`}>{estado}</span>
           </td>
         ) : (
-          <td>{v.fechaHoraDescargue ? `${fechaCorta(v.fechaHoraDescargue)} ${soloHora(v.fechaHoraDescargue)}` : "-"}</td>
+          <td>{v.fechaHoraDescargue ? `${diaMes(v.fechaHoraDescargue)} ${soloHora(v.fechaHoraDescargue)}` : "-"}</td>
         )}
         <td>{vehiculoPorId.get(v.vehiculoId ?? -1)?.placa ?? v.placaRndc ?? "-"}</td>
         <td>
@@ -166,15 +167,15 @@ export default function Dashboard() {
           titulo="Viajes finalizados"
           valor={finalizados30}
           variacion={variacion(finalizados30, finalizadosPrevios)}
-          periodo="30 dias"
+          detalle="30 dias"
         />
-        <Indicador icono={<IconoCalendario />} titulo="Proximos viajes" valor={programados.length} periodo="programados" />
+        <Indicador icono={<IconoCalendario />} titulo="Proximos viajes" valor={programados.length} detalle="programados" />
         <Indicador
           icono={<IconoGrafica />}
           titulo="Viajes esta semana"
           valor={semanaActual.total}
           variacion={variacion(semanaActual.total, semanaAnterior.total)}
-          periodo="vs. semana pasada"
+          detalle="vs. semana pasada"
         />
       </div>
 
@@ -404,7 +405,7 @@ function hora(valor: string | null): string {
 const soloHora = hora;
 
 /** "DD/MM" en hora de Colombia (no del texto UTC: de noche seria el dia siguiente). */
-function fechaCorta(valor: string): string {
+function diaMes(valor: string): string {
   const [, m, d] = claveDia(new Date(valor)).split("-");
   return `${d}/${m}`;
 }
@@ -461,44 +462,6 @@ function viajesPorSemana(viajes: Viaje[], ahora: Date): Semana[] {
 // ---------------------------------------------------------------------------
 // Piezas
 // ---------------------------------------------------------------------------
-
-/**
- * Tarjeta de indicador del tablero: icono, titulo, valor y la variacion
- * frente al periodo anterior (con signo y flecha, no solo color).
- */
-function Indicador({
-  icono,
-  titulo,
-  valor,
-  variacion: v,
-  periodo,
-}: {
-  icono: ReactNode;
-  titulo: string;
-  valor: number;
-  variacion?: number | null;
-  periodo?: string;
-}) {
-  return (
-    <div className="indicador">
-      <div className="indicador-titulo">
-        <span className="indicador-icono">{icono}</span>
-        {titulo}
-      </div>
-      <div className="indicador-fila">
-        <span className="indicador-valor">{valor.toLocaleString("es-CO")}</span>
-        {v !== undefined && v !== null && (
-          // Signo + flecha ademas del color: la variacion no depende solo del color.
-          <span className={`variacion ${v >= 0 ? "sube" : "baja"}`}>
-            {v >= 0 ? "▲ +" : "▼ "}
-            {v}%
-          </span>
-        )}
-        {periodo && <span className="indicador-periodo">{periodo}</span>}
-      </div>
-    </div>
-  );
-}
 
 /**
  * Tarjeta con el documento mas urgente (o un mensaje si no hay): quien, que

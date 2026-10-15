@@ -96,13 +96,6 @@ export const IconoConfiguracion = () => (
   </Icono>
 );
 
-/** Icono para crear. */
-export const IconoMas = () => (
-  <Icono>
-    <path d="M12 5v14M5 12h14" />
-  </Icono>
-);
-
 /** Icono de alertas. */
 export const IconoCampana = () => (
   <Icono>

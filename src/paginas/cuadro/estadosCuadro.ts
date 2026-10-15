@@ -2,6 +2,7 @@
  * Nombres, colores y reglas de presentacion del cuadro pagos (estados,
  * papeles, flota, fechas y vencimiento de saldos).
  */
+import { hoyColombia } from "../../api/cliente";
 import type { EstadoCuadro, EstadoPapeles, FilaCuadro, Flota } from "../../api/cliente";
 import type { TonoPastilla } from "../../componentes/TablaDatos";
 
@@ -79,15 +80,12 @@ export const ETIQUETA_FLOTA: Record<Flota, string> = {
   TERCERO: "Tercero",
 };
 
-/** Fecha de hoy en Colombia, "AAAA-MM-DD". */
-export const hoyColombia = () => new Date(Date.now() - 5 * 3_600_000).toISOString().slice(0, 10);
-
-/** "2026-09-30" -> "30/09/2026" (sin pasar por Date: no se corre de dia). */
-export const fechaCorta = (f: string | null | undefined) => {
-  if (!f) return "-";
-  const [a, m, d] = f.slice(0, 10).split("-");
-  return `${d}/${m}/${a}`;
-};
+/**
+ * Fecha de hoy en Colombia ("AAAA-MM-DD") y "2026-09-30" -> "30/09/2026" (sin
+ * pasar por Date: no se corre de dia). Viven en api/cliente.ts; se reexportan
+ * aqui con el nombre que usa el cuadro.
+ */
+export { hoyColombia, soloDia as fechaCorta } from "../../api/cliente";
 
 /** Saldo de un tercero sin pagar y ya vencido (15 dias despues de descargar). */
 export const saldoVencido = (f: FilaCuadro) =>

@@ -12,6 +12,7 @@ import type { Cartera as DatosCartera, FacturaCartera, GestionCobro, PlazoClient
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Modal from "../../componentes/Modal";
+import Indicador from "../../componentes/Indicador";
 import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import { usarShell } from "../../componentes/Shell";
@@ -129,19 +130,6 @@ const COLUMNAS_CLIENTES: Columna<ResumenCliente>[] = [
   { id: "total", titulo: "Total", alinear: "derecha", valor: (c) => c.total, celda: (c) => <strong>{moneda(c.total)}</strong> },
 ];
 
-/** Un numero grande con su titulo, como los indicadores del Inicio. */
-function Indicador({ titulo, valor, detalle }: { titulo: string; valor: string; detalle?: string }) {
-  return (
-    <div className="indicador">
-      <div className="indicador-titulo">{titulo}</div>
-      <div className="indicador-fila">
-        <span className="indicador-valor indicador-dinero">{valor}</span>
-        {detalle && <span className="indicador-periodo">{detalle}</span>}
-      </div>
-    </div>
-  );
-}
-
 /**
  * Cartera: totales, edades por cliente y facturas por cobrar. Clic en una
  * factura abre sus viajes, las gestiones de cobro y el registro del pago.
@@ -180,18 +168,21 @@ export default function Cartera() {
   return (
     <>
       <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
-        <Indicador titulo="Por cobrar" valor={moneda(total)} detalle={`${datos.facturas.length} facturas`} />
+        <Indicador dinero titulo="Por cobrar" valor={moneda(total)} detalle={`${datos.facturas.length} facturas`} />
         <Indicador
+          dinero
           titulo="Vencido"
           valor={moneda(vencido)}
           detalle={`${datos.facturas.filter((f) => f.diasVencida > 0).length} facturas`}
         />
         <Indicador
+          dinero
           titulo="Vence en 5 dias"
           valor={moneda(proximas.reduce((s, f) => s + f.valor, 0))}
           detalle={`${proximas.length} facturas`}
         />
         <Indicador
+          dinero
           titulo="Facturados sin numero o fecha"
           valor={String(datos.sinDatos.length)}
           detalle="no entran a cartera"

@@ -7,6 +7,7 @@ import type { TerceroDetalle } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "./Estado";
 import Modal from "./Modal";
+import Seccion from "./Seccion";
 import { Pastilla } from "./TablaDatos";
 import { ETIQUETA_ESTADO, tonoEstado } from "../paginas/estadosViaje";
 
@@ -21,16 +22,6 @@ function Datos({ filas }: { filas: Array<[string, ReactNode]> }) {
         </div>
       ))}
     </dl>
-  );
-}
-
-/** Bloque con titulo dentro del detalle del viaje. */
-function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
-  return (
-    <section className="detalle-seccion">
-      <h4>{titulo}</h4>
-      {children}
-    </section>
   );
 }
 
