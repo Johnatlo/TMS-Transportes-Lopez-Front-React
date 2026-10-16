@@ -3,7 +3,7 @@
  * papeles, flota, fechas y vencimiento de saldos).
  */
 import { hoyColombia } from "../../api/cliente";
-import type { EstadoCuadro, EstadoPapeles, FilaCuadro, Flota } from "../../api/cliente";
+import type { EstadoCuadro, EstadoFactura, EstadoPapeles, FilaCuadro, Flota } from "../../api/cliente";
 import type { TonoPastilla } from "../../componentes/TablaDatos";
 
 /**
@@ -12,6 +12,10 @@ import type { TonoPastilla } from "../../componentes/TablaDatos";
  * morado = sin radicar, verde = listo para facturar (radicado), azul = facturado sin datos,
  * naranja = revisado por contabilidad (falta gerencia). Todo pagado (ya hay
  * fecha pago factura) va en verde y pinta toda la fila de verde.
+ *
+ * Papeles y factura son dos estados aparte (dos pastillas): facturar no
+ * esconde si los papeles estan radicados. Solo "todo pagado" y "anulado"
+ * reemplazan a los dos.
  */
 export const ETIQUETA_ESTADO_CUADRO: Record<EstadoCuadro, string> = {
   EN_RUTA: "En proceso",
@@ -21,8 +25,6 @@ export const ETIQUETA_ESTADO_CUADRO: Record<EstadoCuadro, string> = {
   RADICADO: "Listo para facturar",
   // Solo CORAME / Cartones America: los papeles ya quedaron radicados en el cliente.
   RADICADOS: "Radicados",
-  FACTURADO_SIN_DATOS: "Facturado sin datos",
-  FACTURADO: "Facturado",
   PAGADO: "Todo pagado",
   ANULADO: "Anulado",
 };
@@ -40,10 +42,6 @@ export function tonoEstadoCuadro(f: Pick<FilaCuadro, "estado" | "todoPagado">): 
       return "verde";
     case "RADICADOS":
       return "turquesa";
-    case "FACTURADO_SIN_DATOS":
-      return "azul";
-    case "FACTURADO":
-      return "info";
     case "PAGADO":
       return "ok";
     default:
@@ -54,6 +52,27 @@ export function tonoEstadoCuadro(f: Pick<FilaCuadro, "estado" | "todoPagado">): 
 /** Nombre del estado para mostrar; "Todo pagado" cuando ya se pago todo. */
 export const etiquetaEstadoCuadro = (f: Pick<FilaCuadro, "estado" | "todoPagado">) =>
   f.todoPagado ? "Todo pagado" : ETIQUETA_ESTADO_CUADRO[f.estado];
+
+export const ETIQUETA_ESTADO_FACTURA: Record<EstadoFactura, string> = {
+  SIN_FACTURAR: "Sin facturar",
+  FACTURADO_SIN_DATOS: "Facturado sin datos",
+  FACTURADO: "Facturado",
+};
+
+/** Color de la pastilla de la factura: azul sin datos, celeste facturado. */
+export const tonoEstadoFactura = (e: EstadoFactura): TonoPastilla =>
+  e === "FACTURADO_SIN_DATOS" ? "azul" : e === "FACTURADO" ? "info" : "neutro";
+
+/**
+ * Pastilla de factura que se muestra junto a la de papeles: ninguna si aun no
+ * se facturo, ni cuando ya esta todo pagado o anulado (esos reemplazan a todo).
+ */
+export const muestraFactura = (f: Pick<FilaCuadro, "estado" | "estadoFactura" | "todoPagado">) =>
+  !f.todoPagado && f.estado !== "ANULADO" && f.estado !== "PAGADO" && f.estadoFactura !== "SIN_FACTURAR";
+
+/** Los dos estados en un texto ("Listo para facturar · Facturado"), para buscar y filtrar. */
+export const textoEstados = (f: Pick<FilaCuadro, "estado" | "estadoFactura" | "todoPagado">) =>
+  muestraFactura(f) ? `${etiquetaEstadoCuadro(f)} · ${ETIQUETA_ESTADO_FACTURA[f.estadoFactura]}` : etiquetaEstadoCuadro(f);
 
 export const ETIQUETA_PAPELES: Record<EstadoPapeles, string> = {
   EN_RUTA: "En ruta",

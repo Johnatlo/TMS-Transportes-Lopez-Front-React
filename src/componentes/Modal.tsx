@@ -26,7 +26,13 @@ export default function Modal({
   alCerrar,
 }: {
   titulo: string;
-  ancho?: "normal" | "wide";
+  /**
+   * normal y wide crecen con el contenido. pantalla ocupa casi toda la
+   * pantalla y su contenido no se desplaza entero: una tabla .tabla-envio
+   * toma el alto que sobra y se desplaza sola, asi su barra lateral queda
+   * siempre a la vista.
+   */
+  ancho?: "normal" | "wide" | "pantalla";
   pasos?: string[];
   pasoActual?: number;
   children: ReactNode;
@@ -47,7 +53,7 @@ export default function Modal({
 
   return (
     <div className="modal-overlay">
-      <div className={`modal-card ${ancho === "wide" ? "wide" : ""} ${maximizada ? "maximizada" : ""}`}>
+      <div className={`modal-card ${ancho === "normal" ? "" : ancho} ${maximizada ? "maximizada" : ""}`}>
         <div className="modal-header">
           <h2>{titulo}</h2>
           <div className="modal-botones">

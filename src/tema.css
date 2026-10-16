@@ -304,10 +304,31 @@ tr.fila-todo-pagado:hover > td { background: #d5ecdc; }
 .barra-envio { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
 .barra-envio select, .barra-envio > input { width: auto; min-width: 14rem; }
 .tabla-envio { max-height: 62vh; overflow: auto; border: 1px solid var(--gris-200); border-radius: var(--radio-md); }
+/* Columnas de ancho fijo (colgroup): cada campo se queda en su celda. */
+.tabla-envio table { table-layout: fixed; min-width: 100%; }
+/* table.tabla td trae nowrap: aqui el texto si se parte para quedarse en su columna. */
+.tabla-envio table.tabla th, .tabla-envio table.tabla td, .tabla-envio table.tabla td .dato-sec { white-space: normal; overflow-wrap: anywhere; }
 .tabla-envio td { vertical-align: top; }
 .tabla-envio td .principal, .tabla-envio td .dato-sec { display: block; }
-.tabla-envio input, .tabla-envio select { width: 100%; }
+.tabla-envio td > * + * { margin-top: 0.35rem; }
+.tabla-envio input, .tabla-envio select, .tabla-envio textarea { width: 100%; max-width: 100%; box-sizing: border-box; margin: 0; }
 .tabla-envio input[type="checkbox"] { width: auto; }
+.tabla-envio .etiqueta-celda { display: block; font-size: var(--texto-xs); color: var(--gris-500); }
+.tabla-envio .etiqueta-celda input { display: block; margin-top: 0.15rem; }
+
+/* Ventana casi a pantalla completa: la tabla toma el alto que sobra y se
+   desplaza dentro de su recuadro, con la barra lateral siempre visible. */
+.modal-card.pantalla { width: min(1600px, 100%); height: calc(100vh - 2rem); height: calc(100dvh - 2rem); }
+.modal-card.pantalla .modal-body { display: flex; flex-direction: column; overflow: hidden; }
+.modal-card.pantalla .modal-body > * { flex: 0 0 auto; }
+.modal-card.pantalla .modal-body > .tabla-envio { flex: 1 1 auto; min-height: 0; max-height: none; }
+
+/* .dato-sec es display: block; puesta en una celda la sacaba de la tabla y
+   las lineas de la fila no cuadraban (matriz de fletes). */
+td.dato-sec { display: table-cell; }
+
+/* Estado del cuadro: pastilla de papeles y, al lado, la de la factura. */
+.pastillas-estado { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; }
 
 /*
  * Tablas: en el computador la tabla se desplaza dentro de su propio recuadro,

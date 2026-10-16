@@ -19,25 +19,31 @@ import Papeles from "../seguimiento/Papeles";
 import {
   ETIQUETA_FLOTA,
   ETIQUETA_PAPELES,
-  etiquetaEstadoCuadro,
   fechaCorta,
   hoyColombia,
   saldoVencido,
-  tonoEstadoCuadro,
+  textoEstados,
 } from "./estadosCuadro";
+import PastillasEstado from "./PastillasEstado";
 
 /** Ya paso la fecha pago cliente y la factura no se ha pagado. */
 const cobroVencido = (f: FilaCuadro) =>
   !f.anulado && !f.facturaFechaPago && !!f.facturaVence && f.facturaVence < hoyColombia();
 
+/** Ni anulado ni todo pagado. */
+const enCurso = (f: FilaCuadro) => !f.anulado && !f.todoPagado;
+
 const PESTANAS: PestanaTabla<FilaCuadro>[] = [
   { id: "activos", etiqueta: "Pendientes", incluye: (f) => !f.anulado && !f.todoPagado },
   { id: "proceso", etiqueta: "En proceso", incluye: (f) => f.estado === "EN_RUTA" },
   { id: "sinRadicar", etiqueta: "Sin radicar", incluye: (f) => f.estado === "SIN_RADICAR" },
-  { id: "listoParaFacturar", etiqueta: "Listo para facturar", incluye: (f) => f.estado === "RADICADO" },
-  { id: "radicados", etiqueta: "Radicados", incluye: (f) => f.estado === "RADICADOS" },
-  { id: "sinDatos", etiqueta: "Facturado sin datos", incluye: (f) => f.estado === "FACTURADO_SIN_DATOS" },
-  { id: "facturados", etiqueta: "Facturados", incluye: (f) => f.estado === "FACTURADO" },
+  // Papeles y factura van aparte: "Listo para facturar" y "Radicados" son los
+  // que aun no se facturan; las de factura muestran los facturados sin
+  // importar en que van los papeles (todo pagado y anulados quedan fuera).
+  { id: "listoParaFacturar", etiqueta: "Listo para facturar", incluye: (f) => f.estado === "RADICADO" && f.estadoFactura === "SIN_FACTURAR" },
+  { id: "radicados", etiqueta: "Radicados", incluye: (f) => f.estado === "RADICADOS" && f.estadoFactura === "SIN_FACTURAR" },
+  { id: "sinDatos", etiqueta: "Facturado sin datos", incluye: (f) => enCurso(f) && f.estadoFactura === "FACTURADO_SIN_DATOS" },
+  { id: "facturados", etiqueta: "Facturados", incluye: (f) => enCurso(f) && f.estadoFactura === "FACTURADO" },
   { id: "gerencia", etiqueta: "Falta gerencia", incluye: (f) => !f.anulado && !!f.revisadoContabilidadPor && !f.revisadoGerenciaPor },
   { id: "cobrar", etiqueta: "Cobro vencido", incluye: cobroVencido },
   { id: "saldos", etiqueta: "Saldos vencidos", incluye: saldoVencido },
@@ -92,10 +98,10 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
     id: "estado",
     titulo: "Estado",
     filtrable: true,
-    valor: (f) => etiquetaEstadoCuadro(f),
+    valor: (f) => textoEstados(f),
     celda: (f) => (
       <>
-        <Pastilla tono={tonoEstadoCuadro(f)}>{etiquetaEstadoCuadro(f)}</Pastilla>
+        <PastillasEstado f={f} />
         {!f.anulado && !["RADICADO", "RADICADOS", "EN_RUTA"].includes(f.estadoPapeles) && (
           <span className="dato-sec">Papeles: {ETIQUETA_PAPELES[f.estadoPapeles].toLowerCase()}</span>
         )}

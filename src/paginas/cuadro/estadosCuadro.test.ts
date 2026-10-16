@@ -4,9 +4,12 @@ import {
   etiquetaEstadoCuadro,
   fechaCorta,
   hoyColombia,
+  muestraFactura,
   pasosPapeles,
   saldoVencido,
+  textoEstados,
   tonoEstadoCuadro,
+  tonoEstadoFactura,
 } from "./estadosCuadro";
 
 afterEach(() => {
@@ -19,8 +22,6 @@ describe("color y nombre del estado (los colores del Excel)", () => {
     ["SIN_RADICAR", "morado", "Sin radicar"],
     ["RADICADO", "verde", "Listo para facturar"],
     ["RADICADOS", "turquesa", "Radicados"],
-    ["FACTURADO_SIN_DATOS", "azul", "Facturado sin datos"],
-    ["FACTURADO", "info", "Facturado"],
     ["PAGADO", "ok", "Todo pagado"],
     ["ANULADO", "neutro", "Anulado"],
   ];
@@ -33,6 +34,20 @@ describe("color y nombre del estado (los colores del Excel)", () => {
   test("todo pagado es verde, sin importar el estado de la factura", () => {
     expect(tonoEstadoCuadro({ estado: "PAGADO", todoPagado: true })).toBe("ok");
     expect(etiquetaEstadoCuadro({ estado: "PAGADO", todoPagado: true })).toBe("Todo pagado");
+  });
+
+  test("la factura va aparte de los papeles; todo pagado reemplaza a los dos", () => {
+    const facturado = { estado: "RADICADO" as const, estadoFactura: "FACTURADO" as const, todoPagado: false };
+    expect(muestraFactura(facturado)).toBe(true);
+    expect(textoEstados(facturado)).toBe("Listo para facturar · Facturado");
+    expect(tonoEstadoFactura("FACTURADO_SIN_DATOS")).toBe("azul");
+    expect(textoEstados({ ...facturado, estado: "SIN_RADICAR", estadoFactura: "FACTURADO_SIN_DATOS" })).toBe(
+      "Sin radicar · Facturado sin datos"
+    );
+    expect(muestraFactura({ ...facturado, estadoFactura: "SIN_FACTURAR" })).toBe(false);
+    const pagado = { estado: "PAGADO" as const, estadoFactura: "FACTURADO" as const, todoPagado: true };
+    expect(muestraFactura(pagado)).toBe(false);
+    expect(textoEstados(pagado)).toBe("Todo pagado");
   });
 });
 

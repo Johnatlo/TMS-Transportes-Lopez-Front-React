@@ -13,13 +13,12 @@ import { Pastilla } from "../../componentes/TablaDatos";
 import {
   ETIQUETA_FLOTA,
   ETIQUETA_PAPELES,
-  etiquetaEstadoCuadro,
   fechaCorta,
   hoyColombia,
   pasosPapeles,
   saldoVencido,
-  tonoEstadoCuadro,
 } from "./estadosCuadro";
+import PastillasEstado from "./PastillasEstado";
 
 /** Campos del formulario: todo como texto, igual que los inputs. */
 const CAMPOS = [
@@ -133,7 +132,7 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
       {d && f && (
         <div className="detalle-viaje">
           <div className="detalle-cabecera">
-            <Pastilla tono={tonoEstadoCuadro(d)}>{etiquetaEstadoCuadro(d)}</Pastilla>
+            <PastillasEstado f={d} />
             <Pastilla tono={d.flota === "TERCERO" ? "neutro" : "info"}>{ETIQUETA_FLOTA[d.flota]}</Pastilla>
             {d.manifiesto ? (
               <span className="dato-sec">

@@ -669,8 +669,10 @@ export function radicadoDuplicado(texto: string | null | undefined): string | nu
 // ---------------------------------------------------------------------------
 export type EstadoPapeles = "EN_RUTA" | "DESCARGADO" | "CONDUCTOR" | "PARQUEADERO" | "OFICINA" | "RADICADO" | "RADICADOS";
 export type Flota = "LOPEZ" | "MYC" | "TERCERO";
-export type EstadoCuadro =
-  | "ANULADO" | "PAGADO" | "FACTURADO" | "FACTURADO_SIN_DATOS" | "RADICADOS" | "RADICADO" | "SIN_RADICAR" | "EN_RUTA";
+/** Estado del viaje por sus papeles; ANULADO y PAGADO (todo pagado) reemplazan a los demas. */
+export type EstadoCuadro = "ANULADO" | "PAGADO" | "RADICADOS" | "RADICADO" | "SIN_RADICAR" | "EN_RUTA";
+/** Estado de la factura, aparte del de los papeles. */
+export type EstadoFactura = "SIN_FACTURAR" | "FACTURADO_SIN_DATOS" | "FACTURADO";
 
 export interface FilaCuadro {
   id: number;
@@ -731,6 +733,7 @@ export interface FilaCuadro {
   papelesRevisadoEn: string | null;
   papelesRevisadoPor: string | null;
   estado: EstadoCuadro;
+  estadoFactura: EstadoFactura;
   todoPagado: boolean;
 }
 

@@ -13,8 +13,9 @@ import ComboBuscable from "../../componentes/ComboBuscable";
 import Modal from "../../componentes/Modal";
 import { fechaCorta, hoyColombia } from "./estadosCuadro";
 import {
-  agruparPorFactura,
+  agruparPorCliente,
   aplicarTarifa,
+  claveCliente,
   convertirMatriz,
   deInput,
   enInput,
@@ -22,6 +23,7 @@ import {
   notaDe,
   tarifasDelCliente,
   totalDe,
+  unificarFacturas,
 } from "./facturacion";
 import type { FilaEnvio } from "./facturacion";
 import { descargarCuadroEnvio, leerMatrizFletes } from "./excelFacturacion";
@@ -29,7 +31,8 @@ import { descargarCuadroEnvio, leerMatrizFletes } from "./excelFacturacion";
 /**
  * Ventana del envio a facturacion. Al "Guardar y descargar Excel" guarda en
  * cada viaje marcado lo que se envia (tarifa, peso, valor, remision, nota,
- * factura) y descarga el cuadro agrupado por factura.
+ * factura) y descarga el cuadro con un bloque por cliente (razon social), con
+ * un mismo numero de factura para todos sus viajes.
  */
 export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: () => void; alCambiar: () => void }) {
   const datos = useDatos(() => Promise.all([apiCuadro.porFacturar(), apiCuadro.tarifas()]), []);
@@ -55,25 +58,48 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
   const marcadas = (filas ?? []).filter((e) => e.incluir);
   const totalMarcado = marcadas.reduce((s, e) => s + (totalDe(e) ?? 0), 0);
 
-  /** Cambia una fila; si cambia algo de la nota y no se edito a mano, la rearma. */
+  /** Viajes marcados por cliente (razon social), para avisar cuales van en la misma factura. */
+  const marcadasPorCliente = useMemo(() => {
+    const cuenta = new Map<string, number>();
+    for (const e of marcadas) cuenta.set(claveCliente(e.razonSocial), (cuenta.get(claveCliente(e.razonSocial)) ?? 0) + 1);
+    return cuenta;
+  }, [marcadas]);
+
+  /**
+   * Cambia una fila; si cambia algo de la nota y no se edito a mano, la
+   * rearma. El numero de factura se copia a los demas viajes marcados del
+   * mismo cliente: van en una sola factura.
+   */
   function cambiar(id: number, cambios: Partial<FilaEnvio>) {
-    setFilas((fs) =>
-      (fs ?? []).map((e) => {
-        if (e.fila.id !== id) return e;
+    setFilas((fs) => {
+      const lista = fs ?? [];
+      const origen = lista.find((e) => e.fila.id === id);
+      const cliente = origen ? claveCliente(cambios.razonSocial ?? origen.razonSocial) : "";
+      return lista.map((e) => {
+        if (e.fila.id !== id) {
+          const mismoCliente = "facturaNumero" in cambios && e.incluir && !!cliente && claveCliente(e.razonSocial) === cliente;
+          return mismoCliente ? { ...e, facturaNumero: cambios.facturaNumero ?? "" } : e;
+        }
         const nueva = { ...e, ...cambios };
         return nueva.notaEditada || "notaFactura" in cambios ? nueva : { ...nueva, notaFactura: notaDe(nueva) };
-      })
-    );
+      });
+    });
   }
 
   async function guardarYDescargar() {
     if (marcadas.length === 0) return;
-    setEnviando(true);
     setError(null);
     setAviso(null);
+    // Una factura por cliente: mismo numero para todos sus viajes.
+    const { filas: envio, conflictos } = unificarFacturas(marcadas);
+    if (conflictos.length) {
+      setError(`Un mismo cliente va en una sola factura; corrige el numero de factura de: ${conflictos.join("; ")}.`);
+      return;
+    }
+    setEnviando(true);
     try {
       await apiCuadro.enviarFacturacion(
-        marcadas.map((e) => ({
+        envio.map((e) => ({
           id: e.fila.id,
           tarifaFleteId: e.tarifaId,
           tipo: e.tipo,
@@ -86,7 +112,7 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
           facturaNumero: e.facturaNumero,
         }))
       );
-      await descargarCuadroEnvio(agruparPorFactura(marcadas), `envio-facturacion-${hoyColombia()}.xlsx`);
+      await descargarCuadroEnvio(agruparPorCliente(envio), `envio-facturacion-${hoyColombia()}.xlsx`);
       setAviso(`Se guardaron ${marcadas.length} viaje(s) y se descargo el cuadro para la contadora.`);
       alCambiar();
       datos.recargar();
@@ -100,7 +126,7 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
   return (
     <Modal
       titulo="Enviar a facturacion"
-      ancho="wide"
+      ancho="pantalla"
       alCerrar={alCerrar}
       pie={
         <>
@@ -124,8 +150,9 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
         <>
           <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
             Viajes con los papeles listos para facturar. La tarifa, el peso y el valor salen de la matriz de fletes y se
-            pueden cambiar. Los viajes con el mismo numero de factura van juntos en el Excel. Al descargar, lo que se
-            envio queda guardado en cada viaje del cuadro pagos.
+            pueden cambiar. Los viajes de la misma razon social van juntos en el Excel, en un solo cuadro y con el mismo
+            numero de factura (al escribirlo en uno se copia a los demas). Al descargar, lo que se envio queda guardado
+            en cada viaje del cuadro pagos.
           </div>
           {tarifas.length === 0 && (
             <div className="alert warning">
@@ -165,7 +192,12 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
             </button>
           </div>
           <div className="tabla-envio">
-            <table className="tabla tabla-compacta">
+            <table className="tabla tabla-compacta" style={{ width: ANCHO_ENVIO }}>
+              <colgroup>
+                {COLUMNAS_ENVIO.map((ancho, i) => (
+                  <col key={i} style={{ width: ancho }} />
+                ))}
+              </colgroup>
               <thead>
                 <tr>
                   <th />
@@ -186,6 +218,7 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
                     key={e.fila.id}
                     e={e}
                     tarifas={tarifas}
+                    mismoCliente={e.incluir ? (marcadasPorCliente.get(claveCliente(e.razonSocial)) ?? 1) - 1 : 0}
                     alCambiar={(c) => cambiar(e.fila.id, c)}
                     alElegirTarifa={(t) => setFilas((fs) => (fs ?? []).map((x) => (x.fila.id === e.fila.id ? aplicarTarifa(x, t) : x)))}
                   />
@@ -214,15 +247,27 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
   );
 }
 
+/**
+ * Ancho de cada columna del cuadro de envio (checkbox, viaje, razon social,
+ * remision, tarifa, peso, valor ton, total, factura, nota). La tabla usa
+ * table-layout fijo: cada campo queda dentro de su columna y nada se monta
+ * sobre lo de al lado; lo que no cabe en la ventana se recorre de lado.
+ */
+const COLUMNAS_ENVIO = [40, 200, 180, 130, 270, 130, 160, 130, 140, 250];
+const ANCHO_ENVIO = COLUMNAS_ENVIO.reduce((a, b) => a + b, 0);
+
 /** Una fila editable del cuadro de envio. */
 function FilaEditable({
   e,
   tarifas,
+  mismoCliente,
   alCambiar,
   alElegirTarifa,
 }: {
   e: FilaEnvio;
   tarifas: TarifaFlete[];
+  /** Cuantos viajes marcados mas tiene esta razon social (van en la misma factura). */
+  mismoCliente: number;
   alCambiar: (c: Partial<FilaEnvio>) => void;
   alElegirTarifa: (t: TarifaFlete | null) => void;
 }) {
@@ -241,7 +286,7 @@ function FilaEditable({
       <td>
         <input type="checkbox" checked={e.incluir} onChange={(x) => alCambiar({ incluir: x.target.checked })} />
       </td>
-      <td style={{ minWidth: 150 }}>
+      <td>
         <span className="principal">{f.placa}</span>
         <span className="dato-sec">{fechaCorta(f.fecha)} · {f.empresa}</span>
         <span className="dato-sec">{f.conductor ?? "-"}</span>
@@ -251,13 +296,18 @@ function FilaEditable({
         </span>
         {f.enviadoFacturarEn && <span className="dato-sec texto-vencido">Ya enviado el {fechaCorta(f.enviadoFacturarEn)}</span>}
       </td>
-      <td style={{ minWidth: 150 }}>
+      <td>
         <input value={e.razonSocial} onChange={(x) => alCambiar({ razonSocial: x.target.value })} />
+        {mismoCliente > 0 && (
+          <span className="dato-sec">
+            Misma factura con {mismoCliente} viaje{mismoCliente === 1 ? "" : "s"} mas
+          </span>
+        )}
       </td>
-      <td style={{ minWidth: 110 }}>
+      <td>
         <input value={e.remision} onChange={(x) => alCambiar({ remision: x.target.value })} />
       </td>
-      <td style={{ minWidth: 230 }}>
+      <td>
         <ComboBuscable
           opciones={opciones}
           valor={e.tarifaId}
@@ -268,13 +318,13 @@ function FilaEditable({
           }
           placeholder={tarifas.length ? "Busca la tarifa..." : "Sin matriz"}
         />
-        {tarifa?.observaciones && <span className="dato-sec">{tarifa.observaciones}</span>}
-        <select value={e.tipo} onChange={(x) => alCambiar({ tipo: x.target.value as "TON" | "FIJO" })} style={{ marginTop: 4 }}>
+        <select value={e.tipo} onChange={(x) => alCambiar({ tipo: x.target.value as "TON" | "FIJO" })}>
           <option value="TON">Por tonelada</option>
           <option value="FIJO">Valor fijo</option>
         </select>
+        {tarifa?.observaciones && <span className="dato-sec">{tarifa.observaciones}</span>}
       </td>
-      <td style={{ minWidth: 110 }}>
+      <td>
         <input
           type="number"
           min={0}
@@ -283,11 +333,11 @@ function FilaEditable({
         />
         <span className="dato-sec">Real: {f.pesoKg === null ? "-" : f.pesoKg.toLocaleString("es-CO")}</span>
       </td>
-      <td style={{ minWidth: 110 }}>
+      <td>
         {e.tipo === "TON" ? (
           <>
             <input type="number" min={0} value={enInput(e.valorTon)} onChange={(x) => alCambiar({ valorTon: deInput(x.target.value) })} />
-            <label className="dato-sec" style={{ marginTop: 4 }}>
+            <label className="etiqueta-celda">
               Adicional clientes
               <input
                 type="number"
@@ -303,23 +353,21 @@ function FilaEditable({
           <span className="dato-sec">-</span>
         )}
       </td>
-      <td style={{ minWidth: 120 }}>
+      <td>
         {e.tipo === "FIJO" ? (
           <input type="number" min={0} value={enInput(e.totalFijo)} onChange={(x) => alCambiar({ totalFijo: deInput(x.target.value) })} />
         ) : (
-          <strong>{total === null ? "-" : moneda(total)}</strong>
+          <>
+            <strong>{total === null ? "-" : moneda(total)}</strong>
+            {!!e.adicional && total !== null && <span className="dato-sec">con {moneda(e.adicional)} de adicional</span>}
+          </>
         )}
       </td>
-      <td style={{ minWidth: 100 }}>
+      <td>
         <input value={e.facturaNumero} placeholder="TL 1111" onChange={(x) => alCambiar({ facturaNumero: x.target.value })} />
       </td>
-      <td style={{ minWidth: 220 }}>
-        <textarea
-          rows={2}
-          style={{ width: "100%" }}
-          value={e.notaFactura}
-          onChange={(x) => alCambiar({ notaFactura: x.target.value, notaEditada: true })}
-        />
+      <td>
+        <textarea rows={2} value={e.notaFactura} onChange={(x) => alCambiar({ notaFactura: x.target.value, notaEditada: true })} />
         {e.notaEditada && (
           <button className="btn-link" onClick={() => alCambiar({ notaEditada: false, notaFactura: notaDe(e) })}>
             Volver a la nota automatica
@@ -329,6 +377,10 @@ function FilaEditable({
     </tr>
   );
 }
+
+/** Ancho de las columnas de la matriz (tarifa, razon social, valor, tipo, pesos y observaciones). */
+const COLUMNAS_MATRIZ = [270, 230, 140, 110, 130, 130, 360];
+const ANCHO_MATRIZ = COLUMNAS_MATRIZ.reduce((a, b) => a + b, 0);
 
 /**
  * Matriz de fletes: importar el Excel "MATRIZ FLETES" (reemplaza la actual) y
@@ -383,7 +435,7 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
   return (
     <Modal
       titulo="Matriz de fletes"
-      ancho="wide"
+      ancho="pantalla"
       alCerrar={alCerrar}
       pie={
         <button className="btn-secondary" onClick={alCerrar}>
@@ -417,7 +469,12 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
       {tarifas.cargando && !tarifas.datos && <Cargando que="la matriz" />}
       {tarifas.error && <ErrorCarga mensaje={tarifas.error} alReintentar={tarifas.recargar} />}
       <div className="tabla-envio">
-        <table className="tabla tabla-compacta">
+        <table className="tabla tabla-compacta" style={{ width: ANCHO_MATRIZ }}>
+          <colgroup>
+            {COLUMNAS_MATRIZ.map((ancho, i) => (
+              <col key={i} style={{ width: ancho }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               <th>Tarifa</th>
@@ -439,7 +496,6 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                     type="number"
                     min={0}
                     defaultValue={enInput(t.valor)}
-                    style={{ width: "8rem" }}
                     onBlur={(e) => deInput(e.target.value) !== t.valor && guardar(t, { valor: deInput(e.target.value) })}
                   />
                 </td>
@@ -457,7 +513,6 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                     min={0}
                     defaultValue={enInput(t.pesoMinimoKg)}
                     placeholder="-"
-                    style={{ width: "7rem" }}
                     onBlur={(e) =>
                       deInput(e.target.value) !== t.pesoMinimoKg && guardar(t, { pesoMinimoKg: deInput(e.target.value) })
                     }
@@ -469,7 +524,6 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                     min={0}
                     defaultValue={enInput(t.pesoFijoKg)}
                     placeholder="-"
-                    style={{ width: "7rem" }}
                     onBlur={(e) => deInput(e.target.value) !== t.pesoFijoKg && guardar(t, { pesoFijoKg: deInput(e.target.value) })}
                   />
                 </td>

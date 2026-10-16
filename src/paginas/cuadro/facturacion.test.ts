@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { FilaPorFacturar, TarifaFlete } from "../../api/cliente";
 import {
-  agruparPorFactura,
+  agruparPorCliente,
   aplicarTarifa,
   convertirMatriz,
   filaInicial,
@@ -13,6 +13,7 @@ import {
   sugerirTarifa,
   totalDe,
   totalPorPeso,
+  unificarFacturas,
 } from "./facturacion";
 
 let id = 0;
@@ -100,6 +101,7 @@ const viaje = (c: Partial<FilaPorFacturar> = {}): FilaPorFacturar =>
     remesa: "00006778",
     flujoCorame: false,
     estado: "RADICADO",
+    estadoFactura: "SIN_FACTURAR",
     enviadoFacturarEn: null,
     tipoFlete: "KILO",
     tarifaKilo: null,
@@ -138,7 +140,8 @@ describe("fila del cuadro de envio", () => {
     const e = filaInicial(
       viaje({
         enviadoFacturarEn: "2026-10-12T15:00:00Z",
-        estado: "FACTURADO_SIN_DATOS",
+        estado: "RADICADO",
+        estadoFactura: "FACTURADO_SIN_DATOS",
         tarifaKilo: 0.15,
         pesoFacturadoKg: 34000,
         notaFactura: "NOTA GUARDADA",
@@ -186,16 +189,33 @@ describe("tarifas POR y POR3 (2 y 3 clientes)", () => {
   });
 });
 
-describe("bloques por factura", () => {
-  test("misma factura junta; sin numero, cada uno aparte", () => {
-    const bloques = agruparPorFactura([
-      { id: 1, facturaNumero: "TL 1111" },
-      { id: 2, facturaNumero: "" },
-      { id: 3, facturaNumero: "tl 1111" },
-      { id: 4, facturaNumero: "TL 1112" },
-      { id: 5, facturaNumero: "" },
+describe("una factura por cliente (razon social)", () => {
+  test("la misma razon social va junta aunque se escriba distinto", () => {
+    const bloques = agruparPorCliente([
+      { id: 1, razonSocial: "TOLUA MADERAS Y HERRAJES S.A.S." },
+      { id: 2, razonSocial: "RECOLAM" },
+      { id: 3, razonSocial: "Tolua Maderas y Herrajes SAS" },
+      { id: 4, razonSocial: "PORCELATINOS S.A.S" },
+      { id: 5, razonSocial: "recolam s. en c." },
+      { id: 6, razonSocial: "" },
     ]);
-    expect(bloques.map((b) => b.map((f) => f.id))).toEqual([[1, 3], [2], [4], [5]]);
+    expect(bloques.map((b) => b.map((f) => f.id))).toEqual([[1, 3], [2, 5], [4], [6]]);
+  });
+  test("los viajes del cliente sin numero toman el que ya se escribio", () => {
+    const { filas, conflictos } = unificarFacturas([
+      { id: 1, razonSocial: "RECOLAM", facturaNumero: "" },
+      { id: 2, razonSocial: "RECOLAM S.EN C.", facturaNumero: "tl 1111" },
+      { id: 3, razonSocial: "APROREC SAS", facturaNumero: "" },
+    ]);
+    expect(conflictos).toEqual([]);
+    expect(filas.map((f) => f.facturaNumero)).toEqual(["TL 1111", "tl 1111", ""]);
+  });
+  test("dos numeros distintos para el mismo cliente: se avisa", () => {
+    const { conflictos } = unificarFacturas([
+      { id: 1, razonSocial: "RECOLAM", facturaNumero: "TL 1111" },
+      { id: 2, razonSocial: "RECOLAM", facturaNumero: "TL 1112" },
+    ]);
+    expect(conflictos).toEqual(["RECOLAM: TL 1111 y TL 1112"]);
   });
 });
 

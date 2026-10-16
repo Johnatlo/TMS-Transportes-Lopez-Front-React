@@ -213,7 +213,7 @@ export function aplicarTarifa(e: FilaEnvio, tarifa: TarifaFlete | null): FilaEnv
 export function filaInicial(f: FilaPorFacturar, tarifas: TarifaFlete[], ultimaId?: number | null): FilaEnvio {
   const base: FilaEnvio = {
     fila: f,
-    incluir: (f.estado === "RADICADO" || f.estado === "RADICADOS") && !f.enviadoFacturarEn,
+    incluir: (f.estado === "RADICADO" || f.estado === "RADICADOS") && f.estadoFactura === "SIN_FACTURAR" && !f.enviadoFacturarEn,
     tarifaId: null,
     razonSocial: f.empresa,
     tipo: "TON",
@@ -246,28 +246,59 @@ export function filaInicial(f: FilaPorFacturar, tarifas: TarifaFlete[], ultimaId
 }
 
 /**
- * Bloques del cuadro: los viajes con el mismo numero de factura van juntos
- * (en el orden en que aparece cada factura); los que no tienen numero van
- * cada uno en su propio bloque.
+ * Llave para juntar los viajes de un mismo cliente: la razon social sin
+ * tildes, puntuacion ni sufijos legales ("TOLUA ... S.A.S." = "Tolua ... SAS").
  */
-export function agruparPorFactura<T extends { facturaNumero: string }>(filas: T[]): T[][] {
+export const claveCliente = (razonSocial: string) => normalizarNombre(razonSocial);
+
+/**
+ * Bloques del cuadro: los viajes con la misma razon social van juntos, en un
+ * solo bloque (una factura por cliente), en el orden en que aparece cada
+ * cliente. Los que no tienen razon social van cada uno aparte.
+ */
+export function agruparPorCliente<T extends { razonSocial: string }>(filas: T[]): T[][] {
   const bloques: T[][] = [];
-  const porNumero = new Map<string, T[]>();
+  const porCliente = new Map<string, T[]>();
   for (const f of filas) {
-    const numero = f.facturaNumero.trim().toUpperCase();
-    if (!numero) {
+    const clave = claveCliente(f.razonSocial);
+    if (!clave) {
       bloques.push([f]);
       continue;
     }
-    const bloque = porNumero.get(numero);
+    const bloque = porCliente.get(clave);
     if (bloque) bloque.push(f);
     else {
       const nuevo = [f];
-      porNumero.set(numero, nuevo);
+      porCliente.set(clave, nuevo);
       bloques.push(nuevo);
     }
   }
   return bloques;
+}
+
+/**
+ * Un mismo numero de factura para todos los viajes de un cliente: los que no
+ * lo tienen toman el que ya se escribio en otro viaje de la misma razon
+ * social. Si un cliente tiene dos numeros distintos no se puede decidir solo:
+ * se devuelve en `conflictos` (uno por cliente) para que lo corrijan.
+ */
+export function unificarFacturas<T extends { razonSocial: string; facturaNumero: string }>(
+  filas: T[]
+): { filas: T[]; conflictos: string[] } {
+  const conflictos: string[] = [];
+  const numeroDe = new Map<string, string>();
+  for (const bloque of agruparPorCliente(filas)) {
+    const numeros = [...new Set(bloque.map((f) => f.facturaNumero.trim().toUpperCase()).filter(Boolean))];
+    if (numeros.length > 1) conflictos.push(`${bloque[0].razonSocial.trim()}: ${numeros.join(" y ")}`);
+    else if (numeros.length === 1) numeroDe.set(claveCliente(bloque[0].razonSocial), numeros[0]);
+  }
+  return {
+    filas: filas.map((f) => {
+      const numero = numeroDe.get(claveCliente(f.razonSocial));
+      return numero && !f.facturaNumero.trim() ? { ...f, facturaNumero: numero } : f;
+    }),
+    conflictos,
+  };
 }
 
 /** Fila cruda leida del Excel de la matriz (columnas A a E). */

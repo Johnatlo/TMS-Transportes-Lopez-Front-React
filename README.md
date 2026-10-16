@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_334 funciones, componentes, métodos y rutas en 48 archivos._
+_341 funciones, componentes, métodos y rutas en 49 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (123)
@@ -215,13 +215,14 @@ _334 funciones, componentes, métodos y rutas en 48 archivos._
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (3)
 - [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (7)
-- [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (2)
+- [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (3)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (6)
 - [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (3)
+- [`src/paginas/cuadro/PastillasEstado.tsx`](#srcpaginascuadropastillasestadotsx) (1)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
-- [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (4)
+- [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (7)
 - [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
-- [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (19)
+- [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (21)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (4)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
@@ -1546,6 +1547,9 @@ _334 funciones, componentes, métodos y rutas en 48 archivos._
 - **`cobroVencido(f)`** · _función_
   Ya paso la fecha pago cliente y la factura no se ha pagado.
 
+- **`enCurso(f)`** · _función_
+  Ni anulado ni todo pagado.
+
 - **`CuadroCentral()`** · _componente React_
   Cuadro pagos: el control de cada viaje desde que carga hasta que todo
   queda pagado, tenga o no manifiesto. Reemplaza la hoja "CUADRO PAGOS".
@@ -1587,7 +1591,8 @@ _334 funciones, componentes, métodos y rutas en 48 archivos._
 - **`EnvioFacturacion({...})`** · _componente React_
   Ventana del envio a facturacion. Al "Guardar y descargar Excel" guarda en
   cada viaje marcado lo que se envia (tarifa, peso, valor, remision, nota,
-  factura) y descarga el cuadro agrupado por factura.
+  factura) y descarga el cuadro con un bloque por cliente (razon social), con
+  un mismo numero de factura para todos sus viajes.
 
 - **`FilaEditable({...})`** · _componente React_
   Una fila editable del cuadro de envio.
@@ -1595,6 +1600,12 @@ _334 funciones, componentes, métodos y rutas en 48 archivos._
 - **`VentanaMatriz({...})`** · _componente React_
   Matriz de fletes: importar el Excel "MATRIZ FLETES" (reemplaza la actual) y
   ajustar valor, tipo y peso minimo de cada tarifa.
+
+### `src/paginas/cuadro/PastillasEstado.tsx`
+
+- **`PastillasEstado({...})`** · _componente React_
+  Estado de un viaje del cuadro: la pastilla de los papeles y, al lado, la de
+  la factura si ya se facturo. "Todo pagado" y "Anulado" van solos.
 
 ### `src/paginas/cuadro/VentanasCuadro.tsx`
 
@@ -1623,6 +1634,16 @@ _334 funciones, componentes, métodos y rutas en 48 archivos._
 
 - **`etiquetaEstadoCuadro(f)`** · _función_
   Nombre del estado para mostrar; "Todo pagado" cuando ya se pago todo.
+
+- **`tonoEstadoFactura(e)`** · _función_
+  Color de la pastilla de la factura: azul sin datos, celeste facturado.
+
+- **`muestraFactura(f)`** · _función_
+  Pastilla de factura que se muestra junto a la de papeles: ninguna si aun no
+  se facturo, ni cuando ya esta todo pagado o anulado (esos reemplazan a todo).
+
+- **`textoEstados(f)`** · _función_
+  Los dos estados en un texto ("Listo para facturar · Facturado"), para buscar y filtrar.
 
 - **`pasosPapeles(flujoCorame)`** · _función_
   Pasos de los papeles. Parqueadero, oficina y "radicados" (el ultimo, ya
@@ -1728,10 +1749,20 @@ _334 funciones, componentes, métodos y rutas en 48 archivos._
   Fila inicial del cuadro de envio. Si el viaje ya se habia enviado, se parte
   de lo guardado; si no, de la tarifa sugerida.
 
-- **`agruparPorFactura(filas)`** · _función_
-  Bloques del cuadro: los viajes con el mismo numero de factura van juntos
-  (en el orden en que aparece cada factura); los que no tienen numero van
-  cada uno en su propio bloque.
+- **`claveCliente(razonSocial)`** · _función_
+  Llave para juntar los viajes de un mismo cliente: la razon social sin
+  tildes, puntuacion ni sufijos legales ("TOLUA ... S.A.S." = "Tolua ... SAS").
+
+- **`agruparPorCliente(filas)`** · _función_
+  Bloques del cuadro: los viajes con la misma razon social van juntos, en un
+  solo bloque (una factura por cliente), en el orden en que aparece cada
+  cliente. Los que no tienen razon social van cada uno aparte.
+
+- **`unificarFacturas(filas)`** · _función_
+  Un mismo numero de factura para todos los viajes de un cliente: los que no
+  lo tienen toman el que ya se escribio en otro viaje de la misma razon
+  social. Si un cliente tiene dos numeros distintos no se puede decidir solo:
+  se devuelve en `conflictos` (uno por cliente) para que lo corrijan.
 
 - **`convertirMatriz(filas)`** · _función_
   Convierte las filas del Excel "MATRIZ FLETES" en tarifas.
