@@ -1,6 +1,6 @@
 /**
- * Pantalla Usuarios: crear usuarios, activarlos o desactivarlos y
- * restablecer su clave (temporal, por correo o en pantalla).
+ * Pantalla Usuarios: crear usuarios, cambiarles el nombre, activarlos o
+ * desactivarlos y restablecer su clave (temporal, por correo o en pantalla).
  */
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -15,16 +15,17 @@ import type { Usuario } from "../api/tipos";
 
 /**
  * Administracion de usuarios. Sin roles por ahora: cualquier usuario activo
- * crea, desactiva y restablece cuentas.
+ * crea, renombra (a si mismo y a los demas), desactiva y restablece cuentas.
  *
  * Las contrasenas temporales las genera el servidor y se muestran UNA sola
  * vez: hay que copiarlas y entregarlas al usuario, que debera cambiarla en su
  * primer ingreso.
  */
 export default function Usuarios() {
-  const { usuario: yo } = useSesion();
+  const { usuario: yo, actualizarUsuario } = useSesion();
   const lista = useDatos(() => auth.listarUsuarios(), []);
   const [creando, setCreando] = useState(false);
+  const [renombrando, setRenombrando] = useState<Usuario | null>(null);
   const [claveMostrada, setClaveMostrada] = useState<{ email: string; clave: string; aviso?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState<string | null>(null);
@@ -123,7 +124,10 @@ export default function Usuarios() {
               alinear: "derecha",
               celda: (u) => (
                 <>
-                  <button className="boton-suave" onClick={() => restablecer(u)}>
+                  <button className="boton-suave" onClick={() => setRenombrando(u)}>
+                    Cambiar nombre
+                  </button>
+                  <button className="boton-suave" style={{ marginLeft: 8 }} onClick={() => restablecer(u)}>
                     Restablecer contrasena
                   </button>
                   {u.id !== yo?.id && (
@@ -145,6 +149,21 @@ export default function Usuarios() {
             setCreando(false);
             setExito(null);
             mostrarEntrega(email, entrega);
+            lista.recargar();
+          }}
+        />
+      )}
+
+      {renombrando && (
+        <CambiarNombre
+          usuario={renombrando}
+          alCerrar={() => setRenombrando(null)}
+          alGuardar={(u) => {
+            setRenombrando(null);
+            setError(null);
+            setExito(`Nombre cambiado a ${u.nombre}.`);
+            // El propio nombre tambien se ve arriba: se actualiza sin volver a entrar.
+            if (u.id === yo?.id && yo) actualizarUsuario({ ...yo, nombre: u.nombre });
             lista.recargar();
           }}
         />
@@ -204,6 +223,52 @@ function NuevoUsuario({
           </button>
           <button type="submit" className="btn-primary" disabled={enviando}>
             {enviando ? "Creando..." : "Crear usuario"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/** Ventana para cambiar el nombre de un usuario (el propio o el de otro). */
+function CambiarNombre({
+  usuario,
+  alCerrar,
+  alGuardar,
+}: {
+  usuario: Usuario;
+  alCerrar: () => void;
+  alGuardar: (u: Usuario) => void;
+}) {
+  const [nombre, setNombre] = useState(usuario.nombre);
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function enviar(e: FormEvent) {
+    e.preventDefault();
+    setEnviando(true);
+    setError(null);
+    try {
+      alGuardar(await auth.actualizarUsuario(usuario.id, { nombre }));
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo cambiar el nombre");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Modal titulo="Cambiar nombre" alCerrar={alCerrar}>
+      <form onSubmit={enviar}>
+        {error && <div className="alert danger">{error}</div>}
+        <label htmlFor="cn-nombre">Nombre de {usuario.email}</label>
+        <input id="cn-nombre" autoFocus required value={nombre} onChange={(e) => setNombre(e.target.value)} />
+        <div className="acciones-formulario">
+          <button type="button" className="btn-secondary" onClick={alCerrar}>
+            Cancelar
+          </button>
+          <button type="submit" className="btn-primary" disabled={enviando || !nombre.trim() || nombre.trim() === usuario.nombre}>
+            {enviando ? "Guardando..." : "Guardar"}
           </button>
         </div>
       </form>

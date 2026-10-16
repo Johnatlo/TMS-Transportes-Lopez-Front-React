@@ -12,12 +12,11 @@ import { useMunicipios } from "../ganchos/useMunicipios";
 import { Avisos, Cargando } from "../componentes/Estado";
 import ComboBuscable from "../componentes/ComboBuscable";
 import Modal from "../componentes/Modal";
-import DatosRndcEnviados from "../componentes/DatosRndc";
 import AccesoGps from "../componentes/AccesoGps";
-import type { DatosRndc, PlantillaViaje, Via, Viaje, ViajeRemesa } from "../api/tipos";
+import type { PlantillaViaje, Via, Viaje, ViajeRemesa } from "../api/tipos";
 
 /** Viaje que ya se guardo (y fallo en el RNDC), con lo que trae la respuesta de error. */
-type ViajeEnCurso = Viaje & { remesas?: ViajeRemesa[]; datosRndc?: DatosRndc };
+type ViajeEnCurso = Viaje & { remesas?: ViajeRemesa[] };
 
 /** Tope del RNDC para este sistema. */
 const MAX_REMESAS = 5;
@@ -640,7 +639,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       // Si la respuesta trae el viaje, quedo guardado: los siguientes envios lo
       // reintentan a el. Si no lo trae (error antes de guardar), sigue siendo nuevo.
       if (cuerpo?.id) {
-        setViajeEnCurso((previo) => ({ ...cuerpo, datosRndc: cuerpo.datosRndc ?? previo?.datosRndc }));
+        setViajeEnCurso(cuerpo);
         if (cuerpo.consecutivoManifiesto) setConsecutivoBase(cuerpo.consecutivoManifiesto);
       }
       setAvisos(cuerpo?.avisos ? String(cuerpo.avisos).split(" | ") : []);
@@ -659,7 +658,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
    * conductor del vehiculo, tarifa de la plantilla, FOPAT calculado, via
    * estandar, GPS del vehiculo) no pisen lo que el viaje ya tenia.
    */
-  function cargarViajeEnFormulario(v: Viaje & { remesas: ViajeRemesa[] }, datos: DatosRndc | null) {
+  function cargarViajeEnFormulario(v: Viaje & { remesas: ViajeRemesa[] }) {
     setRemolqueManual(true);
     setConductorManual(true);
     setMonitoreoEditado(true);
@@ -707,7 +706,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     setVacio2Destino(v.vacio2Destino ?? "");
     setVacio2Valor(v.vacio2Valor || null);
 
-    setViajeEnCurso({ ...v, datosRndc: datos ?? undefined });
+    setViajeEnCurso(v);
     setViajeExpedido(null);
     setAvisos(v.avisos ? v.avisos.split(" | ") : []);
     setMensaje(v.mensajeError ? { tipo: "danger", texto: v.mensajeError } : null);
@@ -727,8 +726,9 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     if (!viajeParaEditar || !catalogosListos) return;
     let vigente = true;
     setCargandoViaje(true);
-    Promise.all([api.getViaje(viajeParaEditar), api.getDatosRndc(viajeParaEditar).catch(() => null)])
-      .then(([v, datos]) => {
+    api
+      .getViaje(viajeParaEditar)
+      .then((v) => {
         if (!vigente) return;
         if (!ESTADOS_REINTENTABLES.includes(v.estado)) {
           setMensaje({
@@ -737,7 +737,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
           });
           return;
         }
-        cargarViajeEnFormulario(v, datos);
+        cargarViajeEnFormulario(v);
       })
       .catch((exc: any) => {
         if (vigente) setMensaje({ tipo: "danger", texto: exc?.message ?? "No se pudo cargar el viaje." });
@@ -764,7 +764,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       return;
     try {
       const v = await api.usarRemesaExistente(r.id);
-      setViajeEnCurso((previo) => ({ ...v, datosRndc: previo?.datosRndc }));
+      setViajeEnCurso(v);
       setMensaje({ tipo: "success", texto: `${v.mensajeError ?? "Remesa tomada del RNDC."}` });
     } catch (exc: any) {
       setMensaje({ tipo: "danger", texto: exc?.message ?? "No se pudo tomar la remesa." });
@@ -857,11 +857,6 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               </li>
             )}
           </ul>
-          {viajeEnCurso.datosRndc && (
-            <div style={{ marginTop: "0.4rem" }}>
-              Debajo del formulario estan todos los datos que se enviaron al RNDC.
-            </div>
-          )}
           <button type="button" className="btn-link" style={{ marginTop: "0.5rem" }} onClick={empezarOtroDespacho}>
             Dejar este viaje en Viajes y empezar otro despacho
           </button>
@@ -1358,9 +1353,6 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
           </div>
         </div>
       )}
-
-      {/* Todos los datos enviados al RNDC, debajo del formulario para no tapar lo que se corrige. */}
-      {viajeEnCurso?.datosRndc && <DatosRndcEnviados datos={viajeEnCurso.datosRndc} />}
     </>
   );
 

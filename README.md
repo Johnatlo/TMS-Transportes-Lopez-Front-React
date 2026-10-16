@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_341 funciones, componentes, métodos y rutas en 49 archivos._
+_340 funciones, componentes, métodos y rutas en 48 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (123)
@@ -186,7 +186,6 @@ _341 funciones, componentes, métodos y rutas en 49 archivos._
 - [`src/componentes/CambiarClave.tsx`](#srccomponentescambiarclavetsx) (1)
 - [`src/componentes/ComboBuscable.tsx`](#srccomponentescombobuscabletsx) (1)
 - [`src/componentes/CumplirViaje.tsx`](#srccomponentescumplirviajetsx) (9)
-- [`src/componentes/DatosRndc.tsx`](#srccomponentesdatosrndctsx) (2)
 - [`src/componentes/DetalleViaje.tsx`](#srccomponentesdetalleviajetsx) (3)
 - [`src/componentes/DocumentosViaje.tsx`](#srccomponentesdocumentosviajetsx) (2)
 - [`src/componentes/Estado.tsx`](#srccomponentesestadotsx) (4)
@@ -213,7 +212,7 @@ _341 funciones, componentes, métodos y rutas en 49 archivos._
 - [`src/paginas/Historial.tsx`](#srcpaginashistorialtsx) (2)
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
-- [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (3)
+- [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
 - [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (7)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (3)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (6)
@@ -819,23 +818,6 @@ _341 funciones, componentes, métodos y rutas en 49 archivos._
   Lo que quedo registrado en el cumplido de una remesa, leido del RNDC, para
   revisar que esta bien. Si algo esta mal, se anula el cumplido (proceso 28)
   y la remesa vuelve al formulario con esos mismos datos para corregirlos.
-
-### `src/componentes/DatosRndc.tsx`
-
-> Muestra todos los datos del manifiesto y de cada remesa tal como van al
-> RNDC, para revisar un viaje con error antes de reintentar.
-
-- **`TablaCampos({...})`** · _componente React_
-  Tabla etiqueta / valor de los datos que se envian al RNDC, con el nombre
-  legible de cada etiqueta cuando se conoce (NOMBRES) y los montos con formato
-  de moneda.
-
-- **`DatosRndcEnviados({...})`** · _componente React_
-  Todos los datos del manifiesto y de cada remesa tal como van al RNDC.
-
-  Cuando el RNDC rechaza, el error puede venir de cualquiera de ellos (la via,
-  el piso de SICETAC, el FOPAT, el titular...), asi que se muestran completos,
-  con el nombre legible y la etiqueta original, que es la que cita el error.
 
 ### `src/componentes/DetalleViaje.tsx`
 
@@ -1482,12 +1464,12 @@ _341 funciones, componentes, métodos y rutas en 49 archivos._
 
 ### `src/paginas/Usuarios.tsx`
 
-> Pantalla Usuarios: crear usuarios, activarlos o desactivarlos y
-> restablecer su clave (temporal, por correo o en pantalla).
+> Pantalla Usuarios: crear usuarios, cambiarles el nombre, activarlos o
+> desactivarlos y restablecer su clave (temporal, por correo o en pantalla).
 
 - **`Usuarios()`** · _componente React_
   Administracion de usuarios. Sin roles por ahora: cualquier usuario activo
-  crea, desactiva y restablece cuentas.
+  crea, renombra (a si mismo y a los demas), desactiva y restablece cuentas.
 
   Las contrasenas temporales las genera el servidor y se muestran UNA sola
   vez: hay que copiarlas y entregarlas al usuario, que debera cambiarla en su
@@ -1496,6 +1478,9 @@ _341 funciones, componentes, métodos y rutas en 49 archivos._
 - **`NuevoUsuario({...})`** · _componente React_
   Ventana para crear un usuario con correo y nombre. Al crearlo devuelve como
   se entrego la clave temporal (por correo o en pantalla).
+
+- **`CambiarNombre({...})`** · _componente React_
+  Ventana para cambiar el nombre de un usuario (el propio o el de otro).
 
 - **`ClaveTemporal({...})`** · _componente React_
   Muestra UNA vez la clave temporal cuando no se envio por correo (con el

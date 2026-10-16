@@ -8,7 +8,6 @@ import { useDatos } from "../ganchos/useDatos";
 import { Cargando } from "./Estado";
 import Modal from "./Modal";
 import ComboBuscable from "./ComboBuscable";
-import DatosRndcEnviados from "./DatosRndc";
 import type { Viaje, ViajeRemesa } from "../api/tipos";
 
 /** Estados desde los que el backend acepta reintentar (ver despacho.ts). */
@@ -90,8 +89,9 @@ export default function ReintentarViaje({
   const conductores = useDatos(() => api.getConductores(), []);
   const remolques = useDatos(() => api.getRemolques(), []);
   const empresas = useDatos(() => api.getEmpresasMonitoreo(), []);
-  // Todo lo que el viaje envia al RNDC. Se vuelve a pedir despues de cada intento
-  // (version), aunque el estado no cambie, porque los datos si pueden cambiar.
+  // Lo que el viaje envia al RNDC: de ahi sale la ruta para pedir las vias. Se
+  // vuelve a pedir despues de cada intento (version), aunque el estado no
+  // cambie, porque los datos si pueden cambiar.
   const [version, setVersion] = useState(0);
   const datosRndc = useDatos(() => api.getDatosRndc(viaje.id), [viaje.id, viaje.estado, version]);
   const ruta = datosRndc.datos?.rutaVias ?? null;
@@ -350,8 +350,6 @@ export default function ReintentarViaje({
           </div>
         </div>
       )}
-
-      {datosRndc.datos && <DatosRndcEnviados datos={datosRndc.datos} />}
     </Modal>
   );
 }
