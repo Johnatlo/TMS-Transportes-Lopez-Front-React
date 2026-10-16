@@ -318,7 +318,8 @@ function FilaEditable({
           }
           placeholder={tarifas.length ? "Busca la tarifa..." : "Sin matriz"}
         />
-        <select value={e.tipo} onChange={(x) => alCambiar({ tipo: x.target.value as "TON" | "FIJO" })}>
+        <select value={e.tipo} onChange={(x) => alCambiar({ tipo: x.target.value as "TON" | "FIJO" })} style={{ marginTop: 10}}>
+          
           <option value="TON">Por tonelada</option>
           <option value="FIJO">Valor fijo</option>
         </select>

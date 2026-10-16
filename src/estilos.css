@@ -329,7 +329,7 @@ input:focus, select:focus { outline: 2px solid var(--color-accent); outline-offs
    terceros y plantillas se buscan en vez de desplazarse por una lista larga. */
 .combo-buscable { position: relative; }
 .combo-buscable input {
-  width: 100%;
+  width: 90%;
 }
 .combo-lista {
   position: absolute;
