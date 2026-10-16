@@ -533,7 +533,8 @@ export const api = {
       entradaDescargue: string;
       salidaDescargue: string;
     }
-  ) => post<{ viaje: Viaje; remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
+  ) =>
+    post<{ viaje: Viaje; remesas: ViajeRemesa[]; adoptados?: string[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
   /**
    * Tiempos que ya reporto el GPS (cumplido inicial, proceso 45). En el
    * formulario vienen puestos y se pueden corregir.
@@ -565,7 +566,7 @@ export const api = {
    * exige todas las remesas cumplidas y lo dice con su error si falta alguna.
    */
   cumplirManifiesto: (viajeId: number, datos: Record<string, unknown> = {}) =>
-    post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/cumplir`, datos),
+    post<Viaje & { remesas: ViajeRemesa[]; adoptados?: string[] }>(`/despacho/${viajeId}/cumplir`, datos),
 
   /** FOPAT causado y pendiente de pago, por mes. */
   getResumenFopat: () =>
@@ -681,6 +682,9 @@ export interface FilaCuadro {
   placa: string;
   flota: Flota;
   conductor: string | null;
+  /** Origen → destino. Con manifiesto viene del RNDC (solo consulta); sin manifiesto, rutaManual. */
+  ruta: string | null;
+  rutaManual: string | null;
   empresa: string;
   viajeId: number | null;
   viajeRemesaId: number | null;

@@ -30,6 +30,20 @@ import PastillasEstado from "./PastillasEstado";
 const cobroVencido = (f: FilaCuadro) =>
   !f.anulado && !f.facturaFechaPago && !!f.facturaVence && f.facturaVence < hoyColombia();
 
+/** "ORIGEN → DESTINO" en dos lineas: el origen arriba y el destino debajo. */
+function RutaCuadro({ ruta }: { ruta: string | null }) {
+  if (!ruta) return <span className="dato-sec">-</span>;
+  const [origen, destino] = ruta.split(" → ");
+  return destino === undefined ? (
+    <>{ruta}</>
+  ) : (
+    <>
+      {origen}
+      <span className="dato-sec">→ {destino}</span>
+    </>
+  );
+}
+
 /** Ni anulado ni todo pagado. */
 const enCurso = (f: FilaCuadro) => !f.anulado && !f.todoPagado;
 
@@ -77,6 +91,13 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
         {f.conductor && <span className="dato-sec">{f.conductor}</span>}
       </>
     ),
+  },
+  {
+    id: "ruta",
+    titulo: "Ruta",
+    filtrable: true,
+    valor: (f) => f.ruta,
+    celda: (f) => <RutaCuadro ruta={f.ruta} />,
   },
   {
     id: "manifiesto",

@@ -149,6 +149,19 @@ export default function CumplirViaje({
     setFormularios((previo) => ({ ...previo, [id]: { ...previo[id], ...cambios } }));
   }
 
+  /**
+   * Si al guardar el RNDC rechazo, el backend revisa alla todo lo pendiente del
+   * viaje; lo que ya estaba cumplido (en el portal) llega en `adoptados` y se
+   * muestra junto a lo que se trajo al abrir.
+   */
+  function sumarAdoptados(adoptados: string[] | undefined) {
+    if (!adoptados?.length) return;
+    setSincronia((previo) => ({
+      adoptados: [...new Set([...(previo?.adoptados ?? []), ...adoptados])],
+      error: previo?.error,
+    }));
+  }
+
   async function cumplirRemesa(r: ViajeRemesa) {
     const f = formularios[r.id];
     cambiar(r.id, { enviando: true, error: null });
@@ -166,8 +179,11 @@ export default function CumplirViaje({
       });
       setRemesas(resp.remesas);
       setViaje(resp.viaje);
+      sumarAdoptados(resp.adoptados);
     } catch (exc) {
       if (exc instanceof ErrorApi && exc.cuerpo?.remesas) setRemesas(exc.cuerpo.remesas);
+      if (exc instanceof ErrorApi && exc.cuerpo?.viaje) setViaje(exc.cuerpo.viaje as Viaje);
+      if (exc instanceof ErrorApi) sumarAdoptados(exc.cuerpo?.adoptados);
       cambiar(r.id, { error: exc instanceof Error ? exc.message : "No se pudo cumplir la remesa" });
     } finally {
       cambiar(r.id, { enviando: false });
@@ -222,8 +238,11 @@ export default function CumplirViaje({
       });
       setViaje(r);
       setRemesas(r.remesas);
+      sumarAdoptados(r.adoptados);
     } catch (exc) {
       if (exc instanceof ErrorApi && exc.cuerpo?.id === viaje.id) setViaje(exc.cuerpo as Viaje);
+      if (exc instanceof ErrorApi && exc.cuerpo?.remesas) setRemesas(exc.cuerpo.remesas);
+      if (exc instanceof ErrorApi) sumarAdoptados(exc.cuerpo?.adoptados);
       setErrorManifiesto(exc instanceof Error ? exc.message : "No se pudo cumplir el manifiesto");
     } finally {
       setEnviandoManifiesto(false);

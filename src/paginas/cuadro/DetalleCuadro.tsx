@@ -22,7 +22,7 @@ import PastillasEstado from "./PastillasEstado";
 
 /** Campos del formulario: todo como texto, igual que los inputs. */
 const CAMPOS = [
-  "fecha", "placa", "empresa", "conductor", "manifiesto", "remision", "pesoKg", "fechaDescargue",
+  "fecha", "placa", "empresa", "conductor", "rutaManual", "manifiesto", "remision", "pesoKg", "fechaDescargue",
   "pesoFacturadoKg", "notaFactura",
   "tipoFlete", "tarifaKilo", "valorFijo", "fleteAdicional", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "fechaPagoSaldo",
 ] as const;
@@ -190,6 +190,15 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
               {campo("placa", "Placa")}
               {campo("empresa", "Empresa")}
               {campo("conductor", "Conductor")}
+              {/* Con manifiesto la ruta viene del RNDC y solo se consulta; sin manifiesto se escribe. */}
+              {d.viajeId ? (
+                <div>
+                  <label>Ruta (del RNDC)</label>
+                  <input value={d.ruta ?? "Sin datos del RNDC"} disabled />
+                </div>
+              ) : (
+                campo("rutaManual", "Ruta (origen - destino)", "text", { placeholder: "SOACHA - CALI" })
+              )}
               {campo("manifiesto", "Manifiesto", "text", { disabled: !!d.viajeId })}
               {campo("remision", "Remision")}
               {campo("pesoKg", "Peso real (kg)", "number", { min: 0 })}

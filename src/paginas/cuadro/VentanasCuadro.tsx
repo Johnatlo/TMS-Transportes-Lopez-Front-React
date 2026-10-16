@@ -30,6 +30,7 @@ export function NuevoViajeCuadro({
     placa: "",
     empresa: "",
     conductor: "",
+    rutaManual: "",
     remision: "",
     pesoKg: "",
     tipoFlete: "KILO",
@@ -102,6 +103,7 @@ export function NuevoViajeCuadro({
           </datalist>
         </div>
         {input("conductor", "Conductor")}
+        {input("rutaManual", "Ruta (origen - destino)", "text", { placeholder: "SOACHA - CALI" })}
         {input("remision", "Remision")}
         {input("pesoKg", "Peso real (kg)", "number", { min: 0 })}
         <div>

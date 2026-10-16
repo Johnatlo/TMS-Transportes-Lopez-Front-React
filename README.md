@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_340 funciones, componentes, métodos y rutas en 48 archivos._
+_341 funciones, componentes, métodos y rutas en 48 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (123)
@@ -214,7 +214,7 @@ _340 funciones, componentes, métodos y rutas en 48 archivos._
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
 - [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (7)
-- [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (3)
+- [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (4)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (6)
 - [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (3)
 - [`src/paginas/cuadro/PastillasEstado.tsx`](#srcpaginascuadropastillasestadotsx) (1)
@@ -1531,6 +1531,9 @@ _340 funciones, componentes, métodos y rutas en 48 archivos._
 
 - **`cobroVencido(f)`** · _función_
   Ya paso la fecha pago cliente y la factura no se ha pagado.
+
+- **`RutaCuadro({...})`** · _componente React_
+  "ORIGEN → DESTINO" en dos lineas: el origen arriba y el destino debajo.
 
 - **`enCurso(f)`** · _función_
   Ni anulado ni todo pagado.
