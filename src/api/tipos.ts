@@ -259,6 +259,8 @@ export interface Viaje {
   anuladoPorNombre?: string | null;
   /** Cumplido del manifiesto (proceso 6). */
   radicadoCumplido?: string | null;
+  /** Anulacion del cumplido del manifiesto (proceso 29), al anular un viaje cumplido. */
+  radicadoAnulacionCumplidoManifiesto?: string | null;
   fechaCumplido?: string | null;
   cumplidoPorNombre?: string | null;
   /** Solo en el historial, para manifiestos vigentes sin cumplir. */
@@ -311,6 +313,8 @@ export interface ViajeRemesa {
   llegadaDescargue?: string | null;
   salidaDescargue?: string | null;
   radicadoCumplido: string | null;
+  /** Anulacion del cumplido de la remesa (proceso 28). */
+  radicadoAnulacionCumplidoRemesa?: string | null;
   fechaCumplido: string | null;
 }
 

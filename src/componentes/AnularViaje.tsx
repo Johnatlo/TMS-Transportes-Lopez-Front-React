@@ -12,6 +12,8 @@ import type { Viaje, ViajeRemesa } from "../api/tipos";
 /** Estados desde los que el backend acepta anular (ver despacho.ts). */
 const ESTADOS_ANULABLES = [
   "CONFIRMADO",
+  // Cumplido: primero se anulan los cumplidos del manifiesto y de las remesas.
+  "CUMPLIDO",
   "MANIFIESTO_ERROR",
   "REMESA_ERROR",
   "VALIDACION_ERROR",
@@ -56,7 +58,8 @@ export default function AnularViaje({
   const anulado = viaje.estado === "ANULADO";
   const p = previa.datos;
   const pideManifiesto = !!p && p.pasos.some((x) => x.includes("proceso 32"));
-  const pideCumplido = !!p && p.pasos.some((x) => x.includes("proceso 54"));
+  // El mismo motivo (D u O) sirve para el cumplido inicial (54) y los cumplidos (28 y 29).
+  const pideCumplido = !!p && p.pasos.some((x) => /proceso (54|28|29)\)/.test(x));
   const pideRemesa = !!p && p.pasos.some((x) => x.includes("proceso 9"));
   const superaTope = !!p?.tope && p.tope.anulados + 1 > p.tope.maximo;
 
@@ -135,8 +138,10 @@ export default function AnularViaje({
                 <div>
                   <div className="section-title">Que se va a anular</div>
                   <div className="section-desc">
-                    En este orden: el RNDC no deja anular una remesa mientras su manifiesto
-                    este vigente. Lo que ya se haya anulado en un intento anterior no se repite.
+                    En este orden: si el viaje ya estaba cumplido, primero se anulan los
+                    cumplidos (del manifiesto y luego de las remesas); el RNDC no deja anular
+                    una remesa mientras su manifiesto este vigente. Lo que ya se haya anulado en
+                    un intento anterior no se repite.
                   </div>
                 </div>
                 <div>
@@ -183,7 +188,7 @@ export default function AnularViaje({
                   )}
                   {pideCumplido && (
                     <>
-                      <label>Motivo de anulacion del cumplido inicial</label>
+                      <label>Motivo de anulacion de los cumplidos</label>
                       <select value={motivoCumplido} onChange={(e) => setMotivoCumplido(e.target.value)}>
                         {Object.entries(p.motivos.cumplido).map(([k, v]) => (
                           <option key={k} value={k}>
@@ -246,6 +251,12 @@ function ResultadoAnulado({ viaje, remesas }: { viaje: Viaje; remesas: ViajeReme
             Radicado de anulacion del manifiesto: <strong>{viaje.radicadoAnulacion}</strong>
           </>
         )}
+        {viaje.radicadoAnulacionCumplidoManifiesto && (
+          <>
+            {" "}
+            · Anulacion del cumplido del manifiesto: <strong>{viaje.radicadoAnulacionCumplidoManifiesto}</strong>
+          </>
+        )}
       </div>
       {remesas && remesas.length > 0 && (
         <table className="modern">
@@ -253,6 +264,7 @@ function ResultadoAnulado({ viaje, remesas }: { viaje: Viaje; remesas: ViajeReme
             <tr>
               <th>Remesa</th>
               <th>Estado</th>
+              <th>Anulacion cumplido</th>
               <th>Anulacion cumplido inicial</th>
               <th>Anulacion remesa</th>
             </tr>
@@ -262,6 +274,7 @@ function ResultadoAnulado({ viaje, remesas }: { viaje: Viaje; remesas: ViajeReme
               <tr key={r.id}>
                 <td>{r.consecutivoRemesa}</td>
                 <td>{r.estado}</td>
+                <td>{r.radicadoAnulacionCumplidoRemesa ?? "-"}</td>
                 <td>{r.radicadoAnulacionCumplido ?? "-"}</td>
                 <td>{r.radicadoAnulacion ?? "-"}</td>
               </tr>
