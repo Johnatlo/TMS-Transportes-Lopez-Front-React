@@ -1,14 +1,15 @@
 /**
  * Pantalla Cartera: todo lo que los clientes le deben a la empresa. Cada
  * factura con numero y fecha entra aqui sola (desde el cuadro pagos) hasta
- * que se registra la fecha pago factura. Vence en la fecha pago cliente (o, si
+ * que se registra la fecha pago factura. Tambien los saldos de antes de
+ * septiembre cargados sin viaje, y se puede ver solo lo de un dueno. Vence en la fecha pago cliente (o, si
  * no esta escrita, a los dias de credito del cliente); pasada, avisa para
  * llamar y cobrar.
  */
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiSeguimiento, fechaHora, moneda } from "../../api/cliente";
-import type { Cartera as DatosCartera, FacturaCartera, GestionCobro, PlazoCliente, ResumenCliente } from "../../api/cliente";
+import type { Cartera as DatosCartera, FacturaCartera, GestionCobro, GrupoDueno, PlazoCliente, ResumenCliente } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Modal from "../../componentes/Modal";
@@ -18,6 +19,19 @@ import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import { usarShell } from "../../componentes/Shell";
 import DetalleCuadro from "../cuadro/DetalleCuadro";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
+import ImportarCartera from "./ImportarCartera";
+
+/** Duenos del filtro (los socios y los terceros), con su nombre en pantalla. */
+const NOMBRE_DUENO: Record<GrupoDueno, string> = {
+  MAURICIO: "Mauricio",
+  CELSO: "Celso",
+  MILLER: "Miller",
+  LUISA: "Luisa",
+  TERCEROS: "Terceros",
+};
+
+/** Lo que debe el cliente en total (sin filtro por dueno). */
+const totalFactura = (f: FacturaCartera) => Math.max(0, f.valorBruto - f.anticipoCliente);
 
 /** "Vencida hace 12 dias", "Vence hoy", "Vence en 8 dias". */
 function textoVencimiento(f: FacturaCartera) {
@@ -42,9 +56,13 @@ const COLUMNAS: Columna<FacturaCartera>[] = [
     celda: (f) => (
       <>
         <span className="codigo principal">{f.facturaNumero}</span>
-        <span className="dato-sec">
-          {f.viajes.length} viaje{f.viajes.length === 1 ? "" : "s"}
-        </span>
+        {f.sinViaje ? (
+          <Pastilla tono="neutro">Saldo sin viaje</Pastilla>
+        ) : (
+          <span className="dato-sec">
+            {f.viajes.length} viaje{f.viajes.length === 1 ? "" : "s"}
+          </span>
+        )}
       </>
     ),
   },
@@ -57,7 +75,7 @@ const COLUMNAS: Columna<FacturaCartera>[] = [
     celda: (f) => (
       <>
         {fechaCorta(f.vence)}
-        <span className={f.diasVencida > 0 ? "texto-vencido" : "dato-sec"}>{textoVencimiento(f)}</span>
+        <span className={f.diasVencida > 0 ? "dato-sec texto-vencido" : "dato-sec"}>{textoVencimiento(f)}</span>
         <span className="dato-sec">{f.venceManual ? "Fecha pago cliente" : `${f.diasCredito} dias de credito`}</span>
       </>
     ),
@@ -70,6 +88,8 @@ const COLUMNAS: Columna<FacturaCartera>[] = [
     celda: (f) => (
       <>
         {moneda(f.valor)}
+        {f.valor !== totalFactura(f) && <span className="dato-sec">de {moneda(totalFactura(f))}</span>}
+        {f.anticipoCliente > 0 && <span className="dato-sec">Anticipo cliente {moneda(f.anticipoCliente)}</span>}
         {f.viajesSinValor > 0 && <span className="texto-vencido">{f.viajesSinValor} viaje(s) sin flete</span>}
       </>
     ),
@@ -136,7 +156,10 @@ const COLUMNAS_CLIENTES: Columna<ResumenCliente>[] = [
  * Abre directo una factura con ?factura=<numero>&empresa=<cliente>.
  */
 export default function Cartera() {
-  const { datos, cargando, error, recargar } = useDatos(() => apiSeguimiento.cartera(), []);
+  // Filtro por dueno de los vehiculos: el backend devuelve solo su parte.
+  const [dueno, setDueno] = useState<GrupoDueno | null>(null);
+  const { datos, cargando, error, recargar } = useDatos(() => apiSeguimiento.cartera(dueno), [dueno]);
+  const [importando, setImportando] = useState(false);
   const { recargarSeguimiento } = usarShell();
   const [parametros, setParametros] = useSearchParams();
   const [abierta, setAbierta] = useState<{ numero: string; empresa: string } | null>(null);
@@ -167,8 +190,21 @@ export default function Cartera() {
 
   return (
     <>
+      <div className="tabla-pestanas selector-vista filtro-dueno">
+        <span className="dato-sec">Vehiculos de:</span>
+        {([null, "MAURICIO", "CELSO", "MILLER", "LUISA", "TERCEROS"] as Array<GrupoDueno | null>).map((g) => (
+          <button key={g ?? "todos"} className={dueno === g ? "activa" : ""} onClick={() => setDueno(g)} disabled={cargando}>
+            {g ? NOMBRE_DUENO[g] : "Todos"}
+          </button>
+        ))}
+      </div>
       <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
-        <Indicador dinero titulo="Por cobrar" valor={moneda(total)} detalle={`${datos.facturas.length} facturas`} />
+        <Indicador
+          dinero
+          titulo={dueno ? `Por cobrar · ${NOMBRE_DUENO[dueno]}` : "Por cobrar"}
+          valor={moneda(total)}
+          detalle={`${datos.facturas.length} facturas`}
+        />
         <Indicador
           dinero
           titulo="Vencido"
@@ -213,9 +249,14 @@ export default function Cartera() {
             vacio="No hay facturas por cobrar con estos criterios."
             alClicFila={(f) => setAbierta({ numero: f.facturaNumero, empresa: f.empresa })}
             acciones={
-              <button className="boton-barra" onClick={() => setPlazos(true)}>
-                Plazos de clientes
-              </button>
+              <>
+                <button className="boton-barra" onClick={() => setImportando(true)}>
+                  Importar Excel de cartera
+                </button>
+                <button className="boton-barra" onClick={() => setPlazos(true)}>
+                  Plazos de clientes
+                </button>
+              </>
             }
           />
         )}
@@ -289,6 +330,7 @@ export default function Cartera() {
       )}
       {viajeCuadro !== null && <DetalleCuadro id={viajeCuadro} alCerrar={() => setViajeCuadro(null)} alCambiar={alCambiar} />}
       {plazos && <PlazosClientes datos={datos} alCerrar={() => setPlazos(false)} alCambiar={alCambiar} />}
+      {importando && <ImportarCartera alCerrar={() => setImportando(false)} alCambiar={alCambiar} />}
     </>
   );
 }
@@ -315,6 +357,7 @@ function DetalleFactura({
   const [texto, setTexto] = useState("");
   const [compromiso, setCompromiso] = useState("");
   const [fechaPago, setFechaPago] = useState(hoyColombia());
+  const [anticipo, setAnticipo] = useState(factura.anticipoCliente ? String(factura.anticipoCliente) : "");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -347,6 +390,21 @@ function DetalleFactura({
     }
   }
 
+  async function guardarAnticipo() {
+    setEnviando(true);
+    setError(null);
+    setAviso(null);
+    try {
+      await apiSeguimiento.guardarAnticipoCliente(factura.facturaNumero, factura.empresa, Number(anticipo) || 0);
+      setAviso("Anticipo del cliente guardado.");
+      alCambiar();
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo guardar el anticipo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   async function registrarPago() {
     if (!window.confirm(`¿Registrar que ${factura.empresa} pago la factura ${factura.facturaNumero} el ${fechaCorta(fechaPago)}?`)) return;
     setEnviando(true);
@@ -374,7 +432,8 @@ function DetalleFactura({
     >
       <div className="detalle-viaje">
         <div className="detalle-cabecera">
-          <strong>{moneda(factura.valor)}</strong>
+          <strong>{moneda(totalFactura(factura))}</strong>
+          {factura.sinViaje && <Pastilla tono="neutro">Saldo sin viaje</Pastilla>}
           <span className="dato-sec">Facturada el {fechaCorta(factura.facturaFecha)}</span>
           <span className="dato-sec">
             Vence el {fechaCorta(factura.vence)} (
@@ -398,30 +457,80 @@ function DetalleFactura({
         {error && <div className="alert danger">{error}</div>}
         {aviso && <div className="alert success">{aviso}</div>}
 
-        <section className="detalle-seccion">
-          <h4>Viajes de la factura</h4>
-          <table className="tabla tabla-compacta">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Placa</th>
-                <th>Manifiesto</th>
-                <th>Remision</th>
-                <th style={{ textAlign: "right" }}>Flete</th>
-              </tr>
-            </thead>
-            <tbody>
-              {factura.viajes.map((v) => (
-                <tr key={v.id} className="fila-clic" onClick={() => alAbrirViaje(v.id)}>
-                  <td>{fechaCorta(v.fecha)}</td>
-                  <td>{v.placa}</td>
-                  <td className="codigo">{v.manifiesto ?? "-"}</td>
-                  <td className="codigo">{v.remision ?? "-"}</td>
-                  <td style={{ textAlign: "right" }}>{v.valorFlete === null ? <span className="texto-vencido">Sin flete</span> : moneda(v.valorFlete)}</td>
+        {factura.sinViaje ? (
+          <section className="detalle-seccion">
+            <h4>Valor por placa</h4>
+            <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
+              Saldo de antes de septiembre cargado del Excel de cartera: no tiene viajes en el sistema.
+            </div>
+            <table className="tabla tabla-compacta">
+              <thead>
+                <tr>
+                  <th>Placa</th>
+                  <th>Dueno</th>
+                  <th style={{ textAlign: "right" }}>Valor</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {factura.placas.map((p) => (
+                  <tr key={p.placa}>
+                    <td>{p.placa}</td>
+                    <td>{NOMBRE_DUENO[p.dueno]}</td>
+                    <td style={{ textAlign: "right" }}>{moneda(p.valor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ) : (
+          <section className="detalle-seccion">
+            <h4>Viajes de la factura</h4>
+            <table className="tabla tabla-compacta">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Placa</th>
+                  <th>Dueno</th>
+                  <th>Manifiesto</th>
+                  <th>Remision</th>
+                  <th style={{ textAlign: "right" }}>Flete</th>
+                </tr>
+              </thead>
+              <tbody>
+                {factura.viajes.map((v) => (
+                  <tr key={v.id} className="fila-clic" onClick={() => alAbrirViaje(v.id)}>
+                    <td>{fechaCorta(v.fecha)}</td>
+                    <td>{v.placa}</td>
+                    <td>{NOMBRE_DUENO[v.dueno]}</td>
+                    <td className="codigo">{v.manifiesto ?? "-"}</td>
+                    <td className="codigo">{v.remision ?? "-"}</td>
+                    <td style={{ textAlign: "right" }}>{v.valorFlete === null ? <span className="texto-vencido">Sin flete</span> : moneda(v.valorFlete)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        )}
+
+        <section className="detalle-seccion">
+          <h4>Anticipo del cliente</h4>
+          <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
+            Lo que el cliente ya pago de esta factura (anticipo o abono). Se resta: debe {moneda(totalFactura(factura))} de{" "}
+            {moneda(factura.valorBruto)}.
+          </div>
+          <div className="nota-nueva">
+            <div>
+              <label className="dato-sec">Anticipo del cliente</label>
+              <input type="number" min={0} value={anticipo} placeholder="0" onChange={(e) => setAnticipo(e.target.value)} />
+            </div>
+            <button
+              className="btn-secondary"
+              onClick={guardarAnticipo}
+              disabled={enviando || (Number(anticipo) || 0) === factura.anticipoCliente}
+            >
+              Guardar anticipo
+            </button>
+          </div>
         </section>
 
         <section className="detalle-seccion">
@@ -479,8 +588,9 @@ function DetalleFactura({
             </button>
           </div>
           <div className="dato-sec">
-            Pone la fecha pago factura en los {factura.viajes.length} viaje(s): quedan en "Todo pagado" y la factura sale
-            de la cartera.
+            {factura.sinViaje
+              ? "El saldo queda pagado y sale de la cartera."
+              : `Pone la fecha pago factura en los ${factura.viajes.length} viaje(s): quedan en "Todo pagado" y la factura sale de la cartera.`}
           </div>
         </section>
       </div>

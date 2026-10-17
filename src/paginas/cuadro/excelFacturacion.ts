@@ -109,7 +109,7 @@ export async function descargarCuadroEnvio(bloques: FilaEnvio[][], nombreArchivo
 }
 
 /** Valor de una celda de exceljs: el resultado si es formula, el texto si es enriquecido. */
-function valorCelda(v: unknown): unknown {
+export function valorCelda(v: unknown): unknown {
   if (v && typeof v === "object") {
     const o = v as { result?: unknown; richText?: Array<{ text: string }>; text?: unknown };
     if ("result" in o) return o.result;

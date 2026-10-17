@@ -925,6 +925,11 @@ export const apiCuadro = {
   porFacturar: () => get<{ filas: FilaPorFacturar[]; ultimaTarifa: Record<string, number> }>("/cuadro/por-facturar"),
   /** Guarda en cada viaje lo que va en el cuadro de la contadora. */
   enviarFacturacion: (filas: EnvioFacturacion[]) => post<{ guardados: number }>("/cuadro/enviar-facturacion", { filas }),
+  /** Propone el viaje de cada fila del Excel de anticipos (no guarda). */
+  previaAnticipos: (filas: AnticipoImportado[]) => post<AnticipoPropuesto[]>("/cuadro/anticipos/importar/previa", { filas }),
+  /** Carga los anticipos confirmados (cada fila con su viaje). */
+  importarAnticipos: (filas: Array<AnticipoImportado & { viajeId: number }>) =>
+    post<{ cargados: number; repetidos: number }>("/cuadro/anticipos/importar", { filas }),
   /** Catalogo de bombas aliadas. */
   bombas: () => get<Bomba[]>("/cuadro/bombas"),
   /** Crea una bomba. */
@@ -981,7 +986,13 @@ export interface GestionCobro {
   creadaEn: string;
 }
 
-/** Una factura por cobrar (puede cubrir varios viajes). */
+/** Socios con vehiculos propios; los demas vehiculos son de terceros. */
+export const DUENOS = ["MAURICIO", "CELSO", "MILLER", "LUISA"] as const;
+export type Dueno = (typeof DUENOS)[number];
+/** Grupo de un vehiculo en la cartera: un socio o los terceros. */
+export type GrupoDueno = Dueno | "TERCEROS";
+
+/** Una factura por cobrar (puede cubrir varios viajes, o ser un saldo sin viaje). */
 export interface FacturaCartera {
   facturaNumero: string;
   empresa: string;
@@ -993,9 +1004,28 @@ export interface FacturaCartera {
   venceManual: boolean;
   /** Positivo: dias vencida. Negativo: dias que faltan. */
   diasVencida: number;
+  /** Lo que debe el cliente (con filtro por dueno: solo la parte de ese dueno). */
   valor: number;
+  /** Valor de los viajes o placas antes del anticipo del cliente. */
+  valorBruto: number;
+  /** Anticipo o abono que el cliente ya pago de esta factura. */
+  anticipoCliente: number;
+  /** Saldo de antes de septiembre cargado sin viajes. */
+  sinViaje: boolean;
   viajesSinValor: number;
-  viajes: { id: number; fecha: string; placa: string; manifiesto: string | null; remision: string | null; valorFlete: number | null }[];
+  viajes: {
+    id: number;
+    fecha: string;
+    placa: string;
+    manifiesto: string | null;
+    remision: string | null;
+    valorFlete: number | null;
+    dueno: GrupoDueno;
+  }[];
+  /** Valor de cada placa (de los viajes o del saldo). */
+  placas: { placa: string; dueno: GrupoDueno; valor: number }[];
+  /** Lo que debe el cliente repartido por dueno. */
+  porDueno: Partial<Record<GrupoDueno, number>>;
   ultimaGestion: GestionCobro | null;
   compromisoPago: string | null;
   alerta: AlertaFila | null;
@@ -1025,11 +1055,76 @@ export interface PlazoCliente {
 
 export interface Cartera {
   hoy: string;
+  /** Dueno filtrado, o null si son todos. */
+  dueno: GrupoDueno | null;
   facturas: FacturaCartera[];
   clientes: ResumenCliente[];
   /** Facturados sin numero o sin fecha: no pueden calcular su vencimiento. */
   sinDatos: FilaCuadro[];
   plazos: PlazoCliente[];
+}
+
+// ---------------------------------------------------------------------------
+// Carga inicial desde Excel (cartera y anticipos), ver backend/src/importaciones.ts
+// ---------------------------------------------------------------------------
+/** Viaje del cuadro ofrecido para una linea importada. */
+export interface CandidatoViaje {
+  id: number;
+  fecha: string;
+  placa: string;
+  empresa: string;
+  manifiesto: string | null;
+  remision: string | null;
+  valorFlete: number | null;
+  facturaNumero: string | null;
+  /** El cliente del viaje corresponde al de la linea. */
+  mismoCliente: boolean;
+}
+
+/** Factura pendiente leida del Excel "Cartera Total". */
+export interface FacturaImportada {
+  numero: string;
+  empresa: string;
+  fecha: string;
+  vence: string | null;
+  valor: number;
+  placas: { placa: string; valor: number }[];
+}
+
+export interface FacturaPropuesta extends FacturaImportada {
+  anticipo: number;
+  modo: "SALDO" | "VIAJES";
+  motivo: string | null;
+  lineas: { placa: string; valor: number; candidatos: CandidatoViaje[]; propuestos: number[]; seguro: boolean }[];
+}
+
+export interface FacturaConfirmada extends FacturaImportada {
+  anticipo: number;
+  modo: "SALDO" | "VIAJES";
+  lineas: { placa: string; valor: number; viajeIds: number[] }[];
+}
+
+/** Fila de la hoja de anticipos de las EDS. */
+export interface AnticipoImportado {
+  fila: number;
+  fecha: string;
+  placa: string;
+  cliente: string;
+  efectivo: number;
+  combustible: number;
+  galones: number | null;
+  descuento: number;
+  eds: string;
+  facturaBomba: string | null;
+  fechaFacturaBomba: string | null;
+  fechaPago: string | null;
+}
+
+export interface AnticipoPropuesto extends AnticipoImportado {
+  candidatos: CandidatoViaje[];
+  propuesto: number | null;
+  seguro: boolean;
+  yaImportado: boolean;
 }
 
 /** Llamadas de Seguimiento papeles, Cartera y la campana de seguimiento. */
@@ -1040,8 +1135,17 @@ export const apiSeguimiento = {
   papeles: () => get<FilaSeguimiento[]>("/seguimiento/papeles"),
   /** Registra lo que se supo de los papeles; devuelve el viaje del cuadro. */
   registrarPapeles: (id: number, datos: Record<string, unknown>) => post<DetalleCuadro>(`/seguimiento/papeles/${id}`, datos),
-  /** Facturas por cobrar, totales por cliente y facturados sin datos. */
-  cartera: () => get<Cartera>("/seguimiento/cartera"),
+  /** Facturas por cobrar, totales por cliente y facturados sin datos (solo de un dueno, si se pide). */
+  cartera: (dueno?: GrupoDueno | null) =>
+    get<Cartera>(`/seguimiento/cartera${dueno ? `?dueno=${encodeURIComponent(dueno)}` : ""}`),
+  /** Anticipo (o abono) que el cliente ya pago de una factura; 0 lo quita. */
+  guardarAnticipoCliente: (facturaNumero: string, empresa: string, valor: number) =>
+    put<{ ok: true }>("/seguimiento/cartera/anticipo", { facturaNumero, empresa, valor }),
+  /** Propone como cargar las facturas del Excel "Cartera Total" (no guarda). */
+  previaCartera: (facturas: FacturaImportada[]) => post<FacturaPropuesta[]>("/seguimiento/cartera/importar/previa", { facturas }),
+  /** Carga las facturas confirmadas. */
+  importarCartera: (facturas: FacturaConfirmada[]) =>
+    post<{ saldos: number; facturas: number; viajes: number }>("/seguimiento/cartera/importar", { facturas }),
   /** Guarda el plazo y el contacto de cobro de un cliente; devuelve todos. */
   guardarPlazo: (datos: Partial<PlazoCliente>) => put<PlazoCliente[]>("/seguimiento/cartera/plazos", datos),
   /** Gestiones de cobro de una factura. */

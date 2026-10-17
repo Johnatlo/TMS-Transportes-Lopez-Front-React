@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_341 funciones, componentes, métodos y rutas en 48 archivos._
+_360 funciones, componentes, métodos y rutas en 51 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (123)
+- [`src/api/cliente.ts`](#srcapiclientets) (128)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -217,14 +217,17 @@ _341 funciones, componentes, métodos y rutas en 48 archivos._
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (4)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (6)
 - [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (3)
+- [`src/paginas/cuadro/ImportarAnticipos.tsx`](#srcpaginascuadroimportaranticipostsx) (2)
 - [`src/paginas/cuadro/PastillasEstado.tsx`](#srcpaginascuadropastillasestadotsx) (1)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (7)
 - [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
 - [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (21)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
-- [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (4)
+- [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
+- [`src/paginas/seguimiento/ImportarCartera.tsx`](#srcpaginasseguimientoimportarcarteratsx) (3)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
+- [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (8)
 
 ### `src/App.tsx`
 
@@ -624,6 +627,12 @@ _341 funciones, componentes, métodos y rutas en 48 archivos._
   - **`apiCuadro.enviarFacturacion(filas)`** · _método_
     Guarda en cada viaje lo que va en el cuadro de la contadora.
 
+  - **`apiCuadro.previaAnticipos(filas)`** · _método_
+    Propone el viaje de cada fila del Excel de anticipos (no guarda).
+
+  - **`apiCuadro.importarAnticipos(filas)`** · _método_
+    Carga los anticipos confirmados (cada fila con su viaje).
+
   - **`apiCuadro.bombas()`** · _método_
     Catalogo de bombas aliadas.
 
@@ -645,8 +654,17 @@ _341 funciones, componentes, métodos y rutas en 48 archivos._
   - **`apiSeguimiento.registrarPapeles(id, datos)`** · _método_
     Registra lo que se supo de los papeles; devuelve el viaje del cuadro.
 
-  - **`apiSeguimiento.cartera()`** · _método_
-    Facturas por cobrar, totales por cliente y facturados sin datos.
+  - **`apiSeguimiento.cartera(dueno)`** · _método_
+    Facturas por cobrar, totales por cliente y facturados sin datos (solo de un dueno, si se pide).
+
+  - **`apiSeguimiento.guardarAnticipoCliente(facturaNumero, empresa, valor)`** · _método_
+    Anticipo (o abono) que el cliente ya pago de una factura; 0 lo quita.
+
+  - **`apiSeguimiento.previaCartera(facturas)`** · _método_
+    Propone como cargar las facturas del Excel "Cartera Total" (no guarda).
+
+  - **`apiSeguimiento.importarCartera(facturas)`** · _método_
+    Carga las facturas confirmadas.
 
   - **`apiSeguimiento.guardarPlazo(datos)`** · _método_
     Guarda el plazo y el contacto de cobro de un cliente; devuelve todos.
@@ -1589,6 +1607,22 @@ _341 funciones, componentes, métodos y rutas en 48 archivos._
   Matriz de fletes: importar el Excel "MATRIZ FLETES" (reemplaza la actual) y
   ajustar valor, tipo y peso minimo de cada tarifa.
 
+### `src/paginas/cuadro/ImportarAnticipos.tsx`
+
+> Carga inicial de los anticipos desde el Excel de las EDS (una sola vez).
+>
+> 1. Se elige el archivo; el navegador lee las filas de anticipos.
+> 2. El servidor propone el viaje de cada anticipo (misma placa, fecha
+>    cercana y mismo cliente: "EMPRESA PROV").
+> 3. Se revisan las dudosas y se confirma. Las que ya estaban cargadas (misma
+>    placa, fecha y valores) se saltan; las que quedan sin viaje no se cargan.
+
+- **`etiquetaViaje(c)`** · _función_
+  Texto de un viaje del cuadro para la lista (fecha, cliente, manifiesto).
+
+- **`ImportarAnticipos({...})`** · _componente React_
+  Ventana de la carga de anticipos: leer el Excel, revisar el viaje de cada fila y cargar.
+
 ### `src/paginas/cuadro/PastillasEstado.tsx`
 
 - **`PastillasEstado({...})`** · _componente React_
@@ -1780,9 +1814,13 @@ _341 funciones, componentes, métodos y rutas en 48 archivos._
 
 > Pantalla Cartera: todo lo que los clientes le deben a la empresa. Cada
 > factura con numero y fecha entra aqui sola (desde el cuadro pagos) hasta
-> que se registra la fecha pago factura. Vence en la fecha pago cliente (o, si
+> que se registra la fecha pago factura. Tambien los saldos de antes de
+> septiembre cargados sin viaje, y se puede ver solo lo de un dueno. Vence en la fecha pago cliente (o, si
 > no esta escrita, a los dias de credito del cliente); pasada, avisa para
 > llamar y cobrar.
+
+- **`totalFactura(f)`** · _función_
+  Lo que debe el cliente en total (sin filtro por dueno).
 
 - **`textoVencimiento(f)`** · _función_
   "Vencida hace 12 dias", "Vence hoy", "Vence en 8 dias".
@@ -1800,6 +1838,26 @@ _341 funciones, componentes, métodos y rutas en 48 archivos._
   Plazo de credito y contacto de cobro de cada cliente. Se listan los
   clientes con plazo guardado y los que tienen facturas por cobrar; los que no
   tienen plazo usan 30 dias.
+
+### `src/paginas/seguimiento/ImportarCartera.tsx`
+
+> Carga inicial de la cartera desde el Excel "Cartera Total" (una sola vez).
+>
+> 1. Se elige el archivo; el navegador lee las facturas pendientes.
+> 2. El servidor propone como cargar cada una: las de antes de septiembre
+>    como saldo sin viaje; las de septiembre en adelante ligadas a sus viajes
+>    del cuadro pagos (el viaje de cada placa).
+> 3. Se revisan las dudosas (cliente distinto, varios viajes posibles, placa
+>    sin viajes) y se confirma. Reimportar no duplica.
+
+- **`etiquetaViaje(c)`** · _función_
+  Texto de un viaje del cuadro para la lista.
+
+- **`ImportarCartera({...})`** · _componente React_
+  Ventana de la carga de cartera: leer el Excel, revisar cada factura y cargar.
+
+- **`FilasFactura({...})`** · _componente React_
+  Las filas de una factura: su cabecera (modo) y una linea por placa.
 
 ### `src/paginas/seguimiento/Papeles.tsx`
 
@@ -1833,5 +1891,44 @@ _341 funciones, componentes, métodos y rutas en 48 archivos._
   Ventana para registrar lo que se supo de los papeles (normalmente al
   llamar al conductor): donde estan, quien los tiene, si estan completos,
   que falta y una nota. Guardar apaga la alerta de "comunicarse" por hoy.
+
+### `src/paginas/seguimiento/cargaExcel.ts`
+
+> Lectura de los Excel de la carga inicial: "Cartera Total" (facturas
+> pendientes con su valor por placa) y la hoja de anticipos de las EDS.
+>
+> leerHojas convierte el archivo en tablas de valores (con exceljs, cargado
+> solo cuando se usa); carteraDesdeFilas y anticiposDesdeFilas no dependen de
+> exceljs y se prueban aparte (cargaExcel.test.ts).
+
+- **`leerHojas(archivo)`** · _función_
+  Lee todas las hojas del archivo. Las formulas llegan con su resultado.
+
+- **`titulo(v)`** · _función_
+  Titulo de columna comparable: mayusculas, sin tildes, espacios simples.
+
+- **`fechaCelda(v)`** · _función_
+  Fecha de una celda como "AAAA-MM-DD" (exceljs da Date en UTC); null si no es fecha.
+
+- **`numeroCelda(v)`** · _función_
+  Numero de una celda: acepta texto con comas de miles ("3,000,000.00 ").
+
+- **`placaDe(v)`** · _función_
+  Placa de un titulo de columna ("SWO-594" o "SWO594") sin guion; null si no es placa.
+
+- **`filaTitulos(filas, requeridos)`** · _función_
+  Busca la fila de titulos: la primera que tiene todas las columnas pedidas.
+
+- **`carteraDesdeFilas(filas)`** · _función_
+  Facturas pendientes de la hoja "Cartera Total": una por fila con fecha y
+  numero de factura. Las columnas de placas (SWO-594, SRO-029...) traen el
+  valor de cada placa; "Valor Factura" es lo que debe el cliente (placas
+  menos su anticipo). Se ignoran las filas de totales por dueno y por placa.
+
+- **`anticiposDesdeFilas(filas)`** · _función_
+  Anticipos de la hoja de las EDS: una fila por anticipo con fecha y placa.
+  Columnas por titulo: FECHA ANTICIPO, PLACA, EMPRESA PROV (cliente del
+  viaje), EFECTIVO, COMBUST., GALONES, DESC., EDS, N° FACTURA, FECHA FACTURA
+  y FECHA DE PAGO (a la bomba).
 
 <!-- REFERENCIA:FIN -->

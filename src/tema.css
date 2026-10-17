@@ -327,6 +327,17 @@ tr.fila-todo-pagado:hover > td { background: #d5ecdc; }
    las lineas de la fila no cuadraban (matriz de fletes). */
 td.dato-sec { display: table-cell; }
 
+/* Carga inicial desde Excel (cartera y anticipos). */
+.tabla-envio tr.fila-grupo td { background: var(--gris-50); border-top: 2px solid var(--gris-200); }
+.cabecera-factura { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+.cabecera-factura select { width: auto; min-width: 12rem; }
+.eleccion-viaje { display: flex; align-items: center; gap: 0.4rem; }
+.eleccion-viaje + .eleccion-viaje { margin-top: 0.3rem; }
+
+/* Cartera: filtro por dueno de los vehiculos. */
+.filtro-dueno { align-items: center; margin-bottom: 0.6rem; }
+.filtro-dueno .dato-sec { margin-right: 0.3rem; }
+
 /* Estado del cuadro: pastilla de papeles y, al lado, la de la factura. */
 .pastillas-estado { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; }
 

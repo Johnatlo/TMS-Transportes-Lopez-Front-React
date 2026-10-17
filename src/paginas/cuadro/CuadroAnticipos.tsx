@@ -22,6 +22,7 @@ import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import { fechaCorta, hoyColombia } from "./estadosCuadro";
 import { deInput, enInput, placaConGuion } from "./facturacion";
+import ImportarAnticipos from "./ImportarAnticipos";
 
 /** Un tanqueo: los tramos que salieron de una misma entrega en la bomba. */
 interface Tanqueo {
@@ -108,6 +109,7 @@ export default function CuadroAnticipos() {
   const [error, setError] = useState<string | null>(null);
   const [editandoCupo, setEditandoCupo] = useState(false);
   const [nuevoAbono, setNuevoAbono] = useState(false);
+  const [importando, setImportando] = useState(false);
 
   useEffect(() => {
     if (!carga.datos) return;
@@ -372,7 +374,10 @@ export default function CuadroAnticipos() {
             </button>
           ))}
         </div>
-        <button className="boton-barra" style={{ marginLeft: "auto" }} onClick={() => setEditandoCupo(true)}>
+        <button className="boton-barra" style={{ marginLeft: "auto" }} onClick={() => setImportando(true)}>
+          Importar Excel de anticipos
+        </button>
+        <button className="boton-barra" onClick={() => setEditandoCupo(true)}>
           Cupo y precios de la bomba
         </button>
         <button className="btn-primary boton-con-texto" onClick={() => setNuevoAbono(true)}>
@@ -421,6 +426,7 @@ export default function CuadroAnticipos() {
           }}
         />
       )}
+      {importando && <ImportarAnticipos alCerrar={() => setImportando(false)} alCambiar={() => carga.recargar()} />}
       {nuevoAbono && (
         <VentanaAbono
           alCerrar={() => setNuevoAbono(false)}

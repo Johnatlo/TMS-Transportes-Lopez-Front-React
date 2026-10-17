@@ -64,6 +64,8 @@ export interface Vehiculo extends RegistroRndc {
   nitMonitoreoFlota: string | null;
   /** Flota propia (LOPEZ o MYC) o TERCERO. */
   flota?: "LOPEZ" | "MYC" | "TERCERO";
+  /** Socio dueno (MAURICIO, CELSO, MILLER o LUISA) para separar la cartera; null = tercero. */
+  dueno?: string | null;
   /** Propietario segun la tarjeta de propiedad. Informativo. */
   propietarioNit: string | null;
   /** Nombre del titular del manifiesto. Informativo: no viaja al RNDC. */

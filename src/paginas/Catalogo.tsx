@@ -1243,6 +1243,19 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[]): SeccionFormulario[] {
             { value: "MYC", label: "Flota propia: Transportes MYC" },
           ],
         },
+        {
+          // Para separar la cartera por socio (filtro de Cartera).
+          key: "dueno",
+          label: "Dueno (para la cartera)",
+          tipo: "select",
+          opciones: [
+            { value: "", label: "Tercero" },
+            { value: "MAURICIO", label: "Mauricio" },
+            { value: "CELSO", label: "Celso" },
+            { value: "MILLER", label: "Miller" },
+            { value: "LUISA", label: "Luisa" },
+          ],
+        },
       ],
     },
     {
