@@ -1205,6 +1205,8 @@ export interface ResumenSincronizacion {
   cumplidosIniciales: number;
   anulacionesCumplidoInicial: number;
   remesasAnuladasSinViaje: string[];
+  /** Remesas que pasaron de un manifiesto anulado al re-expedido con letra (00006579 -> 00006579A). */
+  remesasReubicadas?: string[];
   conflictos: string[];
 }
 

@@ -27,6 +27,7 @@ export function textoResumen(r: ResumenSincronizacion | null): string | null {
     [r.remesasCumplidas.length, "remesa(s) cumplida(s)"],
     [r.anulados.length, "manifiesto(s) anulado(s)"],
     [r.remesasAnuladas.length, "remesa(s) anulada(s)"],
+    [r.remesasReubicadas?.length ?? 0, "remesa(s) pasada(s) al manifiesto re-expedido con letra"],
   ] as const;
   const hubo = partes.filter(([n]) => n > 0).map(([n, que]) => `${n} ${que}`);
   return hubo.length ? `Trajo: ${hubo.join(", ")}.` : null;
