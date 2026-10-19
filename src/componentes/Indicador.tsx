@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
  * opcional, un icono, la variacion frente al periodo anterior (con signo y
  * flecha, no solo color) y un detalle al lado.
  *
- * `dinero` usa la letra de montos; `alerta` pinta el valor como vencido.
+ * `dinero` usa la letra de montos; `alerta` pinta el valor en rojo (mismo tamano).
  */
 export default function Indicador({
   icono,
@@ -24,7 +24,7 @@ export default function Indicador({
   dinero?: boolean;
   alerta?: boolean;
 }) {
-  const clases = ["indicador-valor", dinero && "indicador-dinero", alerta && "texto-vencido"].filter(Boolean).join(" ");
+  const clases = ["indicador-valor", dinero && "indicador-dinero", alerta && "indicador-alerta"].filter(Boolean).join(" ");
   return (
     <div className="indicador">
       <div className="indicador-titulo">

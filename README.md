@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_360 funciones, componentes, métodos y rutas en 51 archivos._
+_366 funciones, componentes, métodos y rutas en 52 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (128)
+- [`src/api/cliente.ts`](#srcapiclientets) (130)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -224,6 +224,7 @@ _360 funciones, componentes, métodos y rutas en 51 archivos._
 - [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
 - [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (21)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
+- [`src/paginas/seguimiento/AnticiposEmpresas.tsx`](#srcpaginasseguimientoanticiposempresastsx) (4)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
 - [`src/paginas/seguimiento/ImportarCartera.tsx`](#srcpaginasseguimientoimportarcarteratsx) (3)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
@@ -657,6 +658,12 @@ _360 funciones, componentes, métodos y rutas en 51 archivos._
   - **`apiSeguimiento.cartera(dueno)`** · _método_
     Facturas por cobrar, totales por cliente y facturados sin datos (solo de un dueno, si se pide).
 
+  - **`apiSeguimiento.anticiposEmpresas()`** · _método_
+    Viajes con anticipo que da la empresa y lo que debe cada cliente.
+
+  - **`apiSeguimiento.pagarAnticiposEmpresa(ids, fecha)`** · _método_
+    La empresa pago el anticipo de esos viajes.
+
   - **`apiSeguimiento.guardarAnticipoCliente(facturaNumero, empresa, valor)`** · _método_
     Anticipo (o abono) que el cliente ya pago de una factura; 0 lo quita.
 
@@ -1005,7 +1012,7 @@ _360 funciones, componentes, métodos y rutas en 51 archivos._
   opcional, un icono, la variacion frente al periodo anterior (con signo y
   flecha, no solo color) y un detalle al lado.
 
-  `dinero` usa la letra de montos; `alerta` pinta el valor como vencido.
+  `dinero` usa la letra de montos; `alerta` pinta el valor en rojo (mismo tamano).
 
 ### `src/componentes/LibroConsecutivos.tsx`
 
@@ -1809,6 +1816,28 @@ _360 funciones, componentes, métodos y rutas en 51 archivos._
 - **`tonoEstado(estado)`** · _función_
   Color de la pastilla de un estado de viaje: verde cumplido, azul expedido,
   gris anulado, amarillo mientras se envia, rojo los errores.
+
+### `src/paginas/seguimiento/AnticiposEmpresas.tsx`
+
+> Anticipos que dan las empresas (clientes) en sus viajes: los del Zorro
+> (Ecoambiental, Reciclajes Bogota, Bodegas de Reciclaje), Aburra Limpio y los
+> viajes sin manifiesto (salvo urbanos). Es aparte de los anticipos de la
+> bomba. Aqui se registra cuanto dio cada empresa y cuando lo pago, y se ve lo
+> que debe cada una para cobrarlo. Se usa en Cartera y en Anticipos.
+
+- **`motivo(f)`** · _función_
+  Por que el viaje lleva anticipo de la empresa.
+
+- **`AnticiposEmpresas({...})`** · _componente React_
+  Vista completa: totales, lo que debe cada empresa (con "registrar pago" de
+  todos sus anticipos) y los viajes. Clic en un viaje abre su anticipo. Con
+  `abrirViaje` abre de una ese viaje (desde la alerta de la campana).
+
+- **`EditarAnticipo({...})`** · _componente React_
+  El anticipo de un viaje: valor, fecha de pago o "no aplica".
+
+- **`PagarEmpresa({...})`** · _componente React_
+  Registra el pago de todos los anticipos por cobrar de una empresa.
 
 ### `src/paginas/seguimiento/Cartera.tsx`
 

@@ -24,7 +24,7 @@ import PastillasEstado from "./PastillasEstado";
 const CAMPOS = [
   "fecha", "placa", "empresa", "conductor", "rutaManual", "manifiesto", "remision", "pesoKg", "fechaDescargue",
   "pesoFacturadoKg", "notaFactura",
-  "tipoFlete", "tarifaKilo", "valorFijo", "fleteAdicional", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "fechaPagoSaldo",
+  "tipoFlete", "tarifaKilo", "valorFijo", "fleteAdicional", "anticipoEmpresa", "anticipoEmpresaFechaPago", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "fechaPagoSaldo",
 ] as const;
 type Campo = (typeof CAMPOS)[number];
 type Formulario = Record<Campo, string>;
@@ -215,7 +215,7 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
                   <option value="FIJO">Valor fijo</option>
                 </select>
               </div>
-              {f.tipoFlete === "KILO" ? campo("tarifaKilo", "Tarifa ($ por kilo)", "number", { min: 0, step: "0.01" }) : campo("valorFijo", "Valor fijo", "number", { min: 0 })}
+              {f.tipoFlete === "KILO" ? campo("tarifaKilo", "Tarifa ($ por kilo)", "number", { min: 0, max: 1000, step: "0.01" }) : campo("valorFijo", "Valor fijo", "number", { min: 0 })}
               {f.tipoFlete === "KILO" &&
                 campo("pesoFacturadoKg", "Peso facturado (kg)", "number", { min: 0, placeholder: f.pesoKg || "Igual al real" })}
               {/* POR (2 clientes) suma 300.000 y POR3 (3 clientes) 600.000. */}
@@ -268,6 +268,30 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
               pago, la cartera avisa para llamar y cobrar. Con la fecha pago factura queda "Todo pagado" (fila verde).
             </div>
           </Seccion>
+
+          {(d.estadoAnticipoEmpresa !== "NO_APLICA" || d.anticipoEmpresaNoAplica) && (
+            <Seccion titulo="Anticipo de la empresa">
+              <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
+                Lo que da el cliente en este viaje (clientes del Zorro, Aburra Limpio y viajes sin manifiesto). Es aparte
+                de los anticipos de la bomba: la empresa lo debe hasta que se escribe la fecha en que lo pago. Se cobra
+                desde Cartera &gt; Anticipos de empresas.
+              </div>
+              {!d.anticipoEmpresaNoAplica && (
+                <div className="campos-cuadro">
+                  {campo("anticipoEmpresa", "Anticipo que da la empresa", "number", { min: 0 })}
+                  {campo("anticipoEmpresaFechaPago", "Fecha en que lo pago", "date")}
+                </div>
+              )}
+              <label className="check-linea">
+                <input
+                  type="checkbox"
+                  checked={d.anticipoEmpresaNoAplica}
+                  onChange={(e) => aplicar(() => apiCuadro.actualizar(id, { anticipoEmpresaNoAplica: e.target.checked }))}
+                />
+                Este viaje no lleva anticipo de la empresa (por ejemplo, un urbano)
+              </label>
+            </Seccion>
+          )}
 
           <Seccion titulo="Pago al dueno del vehiculo">
             {d.flota === "TERCERO" ? (

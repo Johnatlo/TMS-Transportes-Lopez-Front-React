@@ -697,6 +697,13 @@ export interface FilaCuadro {
   valorFijo: number | null;
   /** Solo KILO: se suma a kilos x tarifa (POR: 300.000, POR3: 600.000). */
   fleteAdicional: number | null;
+  /** Anticipo que da la empresa (cliente) en este viaje; aparte de los de la bomba. */
+  anticipoEmpresa: number | null;
+  /** Fecha en que la empresa pago ese anticipo; sin fecha, lo debe. */
+  anticipoEmpresaFechaPago: string | null;
+  /** Se marco que el viaje no lleva anticipo de la empresa (un urbano, por ejemplo). */
+  anticipoEmpresaNoAplica: boolean;
+  estadoAnticipoEmpresa: EstadoAnticipoEmpresa;
   valorFlete: number | null;
   /** Peso que se factura (el real o el minimo pactado). */
   pesoFacturadoKg: number | null;
@@ -957,7 +964,22 @@ export interface FilaSeguimiento extends FilaCuadro {
   alertaFacturacion: AlertaFila | null;
 }
 
-export type TipoAlerta = "PAPELES" | "FACTURACION" | "CARTERA";
+export type TipoAlerta = "PAPELES" | "FACTURACION" | "CARTERA" | "ANTICIPO_EMPRESA";
+
+/**
+ * Anticipo que da la empresa en un viaje (clientes del Zorro, Aburra Limpio y
+ * viajes sin manifiesto): no aplica, falta registrarlo, por cobrar o pagado.
+ */
+export type EstadoAnticipoEmpresa = "NO_APLICA" | "FALTA_REGISTRAR" | "POR_COBRAR" | "PAGADO";
+
+/** Lo que debe cada cliente de anticipos (para cobrar). */
+export interface ResumenAnticipoEmpresa {
+  empresa: string;
+  faltaRegistrar: number;
+  viajesPorCobrar: number;
+  porCobrar: number;
+  pagado: number;
+}
 
 /** Una alerta de la campana de seguimiento. */
 export interface AlertaSeguimiento {
@@ -1138,6 +1160,11 @@ export const apiSeguimiento = {
   /** Facturas por cobrar, totales por cliente y facturados sin datos (solo de un dueno, si se pide). */
   cartera: (dueno?: GrupoDueno | null) =>
     get<Cartera>(`/seguimiento/cartera${dueno ? `?dueno=${encodeURIComponent(dueno)}` : ""}`),
+  /** Viajes con anticipo que da la empresa y lo que debe cada cliente. */
+  anticiposEmpresas: () => get<{ viajes: FilaCuadro[]; empresas: ResumenAnticipoEmpresa[] }>("/seguimiento/anticipos-empresas"),
+  /** La empresa pago el anticipo de esos viajes. */
+  pagarAnticiposEmpresa: (ids: number[], fecha: string) =>
+    post<{ pagados: number }>("/seguimiento/anticipos-empresas/pago", { ids, fecha }),
   /** Anticipo (o abono) que el cliente ya pago de una factura; 0 lo quita. */
   guardarAnticipoCliente: (facturaNumero: string, empresa: string, valor: number) =>
     put<{ ok: true }>("/seguimiento/cartera/anticipo", { facturaNumero, empresa, valor }),

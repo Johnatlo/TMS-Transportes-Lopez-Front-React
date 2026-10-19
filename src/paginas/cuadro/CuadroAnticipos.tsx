@@ -23,6 +23,7 @@ import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import { fechaCorta, hoyColombia } from "./estadosCuadro";
 import { deInput, enInput, placaConGuion } from "./facturacion";
 import ImportarAnticipos from "./ImportarAnticipos";
+import AnticiposEmpresas from "../seguimiento/AnticiposEmpresas";
 
 /** Un tanqueo: los tramos que salieron de una misma entrega en la bomba. */
 interface Tanqueo {
@@ -85,7 +86,7 @@ function Recorrido({ t }: { t: AnticipoBomba }) {
   );
 }
 
-type Vista = "viaje" | "tanqueo" | "deuda" | "pagado" | "abonos" | "cruce";
+type Vista = "viaje" | "tanqueo" | "deuda" | "pagado" | "abonos" | "cruce" | "empresas";
 const VISTAS: Array<{ id: Vista; etiqueta: string }> = [
   { id: "viaje", etiqueta: "Por viaje" },
   { id: "tanqueo", etiqueta: "Por tanqueo" },
@@ -93,6 +94,8 @@ const VISTAS: Array<{ id: Vista; etiqueta: string }> = [
   { id: "pagado", etiqueta: "Pagado a la bomba" },
   { id: "abonos", etiqueta: "Abonos del socio" },
   { id: "cruce", etiqueta: "Cruce con la bomba" },
+  // Lo que dan los clientes en sus viajes: aparte de la bomba; se cobra desde Cartera.
+  { id: "empresas", etiqueta: "Anticipos de empresas" },
 ];
 
 /**
@@ -384,12 +387,13 @@ export default function CuadroAnticipos() {
           Registrar abono del socio
         </button>
       </div>
-      <div className="section-desc" style={{ margin: "0.4rem 0 0.6rem" }}>
+      <div className="section-desc" style={{ margin: "0.4rem 0 0.6rem" }} hidden={vista === "empresas"}>
         {vista === "cruce"
           ? `Para cruzar con la relacion de la bomba: escribe los galones del tiquete y el combustible del tramo se calcula como en el Excel: galones x precio - descuento, redondeado. Precio sugerido ${moneda(r?.precioGalonBomba ?? 0)}; descuento sugerido galones x ${moneda(r?.descuentoGalonBomba ?? 0)}. Los dos se pueden cambiar en cada fila; vacios, se usan los sugeridos.`
           : "Los anticipos se registran en cada viaje del Cuadro pagos (el viaje → Anticipos). La deuda con la bomba es todo lo entregado en ella menos lo pagado y lo que abono el socio."}
       </div>
-      <div className="panel">
+      {vista === "empresas" && <AnticiposEmpresas />}
+      <div className="panel" hidden={vista === "empresas"}>
         {vista === "viaje" && (
           <TablaDatos filas={tramos} columnas={columnasViaje} clave={(t) => t.id} pestanas={pestanasViaje} nombreArchivo="anticipos-por-viaje"
             placeholderBusqueda="Buscar placa, empresa, bomba, factura..." vacio="No hay anticipos con estos criterios." />

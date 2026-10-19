@@ -14,10 +14,13 @@ const GRUPOS: Array<{ tipo: TipoAlerta; etiqueta: string; vacio: string }> = [
   { tipo: "PAPELES", etiqueta: "Papeles", vacio: "Ningun papel pendiente de seguimiento hoy." },
   { tipo: "FACTURACION", etiqueta: "Por facturar", vacio: "Nada pendiente de facturar." },
   { tipo: "CARTERA", etiqueta: "Cartera", vacio: "Ninguna factura vencida ni por vencer." },
+  { tipo: "ANTICIPO_EMPRESA", etiqueta: "Anticipos de empresas", vacio: "Ningun anticipo de empresa pendiente." },
 ];
 
 /** Ruta de la pantalla que resuelve la alerta, con el viaje o la factura a abrir. */
 function rutaDe(a: AlertaSeguimiento): string {
+  // Anticipo de la empresa: se registra en Cartera > Anticipos de empresas.
+  if (a.tipo === "ANTICIPO_EMPRESA") return `/cartera?anticipo=${a.cuadroId}`;
   if (a.tipo === "CARTERA") {
     return `/cartera?factura=${encodeURIComponent(a.facturaNumero ?? "")}&empresa=${encodeURIComponent(a.empresa ?? "")}`;
   }

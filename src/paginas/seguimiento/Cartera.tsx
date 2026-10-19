@@ -20,6 +20,7 @@ import { usarShell } from "../../componentes/Shell";
 import DetalleCuadro from "../cuadro/DetalleCuadro";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import ImportarCartera from "./ImportarCartera";
+import AnticiposEmpresas from "./AnticiposEmpresas";
 
 /** Duenos del filtro (los socios y los terceros), con su nombre en pantalla. */
 const NOMBRE_DUENO: Record<GrupoDueno, string> = {
@@ -163,11 +164,21 @@ export default function Cartera() {
   const { recargarSeguimiento } = usarShell();
   const [parametros, setParametros] = useSearchParams();
   const [abierta, setAbierta] = useState<{ numero: string; empresa: string } | null>(null);
-  const [vista, setVista] = useState<"facturas" | "clientes" | "sinDatos">("facturas");
+  const [vista, setVista] = useState<"facturas" | "clientes" | "sinDatos" | "anticipos">("facturas");
+  /** Viaje cuyo anticipo de la empresa se abre (desde la alerta de la campana). */
+  const [anticipoViaje, setAnticipoViaje] = useState<number | null>(null);
   const [viajeCuadro, setViajeCuadro] = useState<number | null>(null);
   const [plazos, setPlazos] = useState(false);
 
   useEffect(() => {
+    // ?anticipo=<id del cuadro>: abre el anticipo de la empresa de ese viaje.
+    const anticipo = Number(parametros.get("anticipo"));
+    if (anticipo) {
+      setVista("anticipos");
+      setAnticipoViaje(anticipo);
+      setParametros({}, { replace: true });
+      return;
+    }
     const numero = parametros.get("factura");
     const empresa = parametros.get("empresa");
     if (numero && empresa) {
@@ -187,6 +198,33 @@ export default function Cartera() {
   const vencido = datos.facturas.filter((f) => f.diasVencida > 0).reduce((s, f) => s + f.valor, 0);
   const proximas = datos.facturas.filter((f) => f.diasVencida <= 0 && f.diasVencida >= -5);
   const factura = abierta ? datos.facturas.find((f) => f.facturaNumero === abierta.numero && f.empresa === abierta.empresa) ?? null : null;
+
+  const pestanasVista = (
+    <div className="tabla-pestanas selector-vista">
+      <button className={vista === "facturas" ? "activa" : ""} onClick={() => setVista("facturas")}>
+        Facturas por cobrar
+      </button>
+      <button className={vista === "clientes" ? "activa" : ""} onClick={() => setVista("clientes")}>
+        Por cliente
+      </button>
+      <button className={vista === "sinDatos" ? "activa" : ""} onClick={() => setVista("sinDatos")}>
+        Sin numero o fecha ({datos.sinDatos.length})
+      </button>
+      <button className={vista === "anticipos" ? "activa" : ""} onClick={() => setVista("anticipos")}>
+        Anticipos de empresas
+      </button>
+    </div>
+  );
+
+  // Anticipos de empresas: vista aparte, con sus propios totales.
+  if (vista === "anticipos") {
+    return (
+      <>
+        {pestanasVista}
+        <AnticiposEmpresas abrirViaje={anticipoViaje} alCambiar={alCambiar} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -225,17 +263,7 @@ export default function Cartera() {
         />
       </div>
 
-      <div className="tabla-pestanas selector-vista">
-        <button className={vista === "facturas" ? "activa" : ""} onClick={() => setVista("facturas")}>
-          Facturas por cobrar
-        </button>
-        <button className={vista === "clientes" ? "activa" : ""} onClick={() => setVista("clientes")}>
-          Por cliente
-        </button>
-        <button className={vista === "sinDatos" ? "activa" : ""} onClick={() => setVista("sinDatos")}>
-          Sin numero o fecha ({datos.sinDatos.length})
-        </button>
-      </div>
+      {pestanasVista}
 
       <div className="panel">
         {vista === "facturas" && (
