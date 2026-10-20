@@ -3,6 +3,7 @@
  * al dueno, revisiones, anticipos (efectivo y combustible) y notas.
  */
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiCuadro, fechaHora, moneda } from "../../api/cliente";
 import type { DetalleCuadro as Detalle, EstadoPapeles } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
@@ -294,18 +295,26 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
           )}
 
           <Seccion titulo="Pago al dueno del vehiculo">
-            {d.flota === "TERCERO" ? (
+            {d.flota === "TERCERO" && !d.dueno ? (
               <>
                 <div className="campos-cuadro">{campo("fechaPagoSaldo", "Fecha de pago del saldo", "date")}</div>
                 {!d.fechaPagoSaldo && d.venceSaldo && (
                   <div className={saldoVencido(d) ? "texto-vencido" : "dato-sec"}>
-                    A los terceros se les paga 15 dias despues de entregar: vence el {fechaCorta(d.venceSaldo)}.
+                    Se le paga el viernes {fechaCorta(d.venceSaldo)} (descargue lunes o martes: el viernes de esa
+                    semana; de miercoles en adelante: el de la siguiente).
                   </div>
                 )}
+                <div className="dato-sec">
+                  El valor pactado, los anticipos y las retenciones se llevan en{" "}
+                  <Link to={`/terceros?viaje=${d.id}`}>Pago a terceros</Link>.
+                </div>
                 {!d.fechaDescargue && <div className="dato-sec">Escribe la fecha de descargue para calcular el vencimiento.</div>}
               </>
             ) : (
-              <div className="dato-sec">Vehiculo de la flota propia ({ETIQUETA_FLOTA[d.flota]}): no hay saldo que pagarle a un tercero.</div>
+              <div className="dato-sec">
+                {d.dueno ? `Vehiculo de ${d.dueno} (socio)` : `Vehiculo de la flota propia (${ETIQUETA_FLOTA[d.flota]})`}: no hay saldo que
+                pagarle a un tercero.
+              </div>
             )}
           </Seccion>
 

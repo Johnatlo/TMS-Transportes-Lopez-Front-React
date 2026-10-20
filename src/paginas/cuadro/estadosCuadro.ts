@@ -106,6 +106,6 @@ export const ETIQUETA_FLOTA: Record<Flota, string> = {
  */
 export { hoyColombia, soloDia as fechaCorta } from "../../api/cliente";
 
-/** Saldo de un tercero sin pagar y ya vencido (15 dias despues de descargar). */
+/** Saldo de un tercero sin pagar y ya vencido (su viernes de pago ya llego). */
 export const saldoVencido = (f: FilaCuadro) =>
-  f.flota === "TERCERO" && !f.anulado && !f.fechaPagoSaldo && !!f.venceSaldo && f.venceSaldo <= hoyColombia();
+  f.flota === "TERCERO" && !f.dueno && !f.anulado && !f.fechaPagoSaldo && !!f.venceSaldo && f.venceSaldo <= hoyColombia();

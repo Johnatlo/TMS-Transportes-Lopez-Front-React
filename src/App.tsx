@@ -21,6 +21,7 @@ const Historial = lazy(() => import("./paginas/Historial"));
 const CuadroCentral = lazy(() => import("./paginas/cuadro/CuadroCentral"));
 const Anticipos = lazy(() => import("./paginas/cuadro/CuadroAnticipos"));
 const Cartera = lazy(() => import("./paginas/seguimiento/Cartera"));
+const PagoTerceros = lazy(() => import("./paginas/seguimiento/PagoTerceros"));
 const Plantillas = lazy(() => import("./paginas/Plantillas"));
 const Catalogo = lazy(() => import("./paginas/Catalogo"));
 const Usuarios = lazy(() => import("./paginas/Usuarios"));
@@ -58,6 +59,7 @@ export default function App() {
         {/* Seguimiento de papeles ahora es una ventana del Cuadro pagos. */}
         <Route path="/papeles" element={<Navigate to="/cuadro?papeles=0" replace />} />
         <Route path="/cartera" element={<Cartera />} />
+        <Route path="/terceros" element={<PagoTerceros />} />
         <Route path="/plantillas" element={<Plantillas />} />
         <Route path="/clientes" element={<Catalogo key="clientes" pestanas={["terceros"]} />} />
         <Route

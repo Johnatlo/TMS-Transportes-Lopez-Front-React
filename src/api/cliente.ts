@@ -681,6 +681,8 @@ export interface FilaCuadro {
   vehiculoId: number | null;
   placa: string;
   flota: Flota;
+  /** Socio dueno del vehiculo (MAURICIO, CELSO, MILLER, LUISA); null = tercero. */
+  dueno: string | null;
   conductor: string | null;
   /** Origen → destino. Con manifiesto viene del RNDC (solo consulta); sin manifiesto, rutaManual. */
   ruta: string | null;
@@ -724,8 +726,29 @@ export interface FilaCuadro {
   facturaVence: string | null;
   /** "Fecha pago factura": cuando el cliente pago. Con ella queda todo pagado. */
   facturaFechaPago: string | null;
+  /** Terceros: fecha en que se le pago al tercero. */
   fechaPagoSaldo: string | null;
+  /** Terceros: viernes en que se le paga (o la fecha escrita a mano). */
   venceSaldo: string | null;
+  /** Valor por tonelada pactado con el tercero en este viaje. */
+  valorTerceroTon: number | null;
+  /** Valor fijo pactado con el tercero (manda sobre el de por tonelada). */
+  valorTerceroFijo: number | null;
+  /** Adicional por transferencia: tercer anticipo al tercero. */
+  anticipoTransferencia: number | null;
+  anticipoTransferenciaFecha: string | null;
+  /** Enlace al comprobante de la transferencia. */
+  anticipoTransferenciaLink: string | null;
+  /** Cuando el tercero entrego los documentos. */
+  fechaEntregaDocsTercero: string | null;
+  /** Numero de la cuenta de cobro del tercero ("AR-138"). */
+  cuentaCobroTercero: string | null;
+  /** Al pagar se descuentan retefuente, ICA, FOPAT y poliza. */
+  aplicaDescuentosTercero: boolean;
+  /** ICA por mil del viaje; null = el sugerido por el cliente. */
+  icaTerceroPorMil: number | null;
+  /** Fecha de pago escrita a mano; null = el viernes que toca. */
+  fechaPagoTerceroProgramada: string | null;
   revisadoContabilidadPor: string | null;
   revisadoContabilidadEn: string | null;
   revisadoGerenciaPor: string | null;
@@ -972,6 +995,41 @@ export type TipoAlerta = "PAPELES" | "FACTURACION" | "CARTERA" | "ANTICIPO_EMPRE
  */
 export type EstadoAnticipoEmpresa = "NO_APLICA" | "FALTA_REGISTRAR" | "POR_COBRAR" | "PAGADO";
 
+/** Donde va el pago de un viaje al tercero. */
+export type EstadoPagoTercero = "FALTA_PACTAR" | "FALTAN_DOCUMENTOS" | "POR_PAGAR" | "VENCIDO" | "PAGADO";
+
+/** Viaje de un vehiculo tercero con lo que se le paga (ver src/terceros.ts del backend). */
+export interface ViajeTercero extends FilaCuadro {
+  /** Dueno (tenedor o propietario) del vehiculo; si no se conoce, la placa. */
+  tercero: string;
+  estadoPagoTercero: EstadoPagoTercero;
+  /** ICA por mil que se sugiere por el cliente. */
+  icaSugerido: number;
+  /** Peso x valor por tonelada, o el fijo. null si no se ha pactado. */
+  valorTercero: number | null;
+  efectivo: number;
+  combustible: number;
+  transferencia: number;
+  retefuente: number;
+  ica: number;
+  icaPorMil: number;
+  fopat: number;
+  poliza: number;
+  totalDescuentos: number;
+  valorAPagar: number | null;
+}
+
+/** Totales de un tercero para pagarle. */
+export interface ResumenTercero {
+  tercero: string;
+  placas: string[];
+  viajes: number;
+  porPagar: number;
+  vencido: number;
+  faltanDocumentos: number;
+  faltaPactar: number;
+}
+
 /** Lo que debe cada cliente de anticipos (para cobrar). */
 export interface ResumenAnticipoEmpresa {
   empresa: string;
@@ -1162,6 +1220,11 @@ export const apiSeguimiento = {
     get<Cartera>(`/seguimiento/cartera${dueno ? `?dueno=${encodeURIComponent(dueno)}` : ""}`),
   /** Viajes con anticipo que da la empresa y lo que debe cada cliente. */
   anticiposEmpresas: () => get<{ viajes: FilaCuadro[]; empresas: ResumenAnticipoEmpresa[] }>("/seguimiento/anticipos-empresas"),
+  /** Viajes de vehiculos terceros con lo que se les paga, y el resumen por tercero. */
+  terceros: () => get<{ viajes: ViajeTercero[]; terceros: ResumenTercero[] }>("/seguimiento/terceros"),
+  /** Se le pago al tercero esos viajes (con el numero de su cuenta de cobro, si se escribe). */
+  pagarTerceros: (ids: number[], fecha: string, cuentaCobro: string) =>
+    post<{ pagados: number }>("/seguimiento/terceros/pago", { ids, fecha, cuentaCobro }),
   /** La empresa pago el anticipo de esos viajes. */
   pagarAnticiposEmpresa: (ids: number[], fecha: string) =>
     post<{ pagados: number }>("/seguimiento/anticipos-empresas/pago", { ids, fecha }),

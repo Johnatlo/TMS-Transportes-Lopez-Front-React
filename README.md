@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_366 funciones, componentes, métodos y rutas en 52 archivos._
+_375 funciones, componentes, métodos y rutas en 54 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (130)
+- [`src/api/cliente.ts`](#srcapiclientets) (132)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -227,8 +227,10 @@ _366 funciones, componentes, métodos y rutas en 52 archivos._
 - [`src/paginas/seguimiento/AnticiposEmpresas.tsx`](#srcpaginasseguimientoanticiposempresastsx) (4)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
 - [`src/paginas/seguimiento/ImportarCartera.tsx`](#srcpaginasseguimientoimportarcarteratsx) (3)
+- [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
 - [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (8)
+- [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
 
 ### `src/App.tsx`
 
@@ -660,6 +662,12 @@ _366 funciones, componentes, métodos y rutas en 52 archivos._
 
   - **`apiSeguimiento.anticiposEmpresas()`** · _método_
     Viajes con anticipo que da la empresa y lo que debe cada cliente.
+
+  - **`apiSeguimiento.terceros()`** · _método_
+    Viajes de vehiculos terceros con lo que se les paga, y el resumen por tercero.
+
+  - **`apiSeguimiento.pagarTerceros(ids, fecha, cuentaCobro)`** · _método_
+    Se le pago al tercero esos viajes (con el numero de su cuenta de cobro, si se escribe).
 
   - **`apiSeguimiento.pagarAnticiposEmpresa(ids, fecha)`** · _método_
     La empresa pago el anticipo de esos viajes.
@@ -1679,7 +1687,7 @@ _366 funciones, componentes, métodos y rutas en 52 archivos._
   radicados en el cliente) solo para CORAME / Cartones America.
 
 - **`saldoVencido(f)`** · _función_
-  Saldo de un tercero sin pagar y ya vencido (15 dias despues de descargar).
+  Saldo de un tercero sin pagar y ya vencido (su viernes de pago ya llego).
 
 ### `src/paginas/cuadro/excelFacturacion.ts`
 
@@ -1888,6 +1896,34 @@ _366 funciones, componentes, métodos y rutas en 52 archivos._
 - **`FilasFactura({...})`** · _componente React_
   Las filas de una factura: su cabecera (modo) y una linea por placa.
 
+### `src/paginas/seguimiento/PagoTerceros.tsx`
+
+> Pago a terceros: lo que se le paga al dueno de cada vehiculo tercero por sus
+> viajes. Reemplaza la "Matriz Terceros" de Excel (una hoja por tercero).
+>
+> Por viaje se escribe lo pactado con el tercero (por tonelada o fijo), el
+> adicional por transferencia, cuando entrego los documentos y su cuenta de
+> cobro. El efectivo y el combustible salen de los anticipos de la bomba. Las
+> retenciones se ven siempre y se descuentan solo si se marca. Se le paga el
+> viernes (descargue lunes o martes: el de esa semana; de miercoles en
+> adelante: el de la siguiente). "Por tercero" junta lo que se le debe a cada
+> uno para registrar el pago de una vez.
+
+- **`listo(v)`** · _función_
+  Listo para pagar: pactado, con documentos y sin pagar.
+
+- **`toneladas(kg)`** · _función_
+  Kilos a toneladas para mostrar (34000 -> "34"); sin peso, "-".
+
+- **`PagoTerceros()`** · _componente React_
+  Pagina completa: totales, viajes o resumen por tercero, editor del viaje y registro de pago.
+
+- **`EditarPago({...})`** · _componente React_
+  Formulario del pago de un viaje: lo pactado, la transferencia, documentos, retenciones y fechas.
+
+- **`PagarTercero({...})`** · _componente React_
+  Registra el pago de todos los viajes listos de un tercero, con su cuenta de cobro.
+
 ### `src/paginas/seguimiento/Papeles.tsx`
 
 > Seguimiento de papeles (ventana del Cuadro pagos): los viajes que ya descargaron y aun no
@@ -1959,5 +1995,17 @@ _366 funciones, componentes, métodos y rutas en 52 archivos._
   Columnas por titulo: FECHA ANTICIPO, PLACA, EMPRESA PROV (cliente del
   viaje), EFECTIVO, COMBUST., GALONES, DESC., EDS, N° FACTURA, FECHA FACTURA
   y FECHA DE PAGO (a la bomba).
+
+### `src/paginas/seguimiento/liquidacionTerceros.ts`
+
+> Cuentas del pago a terceros en el navegador, para que el formulario muestre
+> el valor a pagar mientras se escribe. Son las mismas del backend
+> (src/terceros.ts: liquidar); lo que se guarda lo calcula siempre el backend.
+
+- **`liquidarTercero(d, bomba)`** · _función_
+  Valor del tercero, retenciones y valor a pagar (efectivo y combustible salen de la bomba).
+
+- **`numeroONulo(t)`** · _función_
+  Texto del formulario a numero; vacio = null.
 
 <!-- REFERENCIA:FIN -->

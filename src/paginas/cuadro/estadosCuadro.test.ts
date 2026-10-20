@@ -79,7 +79,7 @@ describe("fechas", () => {
   });
 });
 
-describe("saldo vencido de terceros (15 dias despues de descargar)", () => {
+describe("saldo vencido de terceros (su viernes de pago)", () => {
   const tercero = {
     flota: "TERCERO",
     anulado: false,
@@ -95,11 +95,12 @@ describe("saldo vencido de terceros (15 dias despues de descargar)", () => {
     expect(saldoVencido(tercero)).toBe(true);
   });
 
-  test("no aplica si ya se pago, si es flota propia o si el viaje esta anulado", () => {
+  test("no aplica si ya se pago, si es flota propia o de un socio, o si el viaje esta anulado", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-30T17:00:00Z"));
     expect(saldoVencido({ ...tercero, fechaPagoSaldo: "2026-10-21" })).toBe(false);
     expect(saldoVencido({ ...tercero, flota: "LOPEZ" })).toBe(false);
+    expect(saldoVencido({ ...tercero, dueno: "CELSO" })).toBe(false);
     expect(saldoVencido({ ...tercero, anulado: true })).toBe(false);
   });
 
