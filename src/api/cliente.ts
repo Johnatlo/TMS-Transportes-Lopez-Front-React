@@ -1019,6 +1019,18 @@ export interface ViajeTercero extends FilaCuadro {
   valorAPagar: number | null;
 }
 
+/** Un tercero leido de la Matriz Terceros. */
+export interface NombreTerceroImportado {
+  nombre: string;
+  cedula: string | null;
+  placas: string[];
+}
+
+/** A que vehiculos de Flota se le pondria ese nombre (por placa o por cedula del tenedor). */
+export interface NombreTerceroPropuesto extends NombreTerceroImportado {
+  vehiculos: Array<{ id: number; placa: string; nombreActual: string | null; por: "PLACA" | "CEDULA" }>;
+}
+
 /** Totales de un tercero para pagarle. */
 export interface ResumenTercero {
   tercero: string;
@@ -1222,6 +1234,12 @@ export const apiSeguimiento = {
   anticiposEmpresas: () => get<{ viajes: FilaCuadro[]; empresas: ResumenAnticipoEmpresa[] }>("/seguimiento/anticipos-empresas"),
   /** Viajes de vehiculos terceros con lo que se les paga, y el resumen por tercero. */
   terceros: () => get<{ viajes: ViajeTercero[]; terceros: ResumenTercero[] }>("/seguimiento/terceros"),
+  /** Propone a que vehiculos se le pone cada nombre de la Matriz Terceros (no guarda). */
+  previaNombresTerceros: (terceros: NombreTerceroImportado[]) =>
+    post<NombreTerceroPropuesto[]>("/seguimiento/terceros/nombres/previa", { terceros }),
+  /** Pone los nombres de la matriz como titular de los vehiculos. */
+  importarNombresTerceros: (terceros: NombreTerceroImportado[]) =>
+    post<{ actualizados: number }>("/seguimiento/terceros/nombres", { terceros }),
   /** Se le pago al tercero esos viajes (con el numero de su cuenta de cobro, si se escribe). */
   pagarTerceros: (ids: number[], fecha: string, cuentaCobro: string) =>
     post<{ pagados: number }>("/seguimiento/terceros/pago", { ids, fecha, cuentaCobro }),

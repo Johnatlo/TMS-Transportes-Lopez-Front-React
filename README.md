@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_375 funciones, componentes, métodos y rutas en 54 archivos._
+_381 funciones, componentes, métodos y rutas en 55 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (132)
+- [`src/api/cliente.ts`](#srcapiclientets) (134)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -227,9 +227,10 @@ _375 funciones, componentes, métodos y rutas en 54 archivos._
 - [`src/paginas/seguimiento/AnticiposEmpresas.tsx`](#srcpaginasseguimientoanticiposempresastsx) (4)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
 - [`src/paginas/seguimiento/ImportarCartera.tsx`](#srcpaginasseguimientoimportarcarteratsx) (3)
+- [`src/paginas/seguimiento/ImportarNombresTerceros.tsx`](#srcpaginasseguimientoimportarnombrestercerostsx) (1)
 - [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
-- [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (8)
+- [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (11)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
 
 ### `src/App.tsx`
@@ -665,6 +666,12 @@ _375 funciones, componentes, métodos y rutas en 54 archivos._
 
   - **`apiSeguimiento.terceros()`** · _método_
     Viajes de vehiculos terceros con lo que se les paga, y el resumen por tercero.
+
+  - **`apiSeguimiento.previaNombresTerceros(terceros)`** · _método_
+    Propone a que vehiculos se le pone cada nombre de la Matriz Terceros (no guarda).
+
+  - **`apiSeguimiento.importarNombresTerceros(terceros)`** · _método_
+    Pone los nombres de la matriz como titular de los vehiculos.
 
   - **`apiSeguimiento.pagarTerceros(ids, fecha, cuentaCobro)`** · _método_
     Se le pago al tercero esos viajes (con el numero de su cuenta de cobro, si se escribe).
@@ -1896,6 +1903,20 @@ _375 funciones, componentes, métodos y rutas en 54 archivos._
 - **`FilasFactura({...})`** · _componente React_
   Las filas de una factura: su cabecera (modo) y una linea por placa.
 
+### `src/paginas/seguimiento/ImportarNombresTerceros.tsx`
+
+> Nombres de los terceros desde la "Matriz Terceros" de Excel.
+>
+> 1. Se elige el archivo; el navegador lee de cada hoja el nombre, la cedula
+>    y las placas del tercero.
+> 2. El servidor propone a que vehiculos de Flota se le pone cada nombre (por
+>    placa o, si no, por la cedula del tenedor).
+> 3. Al confirmar, el nombre queda como "Nombre del titular" del vehiculo
+>    (se puede cambiar en Flota) y Pago a terceros lo muestra asi.
+
+- **`ImportarNombresTerceros({...})`** · _componente React_
+  Ventana: leer la matriz, ver a que vehiculos va cada nombre y confirmar.
+
 ### `src/paginas/seguimiento/PagoTerceros.tsx`
 
 > Pago a terceros: lo que se le paga al dueno de cada vehiculo tercero por sus
@@ -1960,7 +1981,8 @@ _375 funciones, componentes, métodos y rutas en 54 archivos._
 ### `src/paginas/seguimiento/cargaExcel.ts`
 
 > Lectura de los Excel de la carga inicial: "Cartera Total" (facturas
-> pendientes con su valor por placa) y la hoja de anticipos de las EDS.
+> pendientes con su valor por placa), la hoja de anticipos de las EDS y los
+> nombres de los terceros de la "Matriz Terceros".
 >
 > leerHojas convierte el archivo en tablas de valores (con exceljs, cargado
 > solo cuando se usa); carteraDesdeFilas y anticiposDesdeFilas no dependen de
@@ -1995,6 +2017,21 @@ _375 funciones, componentes, métodos y rutas en 54 archivos._
   Columnas por titulo: FECHA ANTICIPO, PLACA, EMPRESA PROV (cliente del
   viaje), EFECTIVO, COMBUST., GALONES, DESC., EDS, N° FACTURA, FECHA FACTURA
   y FECHA DE PAGO (a la bomba).
+
+- **`placasEn(v)`** · _función_
+  Placas que aparecen en un texto ("UYX-813- ZAP-745" -> UYX813, ZAP745).
+
+- **`limpiarNombreTercero(v)`** · _función_
+  Nombre del titular escrito en la matriz, sin la cedula que a veces lo
+  acompana: "JAMES C.C 80.163.499" -> "JAMES". Espacios simples.
+
+- **`tercerosDesdeHojas(hojas)`** · _función_
+  Nombres de los terceros de la "Matriz Terceros" (una hoja por tercero). En
+  la fila 1 de cada hoja va el nombre, a veces la cedula ("CC 4.414.451" o un
+  numero) y la placa; las placas tambien salen del nombre de la hoja y de la
+  columna PLACA de los viajes. Las hojas repetidas ("(2)", "(3)") se juntan
+  por nombre. Se saltan las hojas sin nombre arriba (Empaques-Celso empieza
+  con los titulos).
 
 ### `src/paginas/seguimiento/liquidacionTerceros.ts`
 

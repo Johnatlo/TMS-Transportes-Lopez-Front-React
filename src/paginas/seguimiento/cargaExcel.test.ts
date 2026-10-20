@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { anticiposDesdeFilas, carteraDesdeFilas, fechaCelda, numeroCelda } from "./cargaExcel";
+import { anticiposDesdeFilas, carteraDesdeFilas, fechaCelda, limpiarNombreTercero, numeroCelda, tercerosDesdeHojas } from "./cargaExcel";
 
 const fecha = (t: string) => new Date(`${t}T00:00:00Z`);
 
@@ -80,5 +80,37 @@ describe("hoja de anticipos de las EDS", () => {
         fechaPago: "2026-10-08",
       },
     ]);
+  });
+});
+
+describe("Matriz Terceros", () => {
+  const titulos = [null, "FECHA VIAJE", "PLACA", "EMPRESA", "MANIF"];
+  const hoja = (nombre: string, arriba: unknown[], placas: string[] = []) => ({
+    nombre,
+    filas: [arriba, [], titulos, [null, null, null, null, null], ...placas.map((p) => [null, fecha("2026-09-12"), p, "CORAME", "00006699"])],
+  });
+
+  test("limpia la cedula que va pegada al nombre", () => {
+    expect(limpiarNombreTercero("JAMES C.C 80.163.499")).toBe("JAMES");
+    expect(limpiarNombreTercero("WILLIAN JAHIR LOPEZ ESGUERRA  CC 1.019.603.181")).toBe("WILLIAN JAHIR LOPEZ ESGUERRA");
+    expect(limpiarNombreTercero("ANTONIO JOSE ACEVEDO CASTAÑEDA C.C ")).toBe("ANTONIO JOSE ACEVEDO CASTAÑEDA");
+  });
+
+  test("nombre, cedula y placas de cada hoja; las repetidas se juntan", () => {
+    const r = tercerosDesdeHojas([
+      hoja("Albeiro UYX-813,ZAP-745", [null, "LUIS ALBEIRO OROZCO TORO ", "CC 70.725.443", "\tUYX-813- ZAP-745\t"], ["UYX-813"]),
+      hoja("Albeiro (2)", [null, "LUIS ALBEIRO OROZCO TORO ", "UYX-813"]),
+      hoja("Antonio XJB-059", [null, "ANTONIO JOSE ACEVEDO CASTAÑEDA C.C ", 79766534, "XJB-059"]),
+      hoja("Soluc CAT LUW-227", [null, "SOLUCIONES CAT S.A.S ", 902025700, "LUW-227"], ["KMY-489"]),
+    ]);
+    expect(r).toEqual([
+      { nombre: "LUIS ALBEIRO OROZCO TORO", cedula: "70725443", placas: ["UYX813", "ZAP745"] },
+      { nombre: "ANTONIO JOSE ACEVEDO CASTAÑEDA", cedula: "79766534", placas: ["XJB059"] },
+      { nombre: "SOLUCIONES CAT S.A.S", cedula: "902025700", placas: ["LUW227", "KMY489"] },
+    ]);
+  });
+
+  test("se salta la hoja que empieza con los titulos (Empaques-Celso)", () => {
+    expect(tercerosDesdeHojas([{ nombre: "Empaques-Celso", filas: [[null, "FECHA VIAJE", "PLACA", "EMPRESA"]] }])).toEqual([]);
   });
 });

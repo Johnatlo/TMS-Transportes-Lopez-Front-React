@@ -1,13 +1,14 @@
 /**
  * Lectura de los Excel de la carga inicial: "Cartera Total" (facturas
- * pendientes con su valor por placa) y la hoja de anticipos de las EDS.
+ * pendientes con su valor por placa), la hoja de anticipos de las EDS y los
+ * nombres de los terceros de la "Matriz Terceros".
  *
  * leerHojas convierte el archivo en tablas de valores (con exceljs, cargado
  * solo cuando se usa); carteraDesdeFilas y anticiposDesdeFilas no dependen de
  * exceljs y se prueban aparte (cargaExcel.test.ts).
  */
 import type { Row } from "exceljs";
-import type { AnticipoImportado, FacturaImportada } from "../../api/cliente";
+import type { AnticipoImportado, FacturaImportada, NombreTerceroImportado } from "../../api/cliente";
 import { valorCelda } from "../cuadro/excelFacturacion";
 
 /** Una hoja del libro como tabla de valores (fila 1 = indice 0). */
@@ -156,4 +157,61 @@ export function anticiposDesdeFilas(filas: unknown[][]): AnticipoImportado[] {
     });
   });
   return anticipos;
+}
+
+/** Placas que aparecen en un texto ("UYX-813- ZAP-745" -> UYX813, ZAP745). */
+const placasEn = (v: unknown) => [...titulo(v).matchAll(/\b([A-Z]{3})\s*-?\s*(\d{3})\b/g)].map((m) => m[1] + m[2]);
+
+/**
+ * Nombre del titular escrito en la matriz, sin la cedula que a veces lo
+ * acompana: "JAMES C.C 80.163.499" -> "JAMES". Espacios simples.
+ */
+export function limpiarNombreTercero(v: unknown): string {
+  return String(v ?? "")
+    .replace(/\s+C\.?\s?C\.?(\s*[\d.]+)?\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .replace(/[\s-]+$/, "")
+    .trim();
+}
+
+/**
+ * Nombres de los terceros de la "Matriz Terceros" (una hoja por tercero). En
+ * la fila 1 de cada hoja va el nombre, a veces la cedula ("CC 4.414.451" o un
+ * numero) y la placa; las placas tambien salen del nombre de la hoja y de la
+ * columna PLACA de los viajes. Las hojas repetidas ("(2)", "(3)") se juntan
+ * por nombre. Se saltan las hojas sin nombre arriba (Empaques-Celso empieza
+ * con los titulos).
+ */
+export function tercerosDesdeHojas(hojas: HojaExcel[]): NombreTerceroImportado[] {
+  const porNombre = new Map<string, NombreTerceroImportado>();
+  for (const hoja of hojas) {
+    const arriba = (hoja.filas[0] ?? []).filter((v) => v !== null && v !== undefined && String(v).trim() !== "");
+    if (arriba.length === 0 || arriba.some((v) => titulo(v).startsWith("FECHA"))) continue;
+    // El nombre es la primera celda con letras que no es solo placa ni solo cedula.
+    const celdaNombre = arriba.find((v) => /[A-Z]{4}/i.test(String(v)) && placasEn(v).length === 0 && !/^\s*C\.?\s?C\b/i.test(String(v)));
+    const nombre = limpiarNombreTercero(celdaNombre);
+    if (!nombre) continue;
+    let cedula: string | null = null;
+    for (const v of arriba) {
+      const m = typeof v === "number" ? String(v) : /C\.?\s?C\.?\s*([\d.]{6,})/i.exec(String(v))?.[1];
+      if (m && m.replace(/\D/g, "").length >= 6) {
+        cedula = m.replace(/\D/g, "");
+        break;
+      }
+    }
+    const placas = new Set<string>([...placasEn(hoja.nombre), ...arriba.flatMap(placasEn)]);
+    const i = filaTitulos(hoja.filas, ["PLACA", "EMPRESA"]);
+    if (i >= 0) {
+      const c = hoja.filas[i].map(titulo).indexOf("PLACA");
+      for (const f of hoja.filas.slice(i + 1)) placasEn(f[c]).forEach((p) => placas.add(p));
+    }
+    const previo = porNombre.get(nombre);
+    if (previo) {
+      placas.forEach((p) => previo.placas.includes(p) || previo.placas.push(p));
+      previo.cedula ??= cedula;
+    } else {
+      porNombre.set(nombre, { nombre, cedula, placas: [...placas] });
+    }
+  }
+  return [...porNombre.values()];
 }

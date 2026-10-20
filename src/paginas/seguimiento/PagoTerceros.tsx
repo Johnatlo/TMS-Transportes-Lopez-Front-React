@@ -22,6 +22,7 @@ import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla, TonoPastilla } from "../../componentes/TablaDatos";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import { liquidarTercero, numeroONulo } from "./liquidacionTerceros";
+import ImportarNombresTerceros from "./ImportarNombresTerceros";
 
 const ESTADO: Record<EstadoPagoTercero, { etiqueta: string; tono: TonoPastilla }> = {
   FALTA_PACTAR: { etiqueta: "Falta pactar", tono: "error" },
@@ -150,6 +151,7 @@ export default function PagoTerceros() {
   const [editando, setEditando] = useState<number | null>(null);
   const [pagando, setPagando] = useState<ResumenTercero | null>(null);
   const [vista, setVista] = useState<"viajes" | "terceros">("viajes");
+  const [importando, setImportando] = useState(false);
 
   // ?viaje=<id del cuadro>: abre ese viaje (desde el detalle del cuadro).
   useEffect(() => {
@@ -201,6 +203,12 @@ export default function PagoTerceros() {
     },
   ];
 
+  const botonNombres = (
+    <button className="boton-barra" onClick={() => setImportando(true)}>
+      Nombres desde la matriz
+    </button>
+  );
+
   return (
     <>
       <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
@@ -230,6 +238,7 @@ export default function PagoTerceros() {
             clave={(v) => v.id}
             pestanas={PESTANAS}
             nombreArchivo="pago-terceros"
+            acciones={botonNombres}
             placeholderBusqueda="Buscar tercero, placa, empresa, manifiesto..."
             vacio="No hay viajes con estos criterios."
             alClicFila={(v) => setEditando(v.id)}
@@ -240,6 +249,7 @@ export default function PagoTerceros() {
             columnas={columnasTerceros}
             clave={(t) => t.tercero}
             nombreArchivo="pago-por-tercero"
+            acciones={botonNombres}
             placeholderBusqueda="Buscar tercero o placa..."
             vacio="No hay viajes de terceros."
           />
@@ -251,6 +261,7 @@ export default function PagoTerceros() {
           <div className="alert info">Ese viaje no es de un vehiculo tercero o esta anulado.</div>
         </Modal>
       )}
+      {importando && <ImportarNombresTerceros alCerrar={() => setImportando(false)} alCambiar={datos.recargar} />}
       {pagando && (
         <PagarTercero
           tercero={pagando.tercero}
