@@ -271,6 +271,7 @@ export default function CuadroCentral() {
         <TablaDatos
           filas={filas}
           columnas={COLUMNAS}
+          columnasFijas={2}
           clave={(f) => f.id}
           pestanas={PESTANAS}
           nombreArchivo="cuadro-central"

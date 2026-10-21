@@ -345,22 +345,61 @@ td.dato-sec { display: table-cell; }
 .pastillas-estado { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; }
 
 /*
- * Tablas: en el computador la tabla se desplaza dentro de su propio recuadro,
- * con altura maxima segun la pantalla. Asi la barra de desplazamiento
- * horizontal queda siempre a la vista (antes estaba al final de todas las
- * filas y habia que bajar hasta el fondo de la pagina para usarla), y los
- * titulos de las columnas (position: sticky en table.tabla th) quedan fijos
- * al bajar. En el celular no aplica: alla las filas se ven como tarjetas.
+ * Tablas compactas (como docs/ejemplo tablas.png). La tabla ya no tiene
+ * scroll vertical propio: crece con la pagina y solo hay una barra, la de la
+ * pagina (antes eran dos y la tabla quedaba pequena). Para que quepa en la
+ * pantalla se pagina de a 15 filas (se puede cambiar en "Filas por pagina"),
+ * las filas son mas bajas y los textos largos se cortan con "..." (el texto
+ * completo sale al pasar el mouse). Si aun asi es mas ancha que la pagina,
+ * se desplaza de lado dentro de su recuadro, con la barra justo debajo de las
+ * filas. En el celular no aplica: alla las filas se ven como tarjetas.
  */
+.tabla-scroll, .seccion-tabla { overflow-x: auto; }
 @media (min-width: 821px) {
-  .tabla-scroll, .seccion-tabla {
-    overflow: auto;
-    max-height: calc(100vh - 14rem);
-    max-height: calc(100dvh - 14rem);
+  table.tabla th { padding: 0.5rem 0.75rem; }
+  table.tabla td { padding: 0.4rem 0.75rem; line-height: 1.3; }
+  table.modern th { padding: 0.5rem 0.75rem; }
+  table.modern td { padding: 0.4rem 0.75rem; line-height: 1.3; }
+  table.tabla td .dato-sec, table.modern td .dato-sec { font-size: 0.72rem; line-height: 1.25; }
+  /* Textos largos cortados con "...": la celda y sus lineas (principal y secundaria). */
+  .tabla-datos table.tabla td, .tabla-scroll table.modern td {
+    max-width: 200px; overflow: hidden; text-overflow: ellipsis;
   }
-  /* Encabezados fijos tambien en las tablas del Catalogo (table.modern). */
-  .tabla-scroll table.modern th { position: sticky; top: 0; z-index: 1; background: var(--color-surface, #fff); }
+  .tabla-datos table.tabla td > .principal, .tabla-datos table.tabla td > .dato-sec,
+  .tabla-scroll table.modern td > .dato-sec {
+    display: block; overflow: hidden; text-overflow: ellipsis;
+  }
+  /* Celdas con botones, campos o pastillas no se cortan. */
+  .tabla-datos table.tabla td:has(button, input, select, .pastilla),
+  .tabla-scroll table.modern td:has(button, input, select, .badge) { max-width: none; overflow: visible; }
+  /* Botones y campos dentro de las filas (Imprimir, Cumplir, proveedor GPS...), mas bajos. */
+  .tabla-scroll table td button:not(.pastilla) { padding: 0.26rem 0.6rem; font-size: var(--texto-xs); }
+  .tabla-scroll table td input, .tabla-scroll table td select {
+    margin: 0; padding: 0.26rem 0.45rem; font-size: var(--texto-xs); min-height: 0;
+  }
+  /* Titulos en dos lineas si hace falta ("Fecha pago / cliente"): la columna
+     queda del ancho de sus datos, no del titulo. */
+  table.tabla th, table.modern th { white-space: normal; vertical-align: bottom; line-height: 1.2; }
+  /* Columnas fijas a la izquierda (TablaDatos columnasFijas; en el Catalogo, la placa). */
+  table.tabla .col-fija, .tabla-scroll table.modern td:first-child, .tabla-scroll table.modern th:first-child {
+    position: sticky; z-index: 1; background: var(--gris-0, #fff);
+  }
+  .tabla-scroll table.modern td:first-child, .tabla-scroll table.modern th:first-child { left: 0; }
+  table.tabla th.col-fija, .tabla-scroll table.modern th:first-child { z-index: 2; background: var(--gris-50); }
+  table.tabla .col-fija-ultima, .tabla-scroll table.modern td:first-child, .tabla-scroll table.modern th:first-child {
+    box-shadow: inset -1px 0 0 var(--gris-200);
+  }
+  table.tabla tbody tr:hover .col-fija { background: var(--gris-25); }
+  table.tabla tbody tr.fila-clic:hover .col-fija { background: var(--marca-50); }
+  /* Las filas pintadas (todo pagado) siguen pintadas en sus columnas fijas. */
+  table.tabla tr.fila-todo-pagado > td.col-fija { background: #e6f4ea; }
+  table.tabla tr.fila-todo-pagado:hover > td.col-fija { background: #d5ecdc; }
+  .tabla-barra { padding: 0.55rem 0.9rem; }
+  .tabla-pestanas button { padding: 0.3rem 0.6rem; }
 }
+.tabla-paginacion-info { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
+.filas-por-pagina { display: inline-flex; align-items: center; gap: 0.45rem; margin: 0; font-size: var(--texto-xs); font-weight: 500; color: var(--gris-500); }
+.filas-por-pagina select { width: auto; margin: 0; padding: 0.2rem 0.4rem; font-size: var(--texto-xs); }
 
 /* Anticipos: pregunta de ida y vuelta */
 .pregunta-recorrido { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin: 0.7rem 0 0.4rem; font-size: var(--texto-sm); }

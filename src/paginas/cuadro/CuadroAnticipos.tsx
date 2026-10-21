@@ -395,7 +395,7 @@ export default function CuadroAnticipos() {
       {vista === "empresas" && <AnticiposEmpresas />}
       <div className="panel" hidden={vista === "empresas"}>
         {vista === "viaje" && (
-          <TablaDatos filas={tramos} columnas={columnasViaje} clave={(t) => t.id} pestanas={pestanasViaje} nombreArchivo="anticipos-por-viaje"
+          <TablaDatos filas={tramos} columnas={columnasViaje} columnasFijas={2} clave={(t) => t.id} pestanas={pestanasViaje} nombreArchivo="anticipos-por-viaje"
             placeholderBusqueda="Buscar placa, empresa, bomba, factura..." vacio="No hay anticipos con estos criterios." />
         )}
         {vista === "tanqueo" && (
@@ -403,11 +403,11 @@ export default function CuadroAnticipos() {
             nombreArchivo="anticipos-por-tanqueo" placeholderBusqueda="Buscar placa, bomba, factura..." vacio="No hay tanqueos con estos criterios." />
         )}
         {vista === "deuda" && (
-          <TablaDatos filas={conBomba.filter((t) => !t.fechaPago)} columnas={columnasViaje} clave={(t) => t.id} nombreArchivo="deuda-bomba"
+          <TablaDatos filas={conBomba.filter((t) => !t.fechaPago)} columnas={columnasViaje} columnasFijas={2} clave={(t) => t.id} nombreArchivo="deuda-bomba"
             placeholderBusqueda="Buscar placa, empresa, factura..." vacio="No hay nada pendiente de pagar a la bomba." />
         )}
         {vista === "pagado" && (
-          <TablaDatos filas={conBomba.filter((t) => !!t.fechaPago)} columnas={columnasViaje} clave={(t) => t.id} nombreArchivo="pagado-bomba"
+          <TablaDatos filas={conBomba.filter((t) => !!t.fechaPago)} columnas={columnasViaje} columnasFijas={2} clave={(t) => t.id} nombreArchivo="pagado-bomba"
             placeholderBusqueda="Buscar placa, empresa, factura..." vacio="Aun no hay pagos a la bomba registrados." />
         )}
         {vista === "abonos" && (

@@ -4,11 +4,10 @@
  * empresa). Listas con su estado de documentos y formularios de crear/editar.
  */
 import { useEffect, useState } from "react";
-import { Paginacion } from "../componentes/TablaDatos";
+import { Paginacion, usarFilasPorPagina } from "../componentes/TablaDatos";
 import type { ReactElement } from "react";
 import { api, fechaHora, hoyColombia, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
-import { useAltoTabla } from "../ganchos/useAltoTabla";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import Modal from "../componentes/Modal";
 import FormularioGenerico, {
@@ -741,24 +740,22 @@ function Tabla({
   columnas: string[];
   filas: ReactElement[];
 }) {
-  // De a 50 filas. Si cambia la lista (busqueda, filtros), vuelve a la primera.
-  const [pagina, setPagina] = useState(0);
-  useEffect(() => setPagina(0), [filas.length]);
+  // De a 15 filas (o las elegidas). Si cambia la lista (busqueda, filtros), vuelve a la primera.
   // Antes de los return: los ganchos van siempre en el mismo orden.
-  const contenedor = useAltoTabla<HTMLDivElement>();
+  const [porPagina, setPorPagina] = usarFilasPorPagina();
+  const [pagina, setPagina] = useState(0);
+  useEffect(() => setPagina(0), [filas.length, porPagina]);
 
   if (estado.cargando) return <Cargando />;
   if (estado.error) return <ErrorCarga mensaje={estado.error} alReintentar={estado.recargar} />;
 
-  const POR_PAGINA = 50;
-  const paginas = Math.max(1, Math.ceil(filas.length / POR_PAGINA));
+  const paginas = Math.max(1, Math.ceil(filas.length / porPagina));
   const actual = Math.min(pagina, paginas - 1);
-  const enPagina = filas.slice(actual * POR_PAGINA, (actual + 1) * POR_PAGINA);
+  const enPagina = filas.slice(actual * porPagina, (actual + 1) * porPagina);
 
   return (
     <>
-      {/* Alto limitado a la pantalla: la barra horizontal queda siempre a la vista. */}
-      <div className="tabla-scroll" ref={contenedor}>
+      <div className="tabla-scroll">
         <table className="modern tabla">
           <thead>
             <tr>
@@ -781,11 +778,13 @@ function Tabla({
       </div>
       <Paginacion
         total={filas.length}
-        desde={actual * POR_PAGINA}
-        hasta={actual * POR_PAGINA + enPagina.length}
+        desde={actual * porPagina}
+        hasta={actual * porPagina + enPagina.length}
         pagina={actual}
         paginas={paginas}
         alCambiar={setPagina}
+        porPagina={porPagina}
+        alCambiarPorPagina={setPorPagina}
       />
     </>
   );

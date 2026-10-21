@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_381 funciones, componentes, métodos y rutas en 55 archivos._
+_381 funciones, componentes, métodos y rutas en 54 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (134)
@@ -200,8 +200,7 @@ _381 funciones, componentes, métodos y rutas en 55 archivos._
 - [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (3)
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
-- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (7)
-- [`src/ganchos/useAltoTabla.ts`](#srcganchosusealtotablats) (1)
+- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (8)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
 - [`src/ganchos/useSesion.tsx`](#srcganchosusesesiontsx) (2)
@@ -1156,6 +1155,10 @@ _381 funciones, componentes, métodos y rutas en 55 archivos._
 
 ### `src/componentes/TablaDatos.tsx`
 
+- **`usarFilasPorPagina()`** · _función_
+  Filas por pagina que eligio el usuario (la misma para todas las tablas). Es
+  solo comodidad del navegador: si no se puede leer, 15.
+
 - **`texto(v)`** · _función_
   Valor de una celda como texto (null y undefined -> "").
 
@@ -1170,12 +1173,18 @@ _381 funciones, componentes, métodos y rutas en 55 archivos._
   2. Busqueda: compara el texto sin tildes contra el 'valor' de cada columna.
   3. Filtros: un desplegable por columna 'filtrable' con sus valores reales.
   4. Orden: clic en el encabezado (ascendente, descendente, sin orden).
-  5. Paginas de 50; al cambiar busqueda, filtros u orden vuelve a la primera.
+  5. Paginas de 15 filas (o las que se elijan en "Filas por pagina"); al
+     cambiar busqueda, filtros u orden vuelve a la primera.
+  La tabla no tiene scroll vertical propio: crece con la pagina (una sola
+  barra). Los textos largos se cortan con "..." y se leen completos al pasar
+  el mouse (title con el valor de la columna).
   Exportar descarga un CSV (separado por ';', con BOM para que Excel lea las
   tildes) con todo lo filtrado, no solo la pagina visible.
 
 - **`Paginacion({...})`** · _componente React_
-  "1-50 de 312" y los botones de pagina. Tambien la usan tablas que no son TablaDatos.
+  Pie de la tabla: "Filas por pagina", "1-15 de 312" y los botones de pagina
+  (primera, anterior, numeros, siguiente, ultima). Tambien la usan tablas que
+  no son TablaDatos.
 
 - **`Pastilla({...})`** · _componente React_
   Pastilla de estado con punto de color (ver GUIA-UI.md, "Estados").
@@ -1185,19 +1194,6 @@ _381 funciones, componentes, métodos y rutas en 55 archivos._
 
 - **`IconoExportar()`** · _componente React_
   Icono del boton Exportar.
-
-### `src/ganchos/useAltoTabla.ts`
-
-> Altura de una tabla para que quepa en la pantalla sin bajar la pagina: asi
-> su barra de desplazamiento horizontal queda siempre a la vista (antes estaba
-> al final de todas las filas).
-
-- **`useAltoTabla(reserva)`** · _función_
-  Devuelve una ref para el contenedor con scroll de la tabla. Le pone de
-  altura maxima lo que queda de pantalla desde donde empieza la tabla (con la
-  pagina arriba del todo), menos `reserva` px para lo que va debajo (la
-  paginacion, el margen). Se recalcula al cambiar el tamano de la ventana o
-  cuando cambia lo que hay encima (un aviso que aparece, filtros...).
 
 ### `src/ganchos/useDatos.ts`
 

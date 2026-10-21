@@ -103,7 +103,8 @@ h1, h2, h3 { font-weight: 600; margin: 0 0 0.5rem 0; }
   flex-shrink: 0;
 }
 
-.content { padding: 1.5rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+/* Ancho maximo del contenido: amplio para que las tablas grandes quepan en pantallas anchas. */
+.content { padding: 1.5rem; max-width: 1680px; margin: 0 auto; width: 100%; }
 
 /* ---------- Cards / panels ---------- */
 .panel {
@@ -366,7 +367,7 @@ input:focus, select:focus { outline: 2px solid var(--color-accent); outline-offs
    que la tabla quepa (con Imprimir, Cumplir y Anular no cabia en 1440px).
    Llevan ".tabla-scroll table" para ganarle a la regla de nowrap de arriba. */
 .tabla-scroll table.tabla-viajes td.celda-error { white-space: normal; max-width: 260px; }
-.tabla-scroll table.tabla-viajes td.celda-acciones { white-space: normal; min-width: 200px; text-align: right; }
+.tabla-scroll table.tabla-viajes td.celda-acciones { white-space: nowrap; text-align: right; }
 .tabla-viajes td.celda-acciones button { margin: 0.15rem 0 0.15rem 0.35rem; }
 table.modern tbody tr.fila-clic { cursor: pointer; }
 table.modern tbody tr.fila-clic:hover { background: #eef4ff; }

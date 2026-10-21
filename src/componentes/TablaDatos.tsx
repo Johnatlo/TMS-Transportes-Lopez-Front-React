@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useAltoTabla } from "../ganchos/useAltoTabla";
 
 /**
  * Tabla de listados del sistema (ver GUIA-UI.md, "Tablas").
@@ -34,7 +33,32 @@ export interface PestanaTabla<T> {
   incluye: (fila: T) => boolean;
 }
 
-const POR_PAGINA = 50;
+/** Opciones de "Filas por pagina"; la primera es la de siempre. */
+export const OPCIONES_POR_PAGINA = [15, 25, 50, 100];
+
+/**
+ * Filas por pagina que eligio el usuario (la misma para todas las tablas). Es
+ * solo comodidad del navegador: si no se puede leer, 15.
+ */
+export function usarFilasPorPagina(): [number, (n: number) => void] {
+  const [n, setN] = useState(() => {
+    try {
+      const v = Number(localStorage.getItem("filasPorPagina"));
+      return OPCIONES_POR_PAGINA.includes(v) ? v : OPCIONES_POR_PAGINA[0];
+    } catch {
+      return OPCIONES_POR_PAGINA[0];
+    }
+  });
+  const cambiar = (v: number) => {
+    setN(v);
+    try {
+      localStorage.setItem("filasPorPagina", String(v));
+    } catch {
+      // Sin almacenamiento solo se pierde la preferencia.
+    }
+  };
+  return [n, cambiar];
+}
 
 /** Valor de una celda como texto (null y undefined -> ""). */
 const texto = (v: unknown) => (v === null || v === undefined ? "" : String(v));
@@ -49,7 +73,11 @@ const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
  * 2. Busqueda: compara el texto sin tildes contra el 'valor' de cada columna.
  * 3. Filtros: un desplegable por columna 'filtrable' con sus valores reales.
  * 4. Orden: clic en el encabezado (ascendente, descendente, sin orden).
- * 5. Paginas de 50; al cambiar busqueda, filtros u orden vuelve a la primera.
+ * 5. Paginas de 15 filas (o las que se elijan en "Filas por pagina"); al
+ *    cambiar busqueda, filtros u orden vuelve a la primera.
+ * La tabla no tiene scroll vertical propio: crece con la pagina (una sola
+ * barra). Los textos largos se cortan con "..." y se leen completos al pasar
+ * el mouse (title con el valor de la columna).
  * Exportar descarga un CSV (separado por ';', con BOM para que Excel lea las
  * tildes) con todo lo filtrado, no solo la pagina visible.
  */
@@ -66,6 +94,7 @@ export default function TablaDatos<T>({
   claseTabla = "",
   alClicFila,
   claseFila,
+  columnasFijas = 1,
 }: {
   filas: T[];
   columnas: Columna<T>[];
@@ -82,8 +111,16 @@ export default function TablaDatos<T>({
   alClicFila?: (fila: T) => void;
   /** Clase extra de cada fila (ej. pintar de verde las que ya estan pagadas). */
   claseFila?: (fila: T) => string | undefined;
+  /**
+   * Columnas de la izquierda que se quedan quietas al desplazar la tabla de
+   * lado (como "inmovilizar" en Excel), para no perder de que fila se trata.
+   */
+  columnasFijas?: number;
 }) {
-  const contenedor = useAltoTabla<HTMLDivElement>();
+  const [porPagina, setPorPagina] = usarFilasPorPagina();
+  const tabla = useRef<HTMLTableElement>(null);
+  /** Donde empieza cada columna fija (px desde la izquierda). */
+  const [izquierdas, setIzquierdas] = useState<number[]>([]);
   const [pestana, setPestana] = useState(pestanaInicial ?? pestanas?.[0]?.id ?? "");
   const [busqueda, setBusqueda] = useState("");
   const [verFiltros, setVerFiltros] = useState(false);
@@ -92,7 +129,7 @@ export default function TablaDatos<T>({
   const [pagina, setPagina] = useState(0);
 
   // Cualquier cambio de criterio vuelve a la primera pagina.
-  useEffect(() => setPagina(0), [pestana, busqueda, filtros, orden]);
+  useEffect(() => setPagina(0), [pestana, busqueda, filtros, orden, porPagina]);
 
   const conValor = columnas.filter((c) => c.valor);
   const filtrables = columnas.filter((c) => c.filtrable && c.valor);
@@ -146,10 +183,10 @@ export default function TablaDatos<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [base, busqueda, filtros, orden, columnas]);
 
-  const paginas = Math.max(1, Math.ceil(visibles.length / POR_PAGINA));
+  const paginas = Math.max(1, Math.ceil(visibles.length / porPagina));
   const paginaActual = Math.min(pagina, paginas - 1);
-  const desde = paginaActual * POR_PAGINA;
-  const enPagina = visibles.slice(desde, desde + POR_PAGINA);
+  const desde = paginaActual * porPagina;
+  const enPagina = visibles.slice(desde, desde + porPagina);
 
   function ordenarPor(c: Columna<T>) {
     if (!c.valor) return;
@@ -172,6 +209,29 @@ export default function TablaDatos<T>({
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  // Columnas fijas: cada una empieza donde termina la anterior. Se mide al
+  // pintar y cuando la tabla cambia de tamano (otra pagina, otra pestana).
+  useLayoutEffect(() => {
+    const t = tabla.current;
+    if (!t || columnasFijas <= 0) return;
+    const medir = () => {
+      // Suma de anchos (no offsetLeft: las celdas fijas ya movidas lo cambian).
+      const anchos = [...t.querySelectorAll<HTMLTableCellElement>("thead th")].slice(0, columnasFijas).map((th) => th.offsetWidth);
+      const nuevas = anchos.map((_, i) => anchos.slice(0, i).reduce((s, a) => s + a, 0));
+      setIzquierdas((previas) => (previas.join() === nuevas.join() ? previas : nuevas));
+    };
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(t);
+    return () => observador.disconnect();
+  }, [columnasFijas, columnas]);
+
+  /** Clase y posicion de la columna i si es fija (la ultima lleva la sombra). */
+  const fija = (i: number) =>
+    i < columnasFijas && izquierdas[i] !== undefined
+      ? { clase: i === columnasFijas - 1 ? "col-fija col-fija-ultima" : "col-fija", estilo: { left: izquierdas[i] } }
+      : { clase: "", estilo: undefined };
 
   const clase = (c: Columna<T>, f: T) =>
     [typeof c.claseCelda === "function" ? c.claseCelda(f) : c.claseCelda, c.alinear === "derecha" ? "num" : ""]
@@ -249,15 +309,15 @@ export default function TablaDatos<T>({
         </div>
       )}
 
-      {/* Alto limitado a la pantalla: la barra horizontal queda siempre a la vista. */}
-      <div className="tabla-scroll" ref={contenedor}>
-        <table className={`tabla ${claseTabla}`}>
+      <div className="tabla-scroll">
+        <table className={`tabla ${claseTabla}`} ref={tabla}>
           <thead>
             <tr>
-              {columnas.map((c) => (
+              {columnas.map((c, i) => (
                 <th
                   key={c.id}
-                  className={[c.valor ? "ordenable" : "", c.alinear === "derecha" ? "num" : ""].join(" ")}
+                  className={[c.valor ? "ordenable" : "", c.alinear === "derecha" ? "num" : "", fija(i).clase].join(" ")}
+                  style={fija(i).estilo}
                   onClick={() => ordenarPor(c)}
                   aria-sort={orden?.id === c.id ? (orden.asc ? "ascending" : "descending") : undefined}
                 >
@@ -274,10 +334,18 @@ export default function TablaDatos<T>({
                 className={[alClicFila ? "fila-clic" : "", claseFila?.(f) ?? ""].filter(Boolean).join(" ") || undefined}
                 onClick={alClicFila ? () => alClicFila(f) : undefined}
               >
-                {columnas.map((c) => {
+                {columnas.map((c, i) => {
                   const etiqueta = c.etiquetaMovil === undefined ? c.titulo : c.etiquetaMovil;
+                  // Texto completo al pasar el mouse (la celda puede ir cortada con "...").
+                  const completo = c.valor ? texto(c.valor(f)) : "";
                   return (
-                    <td key={c.id} className={clase(c, f)} data-label={etiqueta || undefined}>
+                    <td
+                      key={c.id}
+                      className={[clase(c, f), fija(i).clase].filter(Boolean).join(" ")}
+                      style={fija(i).estilo}
+                      data-label={etiqueta || undefined}
+                      title={completo.length > 18 ? completo : undefined}
+                    >
                       {c.celda(f)}
                     </td>
                   );
@@ -302,12 +370,18 @@ export default function TablaDatos<T>({
         pagina={paginaActual}
         paginas={paginas}
         alCambiar={setPagina}
+        porPagina={porPagina}
+        alCambiarPorPagina={setPorPagina}
       />
     </div>
   );
 }
 
-/** "1-50 de 312" y los botones de pagina. Tambien la usan tablas que no son TablaDatos. */
+/**
+ * Pie de la tabla: "Filas por pagina", "1-15 de 312" y los botones de pagina
+ * (primera, anterior, numeros, siguiente, ultima). Tambien la usan tablas que
+ * no son TablaDatos.
+ */
 export function Paginacion({
   total,
   desde,
@@ -315,6 +389,8 @@ export function Paginacion({
   pagina,
   paginas,
   alCambiar,
+  porPagina,
+  alCambiarPorPagina,
 }: {
   total: number;
   desde: number;
@@ -322,6 +398,8 @@ export function Paginacion({
   pagina: number;
   paginas: number;
   alCambiar: (p: number) => void;
+  porPagina?: number;
+  alCambiarPorPagina?: (n: number) => void;
 }) {
   const pie = useRef<HTMLDivElement>(null);
   if (total === 0) return null;
@@ -337,11 +415,28 @@ export function Paginacion({
     .sort((a, b) => a - b);
   return (
     <div className="tabla-paginacion" ref={pie}>
-      <span>
-        {desde + 1}–{hasta} de {total}
-      </span>
+      <div className="tabla-paginacion-info">
+        {porPagina && alCambiarPorPagina && (
+          <label className="filas-por-pagina">
+            Filas por pagina
+            <select value={porPagina} onChange={(e) => alCambiarPorPagina(Number(e.target.value))}>
+              {OPCIONES_POR_PAGINA.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <span>
+          {desde + 1}–{hasta} de {total}
+        </span>
+      </div>
       {paginas > 1 && (
         <div className="tabla-paginas">
+          <button type="button" onClick={() => ir(0)} disabled={pagina === 0} aria-label="Primera pagina">
+            «
+          </button>
           <button type="button" onClick={() => ir(pagina - 1)} disabled={pagina === 0} aria-label="Pagina anterior">
             ‹
           </button>
@@ -365,6 +460,9 @@ export function Paginacion({
             aria-label="Pagina siguiente"
           >
             ›
+          </button>
+          <button type="button" onClick={() => ir(paginas - 1)} disabled={pagina >= paginas - 1} aria-label="Ultima pagina">
+            »
           </button>
         </div>
       )}
