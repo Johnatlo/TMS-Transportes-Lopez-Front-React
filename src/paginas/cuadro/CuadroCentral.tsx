@@ -102,12 +102,19 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   {
     id: "manifiesto",
     titulo: "Manifiesto",
-    valor: (f) => f.manifiesto,
+    // Los reconocidos de Cartones America se buscan por su concepto y su manifiesto de origen.
+    valor: (f) => f.manifiesto ?? (f.concepto ? `${f.concepto} ${f.reconocidoDe ?? ""}` : null),
     celda: (f) =>
       f.manifiesto ? (
         <>
           <span className="codigo">{f.manifiesto}</span>
           {f.remesa && f.remesa !== f.manifiesto && <span className="dato-sec codigo">Remesa {f.remesa}</span>}
+        </>
+      ) : f.concepto ? (
+        // Reconocido de Cartones America: su concepto y el manifiesto que lo origino.
+        <>
+          <Pastilla tono="morado">{f.concepto}</Pastilla>
+          {f.reconocidoDe && <span className="dato-sec codigo">Del manifiesto {f.reconocidoDe}</span>}
         </>
       ) : (
         <span className="dato-sec">Sin manifiesto</span>

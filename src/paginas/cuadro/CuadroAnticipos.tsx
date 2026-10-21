@@ -79,6 +79,11 @@ export default function CuadroAnticipos() {
 
   // ?anticipo=<id del cuadro>: abre los anticipos de empresas en ese viaje.
   useEffect(() => {
+    if (parametros.get("cruce")) {
+      setVentana("cruce");
+      setParametros({}, { replace: true });
+      return;
+    }
     const id = Number(parametros.get("anticipo"));
     if (!id) return;
     setAnticipoViaje(id);

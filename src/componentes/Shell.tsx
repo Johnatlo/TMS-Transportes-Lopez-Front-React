@@ -8,7 +8,7 @@ import { NavLink, Outlet, useLocation, useNavigate, useOutletContext } from "rea
 import { api, apiSeguimiento } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import AlertasDocumentos from "./AlertasDocumentos";
-import AlertasSeguimiento from "./AlertasSeguimiento";
+import AlertasSeguimiento, { ETIQUETA_CORTA, TIPOS_ALERTA } from "./AlertasSeguimiento";
 import CambiarClave from "./CambiarClave";
 import Modal from "./Modal";
 import { Cargando } from "./Estado";
@@ -32,6 +32,7 @@ import {
   IconoUsuarios,
 } from "./Iconos";
 import type { ResumenAlertas } from "../api/tipos";
+import type { TipoAlerta } from "../api/cliente";
 import logoPequeno from "../assets/logo-pequeno.png";
 
 const SECCIONES: Array<{ ruta: string; etiqueta: string; icono: ReactNode }> = [
@@ -101,7 +102,8 @@ export default function Shell() {
   const [verAlertas, setVerAlertas] = useState(false);
   // Alertas de papeles, facturacion y cartera: se refrescan cada 5 minutos.
   const seguimiento = useDatos(() => apiSeguimiento.alertas(), []);
-  const [verSeguimiento, setVerSeguimiento] = useState(false);
+  /** Panel de seguimiento abierto: true = en el primer grupo con algo; un tipo = en ese grupo. */
+  const [verSeguimiento, setVerSeguimiento] = useState<TipoAlerta | boolean>(false);
   const recargarSeguimiento = seguimiento.recargar;
   useEffect(() => {
     const reloj = window.setInterval(recargarSeguimiento, 5 * 60_000);
@@ -145,8 +147,9 @@ export default function Shell() {
     versionDocumentos,
     recargarSeguimiento,
   };
-  const pendientesSeguimiento = seguimiento.datos?.alertas.length ?? 0;
   const urgentesSeguimiento = seguimiento.datos?.urgentes ?? 0;
+  /** Alertas de cada tipo: un boton aparte para cada uno (antes un solo reloj con "+99"). */
+  const porTipo = (t: TipoAlerta) => seguimiento.datos?.alertas.filter((a) => a.tipo === t) ?? [];
 
   return (
     <div className={`app-shell ${contraido ? "menu-contraido" : ""}`}>
@@ -206,12 +209,26 @@ export default function Shell() {
               disabled={!seguimiento.datos}
             >
               <IconoReloj />
-              {pendientesSeguimiento > 0 && (
-                <span className={`punto-contador ${urgentesSeguimiento > 0 ? "" : "contador-aviso"}`}>
-                  {pendientesSeguimiento > 99 ? "99+" : pendientesSeguimiento}
-                </span>
-              )}
             </button>
+            {/* Un boton por tipo de alerta, con su numero; rojo si tiene algo urgente. */}
+            <div className="alertas-tipos">
+              {TIPOS_ALERTA.map((t) => {
+                const lista = porTipo(t);
+                if (lista.length === 0) return null;
+                const urgentes = lista.filter((a) => a.nivel === "urgente").length;
+                return (
+                  <button
+                    key={t}
+                    className={`chip-alerta ${urgentes ? "urgente" : ""}`}
+                    title={`${ETIQUETA_CORTA[t]}: ${lista.length} alerta(s)${urgentes ? `, ${urgentes} urgente(s)` : ""}`}
+                    onClick={() => setVerSeguimiento(t)}
+                  >
+                    {ETIQUETA_CORTA[t]}
+                    <span className="chip-contador">{lista.length > 99 ? "99+" : lista.length}</span>
+                  </button>
+                );
+              })}
+            </div>
             <button
               className="boton-redondo"
               title="Documentos vencidos o por vencer"
@@ -268,7 +285,11 @@ export default function Shell() {
       )}
 
       {verSeguimiento && seguimiento.datos && (
-        <AlertasSeguimiento resumen={seguimiento.datos} alCerrar={() => setVerSeguimiento(false)} />
+        <AlertasSeguimiento
+          resumen={seguimiento.datos}
+          grupoInicial={typeof verSeguimiento === "string" ? verSeguimiento : undefined}
+          alCerrar={() => setVerSeguimiento(false)}
+        />
       )}
 
       {verAlertas && alertas.datos && (

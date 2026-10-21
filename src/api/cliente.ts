@@ -687,6 +687,10 @@ export interface FilaCuadro {
   /** Origen → destino. Con manifiesto viene del RNDC (solo consulta); sin manifiesto, rutaManual. */
   ruta: string | null;
   rutaManual: string | null;
+  /** Reconocido de Cartones America: "+4 TONELADAS CARTONES AMERICA" o "RECONOCIDO CORAME". */
+  concepto: string | null;
+  /** Manifiesto del viaje que origino el reconocido. */
+  reconocidoDe: string | null;
   empresa: string;
   viajeId: number | null;
   viajeRemesaId: number | null;
@@ -844,6 +848,8 @@ export interface RelacionBomba {
   id: number;
   numero: string;
   fecha: string;
+  /** Cuando vence la factura de la bomba. */
+  fechaVencimiento: string | null;
   total: number;
   fechaPago: string | null;
   nota: string | null;
@@ -985,8 +991,17 @@ export const apiCuadro = {
   previaRelacionBomba: (numero: string, vales: ValeBomba[]) =>
     post<{ vales: ValePropuesto[]; yaExiste: boolean }>("/cuadro/relaciones-bomba/previa", { numero, vales }),
   /** Guarda la relacion y cruza los tanqueos elegidos. */
-  guardarRelacionBomba: (datos: { numero: string; fecha: string; nota: string; vales: Array<ValeBomba & { tramoId: number | null }> }) =>
+  guardarRelacionBomba: (datos: {
+    numero: string;
+    fecha: string;
+    fechaVencimiento: string;
+    nota: string;
+    vales: Array<ValeBomba & { tramoId: number | null }>;
+  }) =>
     post<RelacionBomba[]>("/cuadro/relaciones-bomba", datos),
+  /** Fecha de vencimiento de la factura de la bomba (vacia la quita). */
+  vencimientoRelacionBomba: (id: number, fechaVencimiento: string) =>
+    put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/vencimiento`, { fechaVencimiento }),
   /** Fecha en que se le pago a la bomba la factura (vacia la quita). */
   pagarRelacionBomba: (id: number, fechaPago: string) => put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/pago`, { fechaPago }),
   /** Borra la relacion y deshace el cruce. */
@@ -1045,7 +1060,7 @@ export interface FilaSeguimiento extends FilaCuadro {
   alertaFacturacion: AlertaFila | null;
 }
 
-export type TipoAlerta = "PAPELES" | "FACTURACION" | "CARTERA" | "ANTICIPO_EMPRESA";
+export type TipoAlerta = "PAPELES" | "FACTURACION" | "CARTERA" | "ANTICIPO_EMPRESA" | "BOMBA";
 
 /**
  * Anticipo que da la empresa en un viaje (clientes del Zorro, Aburra Limpio y

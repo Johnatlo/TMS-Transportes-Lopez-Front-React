@@ -125,10 +125,16 @@ const miles = (n: number) => Math.round(n).toLocaleString("en-US");
  * Nota de la factura, como la escriben a mano:
  * "REMISION 1111 TON 34,000 $150,000 SZP-339" (por peso) o
  * "REMISION 1111 $4,500,000 SZP-339" (fijo). CORAME / Cartones America van
- * con el numero del "transporte" en vez de la remision.
+ * con el numero del "transporte" en vez de la remision. Un reconocido de
+ * Cartones America va con su concepto y el manifiesto que lo origino:
+ * "RECONOCIDO CORAME MANIFIESTO 00006852 TON 1,638 $168,000 SZX-826".
  */
 export function notaFactura(d: {
   flujoCorame: boolean;
+  /** Concepto del reconocido de Cartones America (en vez de la remision). */
+  concepto?: string | null;
+  /** Manifiesto del viaje que origino el reconocido. */
+  reconocidoDe?: string | null;
   remision: string;
   placa: string;
   tipo: "TON" | "FIJO";
@@ -136,7 +142,9 @@ export function notaFactura(d: {
   valorTon: number | null;
   total: number | null;
 }): string {
-  const partes = [d.flujoCorame ? "TRANSPORTE" : "REMISION", d.remision.trim() || "?"];
+  const partes = d.concepto
+    ? [d.concepto, ...(d.reconocidoDe ? ["MANIFIESTO", d.reconocidoDe] : [])]
+    : [d.flujoCorame ? "TRANSPORTE" : "REMISION", d.remision.trim() || "?"];
   if (d.tipo === "TON") {
     if (d.pesoKg !== null) partes.push("TON", miles(d.pesoKg));
     if (d.valorTon !== null) partes.push(`$${miles(d.valorTon)}`);
@@ -178,6 +186,8 @@ export function totalDe(e: FilaEnvio): number | null {
 export const notaDe = (e: FilaEnvio) =>
   notaFactura({
     flujoCorame: e.fila.flujoCorame,
+    concepto: e.fila.concepto,
+    reconocidoDe: e.fila.reconocidoDe,
     remision: e.remision,
     placa: e.fila.placa,
     tipo: e.tipo,

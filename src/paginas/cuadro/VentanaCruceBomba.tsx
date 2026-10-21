@@ -91,7 +91,8 @@ export default function VentanaCruceBomba({
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
         La bomba manda cada quincena la relacion de vales de su factura (los tanqueos de ese periodo). Al cruzarla, cada
         vale queda con su tanqueo, el combustible pasa a ser lo que cobra la bomba y el tanqueo se pinta de verde en el
-        cuadro. Cuando se le pague a la bomba, escribe la fecha de pago de la factura.
+        cuadro. Escribe cuando vence cada factura (avisa 5 dias antes en la campana) y, cuando se le pague a la bomba, la
+        fecha de pago.
       </div>
       {error && <div className="alert danger">{error}</div>}
       {!datos && relaciones.cargando && <Cargando que="las facturas de la bomba" />}
@@ -106,6 +107,7 @@ export default function VentanaCruceBomba({
               <th className="num">Vales</th>
               <th className="num">Total</th>
               <th>Sin tanqueo</th>
+              <th>Vence</th>
               <th>Fecha de pago a la bomba</th>
               <th />
             </tr>
@@ -125,6 +127,14 @@ export default function VentanaCruceBomba({
                     <strong>{moneda(r.total)}</strong>
                   </td>
                   <td>{sinTanqueo ? <Pastilla tono="error">{sinTanqueo} vale(s)</Pastilla> : <Pastilla tono="ok">Todos</Pastilla>}</td>
+                  <td>
+                    <input
+                      type="date"
+                      className={!r.fechaPago && r.fechaVencimiento && r.fechaVencimiento < hoyColombia() ? "texto-vencido" : undefined}
+                      value={r.fechaVencimiento ?? ""}
+                      onChange={(e) => cambiar(() => apiCuadro.vencimientoRelacionBomba(r.id, e.target.value))}
+                    />
+                  </td>
                   <td>
                     <input
                       type="date"
@@ -168,6 +178,7 @@ function NuevaRelacion({
 }) {
   const [numero, setNumero] = useState("");
   const [fecha, setFecha] = useState(hoyColombia());
+  const [vence, setVence] = useState("");
   const [nota, setNota] = useState("");
   const [vales, setVales] = useState<ValeRevision[] | null>(null);
   const [aMano, setAMano] = useState(false);
@@ -208,6 +219,7 @@ function NuevaRelacion({
         await apiCuadro.guardarRelacionBomba({
           numero,
           fecha,
+          fechaVencimiento: vence,
           nota,
           vales: vales.map(({ eds, vale, fecha: f, hora, placa, galones, valor, tramoId }) => ({ eds, vale, fecha: f, hora, placa, galones, valor, tramoId })),
         })
@@ -271,6 +283,10 @@ function NuevaRelacion({
         <div>
           <label>Fecha de la factura</label>
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </div>
+        <div>
+          <label>Vence (para pagarla a tiempo)</label>
+          <input type="date" value={vence} onChange={(e) => setVence(e.target.value)} />
         </div>
         <div>
           <label>Nota (opcional)</label>

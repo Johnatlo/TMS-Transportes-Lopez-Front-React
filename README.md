@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_403 funciones, componentes, métodos y rutas en 57 archivos._
+_404 funciones, componentes, métodos y rutas en 57 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (141)
+- [`src/api/cliente.ts`](#srcapiclientets) (142)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -618,6 +618,9 @@ _403 funciones, componentes, métodos y rutas en 57 archivos._
   - **`apiCuadro.guardarRelacionBomba(datos)`** · _método_
     Guarda la relacion y cruza los tanqueos elegidos.
 
+  - **`apiCuadro.vencimientoRelacionBomba(id, fechaVencimiento)`** · _método_
+    Fecha de vencimiento de la factura de la bomba (vacia la quita).
+
   - **`apiCuadro.pagarRelacionBomba(id, fechaPago)`** · _método_
     Fecha en que se le pago a la bomba la factura (vacia la quita).
 
@@ -776,7 +779,8 @@ _403 funciones, componentes, métodos y rutas en 57 archivos._
   Ruta de la pantalla que resuelve la alerta, con el viaje o la factura a abrir.
 
 - **`AlertasSeguimiento({...})`** · _componente React_
-  Lista de alertas por grupo; abre en el primer grupo que tenga algo.
+  Lista de alertas por grupo. Abre en el grupo pedido (el boton de la barra
+  que se toco) o en el primero que tenga algo.
 
 ### `src/componentes/AnularViaje.tsx`
 
@@ -1826,7 +1830,9 @@ _403 funciones, componentes, métodos y rutas en 57 archivos._
   Nota de la factura, como la escriben a mano:
   "REMISION 1111 TON 34,000 $150,000 SZP-339" (por peso) o
   "REMISION 1111 $4,500,000 SZP-339" (fijo). CORAME / Cartones America van
-  con el numero del "transporte" en vez de la remision.
+  con el numero del "transporte" en vez de la remision. Un reconocido de
+  Cartones America va con su concepto y el manifiesto que lo origino:
+  "RECONOCIDO CORAME MANIFIESTO 00006852 TON 1,638 $168,000 SZX-826".
 
 - **`totalDe(e)`** · _función_
   Total de una fila: el fijo, o toneladas x valor + el adicional por clientes.

@@ -15,24 +15,48 @@ const GRUPOS: Array<{ tipo: TipoAlerta; etiqueta: string; vacio: string }> = [
   { tipo: "FACTURACION", etiqueta: "Por facturar", vacio: "Nada pendiente de facturar." },
   { tipo: "CARTERA", etiqueta: "Cartera", vacio: "Ninguna factura vencida ni por vencer." },
   { tipo: "ANTICIPO_EMPRESA", etiqueta: "Anticipos de empresas", vacio: "Ningun anticipo de empresa pendiente." },
+  { tipo: "BOMBA", etiqueta: "Pagos a la bomba", vacio: "Ninguna factura de la bomba por vencer." },
 ];
+
+/** Nombre corto de cada tipo para los botones de la barra superior. */
+export const ETIQUETA_CORTA: Record<TipoAlerta, string> = {
+  PAPELES: "Papeles",
+  FACTURACION: "Facturar",
+  CARTERA: "Cartera",
+  ANTICIPO_EMPRESA: "Anticipos",
+  BOMBA: "Bomba",
+};
+export const TIPOS_ALERTA: TipoAlerta[] = GRUPOS.map((g) => g.tipo);
 
 /** Ruta de la pantalla que resuelve la alerta, con el viaje o la factura a abrir. */
 function rutaDe(a: AlertaSeguimiento): string {
   // Anticipo de la empresa: el del Zorro (se abona a la bomba) en Anticipos;
   // el de los demas (nos lo pagan a nosotros) en Cartera.
   if (a.tipo === "ANTICIPO_EMPRESA") return `${/bomba/i.test(a.motivos.join(" ")) ? "/anticipos" : "/cartera"}?anticipo=${a.cuadroId}`;
+  // Factura de la bomba: en Anticipos, con el cruce abierto.
+  if (a.tipo === "BOMBA") return "/anticipos?cruce=1";
   if (a.tipo === "CARTERA") {
     return `/cartera?factura=${encodeURIComponent(a.facturaNumero ?? "")}&empresa=${encodeURIComponent(a.empresa ?? "")}`;
   }
   return `/cuadro?papeles=${a.cuadroId}`;
 }
 
-/** Lista de alertas por grupo; abre en el primer grupo que tenga algo. */
-export default function AlertasSeguimiento({ resumen, alCerrar }: { resumen: ResumenAlertasSeguimiento; alCerrar: () => void }) {
+/**
+ * Lista de alertas por grupo. Abre en el grupo pedido (el boton de la barra
+ * que se toco) o en el primero que tenga algo.
+ */
+export default function AlertasSeguimiento({
+  resumen,
+  alCerrar,
+  grupoInicial,
+}: {
+  resumen: ResumenAlertasSeguimiento;
+  alCerrar: () => void;
+  grupoInicial?: TipoAlerta;
+}) {
   const navegar = useNavigate();
   const cuantas = (t: TipoAlerta) => resumen.alertas.filter((a) => a.tipo === t).length;
-  const [grupo, setGrupo] = useState<TipoAlerta>(GRUPOS.find((g) => cuantas(g.tipo) > 0)?.tipo ?? "PAPELES");
+  const [grupo, setGrupo] = useState<TipoAlerta>(grupoInicial ?? GRUPOS.find((g) => cuantas(g.tipo) > 0)?.tipo ?? "PAPELES");
   const lista = resumen.alertas.filter((a) => a.tipo === grupo);
 
   return (
