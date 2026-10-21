@@ -1,9 +1,12 @@
 /**
  * Anticipos que dan las empresas (clientes) en sus viajes: los del Zorro
  * (Ecoambiental, Reciclajes Bogota, Bodegas de Reciclaje), Aburra Limpio y los
- * viajes sin manifiesto (salvo urbanos). Es aparte de los anticipos de la
- * bomba. Aqui se registra cuanto dio cada empresa y cuando lo pago, y se ve lo
- * que debe cada una para cobrarlo. Se usa en Cartera y en Anticipos.
+ * viajes sin manifiesto (salvo urbanos). Aqui se registra cuanto dio cada
+ * empresa y cuando lo pago, y se ve lo que debe cada una.
+ *
+ * Solo el Zorro abona el anticipo a la bomba: esos se ven en Anticipos
+ * (destino "BOMBA"). Los demas nos lo pagan a nosotros y no tocan la bomba:
+ * se ven en Cartera (destino "NOSOTROS").
  */
 import { useEffect, useState } from "react";
 import { apiCuadro, apiSeguimiento, moneda } from "../../api/cliente";
@@ -57,6 +60,13 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
     ),
   },
   {
+    id: "destino",
+    titulo: "Se paga a",
+    filtrable: true,
+    valor: (f) => (f.anticipoEmpresaABomba ? "La bomba" : "Nosotros"),
+    celda: (f) => <Pastilla tono={f.anticipoEmpresaABomba ? "naranja" : "azul"}>{f.anticipoEmpresaABomba ? "La bomba" : "Nosotros"}</Pastilla>,
+  },
+  {
     id: "documento",
     titulo: "Manifiesto / remision",
     valor: (f) => f.manifiesto ?? f.remision ?? "",
@@ -89,7 +99,16 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
  * todos sus anticipos) y los viajes. Clic en un viaje abre su anticipo. Con
  * `abrirViaje` abre de una ese viaje (desde la alerta de la campana).
  */
-export default function AnticiposEmpresas({ abrirViaje, alCambiar }: { abrirViaje?: number | null; alCambiar?: () => void }) {
+export default function AnticiposEmpresas({
+  abrirViaje,
+  alCambiar,
+  destino,
+}: {
+  abrirViaje?: number | null;
+  alCambiar?: () => void;
+  /** BOMBA: solo los del Zorro (se abonan a la bomba). NOSOTROS: los que nos pagan. Sin destino: todos. */
+  destino?: "BOMBA" | "NOSOTROS";
+}) {
   const datos = useDatos(() => apiSeguimiento.anticiposEmpresas(), []);
   const [editando, setEditando] = useState<number | null>(abrirViaje ?? null);
   const [pagando, setPagando] = useState<ResumenAnticipoEmpresa | null>(null);
@@ -102,7 +121,10 @@ export default function AnticiposEmpresas({ abrirViaje, alCambiar }: { abrirViaj
   if (datos.cargando && !datos.datos) return <Cargando que="los anticipos de las empresas" />;
   if (datos.error || !datos.datos) return <ErrorCarga mensaje={datos.error ?? "Sin datos"} alReintentar={datos.recargar} />;
 
-  const { viajes, empresas } = datos.datos;
+  // Solo los del destino pedido (el Zorro abona a la bomba; los demas nos pagan).
+  const delDestino = (aBomba: boolean) => !destino || (destino === "BOMBA") === aBomba;
+  const viajes = datos.datos.viajes.filter((f) => delDestino(f.anticipoEmpresaABomba));
+  const empresas = datos.datos.empresas.filter((e) => delDestino(e.aBomba));
   const porCobrar = empresas.reduce((s, e) => s + e.porCobrar, 0);
   const faltan = empresas.reduce((s, e) => s + e.faltaRegistrar, 0);
   const pagado = empresas.reduce((s, e) => s + e.pagado, 0);
@@ -135,14 +157,21 @@ export default function AnticiposEmpresas({ abrirViaje, alCambiar }: { abrirViaj
   return (
     <>
       <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
-        <Indicador dinero titulo="Anticipos por cobrar a empresas" valor={moneda(porCobrar)} detalle={`${empresas.filter((e) => e.porCobrar > 0).length} empresas`} />
+        <Indicador
+          dinero
+          titulo={destino === "BOMBA" ? "Por abonar a la bomba (Zorro)" : destino === "NOSOTROS" ? "Anticipos que nos deben" : "Anticipos por cobrar a empresas"}
+          valor={moneda(porCobrar)}
+          detalle={`${empresas.filter((e) => e.porCobrar > 0).length} empresas`}
+        />
         <Indicador titulo="Viajes sin registrar el anticipo" valor={faltan} alerta={faltan > 0} detalle="falta valor" />
         <Indicador dinero titulo="Ya pagado" valor={moneda(pagado)} />
       </div>
       <div className="dato-sec" style={{ marginBottom: "0.5rem" }}>
-        Anticipo que da el cliente en los viajes del Zorro (Ecoambiental, Reciclajes Bogota, Bodegas de Reciclaje), de
-        Aburra Limpio y en los viajes sin manifiesto (salvo urbanos). Es aparte de los anticipos de la bomba. Cada viaje
-        avisa hasta que tiene el valor y la fecha en que la empresa lo pago.
+        {destino === "BOMBA"
+          ? "Anticipo que el Zorro (Ecoambiental, Reciclajes Bogota, Bodegas de Reciclaje) abona directamente a la bomba en sus viajes. Cada viaje avisa hasta que tiene el valor y la fecha en que lo abono."
+          : destino === "NOSOTROS"
+            ? "Anticipo que nos pagan a nosotros Aburra Limpio y los viajes sin manifiesto (salvo urbanos). No toca la bomba. Cada viaje avisa hasta que tiene el valor y la fecha en que nos lo pagaron. Los del Zorro se abonan a la bomba: se llevan en Anticipos."
+            : "Anticipo que da el cliente en sus viajes: el del Zorro se abona a la bomba; el de Aburra Limpio y los viajes sin manifiesto nos lo pagan a nosotros. Cada viaje avisa hasta que tiene el valor y la fecha de pago."}
       </div>
       <div className="tabla-pestanas selector-vista">
         <button className={vista === "viajes" ? "activa" : ""} onClick={() => setVista("viajes")}>
@@ -252,7 +281,7 @@ function EditarAnticipo({ viaje, alCerrar, alGuardar }: { viaje: FilaCuadro; alC
             <input type="number" min={0} value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0" />
           </div>
           <div>
-            <label>Fecha en que la empresa lo pago</label>
+            <label>{viaje.anticipoEmpresaABomba ? "Fecha en que el Zorro lo abono a la bomba" : "Fecha en que nos lo pago"}</label>
             <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
           </div>
         </div>

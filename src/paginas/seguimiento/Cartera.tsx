@@ -221,7 +221,7 @@ export default function Cartera() {
     return (
       <>
         {pestanasVista}
-        <AnticiposEmpresas abrirViaje={anticipoViaje} alCambiar={alCambiar} />
+        <AnticiposEmpresas destino="NOSOTROS" abrirViaje={anticipoViaje} alCambiar={alCambiar} />
       </>
     );
   }

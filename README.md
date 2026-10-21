@@ -1946,9 +1946,12 @@ _403 funciones, componentes, métodos y rutas en 57 archivos._
 
 > Anticipos que dan las empresas (clientes) en sus viajes: los del Zorro
 > (Ecoambiental, Reciclajes Bogota, Bodegas de Reciclaje), Aburra Limpio y los
-> viajes sin manifiesto (salvo urbanos). Es aparte de los anticipos de la
-> bomba. Aqui se registra cuanto dio cada empresa y cuando lo pago, y se ve lo
-> que debe cada una para cobrarlo. Se usa en Cartera y en Anticipos.
+> viajes sin manifiesto (salvo urbanos). Aqui se registra cuanto dio cada
+> empresa y cuando lo pago, y se ve lo que debe cada una.
+>
+> Solo el Zorro abona el anticipo a la bomba: esos se ven en Anticipos
+> (destino "BOMBA"). Los demas nos lo pagan a nosotros y no tocan la bomba:
+> se ven en Cartera (destino "NOSOTROS").
 
 - **`motivo(f)`** · _función_
   Por que el viaje lleva anticipo de la empresa.

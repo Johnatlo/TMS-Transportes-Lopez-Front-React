@@ -19,8 +19,9 @@ const GRUPOS: Array<{ tipo: TipoAlerta; etiqueta: string; vacio: string }> = [
 
 /** Ruta de la pantalla que resuelve la alerta, con el viaje o la factura a abrir. */
 function rutaDe(a: AlertaSeguimiento): string {
-  // Anticipo de la empresa: se registra en Cartera > Anticipos de empresas.
-  if (a.tipo === "ANTICIPO_EMPRESA") return `/cartera?anticipo=${a.cuadroId}`;
+  // Anticipo de la empresa: el del Zorro (se abona a la bomba) en Anticipos;
+  // el de los demas (nos lo pagan a nosotros) en Cartera.
+  if (a.tipo === "ANTICIPO_EMPRESA") return `${/bomba/i.test(a.motivos.join(" ")) ? "/anticipos" : "/cartera"}?anticipo=${a.cuadroId}`;
   if (a.tipo === "CARTERA") {
     return `/cartera?factura=${encodeURIComponent(a.facturaNumero ?? "")}&empresa=${encodeURIComponent(a.empresa ?? "")}`;
   }

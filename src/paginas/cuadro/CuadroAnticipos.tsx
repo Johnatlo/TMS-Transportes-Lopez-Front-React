@@ -16,6 +16,7 @@
  *   Excel o a mano), abonos del socio y anticipos de empresas.
  */
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiCuadro, moneda } from "../../api/cliente";
 import type { AbonoSocio, AnticipoBomba, ResumenBomba } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
@@ -72,6 +73,18 @@ export default function CuadroAnticipos() {
   const [abonos, setAbonos] = useState<AbonoSocio[]>([]);
   const [ventana, setVentana] = useState<Ventana>(null);
   const [error, setError] = useState<string | null>(null);
+  const [parametros, setParametros] = useSearchParams();
+  /** Viaje cuyo anticipo del Zorro se abre (desde la alerta de la campana). */
+  const [anticipoViaje, setAnticipoViaje] = useState<number | null>(null);
+
+  // ?anticipo=<id del cuadro>: abre los anticipos de empresas en ese viaje.
+  useEffect(() => {
+    const id = Number(parametros.get("anticipo"));
+    if (!id) return;
+    setAnticipoViaje(id);
+    setVentana("empresas");
+    setParametros({}, { replace: true });
+  }, [parametros, setParametros]);
 
   useEffect(() => {
     if (!carga.datos) return;
@@ -191,10 +204,10 @@ export default function CuadroAnticipos() {
           Cruce con la bomba
         </button>
         <button className="boton-barra" onClick={() => setVentana("abonos")}>
-          Abonos del socio ({abonos.length})
+          Abonos a la bomba ({abonos.length})
         </button>
         <button className="boton-barra" onClick={() => setVentana("empresas")}>
-          Anticipos de empresas
+          Anticipos del Zorro
         </button>
         <button className="boton-barra" style={{ marginLeft: "auto" }} onClick={() => setVentana("importar")}>
           Importar Excel de anticipos
@@ -244,8 +257,8 @@ export default function CuadroAnticipos() {
         />
       )}
       {ventana === "empresas" && (
-        <Modal ancho="pantalla" titulo="Anticipos de empresas" alCerrar={() => setVentana(null)}>
-          <AnticiposEmpresas />
+        <Modal ancho="pantalla" titulo="Anticipos del Zorro (se abonan a la bomba)" alCerrar={() => setVentana(null)}>
+          <AnticiposEmpresas destino="BOMBA" abrirViaje={anticipoViaje} />
         </Modal>
       )}
       {ventana === "cupo" && r && (
@@ -413,7 +426,7 @@ function DetalleTanqueo({
 
       {abonosDeEstos.length > 0 && (
         <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
-          Abonos del socio en estos viajes:{" "}
+          Abonos a la bomba en estos viajes:{" "}
           {abonosDeEstos.map((a, i) => (
             <span key={i}>
               {i > 0 && " · "}
@@ -443,7 +456,7 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
   return (
     <Modal
       ancho="wide"
-      titulo="Abonos del socio a la bomba"
+      titulo="Abonos a la bomba"
       alCerrar={alCerrar}
       pie={
         <>
@@ -451,7 +464,7 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
             Cerrar
           </button>
           <button className="btn-primary" onClick={() => setNuevo(true)}>
-            Registrar abono del socio
+            Registrar abono bomba
           </button>
         </>
       }
@@ -460,7 +473,7 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
         Lo que el socio (el Zorro) le paga directamente a la bomba por algunos viajes. Se descuenta de la deuda con la bomba.
       </div>
       {abonos.length === 0 ? (
-        <div className="alert info">Aun no hay abonos del socio.</div>
+        <div className="alert info">Aun no hay abonos a la bomba.</div>
       ) : (
         <table className="tabla">
           <thead>

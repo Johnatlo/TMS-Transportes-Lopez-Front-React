@@ -280,7 +280,7 @@ function NuevaRelacion({
 
       {!vales && !aMano && (
         <div className="barra-envio" style={{ marginTop: "0.8rem" }}>
-          <label className="btn-primary boton-con-texto" style={{ cursor: "pointer" }}>
+          <label className="boton-barra" style={{ cursor: "pointer" }}>
             {trabajando ? "Leyendo..." : "Elegir la relacion (PDF o Excel)"}
             <input
               type="file"

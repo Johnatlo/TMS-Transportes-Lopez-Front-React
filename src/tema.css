@@ -319,7 +319,8 @@ tr.fila-todo-pagado:hover > td { background: #d5ecdc; }
 /* Ventana casi a pantalla completa: la tabla toma el alto que sobra y se
    desplaza dentro de su recuadro, con la barra lateral siempre visible. */
 .modal-card.pantalla { width: min(1600px, 100%); height: calc(100vh - 2rem); height: calc(100dvh - 2rem); }
-.modal-card.pantalla .modal-body { display: flex; flex-direction: column; overflow: hidden; }
+/* El cuerpo se desplaza si su contenido no cabe (antes se cortaba: Anticipos de empresas). */
+.modal-card.pantalla .modal-body { display: flex; flex-direction: column; overflow-y: auto; }
 .modal-card.pantalla .modal-body > * { flex: 0 0 auto; }
 .modal-card.pantalla .modal-body > .tabla-envio { flex: 1 1 auto; min-height: 0; max-height: none; }
 

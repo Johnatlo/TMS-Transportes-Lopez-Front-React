@@ -706,11 +706,15 @@ export interface FilaCuadro {
   /** Se marco que el viaje no lleva anticipo de la empresa (un urbano, por ejemplo). */
   anticipoEmpresaNoAplica: boolean;
   estadoAnticipoEmpresa: EstadoAnticipoEmpresa;
+  /** El anticipo de la empresa se abona a la bomba (clientes del Zorro); si no, nos lo pagan a nosotros. */
+  anticipoEmpresaABomba: boolean;
   valorFlete: number | null;
   /** Peso que se factura (el real o el minimo pactado). */
   pesoFacturadoKg: number | null;
   /** Tarifa de la matriz de fletes con que se facturo. */
   tarifaFleteId: number | null;
+  /** Nombre de esa tarifa; con URBANO el viaje no lleva anticipo de la empresa. */
+  tarifaFlete: string | null;
   /** Nota de la factura para la contadora. */
   notaFactura: string | null;
   /** Cuando se envio en el cuadro de facturacion. */
@@ -1103,6 +1107,8 @@ export interface ResumenAnticipoEmpresa {
   viajesPorCobrar: number;
   porCobrar: number;
   pagado: number;
+  /** Cliente del Zorro: el anticipo se abona a la bomba. */
+  aBomba: boolean;
 }
 
 /** Una alerta de la campana de seguimiento. */
