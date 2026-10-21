@@ -1,16 +1,21 @@
 /**
- * Pantalla Anticipos (como el Excel "cuadro de anticipos"): los anticipos de
- * efectivo y combustible de todos los viajes y las cuentas con la bomba.
+ * Pantalla Anticipos (como el Excel "cuadro de anticipos"): un solo cuadro
+ * con todos los anticipos de efectivo y combustible, uno por tanqueo (lo que
+ * se entrego de una vez en la bomba: la ida y, si la hay, su vuelta).
  *
- * - Arriba: deuda a la bomba, pagado, abonado por el socio (el Zorro) y cupo
- *   de credito disponible (editable, junto con el precio y el descuento por
- *   galon sugeridos para el cruce).
- * - Vistas: por viaje (un tramo de ida o vuelta por fila), por tanqueo (ida y
- *   vuelta juntas), deuda pendiente, pagado a la bomba, abonos del socio y
- *   cruce con la relacion de la bomba: con los galones del tiquete, el
- *   combustible se calcula como en el Excel (galones x precio - descuento).
+ * - Arriba: deuda con la bomba, pagado, abonado por el socio (el Zorro) y cupo
+ *   de credito disponible.
+ * - Pestanas como en el Cuadro pagos: sin cruzar, cruzados, con diferencia,
+ *   deuda con la bomba, pagados, ida y vuelta, vueltas pendientes, posibles
+ *   vueltas y solo efectivo. Filtros por placa, bomba y empresa del vehiculo.
+ * - Clic en un tanqueo lo despliega: la ida y la vuelta con su viaje, el
+ *   cruce (vale, galones, precio, descuento, diferencia), la factura y el
+ *   pago a la bomba, y la posible vuelta (indicio) para juntarla con un clic.
+ * - Cada bomba tiene su color; los tanqueos cruzados con la bomba van en verde.
+ * - Botones: cruce con la bomba (la relacion quincenal de vales, en PDF,
+ *   Excel o a mano), abonos del socio y anticipos de empresas.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiCuadro, moneda } from "../../api/cliente";
 import type { AbonoSocio, AnticipoBomba, ResumenBomba } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
@@ -19,100 +24,54 @@ import ComboBuscable from "../../componentes/ComboBuscable";
 import Modal from "../../componentes/Modal";
 import Indicador from "../../componentes/Indicador";
 import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
-import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
+import type { Columna, PestanaTabla, TonoPastilla } from "../../componentes/TablaDatos";
 import { fechaCorta, hoyColombia } from "./estadosCuadro";
 import { deInput, enInput, placaConGuion } from "./facturacion";
+import { agruparPorTanqueo, coloresBombas, DIFERENCIA_MINIMA, diferenciaTramo, posiblesVueltas } from "./tanqueos";
+import type { EstadoCruce, Tanqueo } from "./tanqueos";
 import ImportarAnticipos from "./ImportarAnticipos";
+import VentanaCruceBomba from "./VentanaCruceBomba";
 import AnticiposEmpresas from "../seguimiento/AnticiposEmpresas";
-
-/** Un tanqueo: los tramos que salieron de una misma entrega en la bomba. */
-interface Tanqueo {
-  clave: string;
-  tanqueoId: number | null;
-  fecha: string;
-  placa: string;
-  bomba: string | null;
-  idaYVuelta: boolean;
-  facturaBomba: string | null;
-  fechaFacturaBomba: string | null;
-  flota: string | null;
-  tramos: AnticipoBomba[];
-  efectivo: number;
-  combustible: number;
-  total: number;
-}
-
-/** Agrupa los tramos por tanqueo (los anticipos viejos sin tanqueo quedan solos). */
-function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
-  const grupos = new Map<string, AnticipoBomba[]>();
-  for (const t of tramos) {
-    const clave = t.tanqueoId ? `t${t.tanqueoId}` : `a${t.id}`;
-    grupos.set(clave, [...(grupos.get(clave) ?? []), t]);
-  }
-  return [...grupos.entries()].map(([clave, ts]) => {
-    const ida = ts.find((t) => t.tramo === "IDA") ?? ts[0];
-    return {
-      clave,
-      tanqueoId: ida.tanqueoId,
-      fecha: ida.fecha,
-      placa: ida.placa ?? "",
-      bomba: ida.bomba,
-      idaYVuelta: ida.idaYVuelta,
-      facturaBomba: ida.facturaBomba,
-      fechaFacturaBomba: ida.fechaFacturaBomba,
-      flota: ida.flota,
-      tramos: [...ts].sort((a, b) => (a.tramo === "IDA" ? -1 : 1) - (b.tramo === "IDA" ? -1 : 1)),
-      efectivo: ts.reduce((s, t) => s + t.efectivo, 0),
-      combustible: ts.reduce((s, t) => s + t.combustible, 0),
-      total: ts.reduce((s, t) => s + t.valor, 0),
-    };
-  });
-}
 
 /** "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo. */
 const flotaTexto = (f: string | null) => (f === "LOPEZ" ? "LOPEZ" : f === "MYC" ? "M&C" : f === "TERCERO" ? "TERCERO" : "-");
 
-/** Lo que el tramo cambio con el cruce: combustible calculado - lo que se habia registrado. */
-const diferencia = (t: AnticipoBomba) => (t.galones === null || t.combustibleEntregado === null ? null : t.combustible - t.combustibleEntregado);
+const CRUCE: Record<EstadoCruce, { etiqueta: string; tono: TonoPastilla }> = {
+  CRUZADO: { etiqueta: "Cruzado", tono: "ok" },
+  DIFERENCIA: { etiqueta: "Con diferencia", tono: "aviso" },
+  SIN_CRUZAR: { etiqueta: "Sin cruzar", tono: "neutro" },
+  SOLO_EFECTIVO: { etiqueta: "Solo efectivo", tono: "info" },
+};
 
-/** Recorrido (empresa del viaje) o la vuelta que aun espera el proximo viaje. */
-function Recorrido({ t }: { t: AnticipoBomba }) {
+/** Viaje de un tramo: empresa y manifiesto, o la vuelta que espera el proximo viaje. */
+function Viaje({ t }: { t: AnticipoBomba | null }) {
+  if (!t) return <span className="dato-sec">-</span>;
   if (!t.cuadroViajeId) return <span className="texto-vencido">Pendiente: proximo viaje de {placaConGuion(t.placa ?? "")}</span>;
   return (
     <>
-      {t.empresa ?? "-"}
-      {t.manifiesto && <span className="dato-sec codigo">Manifiesto {t.manifiesto}</span>}
+      <span className="principal">{t.empresa ?? "-"}</span>
+      <span className="dato-sec">
+        {t.manifiesto ? `Manifiesto ${t.manifiesto}` : "Sin manifiesto"}
+        {t.fechaViaje ? ` · ${fechaCorta(t.fechaViaje)}` : ""}
+      </span>
     </>
   );
 }
 
-type Vista = "viaje" | "tanqueo" | "deuda" | "pagado" | "abonos" | "cruce" | "empresas";
-const VISTAS: Array<{ id: Vista; etiqueta: string }> = [
-  { id: "viaje", etiqueta: "Por viaje" },
-  { id: "tanqueo", etiqueta: "Por tanqueo" },
-  { id: "deuda", etiqueta: "Deuda con la bomba" },
-  { id: "pagado", etiqueta: "Pagado a la bomba" },
-  { id: "abonos", etiqueta: "Abonos del socio" },
-  { id: "cruce", etiqueta: "Cruce con la bomba" },
-  // Lo que dan los clientes en sus viajes: aparte de la bomba; se cobra desde Cartera.
-  { id: "empresas", etiqueta: "Anticipos de empresas" },
-];
+/** Ventana abierta desde la barra. */
+type Ventana = "cruce" | "abonos" | "empresas" | "importar" | "cupo" | null;
 
 /**
  * Pantalla Anticipos. Los anticipos se registran en cada viaje del Cuadro
- * pagos; aqui se ven todos, se corrobora la factura de la bomba, se registra
- * lo pagado y lo abonado por el socio, y se cruza con la relacion de la bomba.
+ * pagos (o se cargan del Excel); aqui se ven todos en un solo cuadro.
  */
 export default function CuadroAnticipos() {
   const carga = useDatos(() => Promise.all([apiCuadro.cuadroAnticipos(), apiCuadro.resumenBomba(), apiCuadro.abonosSocio()]), []);
   const [tramos, setTramos] = useState<AnticipoBomba[] | null>(null);
   const [resumen, setResumen] = useState<ResumenBomba | null>(null);
   const [abonos, setAbonos] = useState<AbonoSocio[]>([]);
-  const [vista, setVista] = useState<Vista>("viaje");
+  const [ventana, setVentana] = useState<Ventana>(null);
   const [error, setError] = useState<string | null>(null);
-  const [editandoCupo, setEditandoCupo] = useState(false);
-  const [nuevoAbono, setNuevoAbono] = useState(false);
-  const [importando, setImportando] = useState(false);
 
   useEffect(() => {
     if (!carga.datos) return;
@@ -120,6 +79,9 @@ export default function CuadroAnticipos() {
     setResumen(carga.datos[1]);
     setAbonos(carga.datos[2]);
   }, [carga.datos]);
+
+  const tanqueos = useMemo(() => agruparPorTanqueo(tramos ?? []), [tramos]);
+  const colores = useMemo(() => coloresBombas((tramos ?? []).map((t) => t.bomba)), [tramos]);
 
   /** Guarda un cambio de un tramo o tanqueo y refresca el cuadro y las cuentas. */
   async function guardar(accion: () => Promise<AnticipoBomba[]>) {
@@ -136,219 +98,74 @@ export default function CuadroAnticipos() {
   if (carga.error) return <ErrorCarga mensaje={carga.error} alReintentar={carga.recargar} />;
   if (!tramos) return null;
 
-  const conBomba = tramos.filter((t) => t.bombaId !== null);
-  const columnaPago: Columna<AnticipoBomba> = {
-    id: "pago",
-    titulo: "Fecha de pago",
-    valor: (t) => t.fechaPago,
-    celda: (t) => (
-      <input
-        type="date"
-        value={t.fechaPago ?? ""}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => guardar(() => apiCuadro.actualizarTramo(t.id, { fechaPago: e.target.value }))}
-      />
-    ),
-  };
-  const columnasViaje: Columna<AnticipoBomba>[] = [
-    { id: "fecha", titulo: "Fecha anticipo", valor: (t) => t.fecha, celda: (t) => fechaCorta(t.fecha) },
-    { id: "placa", titulo: "Placa", filtrable: true, valor: (t) => placaConGuion(t.placa ?? ""), celda: (t) => placaConGuion(t.placa ?? "") },
-    { id: "empresa", titulo: "Empresa / recorrido", filtrable: true, valor: (t) => t.empresa ?? "Pendiente", celda: (t) => <Recorrido t={t} /> },
-    {
-      id: "tramo",
-      titulo: "Tramo",
-      filtrable: true,
-      valor: (t) => (t.tramo === "VUELTA" ? "Vuelta" : "Ida"),
-      celda: (t) => <Pastilla tono={t.tramo === "VUELTA" ? "info" : "neutro"}>{t.tramo === "VUELTA" ? "Vuelta" : "Ida"}</Pastilla>,
-    },
-    { id: "efectivo", titulo: "Efectivo", alinear: "derecha", valor: (t) => t.efectivo, celda: (t) => moneda(t.efectivo) },
-    { id: "combustible", titulo: "Combust.", alinear: "derecha", valor: (t) => t.combustible, celda: (t) => moneda(t.combustible) },
-    { id: "total", titulo: "Valor total", alinear: "derecha", valor: (t) => t.valor, celda: (t) => <strong>{moneda(t.valor)}</strong> },
-    { id: "eds", titulo: "EDS", filtrable: true, valor: (t) => t.bomba ?? "Solo efectivo", celda: (t) => t.bomba ?? <span className="dato-sec">Solo efectivo</span> },
-    { id: "factura", titulo: "N° factura", valor: (t) => t.facturaBomba, celda: (t) => <span className="codigo">{t.facturaBomba ?? "-"}</span> },
-    { id: "fechaFactura", titulo: "Fecha factura", valor: (t) => t.fechaFacturaBomba, celda: (t) => fechaCorta(t.fechaFacturaBomba) },
-    { id: "flota", titulo: "Empresa del vehiculo", filtrable: true, valor: (t) => flotaTexto(t.flota), celda: (t) => flotaTexto(t.flota) },
-    columnaPago,
-  ];
+  const Bomba = ({ nombre }: { nombre: string | null }) =>
+    nombre ? <Pastilla tono={colores.get(nombre) ?? "neutro"}>{nombre}</Pastilla> : <span className="dato-sec">Solo efectivo</span>;
 
-  const columnasTanqueo: Columna<Tanqueo>[] = [
+  const columnas: Columna<Tanqueo>[] = [
     { id: "fecha", titulo: "Fecha", valor: (g) => g.fecha, celda: (g) => fechaCorta(g.fecha) },
-    { id: "placa", titulo: "Placa", filtrable: true, valor: (g) => placaConGuion(g.placa), celda: (g) => placaConGuion(g.placa) },
+    { id: "placa", titulo: "Placa", filtrable: true, valor: (g) => placaConGuion(g.placa), celda: (g) => <span className="principal">{placaConGuion(g.placa)}</span> },
+    { id: "ida", titulo: "Ida", valor: (g) => g.ida.empresa ?? "", celda: (g) => <Viaje t={g.ida} /> },
     {
-      id: "recorrido",
-      titulo: "Recorrido",
-      filtrable: true,
-      valor: (g) => (g.idaYVuelta ? "Ida y vuelta" : "Un recorrido"),
-      celda: (g) => (
-        <>
-          <Pastilla tono={g.idaYVuelta ? "info" : "neutro"}>{g.idaYVuelta ? "Ida y vuelta" : "Un recorrido"}</Pastilla>
-          {g.tramos.map((t) => (
-            <span key={t.id} className="dato-sec">
-              {t.tramo === "VUELTA" ? "Vuelta" : "Ida"}: {t.cuadroViajeId ? t.empresa : "pendiente del proximo viaje"} · {moneda(t.valor)}
-            </span>
-          ))}
-        </>
-      ),
+      id: "vuelta",
+      titulo: "Vuelta",
+      valor: (g) => (g.vuelta ? g.vuelta.empresa ?? "Pendiente" : ""),
+      celda: (g) => (g.vuelta ? <Viaje t={g.vuelta} /> : posiblesVueltas(g, tanqueos).length ? <Pastilla tono="aviso">Posible vuelta</Pastilla> : <span className="dato-sec">-</span>),
     },
-    { id: "eds", titulo: "EDS", filtrable: true, valor: (g) => g.bomba ?? "Solo efectivo", celda: (g) => g.bomba ?? <span className="dato-sec">Solo efectivo</span> },
+    { id: "eds", titulo: "EDS", filtrable: true, valor: (g) => g.bomba ?? "Solo efectivo", celda: (g) => <Bomba nombre={g.bomba} /> },
     { id: "efectivo", titulo: "Efectivo", alinear: "derecha", valor: (g) => g.efectivo, celda: (g) => moneda(g.efectivo) },
     { id: "combustible", titulo: "Combust.", alinear: "derecha", valor: (g) => g.combustible, celda: (g) => moneda(g.combustible) },
     { id: "total", titulo: "Total", alinear: "derecha", valor: (g) => g.total, celda: (g) => <strong>{moneda(g.total)}</strong> },
     {
       id: "factura",
-      titulo: "N° factura bomba",
-      valor: (g) => g.facturaBomba,
-      celda: (g) =>
-        g.tanqueoId ? (
-          <input
-            defaultValue={g.facturaBomba ?? ""}
-            placeholder="AE5027109"
-            onClick={(e) => e.stopPropagation()}
-            onBlur={(e) =>
-              e.target.value.trim() !== (g.facturaBomba ?? "") &&
-              guardar(() => apiCuadro.actualizarTanqueo(g.tanqueoId!, { facturaBomba: e.target.value }))
-            }
-          />
-        ) : (
-          <span className="dato-sec">Anticipo anterior</span>
-        ),
+      titulo: "Factura bomba",
+      filtrable: true,
+      valor: (g) => g.facturaBomba ?? "Sin factura",
+      celda: (g) => (
+        <>
+          <span className="codigo">{g.facturaBomba ?? "-"}</span>
+          {g.fechaFacturaBomba && <span className="dato-sec">{fechaCorta(g.fechaFacturaBomba)}</span>}
+        </>
+      ),
     },
     {
-      id: "fechaFactura",
-      titulo: "Fecha factura",
-      valor: (g) => g.fechaFacturaBomba,
+      id: "cruce",
+      titulo: "Cruce",
+      filtrable: true,
+      valor: (g) => CRUCE[g.cruce].etiqueta,
+      celda: (g) => (
+        <>
+          <Pastilla tono={CRUCE[g.cruce].tono}>{CRUCE[g.cruce].etiqueta}</Pastilla>
+          {g.cruce === "DIFERENCIA" && <span className="dato-sec texto-vencido">{moneda(g.diferencia)}</span>}
+        </>
+      ),
+    },
+    {
+      id: "pago",
+      titulo: "Pago a la bomba",
+      valor: (g) => g.fechaPago ?? "",
       celda: (g) =>
-        g.tanqueoId ? (
-          <input
-            type="date"
-            value={g.fechaFacturaBomba ?? ""}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => guardar(() => apiCuadro.actualizarTanqueo(g.tanqueoId!, { fechaFacturaBomba: e.target.value }))}
-          />
+        !g.bombaId ? (
+          <span className="dato-sec">-</span>
+        ) : g.pagado ? (
+          fechaCorta(g.fechaPago)
         ) : (
-          "-"
+          <span className="texto-vencido">Se debe</span>
         ),
     },
     { id: "flota", titulo: "Empresa del vehiculo", filtrable: true, valor: (g) => flotaTexto(g.flota), celda: (g) => flotaTexto(g.flota) },
   ];
 
-  // Cruce con la relacion quincenal de la bomba (como la columna COMBUST. del
-  // Excel): al escribir galones, precio o descuento, el backend recalcula el
-  // combustible = round(galones x precio - descuento). Vacio = lo sugerido.
-  const campoCruce = (t: AnticipoBomba, campo: "galones" | "precioGalon" | "descuento", ancho: string, sugerido?: number) => (
-    <input
-      // key con el valor: al recalcular, el campo muestra lo que quedo guardado.
-      key={`${t.id}-${campo}-${t[campo]}`}
-      type="number"
-      min={0}
-      step={campo === "galones" ? "0.001" : "1"}
-      style={{ width: ancho }}
-      defaultValue={enInput(t[campo])}
-      placeholder={sugerido === undefined ? "" : String(sugerido)}
-      onClick={(e) => e.stopPropagation()}
-      onBlur={(e) => deInput(e.target.value) !== t[campo] && guardar(() => apiCuadro.actualizarTramo(t.id, { [campo]: e.target.value }))}
-    />
-  );
-  const columnasCruce: Columna<AnticipoBomba>[] = [
-    { id: "fecha", titulo: "Fecha", valor: (t) => t.fecha, celda: (t) => fechaCorta(t.fecha) },
-    { id: "placa", titulo: "Placa", filtrable: true, valor: (t) => placaConGuion(t.placa ?? ""), celda: (t) => placaConGuion(t.placa ?? "") },
-    { id: "empresa", titulo: "Viaje", valor: (t) => t.empresa ?? "Pendiente", celda: (t) => <Recorrido t={t} /> },
-    { id: "factura", titulo: "N° factura", filtrable: true, valor: (t) => t.facturaBomba ?? "Sin factura", celda: (t) => <span className="codigo">{t.facturaBomba ?? "-"}</span> },
-    { id: "galones", titulo: "Galones", valor: (t) => t.galones, celda: (t) => campoCruce(t, "galones", "7rem") },
-    {
-      id: "precio",
-      titulo: "Precio galon",
-      valor: (t) => t.precioGalon ?? resumen?.precioGalonBomba,
-      celda: (t) => campoCruce(t, "precioGalon", "7rem", resumen?.precioGalonBomba),
-    },
-    {
-      id: "descuento",
-      titulo: "Descuento ($)",
-      valor: (t) => t.descuento,
-      celda: (t) =>
-        campoCruce(t, "descuento", "7rem", t.galones !== null && resumen ? Math.round(t.galones * resumen.descuentoGalonBomba) : undefined),
-    },
-    {
-      id: "combustible",
-      titulo: "Combustible",
-      alinear: "derecha",
-      valor: (t) => t.combustible,
-      celda: (t) => (
-        <>
-          <strong>{moneda(t.combustible)}</strong>
-          <span className="dato-sec">{t.galones === null ? "Sin cruzar" : "Galones x precio - descuento"}</span>
-        </>
-      ),
-    },
-    {
-      id: "entregado",
-      titulo: "Registrado antes",
-      alinear: "derecha",
-      valor: (t) => t.combustibleEntregado ?? t.combustible,
-      celda: (t) => moneda(t.combustibleEntregado ?? t.combustible),
-    },
-    {
-      id: "diferencia",
-      titulo: "Diferencia",
-      alinear: "derecha",
-      valor: (t) => diferencia(t),
-      celda: (t) => {
-        const d = diferencia(t);
-        if (d === null) return "-";
-        return <span className={Math.abs(d) >= 1000 ? "texto-vencido" : "dato-sec"}>{moneda(d)}</span>;
-      },
-    },
-  ];
-
-  const columnasAbonos: Columna<AbonoSocio>[] = [
-    { id: "fecha", titulo: "Fecha", valor: (a) => a.fecha, celda: (a) => fechaCorta(a.fecha) },
-    { id: "socio", titulo: "Socio", filtrable: true, valor: (a) => a.socio, celda: (a) => a.socio },
-    { id: "valor", titulo: "Abonado", alinear: "derecha", valor: (a) => a.valor, celda: (a) => <strong>{moneda(a.valor)}</strong> },
-    {
-      id: "viajes",
-      titulo: "Viajes",
-      valor: (a) => a.viajes.map((v) => `${v.placa} ${v.empresa}`).join(" "),
-      celda: (a) =>
-        a.viajes.map((v) => (
-          <span key={v.cuadroViajeId} className="dato-sec">
-            {placaConGuion(v.placa ?? "")} · {v.empresa ?? "-"} {v.fecha ? `(${fechaCorta(v.fecha)})` : ""} · {moneda(v.valor)}
-          </span>
-        )),
-    },
-    { id: "nota", titulo: "Nota", valor: (a) => a.nota, celda: (a) => a.nota ?? "-" },
-    {
-      id: "acciones",
-      titulo: "",
-      celda: (a) => (
-        <button
-          className="btn-link"
-          onClick={async (e) => {
-            e.stopPropagation();
-            if (!window.confirm(`¿Borrar el abono de ${a.socio} por ${moneda(a.valor)}?`)) return;
-            setAbonos(await apiCuadro.borrarAbono(a.id));
-            setResumen(await apiCuadro.resumenBomba());
-          }}
-        >
-          Borrar
-        </button>
-      ),
-    },
-  ];
-
-  const pestanasViaje: PestanaTabla<AnticipoBomba>[] = [
+  const pestanas: PestanaTabla<Tanqueo>[] = [
     { id: "todos", etiqueta: "Todos", incluye: () => true },
-    { id: "pendientes", etiqueta: "Vueltas pendientes", incluye: (t) => !t.cuadroViajeId },
-    { id: "sinPagar", etiqueta: "Sin pagar a la bomba", incluye: (t) => !t.fechaPago && t.bombaId !== null },
-  ];
-  const pestanasTanqueo: PestanaTabla<Tanqueo>[] = [
-    { id: "todos", etiqueta: "Todos", incluye: () => true },
-    { id: "sinFactura", etiqueta: "Sin factura de la bomba", incluye: (g) => !!g.tanqueoId && g.combustible > 0 && !g.facturaBomba },
-    { id: "idaYVuelta", etiqueta: "Ida y vuelta", incluye: (g) => g.idaYVuelta },
-  ];
-  const pestanasCruce: PestanaTabla<AnticipoBomba>[] = [
-    { id: "porCruzar", etiqueta: "Sin galones", incluye: (t) => t.galones === null },
-    { id: "diferencia", etiqueta: "Con diferencia", incluye: (t) => Math.abs(diferencia(t) ?? 0) >= 1000 },
-    { id: "todos", etiqueta: "Todos", incluye: () => true },
+    { id: "sinCruzar", etiqueta: "Sin cruzar", incluye: (g) => g.cruce === "SIN_CRUZAR" },
+    { id: "cruzados", etiqueta: "Cruzados", incluye: (g) => g.cruce === "CRUZADO" || g.cruce === "DIFERENCIA" },
+    { id: "diferencia", etiqueta: "Con diferencia", incluye: (g) => g.cruce === "DIFERENCIA" },
+    { id: "deuda", etiqueta: "Deuda con la bomba", incluye: (g) => !!g.bombaId && !g.pagado },
+    { id: "pagados", etiqueta: "Pagados a la bomba", incluye: (g) => g.pagado },
+    { id: "idaYVuelta", etiqueta: "Ida y vuelta", incluye: (g) => !!g.vuelta },
+    { id: "pendientes", etiqueta: "Vueltas pendientes", incluye: (g) => !!g.vuelta && !g.vuelta.cuadroViajeId },
+    { id: "posibles", etiqueta: "Posible vuelta", incluye: (g) => posiblesVueltas(g, tanqueos).length > 0 },
+    { id: "efectivo", etiqueta: "Solo efectivo", incluye: (g) => g.cruce === "SOLO_EFECTIVO" },
   ];
 
   const r = resumen;
@@ -370,79 +187,325 @@ export default function CuadroAnticipos() {
       )}
       {error && <div className="alert danger">{error}</div>}
       <div className="barra-envio">
-        <div className="tabla-pestanas selector-vista" style={{ marginBottom: 0 }}>
-          {VISTAS.map((v) => (
-            <button key={v.id} className={vista === v.id ? "activa" : ""} onClick={() => setVista(v.id)}>
-              {v.etiqueta}
-            </button>
-          ))}
-        </div>
-        <button className="boton-barra" style={{ marginLeft: "auto" }} onClick={() => setImportando(true)}>
+        <button className="btn-primary boton-con-texto" onClick={() => setVentana("cruce")}>
+          Cruce con la bomba
+        </button>
+        <button className="boton-barra" onClick={() => setVentana("abonos")}>
+          Abonos del socio ({abonos.length})
+        </button>
+        <button className="boton-barra" onClick={() => setVentana("empresas")}>
+          Anticipos de empresas
+        </button>
+        <button className="boton-barra" style={{ marginLeft: "auto" }} onClick={() => setVentana("importar")}>
           Importar Excel de anticipos
         </button>
-        <button className="boton-barra" onClick={() => setEditandoCupo(true)}>
+        <button className="boton-barra" onClick={() => setVentana("cupo")}>
           Cupo y precios de la bomba
         </button>
-        <button className="btn-primary boton-con-texto" onClick={() => setNuevoAbono(true)}>
-          Registrar abono del socio
-        </button>
       </div>
-      <div className="section-desc" style={{ margin: "0.4rem 0 0.6rem" }} hidden={vista === "empresas"}>
-        {vista === "cruce"
-          ? `Para cruzar con la relacion de la bomba: escribe los galones del tiquete y el combustible del tramo se calcula como en el Excel: galones x precio - descuento, redondeado. Precio sugerido ${moneda(r?.precioGalonBomba ?? 0)}; descuento sugerido galones x ${moneda(r?.descuentoGalonBomba ?? 0)}. Los dos se pueden cambiar en cada fila; vacios, se usan los sugeridos.`
-          : "Los anticipos se registran en cada viaje del Cuadro pagos (el viaje → Anticipos). La deuda con la bomba es todo lo entregado en ella menos lo pagado y lo que abono el socio."}
+      <div className="section-desc" style={{ margin: "0.2rem 0 0.6rem" }}>
+        Un tanqueo por fila (la ida y su vuelta). Clic en una fila para ver todo: los viajes, el cruce con la bomba, la
+        factura y el pago. En verde, los ya cruzados con la relacion de la bomba. Los anticipos se registran en cada viaje
+        del Cuadro pagos.
       </div>
-      {vista === "empresas" && <AnticiposEmpresas />}
-      <div className="panel" hidden={vista === "empresas"}>
-        {vista === "viaje" && (
-          <TablaDatos filas={tramos} columnas={columnasViaje} columnasFijas={2} clave={(t) => t.id} pestanas={pestanasViaje} nombreArchivo="anticipos-por-viaje"
-            placeholderBusqueda="Buscar placa, empresa, bomba, factura..." vacio="No hay anticipos con estos criterios." />
+      <div className="panel">
+        <TablaDatos
+          filas={tanqueos}
+          columnas={columnas}
+          columnasFijas={2}
+          clave={(g) => g.clave}
+          pestanas={pestanas}
+          nombreArchivo="anticipos"
+          placeholderBusqueda="Buscar placa, empresa, bomba, factura..."
+          vacio="No hay anticipos con estos criterios."
+          claseFila={(g) => (g.cruce === "CRUZADO" ? "fila-cruzada" : g.cruce === "DIFERENCIA" ? "fila-diferencia" : undefined)}
+          detalle={(g) => (
+            <DetalleTanqueo
+              g={g}
+              posibles={posiblesVueltas(g, tanqueos)}
+              abonos={abonos}
+              resumen={r}
+              Bomba={Bomba}
+              guardar={guardar}
+            />
+          )}
+        />
+      </div>
+
+      {ventana === "cruce" && <VentanaCruceBomba tramos={tramos} alCerrar={() => setVentana(null)} alCambiar={() => carga.recargar()} />}
+      {ventana === "abonos" && (
+        <VentanaAbonos
+          abonos={abonos}
+          alCerrar={() => setVentana(null)}
+          alCambiar={async (lista) => {
+            setAbonos(lista);
+            setResumen(await apiCuadro.resumenBomba());
+          }}
+        />
+      )}
+      {ventana === "empresas" && (
+        <Modal ancho="pantalla" titulo="Anticipos de empresas" alCerrar={() => setVentana(null)}>
+          <AnticiposEmpresas />
+        </Modal>
+      )}
+      {ventana === "cupo" && r && (
+        <VentanaCupo
+          resumen={r}
+          alCerrar={() => setVentana(null)}
+          alGuardar={async () => {
+            setVentana(null);
+            setResumen(await apiCuadro.resumenBomba());
+          }}
+        />
+      )}
+      {ventana === "importar" && <ImportarAnticipos alCerrar={() => setVentana(null)} alCambiar={() => carga.recargar()} />}
+    </>
+  );
+}
+
+/**
+ * Lo que se ve al desplegar un tanqueo: cada tramo (ida y vuelta) con su
+ * viaje, valores, cruce y pago; la factura de la bomba; los abonos del socio
+ * en esos viajes y la posible vuelta para juntarla.
+ */
+function DetalleTanqueo({
+  g,
+  posibles,
+  abonos,
+  resumen,
+  Bomba,
+  guardar,
+}: {
+  g: Tanqueo;
+  posibles: Tanqueo[];
+  abonos: AbonoSocio[];
+  resumen: ResumenBomba | null;
+  Bomba: (p: { nombre: string | null }) => JSX.Element;
+  guardar: (accion: () => Promise<AnticipoBomba[]>) => Promise<void>;
+}) {
+  const viajes = new Set(g.tramos.map((t) => t.cuadroViajeId).filter(Boolean));
+  const abonosDeEstos = abonos.flatMap((a) => a.viajes.filter((v) => viajes.has(v.cuadroViajeId)).map((v) => ({ ...v, socio: a.socio, fecha: a.fecha })));
+
+  // Cruce por galones (sin vale): combustible = galones x precio - descuento.
+  const campoCruce = (t: AnticipoBomba, campo: "galones" | "precioGalon" | "descuento", sugerido?: number) => (
+    <input
+      key={`${t.id}-${campo}-${t[campo]}`}
+      type="number"
+      min={0}
+      step={campo === "galones" ? "0.001" : "1"}
+      style={{ width: "6.5rem" }}
+      defaultValue={enInput(t[campo])}
+      placeholder={sugerido === undefined ? "" : String(sugerido)}
+      disabled={!!t.vale}
+      onBlur={(e) => deInput(e.target.value) !== t[campo] && guardar(() => apiCuadro.actualizarTramo(t.id, { [campo]: e.target.value }))}
+    />
+  );
+
+  return (
+    <div className="detalle-tanqueo" onClick={(e) => e.stopPropagation()}>
+      <table className="tabla tabla-compacta">
+        <thead>
+          <tr>
+            <th>Tramo</th>
+            <th>Viaje</th>
+            <th className="num">Efectivo</th>
+            <th className="num">Combustible</th>
+            <th>Vale de la bomba</th>
+            <th>Galones</th>
+            <th>Precio galon</th>
+            <th>Descuento ($)</th>
+            <th className="num">Registrado antes</th>
+            <th className="num">Diferencia</th>
+            <th>Pago a la bomba</th>
+          </tr>
+        </thead>
+        <tbody>
+          {g.tramos.map((t) => {
+            const d = diferenciaTramo(t);
+            return (
+              <tr key={t.id}>
+                <td>
+                  <Pastilla tono={t.tramo === "VUELTA" ? "info" : "neutro"}>{t.tramo === "VUELTA" ? "Vuelta" : "Ida"}</Pastilla>
+                </td>
+                <td>
+                  <Viaje t={t} />
+                </td>
+                <td className="num">{moneda(t.efectivo)}</td>
+                <td className="num">
+                  <strong>{moneda(t.combustible)}</strong>
+                </td>
+                <td>{t.vale ? <span className="codigo">{t.vale}</span> : <span className="dato-sec">{t.combustible > 0 ? "Sin vale" : "-"}</span>}</td>
+                <td>{campoCruce(t, "galones")}</td>
+                <td>{campoCruce(t, "precioGalon", resumen?.precioGalonBomba)}</td>
+                <td>{campoCruce(t, "descuento", t.galones !== null && resumen ? Math.round(t.galones * resumen.descuentoGalonBomba) : undefined)}</td>
+                <td className="num">{t.combustibleEntregado === null ? "-" : moneda(t.combustibleEntregado)}</td>
+                <td className="num">
+                  {t.combustibleEntregado === null ? "-" : <span className={Math.abs(d) >= DIFERENCIA_MINIMA ? "texto-vencido" : "dato-sec"}>{moneda(d)}</span>}
+                </td>
+                <td>
+                  {t.bombaId ? (
+                    <input type="date" value={t.fechaPago ?? ""} onChange={(e) => guardar(() => apiCuadro.actualizarTramo(t.id, { fechaPago: e.target.value }))} />
+                  ) : (
+                    <span className="dato-sec">No es de la bomba</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      <div className="detalle-tanqueo-pie">
+        <div>
+          <span className="dato-sec">Bomba</span> <Bomba nombre={g.bomba} />
+        </div>
+        {g.tanqueoId && (
+          <>
+            <label>
+              <span className="dato-sec">Factura de la bomba</span>
+              <input
+                key={`f-${g.facturaBomba}`}
+                defaultValue={g.facturaBomba ?? ""}
+                placeholder="AE5044797"
+                style={{ width: "9rem" }}
+                onBlur={(e) =>
+                  e.target.value.trim() !== (g.facturaBomba ?? "") &&
+                  guardar(() => apiCuadro.actualizarTanqueo(g.tanqueoId!, { facturaBomba: e.target.value }))
+                }
+              />
+            </label>
+            <label>
+              <span className="dato-sec">Fecha factura</span>
+              <input
+                type="date"
+                value={g.fechaFacturaBomba ?? ""}
+                onChange={(e) => guardar(() => apiCuadro.actualizarTanqueo(g.tanqueoId!, { fechaFacturaBomba: e.target.value }))}
+              />
+            </label>
+          </>
         )}
-        {vista === "tanqueo" && (
-          <TablaDatos filas={agruparPorTanqueo(tramos)} columnas={columnasTanqueo} clave={(g) => g.clave} pestanas={pestanasTanqueo}
-            nombreArchivo="anticipos-por-tanqueo" placeholderBusqueda="Buscar placa, bomba, factura..." vacio="No hay tanqueos con estos criterios." />
-        )}
-        {vista === "deuda" && (
-          <TablaDatos filas={conBomba.filter((t) => !t.fechaPago)} columnas={columnasViaje} columnasFijas={2} clave={(t) => t.id} nombreArchivo="deuda-bomba"
-            placeholderBusqueda="Buscar placa, empresa, factura..." vacio="No hay nada pendiente de pagar a la bomba." />
-        )}
-        {vista === "pagado" && (
-          <TablaDatos filas={conBomba.filter((t) => !!t.fechaPago)} columnas={columnasViaje} columnasFijas={2} clave={(t) => t.id} nombreArchivo="pagado-bomba"
-            placeholderBusqueda="Buscar placa, empresa, factura..." vacio="Aun no hay pagos a la bomba registrados." />
-        )}
-        {vista === "abonos" && (
-          <TablaDatos filas={abonos} columnas={columnasAbonos} clave={(a) => a.id} nombreArchivo="abonos-socio"
-            placeholderBusqueda="Buscar socio, placa, empresa..." vacio="Aun no hay abonos del socio." />
-        )}
-        {vista === "cruce" && (
-          <TablaDatos filas={conBomba.filter((t) => t.combustible > 0)} columnas={columnasCruce} clave={(t) => t.id} pestanas={pestanasCruce}
-            nombreArchivo="cruce-bomba" placeholderBusqueda="Buscar placa, factura..." vacio="No hay tanqueos con estos criterios." />
+        {g.vuelta && g.tanqueoId && (
+          <button
+            className="btn-link"
+            onClick={() => window.confirm("¿Separar la vuelta? Queda como un tanqueo aparte.") && guardar(() => apiCuadro.separarVuelta(g.tanqueoId!))}
+          >
+            Separar la vuelta
+          </button>
         )}
       </div>
 
-      {editandoCupo && r && (
-        <VentanaCupo
-          resumen={r}
-          alCerrar={() => setEditandoCupo(false)}
-          alGuardar={async () => {
-            setEditandoCupo(false);
-            setResumen(await apiCuadro.resumenBomba());
-          }}
-        />
+      {posibles.length > 0 && (
+        <div className="alert warning" style={{ marginTop: "0.5rem" }}>
+          <strong>Posible vuelta:</strong> el mismo dia {placaConGuion(g.placa)} tiene otro(s) tanqueo(s) sin juntar.
+          {posibles.map((p) => (
+            <div key={p.clave} className="linea-posible">
+              <Bomba nombre={p.bomba} /> {p.ida.empresa ?? "-"} {p.ida.fechaViaje ? `(viaje del ${fechaCorta(p.ida.fechaViaje)})` : ""} · {moneda(p.total)}
+              <button className="btn-link" onClick={() => guardar(() => apiCuadro.juntarTanqueos(g.tanqueoId!, p.tanqueoId!))}>
+                Juntar: este es la vuelta
+              </button>
+              <button className="btn-link" onClick={() => guardar(() => apiCuadro.juntarTanqueos(p.tanqueoId!, g.tanqueoId!))}>
+                Juntar: este es la ida
+              </button>
+            </div>
+          ))}
+        </div>
       )}
-      {importando && <ImportarAnticipos alCerrar={() => setImportando(false)} alCambiar={() => carga.recargar()} />}
-      {nuevoAbono && (
-        <VentanaAbono
-          alCerrar={() => setNuevoAbono(false)}
-          alGuardar={async (lista) => {
-            setNuevoAbono(false);
-            setAbonos(lista);
-            setResumen(await apiCuadro.resumenBomba());
-            setVista("abonos");
-          }}
-        />
+
+      {abonosDeEstos.length > 0 && (
+        <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
+          Abonos del socio en estos viajes:{" "}
+          {abonosDeEstos.map((a, i) => (
+            <span key={i}>
+              {i > 0 && " · "}
+              {a.socio} {fechaCorta(a.fecha)} {moneda(a.valor)}
+            </span>
+          ))}
+        </div>
       )}
-    </>
+    </div>
+  );
+}
+
+/** Abonos del socio: la lista y el boton para registrar uno nuevo. */
+function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; alCerrar: () => void; alCambiar: (lista: AbonoSocio[]) => void }) {
+  const [nuevo, setNuevo] = useState(false);
+  if (nuevo) {
+    return (
+      <VentanaAbono
+        alCerrar={() => setNuevo(false)}
+        alGuardar={(lista) => {
+          setNuevo(false);
+          alCambiar(lista);
+        }}
+      />
+    );
+  }
+  return (
+    <Modal
+      ancho="wide"
+      titulo="Abonos del socio a la bomba"
+      alCerrar={alCerrar}
+      pie={
+        <>
+          <button className="btn-secondary" onClick={alCerrar}>
+            Cerrar
+          </button>
+          <button className="btn-primary" onClick={() => setNuevo(true)}>
+            Registrar abono del socio
+          </button>
+        </>
+      }
+    >
+      <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
+        Lo que el socio (el Zorro) le paga directamente a la bomba por algunos viajes. Se descuenta de la deuda con la bomba.
+      </div>
+      {abonos.length === 0 ? (
+        <div className="alert info">Aun no hay abonos del socio.</div>
+      ) : (
+        <table className="tabla">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Socio</th>
+              <th className="num">Abonado</th>
+              <th>Viajes</th>
+              <th>Nota</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {abonos.map((a) => (
+              <tr key={a.id}>
+                <td>{fechaCorta(a.fecha)}</td>
+                <td>{a.socio}</td>
+                <td className="num">
+                  <strong>{moneda(a.valor)}</strong>
+                </td>
+                <td>
+                  {a.viajes.map((v) => (
+                    <span key={v.cuadroViajeId} className="dato-sec">
+                      {placaConGuion(v.placa ?? "")} · {v.empresa ?? "-"} {v.fecha ? `(${fechaCorta(v.fecha)})` : ""} · {moneda(v.valor)}
+                    </span>
+                  ))}
+                </td>
+                <td>{a.nota ?? "-"}</td>
+                <td className="num">
+                  <button
+                    className="btn-link"
+                    onClick={async () => {
+                      if (!window.confirm(`¿Borrar el abono de ${a.socio} por ${moneda(a.valor)}?`)) return;
+                      alCambiar(await apiCuadro.borrarAbono(a.id));
+                    }}
+                  >
+                    Borrar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </Modal>
   );
 }
 

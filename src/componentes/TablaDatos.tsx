@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 /**
@@ -95,6 +95,7 @@ export default function TablaDatos<T>({
   alClicFila,
   claseFila,
   columnasFijas = 1,
+  detalle,
 }: {
   filas: T[];
   columnas: Columna<T>[];
@@ -116,6 +117,11 @@ export default function TablaDatos<T>({
    * lado (como "inmovilizar" en Excel), para no perder de que fila se trata.
    */
   columnasFijas?: number;
+  /**
+   * Si se da, clic en la fila la despliega: debajo aparece lo que devuelve
+   * (otro clic la recoge). Varias filas pueden quedar abiertas.
+   */
+  detalle?: (fila: T) => ReactNode;
 }) {
   const [porPagina, setPorPagina] = usarFilasPorPagina();
   const tabla = useRef<HTMLTableElement>(null);
@@ -127,6 +133,15 @@ export default function TablaDatos<T>({
   const [filtros, setFiltros] = useState<Record<string, string>>({});
   const [orden, setOrden] = useState<{ id: string; asc: boolean } | null>(null);
   const [pagina, setPagina] = useState(0);
+  /** Filas desplegadas (por su clave). */
+  const [abiertas, setAbiertas] = useState<Set<string | number>>(new Set());
+  const alternar = (k: string | number) =>
+    setAbiertas((a) => {
+      const n = new Set(a);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
 
   // Cualquier cambio de criterio vuelve a la primera pagina.
   useEffect(() => setPagina(0), [pestana, busqueda, filtros, orden, porPagina]);
@@ -328,11 +343,18 @@ export default function TablaDatos<T>({
             </tr>
           </thead>
           <tbody>
-            {enPagina.map((f) => (
+            {enPagina.map((f) => {
+              const k = clave(f);
+              const abierta = !!detalle && abiertas.has(k);
+              return (
+              <Fragment key={k}>
               <tr
-                key={clave(f)}
-                className={[alClicFila ? "fila-clic" : "", claseFila?.(f) ?? ""].filter(Boolean).join(" ") || undefined}
-                onClick={alClicFila ? () => alClicFila(f) : undefined}
+                className={
+                  [alClicFila || detalle ? "fila-clic" : "", abierta ? "fila-abierta" : "", claseFila?.(f) ?? ""].filter(Boolean).join(" ") ||
+                  undefined
+                }
+                onClick={detalle ? () => alternar(k) : alClicFila ? () => alClicFila(f) : undefined}
+                aria-expanded={detalle ? abierta : undefined}
               >
                 {columnas.map((c, i) => {
                   const etiqueta = c.etiquetaMovil === undefined ? c.titulo : c.etiquetaMovil;
@@ -351,7 +373,14 @@ export default function TablaDatos<T>({
                   );
                 })}
               </tr>
-            ))}
+              {abierta && (
+                <tr className="fila-detalle">
+                  <td colSpan={columnas.length}>{detalle!(f)}</td>
+                </tr>
+              )}
+              </Fragment>
+              );
+            })}
             {visibles.length === 0 && (
               <tr>
                 <td colSpan={columnas.length} className="empty-row">

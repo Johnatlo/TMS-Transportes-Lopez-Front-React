@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_381 funciones, componentes, métodos y rutas en 54 archivos._
+_403 funciones, componentes, métodos y rutas en 57 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (134)
+- [`src/api/cliente.ts`](#srcapiclientets) (141)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -218,10 +218,13 @@ _381 funciones, componentes, métodos y rutas en 54 archivos._
 - [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (3)
 - [`src/paginas/cuadro/ImportarAnticipos.tsx`](#srcpaginascuadroimportaranticipostsx) (2)
 - [`src/paginas/cuadro/PastillasEstado.tsx`](#srcpaginascuadropastillasestadotsx) (1)
+- [`src/paginas/cuadro/VentanaCruceBomba.tsx`](#srcpaginascuadroventanacrucebombatsx) (4)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (7)
 - [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
 - [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (21)
+- [`src/paginas/cuadro/relacionBomba.ts`](#srcpaginascuadrorelacionbombats) (7)
+- [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (4)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
 - [`src/paginas/seguimiento/AnticiposEmpresas.tsx`](#srcpaginasseguimientoanticiposempresastsx) (4)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
@@ -599,6 +602,27 @@ _381 funciones, componentes, métodos y rutas en 54 archivos._
 
   - **`apiCuadro.resumenBomba()`** · _método_
     Cuentas con la bomba: deuda, pagado, abonado por el socio, pendiente y cupo disponible.
+
+  - **`apiCuadro.juntarTanqueos(ida, vuelta)`** · _método_
+    Junta dos tanqueos de la misma placa como ida y vuelta (ids de tanqueo).
+
+  - **`apiCuadro.separarVuelta(tanqueoId)`** · _método_
+    Separa la vuelta de un tanqueo de ida y vuelta.
+
+  - **`apiCuadro.relacionesBomba()`** · _método_
+    Facturas (relaciones de vales) de la bomba ya cruzadas.
+
+  - **`apiCuadro.previaRelacionBomba(numero, vales)`** · _método_
+    Propone el tanqueo de cada vale de una relacion (no guarda).
+
+  - **`apiCuadro.guardarRelacionBomba(datos)`** · _método_
+    Guarda la relacion y cruza los tanqueos elegidos.
+
+  - **`apiCuadro.pagarRelacionBomba(id, fechaPago)`** · _método_
+    Fecha en que se le pago a la bomba la factura (vacia la quita).
+
+  - **`apiCuadro.borrarRelacionBomba(id)`** · _método_
+    Borra la relacion y deshace el cruce.
 
   - **`apiCuadro.guardarParametrosBomba(datos)`** · _método_
     Cambia el cupo con la bomba o el precio / descuento por galon sugeridos.
@@ -1524,33 +1548,39 @@ _381 funciones, componentes, métodos y rutas en 54 archivos._
 
 ### `src/paginas/cuadro/CuadroAnticipos.tsx`
 
-> Pantalla Anticipos (como el Excel "cuadro de anticipos"): los anticipos de
-> efectivo y combustible de todos los viajes y las cuentas con la bomba.
+> Pantalla Anticipos (como el Excel "cuadro de anticipos"): un solo cuadro
+> con todos los anticipos de efectivo y combustible, uno por tanqueo (lo que
+> se entrego de una vez en la bomba: la ida y, si la hay, su vuelta).
 >
-> - Arriba: deuda a la bomba, pagado, abonado por el socio (el Zorro) y cupo
->   de credito disponible (editable, junto con el precio y el descuento por
->   galon sugeridos para el cruce).
-> - Vistas: por viaje (un tramo de ida o vuelta por fila), por tanqueo (ida y
->   vuelta juntas), deuda pendiente, pagado a la bomba, abonos del socio y
->   cruce con la relacion de la bomba: con los galones del tiquete, el
->   combustible se calcula como en el Excel (galones x precio - descuento).
-
-- **`agruparPorTanqueo(tramos)`** · _función_
-  Agrupa los tramos por tanqueo (los anticipos viejos sin tanqueo quedan solos).
+> - Arriba: deuda con la bomba, pagado, abonado por el socio (el Zorro) y cupo
+>   de credito disponible.
+> - Pestanas como en el Cuadro pagos: sin cruzar, cruzados, con diferencia,
+>   deuda con la bomba, pagados, ida y vuelta, vueltas pendientes, posibles
+>   vueltas y solo efectivo. Filtros por placa, bomba y empresa del vehiculo.
+> - Clic en un tanqueo lo despliega: la ida y la vuelta con su viaje, el
+>   cruce (vale, galones, precio, descuento, diferencia), la factura y el
+>   pago a la bomba, y la posible vuelta (indicio) para juntarla con un clic.
+> - Cada bomba tiene su color; los tanqueos cruzados con la bomba van en verde.
+> - Botones: cruce con la bomba (la relacion quincenal de vales, en PDF,
+>   Excel o a mano), abonos del socio y anticipos de empresas.
 
 - **`flotaTexto(f)`** · _función_
   "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo.
 
-- **`diferencia(t)`** · _función_
-  Lo que el tramo cambio con el cruce: combustible calculado - lo que se habia registrado.
-
-- **`Recorrido({...})`** · _componente React_
-  Recorrido (empresa del viaje) o la vuelta que aun espera el proximo viaje.
+- **`Viaje({...})`** · _componente React_
+  Viaje de un tramo: empresa y manifiesto, o la vuelta que espera el proximo viaje.
 
 - **`CuadroAnticipos()`** · _componente React_
   Pantalla Anticipos. Los anticipos se registran en cada viaje del Cuadro
-  pagos; aqui se ven todos, se corrobora la factura de la bomba, se registra
-  lo pagado y lo abonado por el socio, y se cruza con la relacion de la bomba.
+  pagos (o se cargan del Excel); aqui se ven todos en un solo cuadro.
+
+- **`DetalleTanqueo({...})`** · _componente React_
+  Lo que se ve al desplegar un tanqueo: cada tramo (ida y vuelta) con su
+  viaje, valores, cruce y pago; la factura de la bomba; los abonos del socio
+  en esos viajes y la posible vuelta para juntarla.
+
+- **`VentanaAbonos({...})`** · _componente React_
+  Abonos del socio: la lista y el boton para registrar uno nuevo.
 
 - **`VentanaCupo({...})`** · _componente React_
   Cupo de credito con la bomba y precio / descuento por galon sugeridos para el cruce.
@@ -1646,6 +1676,30 @@ _381 funciones, componentes, métodos y rutas en 54 archivos._
 - **`PastillasEstado({...})`** · _componente React_
   Estado de un viaje del cuadro: la pastilla de los papeles y, al lado, la de
   la factura si ya se facturo. "Todo pagado" y "Anulado" van solos.
+
+### `src/paginas/cuadro/VentanaCruceBomba.tsx`
+
+> Cruce con la bomba (quincenal). La bomba manda una relacion de vales por
+> cada factura (AE5044797) con los tanqueos de ese periodo; aqui se compara
+> con lo registrado en el TMS y se cruza.
+>
+> - Lista de facturas ya cruzadas: total, vales, fecha de pago (al pagarle a
+>   la bomba) y borrar (deshace el cruce).
+> - Nueva relacion: desde el PDF o el Excel de la bomba (se leen los vales y
+>   el sistema propone el tanqueo de cada uno) o armada a mano (se eligen los
+>   tanqueos de un periodo). Se revisa vale por vale y se guarda.
+
+- **`etiquetaTramo(t)`** · _función_
+  Texto de un tramo en la lista para elegir el de un vale.
+
+- **`VentanaCruceBomba({...})`** · _componente React_
+  Ventana del cruce: facturas cruzadas y nueva relacion.
+
+- **`NuevaRelacion({...})`** · _componente React_
+  Nueva relacion: leer el archivo (o armarla a mano), revisar vale por vale y guardar.
+
+- **`ArmarAMano({...})`** · _componente React_
+  Relacion armada a mano: los tanqueos de un periodo, marcando los que trae la factura.
 
 ### `src/paginas/cuadro/VentanasCuadro.tsx`
 
@@ -1819,6 +1873,66 @@ _381 funciones, componentes, métodos y rutas en 54 archivos._
 
 - **`deInput(s)`** · _función_
   Valor de un input numerico (null si esta vacio o no es numero).
+
+### `src/paginas/cuadro/relacionBomba.ts`
+
+> Lectura de la relacion quincenal de la bomba ("RELACION VALES DESPACHO -
+> CONSUMO" de COESCO, una por factura: AE5044797). Llega en PDF o en Excel;
+> de los dos se sacan el numero de la factura, su fecha y los vales (EDS,
+> numero de vale, fecha, hora, placa, galones y valor).
+>
+> leerPdf usa pdfjs (cargado solo cuando se usa) y devuelve los textos de
+> cada pagina con su posicion; valesDesdePdf y valesDesdeFilas no dependen de
+> ninguna libreria y se prueban aparte (relacionBomba.test.ts).
+
+- **`leerPdf(archivo)`** · _función_
+  Lee los textos de cada pagina del PDF (pdfjs se descarga solo al usarlo).
+
+- **`fechaDma(t)`** · _función_
+  "30/09/2026" -> "2026-09-30"; null si no es fecha.
+
+- **`galonesTexto(t)`** · _función_
+  Galones como los escribe la bomba: "89,767" son 89.767 galones (coma decimal).
+
+- **`valorTexto(t)`** · _función_
+  Valor en pesos: "1,000,000.00" -> 1000000.
+
+- **`valesDesdePdf(paginas)`** · _función_
+  Vales del PDF de la relacion. Cada vale es una fila que empieza en su
+  numero (V...). En la misma linea van la EDS, la fecha, la hora, la placa,
+  los galones y el valor (el numero mas a la derecha). La placa a veces sigue
+  en la linea de abajo ("SWN62" + "3"): se junta lo que esta en la columna de
+  la placa hasta la siguiente fila.
+
+- **`titulo(v)`** · _función_
+  Titulo comparable: mayusculas, sin tildes ni puntos, espacios simples.
+
+- **`valesDesdeFilas(filas)`** · _función_
+  Vales del Excel de la relacion: la fila de titulos tiene "Nro. Docu" (o
+  "Vale"), "Placa" y "Valor"; las demas columnas (EDS, Fecha, Hora, Cant.)
+  se toman si estan. El numero de la factura se busca arriba de los titulos.
+
+### `src/paginas/cuadro/tanqueos.ts`
+
+> El cuadro de anticipos por tanqueo: lo que se entrego de una vez en una
+> bomba (la ida y, si la hay, su vuelta), con su estado frente a la bomba.
+> Sin dependencias de React: se prueba aparte (tanqueos.test.ts).
+
+- **`diferenciaTramo(t)`** · _función_
+  Lo que un tramo cambio al cruzarlo: valor del vale (o de los galones) - lo registrado.
+
+- **`agruparPorTanqueo(tramos)`** · _función_
+  Agrupa los tramos por tanqueo (los anticipos viejos sin tanqueo quedan solos).
+
+- **`posiblesVueltas(g, todos)`** · _función_
+  Posibles vueltas de un tanqueo (indicio): otros tanqueos de un solo tramo
+  de la misma placa y el mismo dia que no se juntaron solos (pasa cuando hay
+  3 o mas ese dia, o en distinta bomba). Se juntan a mano con un clic.
+
+- **`coloresBombas(nombres)`** · _función_
+  Color de cada bomba: por orden alfabetico, uno distinto a cada una (con
+  mas de 5 bombas se repiten). El mismo nombre siempre da el mismo color
+  mientras no se agreguen bombas.
 
 ### `src/paginas/estadosViaje.ts`
 

@@ -804,8 +804,46 @@ export interface AnticipoBomba {
   precioGalon: number | null;
   /** Descuento en pesos que se resto (por la sociedad). */
   descuento: number | null;
-  /** Combustible que se habia registrado antes de calcularlo con los galones. */
+  /** Combustible que se habia registrado antes de calcularlo con los galones (o del cruce con el vale). */
   combustibleEntregado: number | null;
+  /** Fecha del viaje del cuadro al que se suma. */
+  fechaViaje: string | null;
+  /** Vale de la relacion de la bomba con que se cruzo. */
+  vale: string | null;
+  /** Relacion (factura) de la bomba con que se cruzo. */
+  relacionId: number | null;
+}
+
+/** Un vale de la relacion quincenal de la bomba. */
+export interface ValeBomba {
+  eds: string;
+  vale: string | null;
+  fecha: string;
+  hora: string | null;
+  placa: string;
+  galones: number | null;
+  valor: number;
+}
+
+/** Como quedo un vale frente a los tanqueos del TMS. */
+export type EstadoVale = "COINCIDE" | "DIFERENCIA" | "SIN_TANQUEO";
+
+/** Vale con el tramo que se le propone. */
+export interface ValePropuesto extends ValeBomba {
+  tramoId: number | null;
+  estado: EstadoVale;
+  combustibleTramo: number | null;
+}
+
+/** Relacion (factura) de la bomba ya cruzada. */
+export interface RelacionBomba {
+  id: number;
+  numero: string;
+  fecha: string;
+  total: number;
+  fechaPago: string | null;
+  nota: string | null;
+  vales: Array<ValeBomba & { id: number; tramoId: number | null }>;
 }
 
 /** Cupo con la bomba y valores sugeridos para el cruce. */
@@ -933,6 +971,22 @@ export const apiCuadro = {
     put<AnticipoBomba[]>(`/cuadro/anticipos/${anticipoId}`, datos),
   /** Cuentas con la bomba: deuda, pagado, abonado por el socio, pendiente y cupo disponible. */
   resumenBomba: () => get<ResumenBomba>("/cuadro/anticipos/resumen"),
+  /** Junta dos tanqueos de la misma placa como ida y vuelta (ids de tanqueo). */
+  juntarTanqueos: (ida: number, vuelta: number) => post<AnticipoBomba[]>("/cuadro/anticipos/juntar", { ida, vuelta }),
+  /** Separa la vuelta de un tanqueo de ida y vuelta. */
+  separarVuelta: (tanqueoId: number) => post<AnticipoBomba[]>(`/cuadro/anticipos/separar/${tanqueoId}`, {}),
+  /** Facturas (relaciones de vales) de la bomba ya cruzadas. */
+  relacionesBomba: () => get<RelacionBomba[]>("/cuadro/relaciones-bomba"),
+  /** Propone el tanqueo de cada vale de una relacion (no guarda). */
+  previaRelacionBomba: (numero: string, vales: ValeBomba[]) =>
+    post<{ vales: ValePropuesto[]; yaExiste: boolean }>("/cuadro/relaciones-bomba/previa", { numero, vales }),
+  /** Guarda la relacion y cruza los tanqueos elegidos. */
+  guardarRelacionBomba: (datos: { numero: string; fecha: string; nota: string; vales: Array<ValeBomba & { tramoId: number | null }> }) =>
+    post<RelacionBomba[]>("/cuadro/relaciones-bomba", datos),
+  /** Fecha en que se le pago a la bomba la factura (vacia la quita). */
+  pagarRelacionBomba: (id: number, fechaPago: string) => put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/pago`, { fechaPago }),
+  /** Borra la relacion y deshace el cruce. */
+  borrarRelacionBomba: (id: number) => del<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}`),
   /** Cambia el cupo con la bomba o el precio / descuento por galon sugeridos. */
   guardarParametrosBomba: (datos: Partial<ParametrosBomba>) => put<ParametrosBomba>("/cuadro/anticipos/parametros", datos),
   /** Abonos del socio a la bomba. */

@@ -408,3 +408,24 @@ td.dato-sec { display: table-cell; }
 
 /* Abono del socio: una linea por viaje */
 .linea-abono { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+
+/* Anticipos (CuadroAnticipos.tsx): los tanqueos cruzados con la relacion de
+   la bomba van en verde; con diferencia, en naranja suave. La fila
+   desplegada muestra debajo el detalle del tanqueo. */
+tr.fila-cruzada > td { background: #e6f4ea; }
+tr.fila-cruzada:hover > td { background: #d5ecdc; }
+tr.fila-diferencia > td { background: #fdf3e7; }
+tr.fila-diferencia:hover > td { background: #fbe8d3; }
+table.tabla tr.fila-cruzada > td.col-fija { background: #e6f4ea; }
+table.tabla tr.fila-diferencia > td.col-fija { background: #fdf3e7; }
+table.tabla tbody tr.fila-abierta > td { border-bottom-color: transparent; }
+table.tabla tbody tr.fila-detalle > td {
+  padding: 0.4rem 0.75rem 0.9rem; background: var(--gris-25, #fafbfc);
+  max-width: none; overflow: visible; white-space: normal;
+}
+.detalle-tanqueo { border: 1px solid var(--gris-200); border-radius: var(--radio-md); background: var(--gris-0, #fff); padding: 0.6rem; }
+.detalle-tanqueo table.tabla td, .detalle-tanqueo table.tabla th { max-width: none; overflow: visible; }
+.detalle-tanqueo input { margin: 0; padding: 0.26rem 0.45rem; font-size: var(--texto-xs); width: auto; }
+.detalle-tanqueo-pie { display: flex; align-items: flex-end; gap: 1.2rem; flex-wrap: wrap; margin-top: 0.6rem; }
+.detalle-tanqueo-pie label { display: flex; flex-direction: column; gap: 0.15rem; margin: 0; }
+.linea-posible { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.3rem; }
