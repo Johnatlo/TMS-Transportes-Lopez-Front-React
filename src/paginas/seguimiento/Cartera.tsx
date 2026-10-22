@@ -169,6 +169,8 @@ export default function Cartera() {
   const [anticipoViaje, setAnticipoViaje] = useState<number | null>(null);
   const [viajeCuadro, setViajeCuadro] = useState<number | null>(null);
   const [plazos, setPlazos] = useState(false);
+  /** Cliente con que arranca el buscador de facturas (desde la alerta agrupada). */
+  const [buscarCliente, setBuscarCliente] = useState("");
 
   useEffect(() => {
     // ?anticipo=<id del cuadro>: abre el anticipo de la empresa de ese viaje.
@@ -176,6 +178,14 @@ export default function Cartera() {
     if (anticipo) {
       setVista("anticipos");
       setAnticipoViaje(anticipo);
+      setParametros({}, { replace: true });
+      return;
+    }
+    // ?cliente=<empresa>: las facturas de ese cliente (alerta de cartera agrupada).
+    const cliente = parametros.get("cliente");
+    if (cliente) {
+      setVista("facturas");
+      setBuscarCliente(cliente);
       setParametros({}, { replace: true });
       return;
     }
@@ -268,6 +278,8 @@ export default function Cartera() {
       <div className="panel">
         {vista === "facturas" && (
           <TablaDatos
+            key={buscarCliente}
+            busquedaInicial={buscarCliente}
             filas={datos.facturas}
             columnas={COLUMNAS}
             clave={(f) => `${f.facturaNumero}|${f.empresa}`}

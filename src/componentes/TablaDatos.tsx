@@ -96,6 +96,7 @@ export default function TablaDatos<T>({
   claseFila,
   columnasFijas = 1,
   detalle,
+  busquedaInicial,
 }: {
   filas: T[];
   columnas: Columna<T>[];
@@ -122,13 +123,15 @@ export default function TablaDatos<T>({
    * (otro clic la recoge). Varias filas pueden quedar abiertas.
    */
   detalle?: (fila: T) => ReactNode;
+  /** Texto con que arranca el buscador (por ejemplo, el cliente de una alerta). */
+  busquedaInicial?: string;
 }) {
   const [porPagina, setPorPagina] = usarFilasPorPagina();
   const tabla = useRef<HTMLTableElement>(null);
   /** Donde empieza cada columna fija (px desde la izquierda). */
   const [izquierdas, setIzquierdas] = useState<number[]>([]);
   const [pestana, setPestana] = useState(pestanaInicial ?? pestanas?.[0]?.id ?? "");
-  const [busqueda, setBusqueda] = useState("");
+  const [busqueda, setBusqueda] = useState(busquedaInicial ?? "");
   const [verFiltros, setVerFiltros] = useState(false);
   const [filtros, setFiltros] = useState<Record<string, string>>({});
   const [orden, setOrden] = useState<{ id: string; asc: boolean } | null>(null);

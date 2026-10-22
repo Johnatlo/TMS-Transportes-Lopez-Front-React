@@ -710,6 +710,8 @@ export interface FilaCuadro {
   /** Se marco que el viaje no lleva anticipo de la empresa (un urbano, por ejemplo). */
   anticipoEmpresaNoAplica: boolean;
   estadoAnticipoEmpresa: EstadoAnticipoEmpresa;
+  /** Viaje urbano: se factura a orden del generador de carga. */
+  urbano: boolean;
   /** El anticipo de la empresa se abona a la bomba (clientes del Zorro); si no, nos lo pagan a nosotros. */
   anticipoEmpresaABomba: boolean;
   valorFlete: number | null;

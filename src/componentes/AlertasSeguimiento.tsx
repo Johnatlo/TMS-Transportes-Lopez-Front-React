@@ -36,7 +36,9 @@ function rutaDe(a: AlertaSeguimiento): string {
   // Factura de la bomba: en Anticipos, con el cruce abierto.
   if (a.tipo === "BOMBA") return "/anticipos?cruce=1";
   if (a.tipo === "CARTERA") {
-    return `/cartera?factura=${encodeURIComponent(a.facturaNumero ?? "")}&empresa=${encodeURIComponent(a.empresa ?? "")}`;
+    // Una sola factura: se abre esa; varias de la empresa: Cartera filtrada por la empresa.
+    if (!a.facturaNumero) return `/cartera?cliente=${encodeURIComponent(a.empresa ?? "")}`;
+    return `/cartera?factura=${encodeURIComponent(a.facturaNumero)}&empresa=${encodeURIComponent(a.empresa ?? "")}`;
   }
   return `/cuadro?papeles=${a.cuadroId}`;
 }
