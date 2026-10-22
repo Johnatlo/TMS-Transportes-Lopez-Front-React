@@ -175,15 +175,16 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_404 funciones, componentes, métodos y rutas en 57 archivos._
+_426 funciones, componentes, métodos y rutas en 59 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (142)
+- [`src/api/cliente.ts`](#srcapiclientets) (145)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
 - [`src/componentes/AnularViaje.tsx`](#srccomponentesanularviajetsx) (3)
 - [`src/componentes/CambiarClave.tsx`](#srccomponentescambiarclavetsx) (1)
+- [`src/componentes/CampoFecha.tsx`](#srccomponentescampofechatsx) (2)
 - [`src/componentes/ComboBuscable.tsx`](#srccomponentescombobuscabletsx) (1)
 - [`src/componentes/CumplirViaje.tsx`](#srccomponentescumplirviajetsx) (9)
 - [`src/componentes/DetalleViaje.tsx`](#srccomponentesdetalleviajetsx) (3)
@@ -212,19 +213,20 @@ _404 funciones, componentes, métodos y rutas en 57 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
-- [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (7)
+- [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (8)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (4)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (6)
 - [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (3)
 - [`src/paginas/cuadro/ImportarAnticipos.tsx`](#srcpaginascuadroimportaranticipostsx) (2)
 - [`src/paginas/cuadro/PastillasEstado.tsx`](#srcpaginascuadropastillasestadotsx) (1)
-- [`src/paginas/cuadro/VentanaCruceBomba.tsx`](#srcpaginascuadroventanacrucebombatsx) (4)
+- [`src/paginas/cuadro/VentanaCruceBomba.tsx`](#srcpaginascuadroventanacrucebombatsx) (9)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (7)
 - [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
+- [`src/paginas/cuadro/excelVales.ts`](#srcpaginascuadroexcelvalests) (7)
 - [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (21)
-- [`src/paginas/cuadro/relacionBomba.ts`](#srcpaginascuadrorelacionbombats) (7)
-- [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (4)
+- [`src/paginas/cuadro/relacionBomba.ts`](#srcpaginascuadrorelacionbombats) (8)
+- [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (7)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
 - [`src/paginas/seguimiento/AnticiposEmpresas.tsx`](#srcpaginasseguimientoanticiposempresastsx) (4)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
@@ -624,6 +626,15 @@ _404 funciones, componentes, métodos y rutas en 57 archivos._
   - **`apiCuadro.pagarRelacionBomba(id, fechaPago)`** · _método_
     Fecha en que se le pago a la bomba la factura (vacia la quita).
 
+  - **`apiCuadro.pagosBomba()`** · _método_
+    Pagos a la bomba registrados.
+
+  - **`apiCuadro.registrarPagoBomba(datos)`** · _método_
+    Registra el pago de la quincena: facturas elegidas menos los abonos elegidos.
+
+  - **`apiCuadro.borrarPagoBomba(id)`** · _método_
+    Deshace un pago a la bomba.
+
   - **`apiCuadro.borrarRelacionBomba(id)`** · _método_
     Borra la relacion y deshace el cruce.
 
@@ -811,6 +822,26 @@ _404 funciones, componentes, métodos y rutas en 57 archivos._
   Formulario para cambiar la propia contrasena. Se usa en dos lugares:
   - Obligatorio, a pantalla completa, cuando se entra con una clave temporal.
   - Voluntario, desde el menu del avatar.
+
+### `src/componentes/CampoFecha.tsx`
+
+> Campo de fecha que guarda solo (en tablas y detalles, sin boton Guardar).
+>
+> Un <input type="date"> avisa en cada tecla: al escribir el año pasa por
+> "0002", "0020", "0202" antes de "2026". Si cada cambio se guardaba, se
+> guardaban fechas a medias y la pantalla se refrescaba mientras se escribia
+> (el campo "se portaba extraño"). Aqui:
+> - lo escrito se queda en el campo (no lo pisa el refresco mientras se edita);
+> - guarda al salir del campo, o solo un momento despues si la fecha esta
+>   completa (lo que pasa al elegirla en el calendario);
+> - nunca guarda un año a medias (fuera de 2000-2100); vacio si se guarda
+>   (quita la fecha).
+
+- **`fechaCompleta(v)`** · _función_
+  "AAAA-MM-DD" con un año de verdad; "" (quitar la fecha) tambien vale.
+
+- **`CampoFecha({...})`** · _componente React_
+  Campo de fecha que guarda solo, sin guardar fechas a medias (ver arriba).
 
 ### `src/componentes/ComboBuscable.tsx`
 
@@ -1583,6 +1614,11 @@ _404 funciones, componentes, métodos y rutas en 57 archivos._
   viaje, valores, cruce y pago; la factura de la bomba; los abonos del socio
   en esos viajes y la posible vuelta para juntarla.
 
+- **`CorregirTramo({...})`** · _componente React_
+  Corregir un tramo cuyo cruce con la bomba no coincide: aceptar lo que cobro
+  la bomba, o escribir a mano el efectivo y el combustible acordados. En los
+  dos casos la diferencia queda resuelta.
+
 - **`VentanaAbonos({...})`** · _componente React_
   Abonos del socio: la lista y el boton para registrar uno nuevo.
 
@@ -1692,18 +1728,45 @@ _404 funciones, componentes, métodos y rutas en 57 archivos._
 > - Nueva relacion: desde el PDF o el Excel de la bomba (se leen los vales y
 >   el sistema propone el tanqueo de cada uno) o armada a mano (se eligen los
 >   tanqueos de un periodo). Se revisa vale por vale y se guarda.
+> - Pago de la quincena: se pagan varias facturas de una vez (6 o 7) y se
+>   descuentan los abonos de los socios; "Exportar Excel" saca el reporte
+>   VALES (como docs/Vales Coesco EJEMPLO.pdf) y "Registrar pago" deja las
+>   facturas pagadas y los abonos usados.
+> - La bomba da combustible y efectivo: cada vale es de uno de los dos y se
+>   compara con ese valor del tanqueo. Los que no coinciden tienen "Corregir":
+>   cambiar el valor o el tipo del vale (si se leyo mal) o lo registrado en
+>   el TMS (si se registro mal).
 
-- **`etiquetaTramo(t)`** · _función_
+- **`montoDe(t, tipo)`** · _función_
+  Lo que el tramo tiene registrado del tipo del vale.
+
+- **`libreParaTipo(t, tipo)`** · _función_
+  El tramo aun puede tomar un vale de ese tipo (tiene ese valor y no tiene vale).
+
+- **`estadoDe(valor, t, tipo)`** · _función_
+  Estado de un vale frente al tramo elegido.
+
+- **`etiquetaTramo(t, tipo)`** · _función_
   Texto de un tramo en la lista para elegir el de un vale.
 
 - **`VentanaCruceBomba({...})`** · _componente React_
   Ventana del cruce: facturas cruzadas y nueva relacion.
+
+- **`PagoQuincena({...})`** · _componente React_
+  Pago de la quincena: las facturas sin pagar (se marcan las que se pagan,
+  casi siempre todas) menos los abonos de los socios que aun no se han
+  descontado. Exportar saca el Excel VALES; Registrar deja todo pagado.
 
 - **`NuevaRelacion({...})`** · _componente React_
   Nueva relacion: leer el archivo (o armarla a mano), revisar vale por vale y guardar.
 
 - **`ArmarAMano({...})`** · _componente React_
   Relacion armada a mano: los tanqueos de un periodo, marcando los que trae la factura.
+
+- **`CorregirVale({...})`** · _componente React_
+  Corregir un vale que no coincide: el tipo y el valor del vale (si se leyo
+  mal del archivo) o lo registrado en el TMS en su tanqueo (si se registro
+  mal); esto ultimo se guarda de una vez en el tanqueo.
 
 ### `src/paginas/cuadro/VentanasCuadro.tsx`
 
@@ -1781,6 +1844,44 @@ _404 funciones, componentes, métodos y rutas en 57 archivos._
   Lee el Excel "MATRIZ FLETES": busca la fila de titulos (EMPRESA, RAZON
   SOCIAL, VALOR, TIPO, OBSERVACIONES) y devuelve las filas de abajo.
   Lanza Error si el archivo no tiene esa forma.
+
+### `src/paginas/cuadro/excelVales.ts`
+
+> Excel "VALES" del pago a la bomba (igual a docs/Vales Coesco EJEMPLO.pdf):
+> lo que la gerente arma cada quincena para pagarle a la bomba.
+>
+> - Membrete de la empresa (logo, nombre, VALES, las estaciones, NIT,
+>   version, numero y fecha).
+> - Una fila por anticipo de las facturas de la quincena con lo que cobro la
+>   bomba: fecha, placa, efectivo, combustible, descuento, total, EDS, factura,
+>   fecha y vencimiento de la factura, empresa del vehiculo y fechas de pago.
+> - Totales, los abonos de los socios restados y el valor a pagar.
+>
+> filasVales y resumenPago no dependen de exceljs y se prueban aparte
+> (excelVales.test.ts); exceljs se carga solo al descargar.
+
+- **`flotaTexto(f)`** · _función_
+  "LOPEZ", "M&C" o "TERCERO" (como en el Excel de anticipos).
+
+- **`filasVales(relaciones, tramos, fechaPago)`** · _función_
+  Filas del Excel con lo que cobro la bomba en cada factura: una por tanqueo
+  (tramo) y factura, con el efectivo y el combustible de sus vales; los vales
+  sin tanqueo en el TMS salen solos. Por fecha y placa.
+
+- **`resumenPago(filas, abonos)`** · _función_
+  Totales del pago: lo de las facturas, los abonos de los socios y lo que queda por pagar.
+
+- **`fechaExcel(f)`** · _función_
+  "2026-10-05" -> Date a mediodia local (que Excel no lo corra de dia).
+
+- **`logoBase64()`** · _función_
+  El logo de la empresa como data URL (para meterlo en el Excel).
+
+- **`membrete(hoja, libro, d)`** · _función_
+  Membrete: logo, nombre, VALES, estaciones, NIT, version, numero y fecha.
+
+- **`descargarVales(d, nombreArchivo)`** · _función_
+  Arma y descarga el Excel VALES del pago a la bomba.
 
 ### `src/paginas/cuadro/facturacion.ts`
 
@@ -1885,7 +1986,8 @@ _404 funciones, componentes, métodos y rutas en 57 archivos._
 > Lectura de la relacion quincenal de la bomba ("RELACION VALES DESPACHO -
 > CONSUMO" de COESCO, una por factura: AE5044797). Llega en PDF o en Excel;
 > de los dos se sacan el numero de la factura, su fecha y los vales (EDS,
-> numero de vale, fecha, hora, placa, galones y valor).
+> numero de vale, fecha, hora, placa, galones y valor). La bomba da
+> combustible y efectivo: el producto del vale dice cual es (ver tipoDeVale).
 >
 > leerPdf usa pdfjs (cargado solo cuando se usa) y devuelve los textos de
 > cada pagina con su posicion; valesDesdePdf y valesDesdeFilas no dependen de
@@ -1902,6 +2004,11 @@ _404 funciones, componentes, métodos y rutas en 57 archivos._
 
 - **`valorTexto(t)`** · _función_
   Valor en pesos: "1,000,000.00" -> 1000000.
+
+- **`tipoDeVale(producto, galones)`** · _función_
+  Tipo de un vale por su producto: EFECTIVO / ANTICIPO / DINERO es efectivo;
+  BIODIESEL, ACPM, GASOLINA... es combustible. Sin producto, es combustible
+  si trae galones y efectivo si no.
 
 - **`valesDesdePdf(paginas)`** · _función_
   Vales del PDF de la relacion. Cada vale es una fila que empieza en su
@@ -1924,8 +2031,18 @@ _404 funciones, componentes, métodos y rutas en 57 archivos._
 > bomba (la ida y, si la hay, su vuelta), con su estado frente a la bomba.
 > Sin dependencias de React: se prueba aparte (tanqueos.test.ts).
 
+- **`diferenciaCombustible(t)`** · _función_
+  Lo que cambio el combustible de un tramo al cruzarlo: valor del vale (o de los galones) - lo registrado.
+
+- **`diferenciaEfectivo(t)`** · _función_
+  Lo que cambio el efectivo de un tramo al cruzarlo con el vale de efectivo.
+
 - **`diferenciaTramo(t)`** · _función_
-  Lo que un tramo cambio al cruzarlo: valor del vale (o de los galones) - lo registrado.
+  Lo que un tramo cambio al cruzarlo (combustible y efectivo).
+
+- **`faltaCruzar(t)`** · _función_
+  Lo que le falta a un tramo para quedar cruzado: el vale de combustible y/o
+  el de efectivo (solo de lo que dio la bomba).
 
 - **`agruparPorTanqueo(tramos)`** · _función_
   Agrupa los tramos por tanqueo (los anticipos viejos sin tanqueo quedan solos).

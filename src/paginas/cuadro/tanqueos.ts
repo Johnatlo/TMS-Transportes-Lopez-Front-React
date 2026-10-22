@@ -8,10 +8,10 @@ import type { TonoPastilla } from "../../componentes/TablaDatos";
 
 /**
  * Cruce con la relacion de la bomba:
- * - CRUZADO: todo su combustible tiene vale de la bomba (o ya traia la factura
- *   de la bomba del Excel) y coincide.
- * - DIFERENCIA: cruzado, pero el valor del vale no es el que se habia
- *   registrado (1.000 o mas).
+ * - CRUZADO: todo lo que dio la bomba (combustible y efectivo) tiene su vale
+ *   (o, sin ningun vale, ya traia la factura de la bomba del Excel) y coincide.
+ * - DIFERENCIA: el valor de algun vale no es el que se habia registrado
+ *   (1.000 o mas), aunque aun falten vales: hay que revisarlo.
  * - SIN_CRUZAR: aun no aparece en ninguna relacion de la bomba.
  * - SOLO_EFECTIVO: no paso por la bomba; no hay nada que cruzar.
  */
@@ -47,8 +47,24 @@ export interface Tanqueo {
 /** Diferencia que se toma como real (por debajo son redondeos). */
 export const DIFERENCIA_MINIMA = 1000;
 
-/** Lo que un tramo cambio al cruzarlo: valor del vale (o de los galones) - lo registrado. */
-export const diferenciaTramo = (t: AnticipoBomba) => (t.combustibleEntregado === null ? 0 : t.combustible - t.combustibleEntregado);
+/** Lo que cambio el combustible de un tramo al cruzarlo: valor del vale (o de los galones) - lo registrado. */
+export const diferenciaCombustible = (t: AnticipoBomba) => (t.combustibleEntregado === null ? 0 : t.combustible - t.combustibleEntregado);
+/** Lo que cambio el efectivo de un tramo al cruzarlo con el vale de efectivo. */
+export const diferenciaEfectivo = (t: AnticipoBomba) => (t.efectivoEntregado === null ? 0 : t.efectivo - t.efectivoEntregado);
+/** Lo que un tramo cambio al cruzarlo (combustible y efectivo). */
+export const diferenciaTramo = (t: AnticipoBomba) => diferenciaCombustible(t) + diferenciaEfectivo(t);
+
+/**
+ * Lo que le falta a un tramo para quedar cruzado: el vale de combustible y/o
+ * el de efectivo (solo de lo que dio la bomba).
+ */
+export function faltaCruzar(t: AnticipoBomba): { combustible: boolean; efectivo: boolean } {
+  const deBomba = t.bombaId !== null;
+  return {
+    combustible: deBomba && t.combustible > 0 && !t.vale,
+    efectivo: deBomba && t.efectivo > 0 && !t.valeEfectivo,
+  };
+}
 
 /** Agrupa los tramos por tanqueo (los anticipos viejos sin tanqueo quedan solos). */
 export function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
@@ -62,7 +78,11 @@ export function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
     const vuelta = ts.find((t) => t.tramo === "VUELTA" && t !== ida) ?? null;
     const conCombustible = ts.filter((t) => t.combustible > 0 && t.bombaId !== null);
     const diferencia = ts.reduce((s, t) => s + diferenciaTramo(t), 0);
-    const cruzado = conCombustible.length > 0 && (conCombustible.every((t) => !!t.vale) || !!ida.facturaBomba);
+    // Sin ningun vale y con la factura de la bomba: se cargo del Excel ya cruzado.
+    const conVales = ts.some((t) => !!t.vale || !!t.valeEfectivo);
+    const cruzado =
+      conCombustible.length > 0 &&
+      (conVales ? ts.every((t) => !faltaCruzar(t).combustible && !faltaCruzar(t).efectivo) : !!ida.facturaBomba);
     const conBomba = ts.filter((t) => t.bombaId !== null);
     return {
       clave,
@@ -81,14 +101,15 @@ export function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
       efectivo: ts.reduce((s, t) => s + t.efectivo, 0),
       combustible: ts.reduce((s, t) => s + t.combustible, 0),
       total: ts.reduce((s, t) => s + t.valor, 0),
+      // Una diferencia se muestra aunque aun falten vales: es lo que hay que revisar.
       cruce:
         conCombustible.length === 0
           ? "SOLO_EFECTIVO"
-          : !cruzado
-            ? "SIN_CRUZAR"
-            : Math.abs(diferencia) >= DIFERENCIA_MINIMA
-              ? "DIFERENCIA"
-              : "CRUZADO",
+          : Math.abs(diferencia) >= DIFERENCIA_MINIMA
+            ? "DIFERENCIA"
+            : cruzado
+              ? "CRUZADO"
+              : "SIN_CRUZAR",
       diferencia,
       pagado: conBomba.length > 0 && conBomba.every((t) => !!t.fechaPago),
       fechaPago: ida.fechaPago,

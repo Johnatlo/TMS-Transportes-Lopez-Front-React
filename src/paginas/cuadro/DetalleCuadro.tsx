@@ -8,6 +8,7 @@ import { apiCuadro, fechaHora, moneda } from "../../api/cliente";
 import type { DetalleCuadro as Detalle, EstadoPapeles } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
+import CampoFecha from "../../componentes/CampoFecha";
 import Modal from "../../componentes/Modal";
 import Seccion from "../../componentes/Seccion";
 import { Pastilla } from "../../componentes/TablaDatos";
@@ -422,11 +423,7 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
                   {a.facturaBomba && <span className="dato-sec">Factura {a.facturaBomba}</span>}
                 </td>
                 <td>
-                  <input
-                    type="date"
-                    value={a.fechaPago ?? ""}
-                    onChange={(e) => aplicar(() => apiCuadro.actualizarAnticipo(d.id, a.id, { fechaPago: e.target.value }))}
-                  />
+                  <CampoFecha valor={a.fechaPago} alGuardar={(f) => aplicar(() => apiCuadro.actualizarAnticipo(d.id, a.id, { fechaPago: f }))} />
                 </td>
                 <td>
                   <button

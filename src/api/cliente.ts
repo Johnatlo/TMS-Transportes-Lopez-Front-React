@@ -816,14 +816,22 @@ export interface AnticipoBomba {
   combustibleEntregado: number | null;
   /** Fecha del viaje del cuadro al que se suma. */
   fechaViaje: string | null;
-  /** Vale de la relacion de la bomba con que se cruzo. */
+  /** Vale de combustible de la relacion de la bomba con que se cruzo. */
   vale: string | null;
+  /** Vale de efectivo de la relacion de la bomba con que se cruzo. */
+  valeEfectivo: string | null;
+  /** Efectivo que se habia registrado antes de cruzarlo con el vale. */
+  efectivoEntregado: number | null;
   /** Relacion (factura) de la bomba con que se cruzo. */
   relacionId: number | null;
 }
 
+/** Que entrego la bomba en el vale: combustible (con galones) o efectivo. */
+export type TipoVale = "COMBUSTIBLE" | "EFECTIVO";
+
 /** Un vale de la relacion quincenal de la bomba. */
 export interface ValeBomba {
+  tipo: TipoVale;
   eds: string;
   vale: string | null;
   fecha: string;
@@ -850,10 +858,26 @@ export interface RelacionBomba {
   fecha: string;
   /** Cuando vence la factura de la bomba. */
   fechaVencimiento: string | null;
+  /** Pago a la bomba en que se pago (con otras facturas de la quincena). */
+  pagoId: number | null;
   total: number;
   fechaPago: string | null;
   nota: string | null;
   vales: Array<ValeBomba & { id: number; tramoId: number | null }>;
+}
+
+/** Un pago a la bomba: varias facturas de la quincena menos los abonos de los socios. */
+export interface PagoBomba {
+  id: number;
+  fecha: string;
+  totalFacturas: number;
+  totalAbonos: number;
+  valorPagado: number;
+  referencia: string | null;
+  /** Ids de las facturas (relaciones) pagadas. */
+  relaciones: number[];
+  /** Ids de los abonos del socio descontados. */
+  abonos: number[];
 }
 
 /** Cupo con la bomba y valores sugeridos para el cruce. */
@@ -883,6 +907,8 @@ export interface AbonoSocio {
   fecha: string;
   valor: number;
   nota: string | null;
+  /** Pago a la bomba en que se desconto; null = aun no se ha usado. */
+  pagoId: number | null;
   viajes: Array<{ cuadroViajeId: number; valor: number; placa: string | null; empresa: string | null; manifiesto: string | null; fecha: string | null }>;
 }
 
@@ -1004,6 +1030,13 @@ export const apiCuadro = {
     put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/vencimiento`, { fechaVencimiento }),
   /** Fecha en que se le pago a la bomba la factura (vacia la quita). */
   pagarRelacionBomba: (id: number, fechaPago: string) => put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/pago`, { fechaPago }),
+  /** Pagos a la bomba registrados. */
+  pagosBomba: () => get<PagoBomba[]>("/cuadro/pagos-bomba"),
+  /** Registra el pago de la quincena: facturas elegidas menos los abonos elegidos. */
+  registrarPagoBomba: (datos: { relaciones: number[]; abonos: number[]; fecha: string; referencia: string }) =>
+    post<PagoBomba[]>("/cuadro/pagos-bomba", datos),
+  /** Deshace un pago a la bomba. */
+  borrarPagoBomba: (id: number) => del<PagoBomba[]>(`/cuadro/pagos-bomba/${id}`),
   /** Borra la relacion y deshace el cruce. */
   borrarRelacionBomba: (id: number) => del<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}`),
   /** Cambia el cupo con la bomba o el precio / descuento por galon sugeridos. */

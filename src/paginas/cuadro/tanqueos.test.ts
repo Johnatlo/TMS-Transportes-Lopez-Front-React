@@ -29,6 +29,8 @@ const tramo = (cambios: Partial<AnticipoBomba>): AnticipoBomba => ({
   combustibleEntregado: null,
   fechaViaje: "2026-09-01",
   vale: null,
+  valeEfectivo: null,
+  efectivoEntregado: null,
   relacionId: null,
   ...cambios,
 });
@@ -46,10 +48,17 @@ describe("agruparPorTanqueo", () => {
     expect(g.cruce).toBe("SIN_CRUZAR");
   });
 
-  test("cruzado cuando todo su combustible tiene vale; con diferencia si el vale cambio el valor", () => {
-    expect(agruparPorTanqueo([tramo({ vale: "V1", relacionId: 1, combustibleEntregado: 1_100_000 })])[0].cruce).toBe("CRUZADO");
-    const [g] = agruparPorTanqueo([tramo({ vale: "V1", relacionId: 1, combustible: 1_000_000, combustibleEntregado: 1_100_000 })]);
+  test("cruzado cuando lo que dio la bomba (combustible y efectivo) tiene vale; con diferencia si el vale cambio el valor", () => {
+    expect(agruparPorTanqueo([tramo({ vale: "V1", valeEfectivo: "E1", relacionId: 1, combustibleEntregado: 1_100_000 })])[0].cruce).toBe("CRUZADO");
+    // Falta el vale del efectivo: aun no esta cruzado.
+    expect(agruparPorTanqueo([tramo({ vale: "V1", relacionId: 1 })])[0].cruce).toBe("SIN_CRUZAR");
+    // El efectivo tambien cuenta en la diferencia.
+    const [e] = agruparPorTanqueo([tramo({ vale: "V1", valeEfectivo: "E1", efectivo: 1_000_000, efectivoEntregado: 1_100_000 })]);
+    expect([e.cruce, e.diferencia]).toEqual(["DIFERENCIA", -100_000]);
+    const [g] = agruparPorTanqueo([tramo({ vale: "V1", valeEfectivo: "E1", relacionId: 1, combustible: 1_000_000, combustibleEntregado: 1_100_000 })]);
     expect([g.cruce, g.diferencia]).toEqual(["DIFERENCIA", -100_000]);
+    // Con diferencia aunque falte el vale del efectivo: hay que revisarlo.
+    expect(agruparPorTanqueo([tramo({ vale: "V1", combustible: 1_000_000, combustibleEntregado: 1_100_000 })])[0].cruce).toBe("DIFERENCIA");
     // La ida con vale y la vuelta sin vale: aun no esta cruzado del todo.
     expect(agruparPorTanqueo([tramo({ vale: "V1" }), tramo({ id: 2, tramo: "VUELTA" })])[0].cruce).toBe("SIN_CRUZAR");
   });

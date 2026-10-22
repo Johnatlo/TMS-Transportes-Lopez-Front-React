@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { galonesTexto, valesDesdeFilas, valesDesdePdf } from "./relacionBomba";
+import { galonesTexto, tipoDeVale, valesDesdeFilas, valesDesdePdf } from "./relacionBomba";
 
 /** Textos del PDF real AE5044797 (posiciones de pdfjs), recortado a dos vales. */
 const PDF = [
@@ -44,8 +44,8 @@ describe("relacion de la bomba en PDF", () => {
       numero: "AE5044797",
       fecha: "2026-10-01",
       vales: [
-        { eds: "EDS CHUSACA", vale: "V56300011898", fecha: "2026-09-30", hora: "18:47:25", placa: "SWN623", galones: 89.767, valor: 1_000_000 },
-        { eds: "EDS SAN ESTEBAN", vale: "V46300001253", fecha: "2026-09-20", hora: "19:11:55", placa: "SWN623", galones: 53.122, valor: 594_435 },
+        { tipo: "COMBUSTIBLE", eds: "EDS CHUSACA", vale: "V56300011898", fecha: "2026-09-30", hora: "18:47:25", placa: "SWN623", galones: 89.767, valor: 1_000_000 },
+        { tipo: "COMBUSTIBLE", eds: "EDS SAN ESTEBAN", vale: "V46300001253", fecha: "2026-09-20", hora: "19:11:55", placa: "SWN623", galones: 53.122, valor: 594_435 },
       ],
     });
   });
@@ -69,11 +69,33 @@ describe("relacion de la bomba en Excel", () => {
     expect(r).toEqual({
       numero: "AE5044797",
       fecha: "2026-10-01",
-      vales: [{ eds: "EDS CHUSACA", vale: "V56300011898", fecha: "2026-09-30", hora: "18:47:25", placa: "SWN623", galones: 89.767, valor: 1_000_000 }],
+      vales: [{ tipo: "COMBUSTIBLE", eds: "EDS CHUSACA", vale: "V56300011898", fecha: "2026-09-30", hora: "18:47:25", placa: "SWN623", galones: 89.767, valor: 1_000_000 }],
     });
   });
 
   test("sin la fila de titulos avisa", () => {
     expect(() => valesDesdeFilas([["hola"]])).toThrow(/titulos/);
+  });
+});
+
+describe("tipo de vale", () => {
+  test("por el producto; sin producto, por si trae galones", () => {
+    expect(tipoDeVale("BIODIESEL", 89.767)).toBe("COMBUSTIBLE");
+    expect(tipoDeVale("EFECTIVO", 1)).toBe("EFECTIVO");
+    expect(tipoDeVale("ANTICIPO EN EFECTIVO", null)).toBe("EFECTIVO");
+    expect(tipoDeVale(null, null)).toBe("EFECTIVO");
+    expect(tipoDeVale(null, 50)).toBe("COMBUSTIBLE");
+  });
+
+  test("en el Excel, la fila de efectivo queda sin galones", () => {
+    const r = valesDesdeFilas([
+      ["Id", "EDS", "Nro. Docu", "Fecha", "Placa", "Denomina Producto", "Cant.", "Valor"],
+      [1, "EDS CHUSACA", "V1", new Date("2026-09-30T00:00:00Z"), "SWN623", "EFECTIVO", 1, 1200000],
+      [2, "EDS CHUSACA", "V2", new Date("2026-09-30T00:00:00Z"), "SWN623", "BIODIESEL", 89.767, 1000000],
+    ]);
+    expect(r.vales.map((v) => [v.tipo, v.galones, v.valor])).toEqual([
+      ["EFECTIVO", null, 1_200_000],
+      ["COMBUSTIBLE", 89.767, 1_000_000],
+    ]);
   });
 });

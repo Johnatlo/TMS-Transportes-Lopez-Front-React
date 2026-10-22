@@ -15,12 +15,13 @@
  * - Botones: cruce con la bomba (la relacion quincenal de vales, en PDF,
  *   Excel o a mano), abonos del socio y anticipos de empresas.
  */
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiCuadro, moneda } from "../../api/cliente";
 import type { AbonoSocio, AnticipoBomba, ResumenBomba } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
+import CampoFecha from "../../componentes/CampoFecha";
 import ComboBuscable from "../../componentes/ComboBuscable";
 import Modal from "../../componentes/Modal";
 import Indicador from "../../componentes/Indicador";
@@ -28,7 +29,7 @@ import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla, TonoPastilla } from "../../componentes/TablaDatos";
 import { fechaCorta, hoyColombia } from "./estadosCuadro";
 import { deInput, enInput, placaConGuion } from "./facturacion";
-import { agruparPorTanqueo, coloresBombas, DIFERENCIA_MINIMA, diferenciaTramo, posiblesVueltas } from "./tanqueos";
+import { agruparPorTanqueo, coloresBombas, DIFERENCIA_MINIMA, diferenciaTramo, faltaCruzar, posiblesVueltas } from "./tanqueos";
 import type { EstadoCruce, Tanqueo } from "./tanqueos";
 import ImportarAnticipos from "./ImportarAnticipos";
 import VentanaCruceBomba from "./VentanaCruceBomba";
@@ -302,6 +303,8 @@ function DetalleTanqueo({
   guardar: (accion: () => Promise<AnticipoBomba[]>) => Promise<void>;
 }) {
   const viajes = new Set(g.tramos.map((t) => t.cuadroViajeId).filter(Boolean));
+  /** Tramo con diferencia que se esta corrigiendo. */
+  const [corrigiendo, setCorrigiendo] = useState<number | null>(null);
   const abonosDeEstos = abonos.flatMap((a) => a.viajes.filter((v) => viajes.has(v.cuadroViajeId)).map((v) => ({ ...v, socio: a.socio, fecha: a.fecha })));
 
   // Cruce por galones (sin vale): combustible = galones x precio - descuento.
@@ -328,20 +331,24 @@ function DetalleTanqueo({
             <th>Viaje</th>
             <th className="num">Efectivo</th>
             <th className="num">Combustible</th>
-            <th>Vale de la bomba</th>
+            <th>Vales de la bomba</th>
             <th>Galones</th>
             <th>Precio galon</th>
             <th>Descuento ($)</th>
             <th className="num">Registrado antes</th>
             <th className="num">Diferencia</th>
             <th>Pago a la bomba</th>
+            <th />
           </tr>
         </thead>
         <tbody>
           {g.tramos.map((t) => {
             const d = diferenciaTramo(t);
+            const falta = faltaCruzar(t);
+            const conDiferencia = Math.abs(d) >= DIFERENCIA_MINIMA;
             return (
-              <tr key={t.id}>
+              <Fragment key={t.id}>
+              <tr>
                 <td>
                   <Pastilla tono={t.tramo === "VUELTA" ? "info" : "neutro"}>{t.tramo === "VUELTA" ? "Vuelta" : "Ida"}</Pastilla>
                 </td>
@@ -352,22 +359,56 @@ function DetalleTanqueo({
                 <td className="num">
                   <strong>{moneda(t.combustible)}</strong>
                 </td>
-                <td>{t.vale ? <span className="codigo">{t.vale}</span> : <span className="dato-sec">{t.combustible > 0 ? "Sin vale" : "-"}</span>}</td>
+                <td>
+                  {/* Un vale para el combustible y otro para el efectivo (la bomba da los dos). */}
+                  {t.vale ? <span className="codigo">Comb. {t.vale}</span> : falta.combustible && <span className="dato-sec">Combustible sin vale</span>}
+                  {t.valeEfectivo ? (
+                    <span className="dato-sec codigo">Efect. {t.valeEfectivo}</span>
+                  ) : (
+                    falta.efectivo && <span className="dato-sec">Efectivo sin vale</span>
+                  )}
+                  {!t.vale && !t.valeEfectivo && !falta.combustible && !falta.efectivo && "-"}
+                </td>
                 <td>{campoCruce(t, "galones")}</td>
                 <td>{campoCruce(t, "precioGalon", resumen?.precioGalonBomba)}</td>
                 <td>{campoCruce(t, "descuento", t.galones !== null && resumen ? Math.round(t.galones * resumen.descuentoGalonBomba) : undefined)}</td>
-                <td className="num">{t.combustibleEntregado === null ? "-" : moneda(t.combustibleEntregado)}</td>
                 <td className="num">
-                  {t.combustibleEntregado === null ? "-" : <span className={Math.abs(d) >= DIFERENCIA_MINIMA ? "texto-vencido" : "dato-sec"}>{moneda(d)}</span>}
+                  {t.combustibleEntregado === null && t.efectivoEntregado === null && "-"}
+                  {t.combustibleEntregado !== null && <span>Comb. {moneda(t.combustibleEntregado)}</span>}
+                  {t.efectivoEntregado !== null && <span className="dato-sec">Efect. {moneda(t.efectivoEntregado)}</span>}
+                </td>
+                <td className="num">
+                  {t.combustibleEntregado === null && t.efectivoEntregado === null ? "-" : <span className={conDiferencia ? "texto-vencido" : "dato-sec"}>{moneda(d)}</span>}
                 </td>
                 <td>
                   {t.bombaId ? (
-                    <input type="date" value={t.fechaPago ?? ""} onChange={(e) => guardar(() => apiCuadro.actualizarTramo(t.id, { fechaPago: e.target.value }))} />
+                    <CampoFecha valor={t.fechaPago} alGuardar={(f) => guardar(() => apiCuadro.actualizarTramo(t.id, { fechaPago: f }))} />
                   ) : (
                     <span className="dato-sec">No es de la bomba</span>
                   )}
                 </td>
+                <td className="num">
+                  {conDiferencia && (
+                    <button className="boton-suave" onClick={() => setCorrigiendo(corrigiendo === t.id ? null : t.id)}>
+                      {corrigiendo === t.id ? "Cerrar" : "Corregir"}
+                    </button>
+                  )}
+                </td>
               </tr>
+              {corrigiendo === t.id && (
+                <tr>
+                  <td colSpan={12}>
+                    <CorregirTramo
+                      t={t}
+                      guardar={async (accion) => {
+                        await guardar(accion);
+                        setCorrigiendo(null);
+                      }}
+                    />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             );
           })}
         </tbody>
@@ -394,11 +435,7 @@ function DetalleTanqueo({
             </label>
             <label>
               <span className="dato-sec">Fecha factura</span>
-              <input
-                type="date"
-                value={g.fechaFacturaBomba ?? ""}
-                onChange={(e) => guardar(() => apiCuadro.actualizarTanqueo(g.tanqueoId!, { fechaFacturaBomba: e.target.value }))}
-              />
+              <CampoFecha valor={g.fechaFacturaBomba} alGuardar={(f) => guardar(() => apiCuadro.actualizarTanqueo(g.tanqueoId!, { fechaFacturaBomba: f }))} />
             </label>
           </>
         )}
@@ -440,6 +477,51 @@ function DetalleTanqueo({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Corregir un tramo cuyo cruce con la bomba no coincide: aceptar lo que cobro
+ * la bomba, o escribir a mano el efectivo y el combustible acordados. En los
+ * dos casos la diferencia queda resuelta.
+ */
+function CorregirTramo({ t, guardar }: { t: AnticipoBomba; guardar: (accion: () => Promise<AnticipoBomba[]>) => Promise<void> }) {
+  const [efectivo, setEfectivo] = useState(String(t.efectivo));
+  const [combustible, setCombustible] = useState(String(t.combustible));
+  const [guardando, setGuardando] = useState(false);
+  const enviar = async (datos: Record<string, unknown>) => {
+    setGuardando(true);
+    await guardar(() => apiCuadro.actualizarTramo(t.id, datos));
+    setGuardando(false);
+  };
+  return (
+    <div className="detalle-tanqueo">
+      <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
+        Lo registrado no coincide con lo que cobro la bomba
+        {t.combustibleEntregado !== null && ` (combustible: registrado ${moneda(t.combustibleEntregado)}, bomba ${moneda(t.combustible)})`}
+        {t.efectivoEntregado !== null && ` (efectivo: registrado ${moneda(t.efectivoEntregado)}, bomba ${moneda(t.efectivo)})`}.
+      </div>
+      <div className="detalle-tanqueo-pie" style={{ marginTop: 0 }}>
+        <button className="btn-primary" disabled={guardando} onClick={() => enviar({ aceptarBomba: true })}>
+          Aceptar lo de la bomba
+        </button>
+        <label>
+          <span className="dato-sec">Efectivo</span>
+          <input type="number" min={0} value={efectivo} onChange={(e) => setEfectivo(e.target.value)} />
+        </label>
+        <label>
+          <span className="dato-sec">Combustible</span>
+          <input type="number" min={0} value={combustible} onChange={(e) => setCombustible(e.target.value)} />
+        </label>
+        <button
+          className="btn-secondary"
+          disabled={guardando || efectivo.trim() === "" || combustible.trim() === ""}
+          onClick={() => enviar({ efectivo: Number(efectivo), combustible: Number(combustible), aceptarBomba: true })}
+        >
+          Guardar estos valores (quedan como los acordados)
+        </button>
+      </div>
     </div>
   );
 }

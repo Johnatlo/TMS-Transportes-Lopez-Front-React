@@ -2,13 +2,14 @@
  * Lectura de la relacion quincenal de la bomba ("RELACION VALES DESPACHO -
  * CONSUMO" de COESCO, una por factura: AE5044797). Llega en PDF o en Excel;
  * de los dos se sacan el numero de la factura, su fecha y los vales (EDS,
- * numero de vale, fecha, hora, placa, galones y valor).
+ * numero de vale, fecha, hora, placa, galones y valor). La bomba da
+ * combustible y efectivo: el producto del vale dice cual es (ver tipoDeVale).
  *
  * leerPdf usa pdfjs (cargado solo cuando se usa) y devuelve los textos de
  * cada pagina con su posicion; valesDesdePdf y valesDesdeFilas no dependen de
  * ninguna libreria y se prueban aparte (relacionBomba.test.ts).
  */
-import type { ValeBomba } from "../../api/cliente";
+import type { TipoVale, ValeBomba } from "../../api/cliente";
 import { fechaCelda, numeroCelda } from "../seguimiento/cargaExcel";
 
 /** Un texto del PDF con su posicion (x a la derecha, y hacia arriba, en puntos). */
@@ -65,6 +66,22 @@ const valorTexto = (t: string) => {
   return Number.isFinite(n) ? Math.round(n) : null;
 };
 
+/** Productos que son plata y no combustible. */
+const PRODUCTO_EFECTIVO = /EFECTIVO|ANTICIPO|DINERO|AVANCE/i;
+/** Productos de combustible. */
+const PRODUCTO_COMBUSTIBLE = /BIODIESEL|DIESEL|ACPM|GASOLINA|CORRIENTE|EXTRA|GAS\b/i;
+
+/**
+ * Tipo de un vale por su producto: EFECTIVO / ANTICIPO / DINERO es efectivo;
+ * BIODIESEL, ACPM, GASOLINA... es combustible. Sin producto, es combustible
+ * si trae galones y efectivo si no.
+ */
+export function tipoDeVale(producto: string | null | undefined, galones: number | null): TipoVale {
+  if (producto && PRODUCTO_EFECTIVO.test(producto)) return "EFECTIVO";
+  if (producto && PRODUCTO_COMBUSTIBLE.test(producto)) return "COMBUSTIBLE";
+  return galones ? "COMBUSTIBLE" : "EFECTIVO";
+}
+
 /** Numero de la factura de la bomba: dos letras y digitos (AE5044797). */
 const NUMERO_FACTURA = /^[A-Z]{2}\d{5,}$/;
 /** Numero de vale: V y digitos (V56300011898). */
@@ -107,9 +124,13 @@ export function valesDesdePdf(paginas: TextoPdf[][]): RelacionLeida {
         .toUpperCase();
       const numeros = linea.filter((i) => /^[\d.,]+$/.test(i.texto) && i.x > (xPlaca ?? 0));
       const valor = numeros.length ? valorTexto(numeros[numeros.length - 1].texto) : null;
-      const galones = numeros.length > 1 ? galonesTexto(numeros[numeros.length - 2].texto) : null;
+      const producto = linea.find((i) => PRODUCTO_EFECTIVO.test(i.texto) || PRODUCTO_COMBUSTIBLE.test(i.texto))?.texto ?? null;
+      const cantidad = numeros.length > 1 ? galonesTexto(numeros[numeros.length - 2].texto) : null;
+      const tipo = tipoDeVale(producto, cantidad);
+      // El efectivo no tiene galones (si trae una cantidad, no son galones).
+      const galones = tipo === "EFECTIVO" ? null : cantidad;
       if (!fechaVale || !valor || !placa) return;
-      vales.push({ eds, vale: fila.texto, fecha: fechaVale, hora, placa, galones, valor });
+      vales.push({ tipo, eds, vale: fila.texto, fecha: fechaVale, hora, placa, galones, valor });
     });
   }
   return { numero, fecha, vales };
@@ -138,7 +159,16 @@ export function valesDesdeFilas(filas: unknown[][]): RelacionLeida {
   if (i < 0) throw new Error('No se encontro la fila de titulos de la relacion (Nro. Docu, Placa, Valor).');
   const t = filas[i].map(titulo);
   const col = (...nombres: string[]) => t.findIndex((c) => nombres.includes(c));
-  const c = { eds: col("EDS"), vale: col("NRO DOCU", "VALE"), fecha: col("FECHA"), hora: col("HORA"), placa: col("PLACA"), galones: col("CANT", "CANTIDAD", "GALONES"), valor: col("VALOR") };
+  const c = {
+    eds: col("EDS"),
+    vale: col("NRO DOCU", "VALE"),
+    fecha: col("FECHA"),
+    hora: col("HORA"),
+    placa: col("PLACA"),
+    producto: t.findIndex((x) => x.includes("PRODUCTO") || x === "DENOMINA" || x === "TIPO"),
+    galones: col("CANT", "CANTIDAD", "GALONES"),
+    valor: col("VALOR"),
+  };
   const arriba = filas.slice(0, i).flat().map((v) => String(v ?? "").trim());
   const numero = arriba.find((v) => NUMERO_FACTURA.test(v)) ?? null;
   const fechaArriba = filas.slice(0, i).flat().map((v) => fechaCelda(v) ?? fechaDma(String(v ?? ""))).find(Boolean) ?? null;
@@ -148,8 +178,11 @@ export function valesDesdeFilas(filas: unknown[][]): RelacionLeida {
     const placa = String(f[c.placa] ?? "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
     const fechaVale = c.fecha >= 0 ? fechaCelda(f[c.fecha]) ?? fechaDma(String(f[c.fecha] ?? "")) : null;
     if (!valor || !placa || !fechaVale) continue;
-    const galones = c.galones >= 0 ? (typeof f[c.galones] === "number" ? (f[c.galones] as number) : galonesTexto(String(f[c.galones] ?? ""))) : null;
+    const cantidad = c.galones >= 0 ? (typeof f[c.galones] === "number" ? (f[c.galones] as number) : galonesTexto(String(f[c.galones] ?? ""))) : null;
+    const tipo = tipoDeVale(c.producto >= 0 ? String(f[c.producto] ?? "") : null, cantidad);
+    const galones = tipo === "EFECTIVO" ? null : cantidad;
     vales.push({
+      tipo,
       eds: c.eds >= 0 ? String(f[c.eds] ?? "").trim() : "",
       vale: c.vale >= 0 ? String(f[c.vale] ?? "").trim() || null : null,
       fecha: fechaVale,
