@@ -67,7 +67,15 @@ const COLUMNAS: Columna<FacturaCartera>[] = [
       </>
     ),
   },
-  { id: "empresa", titulo: "Cliente", filtrable: true, valor: (f) => f.empresa, celda: (f) => f.empresa },
+  // Cliente de cobro (las variantes de un cliente quedan juntas) y, aparte, su concepto.
+  { id: "empresa", titulo: "Cliente", filtrable: true, valor: (f) => f.cliente, celda: (f) => f.cliente },
+  {
+    id: "concepto",
+    titulo: "Concepto",
+    filtrable: true,
+    valor: (f) => f.concepto ?? "",
+    celda: (f) => (f.concepto ? <Pastilla tono="morado">{f.concepto}</Pastilla> : <span className="dato-sec">-</span>),
+  },
   { id: "fecha", titulo: "Fecha factura", valor: (f) => f.facturaFecha, celda: (f) => fechaCorta(f.facturaFecha) },
   {
     id: "vence",
@@ -134,7 +142,17 @@ const COLUMNAS: Columna<FacturaCartera>[] = [
 ];
 
 const COLUMNAS_CLIENTES: Columna<ResumenCliente>[] = [
-  { id: "empresa", titulo: "Cliente", valor: (c) => c.empresa, celda: (c) => <span className="principal">{c.empresa}</span> },
+  {
+    id: "empresa",
+    titulo: "Cliente",
+    valor: (c) => c.empresa,
+    celda: (c) => (
+      <>
+        <span className="principal">{c.empresa}</span>
+        {c.conceptos.length > 0 && <span className="dato-sec">Incluye: {c.conceptos.join(", ")}</span>}
+      </>
+    ),
+  },
   { id: "credito", titulo: "Credito", alinear: "derecha", valor: (c) => c.diasCredito, celda: (c) => `${c.diasCredito} dias` },
   { id: "facturas", titulo: "Facturas", alinear: "derecha", valor: (c) => c.facturas, celda: (c) => c.facturas },
   { id: "porVencer", titulo: "Por vencer", alinear: "derecha", valor: (c) => c.porVencer, celda: (c) => moneda(c.porVencer) },
@@ -362,7 +380,7 @@ export default function Cartera() {
       {factura && (
         <DetalleFactura
           factura={factura}
-          plazo={datos.plazos.find((p) => p.empresa === factura.empresa) ?? null}
+          plazo={datos.plazos.find((p) => p.empresa === factura.empresa) ?? datos.plazos.find((p) => p.empresa === factura.cliente) ?? null}
           alCerrar={() => setAbierta(null)}
           alCambiar={alCambiar}
           alAbrirViaje={(id) => setViajeCuadro(id)}

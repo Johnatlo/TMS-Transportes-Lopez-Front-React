@@ -449,3 +449,8 @@ table.tabla tbody tr.fila-detalle > td {
 .chip-alerta.urgente:hover { background: #fbe0e0; }
 .chip-alerta.urgente .chip-contador { background: #dc2626; }
 @media (max-width: 820px) { .alertas-tipos { display: none; } }
+
+/* Reportes: tablas de resumen lado a lado (por mes, por bomba, por empresa). */
+.reporte-columnas { display: grid; grid-template-columns: repeat(auto-fit, minmax(540px, 1fr)); gap: 1rem; align-items: start; }
+/* Cada tabla se queda en su columna: si no cabe, se desplaza de lado ahi mismo. */
+.reporte-columnas > div { min-width: 0; overflow-x: auto; }

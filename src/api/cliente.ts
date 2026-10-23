@@ -687,7 +687,7 @@ export interface FilaCuadro {
   /** Origen → destino. Con manifiesto viene del RNDC (solo consulta); sin manifiesto, rutaManual. */
   ruta: string | null;
   rutaManual: string | null;
-  /** Reconocido de Cartones America: "+4 TONELADAS CARTONES AMERICA" o "RECONOCIDO CORAME". */
+  /** Reconocido de Cartones America: "4 CLIENTES CARTONES AMERICA" o "RECONOCIDO CORAME". */
   concepto: string | null;
   /** Manifiesto del viaje que origino el reconocido. */
   reconocidoDe: string | null;
@@ -882,6 +882,56 @@ export interface PagoBomba {
   abonos: number[];
 }
 
+/** Un movimiento del estado de cuenta, con el saldo despues de el. */
+export interface MovimientoCuenta {
+  fecha: string;
+  /** PRESTAMO, ABONO_SOCIO, PAGO_EMPRESA, PAGO... */
+  tipo: string;
+  descripcion: string;
+  cargo: number;
+  abono: number;
+  saldo: number;
+}
+
+/** Estado de cuenta de un periodo. */
+export interface EstadoDeCuenta {
+  desde: string;
+  hasta: string;
+  saldoInicial: number;
+  movimientos: MovimientoCuenta[];
+  totalCargos: number;
+  totalAbonos: number;
+  saldoFinal: number;
+}
+
+/** Totales de lo prestado por la bomba agrupados (por bomba o por empresa del vehiculo). */
+export interface TotalPrestado {
+  nombre: string;
+  efectivo: number;
+  combustible: number;
+  total: number;
+  anticipos: number;
+}
+
+/** Reporte de la bomba de un periodo. */
+export interface ReporteBomba {
+  estado: EstadoDeCuenta;
+  resumen: {
+    saldoInicial: number;
+    prestadoEfectivo: number;
+    prestadoCombustible: number;
+    prestado: number;
+    anticipos: number;
+    pagadoEmpresa: number;
+    abonadoSocios: number;
+    totalPagado: number;
+    saldoFinal: number;
+  };
+  porMes: Array<{ mes: string; prestado: number; pagadoEmpresa: number; abonadoSocios: number }>;
+  porBomba: TotalPrestado[];
+  porEmpresaVehiculo: TotalPrestado[];
+}
+
 /** Cupo con la bomba y valores sugeridos para el cruce. */
 export interface ParametrosBomba {
   cupoBomba: number;
@@ -1032,6 +1082,8 @@ export const apiCuadro = {
     put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/vencimiento`, { fechaVencimiento }),
   /** Fecha en que se le pago a la bomba la factura (vacia la quita). */
   pagarRelacionBomba: (id: number, fechaPago: string) => put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/pago`, { fechaPago }),
+  /** Reporte de la bomba entre dos fechas: estado de cuenta, lo prestado y lo pagado. */
+  reporteBomba: (desde: string, hasta: string) => get<ReporteBomba>(`/cuadro/reportes/bomba?desde=${desde}&hasta=${hasta}`),
   /** Pagos a la bomba registrados. */
   pagosBomba: () => get<PagoBomba[]>("/cuadro/pagos-bomba"),
   /** Registra el pago de la quincena: facturas elegidas menos los abonos elegidos. */
@@ -1197,7 +1249,12 @@ export type GrupoDueno = Dueno | "TERCEROS";
 /** Una factura por cobrar (puede cubrir varios viajes, o ser un saldo sin viaje). */
 export interface FacturaCartera {
   facturaNumero: string;
+  /** Empresa como esta en el cuadro (llave de la factura con el numero). */
   empresa: string;
+  /** Cliente al que se le cobra: las variantes de un cliente quedan juntas (CARTONES AMERICA URBANO -> CARTONES AMERICA). */
+  cliente: string;
+  /** Concepto del cobro dentro del cliente ("URBANO", "RECONOCIDO"); null si es el normal. */
+  concepto: string | null;
   facturaFecha: string;
   diasCredito: number;
   /** Fecha pago cliente, o fecha de factura + dias de credito si no esta escrita. */
@@ -1235,7 +1292,10 @@ export interface FacturaCartera {
 
 /** Totales de un cliente por edades de vencimiento. */
 export interface ResumenCliente {
+  /** Cliente de cobro (agrupa las variantes de nombre de una misma empresa). */
   empresa: string;
+  /** Conceptos distintos de sus facturas. */
+  conceptos: string[];
   diasCredito: number;
   facturas: number;
   total: number;

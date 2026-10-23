@@ -33,6 +33,7 @@ import { agruparPorTanqueo, coloresBombas, DIFERENCIA_MINIMA, diferenciaTramo, f
 import type { EstadoCruce, Tanqueo } from "./tanqueos";
 import ImportarAnticipos from "./ImportarAnticipos";
 import VentanaCruceBomba from "./VentanaCruceBomba";
+import ReporteBomba from "./ReporteBomba";
 import AnticiposEmpresas from "../seguimiento/AnticiposEmpresas";
 
 /** "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo. */
@@ -61,7 +62,7 @@ function Viaje({ t }: { t: AnticipoBomba | null }) {
 }
 
 /** Ventana abierta desde la barra. */
-type Ventana = "cruce" | "abonos" | "empresas" | "importar" | "cupo" | null;
+type Ventana = "cruce" | "abonos" | "empresas" | "importar" | "cupo" | "reportes" | null;
 
 /**
  * Pantalla Anticipos. Los anticipos se registran en cada viaje del Cuadro
@@ -215,6 +216,9 @@ export default function CuadroAnticipos() {
         <button className="boton-barra" onClick={() => setVentana("empresas")}>
           Anticipos del Zorro
         </button>
+        <button className="boton-barra" onClick={() => setVentana("reportes")}>
+          Reportes
+        </button>
         <button className="boton-barra" style={{ marginLeft: "auto" }} onClick={() => setVentana("importar")}>
           Importar Excel de anticipos
         </button>
@@ -251,6 +255,7 @@ export default function CuadroAnticipos() {
         />
       </div>
 
+      {ventana === "reportes" && <ReporteBomba alCerrar={() => setVentana(null)} />}
       {ventana === "cruce" && <VentanaCruceBomba tramos={tramos} alCerrar={() => setVentana(null)} alCambiar={() => carga.recargar()} />}
       {ventana === "abonos" && (
         <VentanaAbonos

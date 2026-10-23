@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_426 funciones, componentes, métodos y rutas en 59 archivos._
+_435 funciones, componentes, métodos y rutas en 62 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (145)
+- [`src/api/cliente.ts`](#srcapiclientets) (146)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -202,6 +202,8 @@ _426 funciones, componentes, métodos y rutas en 59 archivos._
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
 - [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (8)
+- [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
+- [`src/componentes/periodos.ts`](#srccomponentesperiodosts) (4)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
 - [`src/ganchos/useSesion.tsx`](#srcganchosusesesiontsx) (2)
@@ -219,6 +221,7 @@ _426 funciones, componentes, métodos y rutas en 59 archivos._
 - [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (3)
 - [`src/paginas/cuadro/ImportarAnticipos.tsx`](#srcpaginascuadroimportaranticipostsx) (2)
 - [`src/paginas/cuadro/PastillasEstado.tsx`](#srcpaginascuadropastillasestadotsx) (1)
+- [`src/paginas/cuadro/ReporteBomba.tsx`](#srcpaginascuadroreportebombatsx) (2)
 - [`src/paginas/cuadro/VentanaCruceBomba.tsx`](#srcpaginascuadroventanacrucebombatsx) (9)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (7)
@@ -625,6 +628,9 @@ _426 funciones, componentes, métodos y rutas en 59 archivos._
 
   - **`apiCuadro.pagarRelacionBomba(id, fechaPago)`** · _método_
     Fecha en que se le pago a la bomba la factura (vacia la quita).
+
+  - **`apiCuadro.reporteBomba(desde, hasta)`** · _método_
+    Reporte de la bomba entre dos fechas: estado de cuenta, lo prestado y lo pagado.
 
   - **`apiCuadro.pagosBomba()`** · _método_
     Pagos a la bomba registrados.
@@ -1254,6 +1260,37 @@ _426 funciones, componentes, métodos y rutas en 59 archivos._
 - **`IconoExportar()`** · _componente React_
   Icono del boton Exportar.
 
+### `src/componentes/excelReporte.ts`
+
+> Excel de un reporte (estado de cuenta, totales por mes...): una hoja por
+> tabla, con titulo, periodo, encabezados en azul, valores con su formato
+> (pesos, fechas) y fila de totales. Es generico: lo usan los reportes de
+> cualquier cuadro. exceljs se carga solo al descargar.
+
+- **`fechaExcel(f)`** · _función_
+  "2026-10-05" -> Date a mediodia local (que Excel no lo corra de dia).
+
+- **`descargarReporte(d, nombreArchivo)`** · _función_
+  Arma y descarga el Excel del reporte.
+
+### `src/componentes/periodos.ts`
+
+> Periodos rapidos de los reportes (como en los programas contables): ultimos
+> dos meses, este mes, el mes anterior, esta quincena y este año. Trabajan con
+> fechas "AAAA-MM-DD" sin pasar por la zona horaria.
+
+- **`ultimoDia(anio, mes)`** · _función_
+  Ultimo dia de un mes (mes de 1 a 12).
+
+- **`dos(n)`** · _función_
+  5 -> "05".
+
+- **`fecha(a, m, d)`** · _función_
+  Año, mes y dia -> "AAAA-MM-DD".
+
+- **`periodosRapidos(hoy)`** · _función_
+  Los periodos rapidos a partir de hoy ("AAAA-MM-DD").
+
 ### `src/ganchos/useDatos.ts`
 
 > Gancho para cargar datos de la API con estados de carga, error y recarga.
@@ -1716,6 +1753,22 @@ _426 funciones, componentes, métodos y rutas en 59 archivos._
 - **`PastillasEstado({...})`** · _componente React_
   Estado de un viaje del cuadro: la pastilla de los papeles y, al lado, la de
   la factura si ya se facturo. "Todo pagado" y "Anulado" van solos.
+
+### `src/paginas/cuadro/ReporteBomba.tsx`
+
+> Reportes de la bomba (como un programa contable), por periodo:
+> - Resumen: deuda al inicio, lo que presto la bomba (efectivo y combustible),
+>   lo que se le pago (la empresa y los abonos de los socios) y la deuda al
+>   final.
+> - Por mes, por bomba y por empresa del vehiculo.
+> - Estado de cuenta: cada movimiento con el saldo de la deuda.
+> Todo se exporta a Excel (una hoja por tabla).
+
+- **`nombreMes(m)`** · _función_
+  "2026-09" -> "septiembre 2026".
+
+- **`ReporteBomba({...})`** · _componente React_
+  Ventana de reportes de la bomba.
 
 ### `src/paginas/cuadro/VentanaCruceBomba.tsx`
 
