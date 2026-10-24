@@ -8,6 +8,7 @@ import { Cargando, ErrorCarga } from "../componentes/Estado";
 import Modal from "../componentes/Modal";
 import FormularioPlantilla from "./FormularioPlantilla";
 import TablaDatos from "../componentes/TablaDatos";
+import MenuMas from "../componentes/MenuMas";
 import type { PlantillaViaje, RutaConTarifa } from "../api/tipos";
 
 /**
@@ -55,9 +56,7 @@ export default function Plantillas() {
             vacio="No hay plantillas con estos criterios."
             acciones={
               <>
-                <button className="boton-barra" onClick={() => setModalTarifas(true)}>
-                  Actualizar tarifas
-                </button>
+                <MenuMas opciones={[{ etiqueta: "Actualizar tarifas", alElegir: () => setModalTarifas(true) }]} />
                 <button className="btn-primary boton-con-texto" onClick={() => setModalNueva(true)}>
                   Nueva plantilla
                 </button>

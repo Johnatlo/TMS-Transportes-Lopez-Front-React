@@ -1,5 +1,8 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import FiltrosTabla from "./FiltrosTabla";
+import MenuMas from "./MenuMas";
+import type { ValoresFiltro } from "./FiltrosTabla";
 
 /**
  * Tabla de listados del sistema (ver GUIA-UI.md, "Tablas").
@@ -31,6 +34,8 @@ export interface PestanaTabla<T> {
   id: string;
   etiqueta: string;
   incluye: (fila: T) => boolean;
+  /** Pestana de uso ocasional: va dentro del menu "Más" en vez de a la vista. */
+  secundaria?: boolean;
 }
 
 /** Opciones de "Filas por pagina"; la primera es la de siempre. */
@@ -133,7 +138,8 @@ export default function TablaDatos<T>({
   const [pestana, setPestana] = useState(pestanaInicial ?? pestanas?.[0]?.id ?? "");
   const [busqueda, setBusqueda] = useState(busquedaInicial ?? "");
   const [verFiltros, setVerFiltros] = useState(false);
-  const [filtros, setFiltros] = useState<Record<string, string>>({});
+  /** Valores elegidos en cada filtro (seleccion multiple; vacio = todos). */
+  const [filtros, setFiltros] = useState<ValoresFiltro>({});
   const [orden, setOrden] = useState<{ id: string; asc: boolean } | null>(null);
   const [pagina, setPagina] = useState(0);
   /** Filas desplegadas (por su clave). */
@@ -151,7 +157,7 @@ export default function TablaDatos<T>({
 
   const conValor = columnas.filter((c) => c.valor);
   const filtrables = columnas.filter((c) => c.filtrable && c.valor);
-  const filtrosActivos = Object.values(filtros).filter(Boolean).length;
+  const filtrosActivos = Object.values(filtros).filter((v) => v?.length).length;
 
   /** Filas de cada pestana, para los contadores. */
   const porPestana = useMemo(() => {
@@ -177,9 +183,9 @@ export default function TablaDatos<T>({
     const q = sinTildes(busqueda.trim());
     let r = base.filter((f) =>
       Object.entries(filtros).every(([id, v]) => {
-        if (!v) return true;
+        if (!v?.length) return true;
         const col = columnas.find((c) => c.id === id);
-        return col?.valor ? texto(col.valor(f)) === v : true;
+        return col?.valor ? v.includes(texto(col.valor(f))) : true;
       })
     );
     if (q) r = r.filter((f) => conValor.some((c) => sinTildes(texto(c.valor!(f))).includes(q)));
@@ -261,7 +267,7 @@ export default function TablaDatos<T>({
       <div className="tabla-barra">
         {pestanas && (
           <div className="tabla-pestanas" role="tablist">
-            {pestanas.map((p) => (
+            {pestanas.filter((p) => !p.secundaria).map((p) => (
               <button
                 key={p.id}
                 role="tab"
@@ -273,27 +279,38 @@ export default function TablaDatos<T>({
                 <span className="contador">{porPestana.get(p.id)?.length ?? 0}</span>
               </button>
             ))}
+            {/* Las secundarias van en "Más"; si la activa es una de ellas, el boton lleva su nombre. */}
+            <MenuMas
+              clase=""
+              activo={!!pestanas.find((p) => p.secundaria && p.id === pestana)}
+              etiqueta={pestanas.find((p) => p.secundaria && p.id === pestana)?.etiqueta ?? "Más"}
+              opciones={pestanas
+                .filter((p) => p.secundaria)
+                .map((p) => ({
+                  etiqueta: p.etiqueta,
+                  extra: porPestana.get(p.id)?.length ?? 0,
+                  activa: p.id === pestana,
+                  alElegir: () => setPestana(p.id),
+                }))}
+            />
           </div>
         )}
         <div className="tabla-herramientas">
-          <input
-            className="tabla-buscar"
-            type="search"
-            placeholder={placeholderBusqueda}
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
+          <BuscadorLupa valor={busqueda} alCambiar={setBusqueda} placeholder={placeholderBusqueda} abiertoAlInicio={!!busquedaInicial} />
           {filtrables.length > 0 && (
             <button
               type="button"
-              className={`boton-barra ${verFiltros || filtrosActivos ? "activo" : ""}`}
-              onClick={() => setVerFiltros(!verFiltros)}
+              className={`boton-icono ${filtrosActivos ? "activo" : ""}`}
+              title={filtrosActivos ? `Filtros (${filtrosActivos} activos)` : "Filtros"}
+              aria-label="Filtros"
+              onClick={() => setVerFiltros(true)}
             >
-              <IconoFiltro /> Filtros{filtrosActivos ? ` (${filtrosActivos})` : ""}
+              <IconoFiltro />
+              {filtrosActivos > 0 && <span className="insignia">{filtrosActivos}</span>}
             </button>
           )}
           {nombreArchivo && (
-            <button type="button" className="boton-barra" onClick={exportar} disabled={visibles.length === 0}>
+            <button type="button" className="boton-barra boton-exportar" onClick={exportar} disabled={visibles.length === 0}>
               <IconoExportar /> Exportar
             </button>
           )}
@@ -302,29 +319,12 @@ export default function TablaDatos<T>({
       </div>
 
       {verFiltros && filtrables.length > 0 && (
-        <div className="tabla-filtros">
-          {filtrables.map((c) => (
-            <label key={c.id}>
-              <span>{c.titulo}</span>
-              <select
-                value={filtros[c.id] ?? ""}
-                onChange={(e) => setFiltros({ ...filtros, [c.id]: e.target.value })}
-              >
-                <option value="">Todos</option>
-                {(opcionesFiltro.get(c.id) ?? []).map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ))}
-          {filtrosActivos > 0 && (
-            <button type="button" className="btn-link" onClick={() => setFiltros({})}>
-              Quitar filtros
-            </button>
-          )}
-        </div>
+        <FiltrosTabla
+          filtros={filtrables.map((c) => ({ id: c.id, titulo: c.titulo, opciones: opcionesFiltro.get(c.id) ?? [] }))}
+          valores={filtros}
+          alAplicar={setFiltros}
+          alCerrar={() => setVerFiltros(false)}
+        />
       )}
 
       <div className="tabla-scroll">
@@ -345,7 +345,9 @@ export default function TablaDatos<T>({
               ))}
             </tr>
           </thead>
-          <tbody>
+          {/* La key cambia con la pestana, los filtros, el orden y la pagina: las
+              filas se vuelven a montar y entran con la animacion por columnas. */}
+          <tbody key={`${pestana}|${JSON.stringify(filtros)}|${orden?.id ?? ""}${orden?.asc ?? ""}|${paginaActual}|${porPagina}`}>
             {enPagina.map((f) => {
               const k = clave(f);
               const abierta = !!detalle && abiertas.has(k);
@@ -367,7 +369,8 @@ export default function TablaDatos<T>({
                     <td
                       key={c.id}
                       className={[clase(c, f), fija(i).clase].filter(Boolean).join(" ")}
-                      style={fija(i).estilo}
+                      // --col: orden de la columna para la animacion de entrada (de izquierda a derecha).
+                      style={{ ...fija(i).estilo, ["--col" as string]: Math.min(i, 12) } as CSSProperties}
                       data-label={etiqueta || undefined}
                       title={completo.length > 18 ? completo : undefined}
                     >
@@ -513,6 +516,48 @@ export function Pastilla({ tono, children }: { tono: TonoPastilla; children: Rea
   return <span className={`pastilla pastilla-${tono}`}>{children}</span>;
 }
 
+/**
+ * Buscador que no ocupa espacio mientras no se usa: se ve la lupa y al hacerle
+ * clic se abre el campo; vacio y sin foco, se vuelve a cerrar. Lo usan
+ * TablaDatos y las tablas que no son TablaDatos (catalogo).
+ */
+export function BuscadorLupa({
+  valor,
+  alCambiar,
+  placeholder = "Buscar...",
+  abiertoAlInicio = false,
+}: {
+  valor: string;
+  alCambiar: (v: string) => void;
+  placeholder?: string;
+  /** Abierto desde el principio (llega con texto, por ejemplo desde una alerta). */
+  abiertoAlInicio?: boolean;
+}) {
+  const [buscando, setBuscando] = useState(abiertoAlInicio);
+  return buscando || valor ? (
+    <input
+      className="tabla-buscar abierto"
+      type="search"
+      autoFocus={!abiertoAlInicio}
+      placeholder={placeholder}
+      value={valor}
+      onChange={(e) => alCambiar(e.target.value)}
+      onBlur={() => !valor && setBuscando(false)}
+    />
+  ) : (
+    <button type="button" className="boton-icono" title="Buscar" aria-label="Buscar" onClick={() => setBuscando(true)}>
+      <IconoBuscar />
+    </button>
+  );
+}
+
+/** Icono del boton Buscar (lupa). */
+const IconoBuscar = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M20 20l-4.2-4.2" />
+  </svg>
+);
 /** Icono del boton Filtros. */
 const IconoFiltro = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">

@@ -16,6 +16,7 @@ import Modal from "../../componentes/Modal";
 import Indicador from "../../componentes/Indicador";
 import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
+import MenuMas from "../../componentes/MenuMas";
 import { usarShell } from "../../componentes/Shell";
 import DetalleCuadro from "../cuadro/DetalleCuadro";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
@@ -307,14 +308,12 @@ export default function Cartera() {
             vacio="No hay facturas por cobrar con estos criterios."
             alClicFila={(f) => setAbierta({ numero: f.facturaNumero, empresa: f.empresa })}
             acciones={
-              <>
-                <button className="boton-barra" onClick={() => setImportando(true)}>
-                  Importar Excel de cartera
-                </button>
-                <button className="boton-barra" onClick={() => setPlazos(true)}>
-                  Plazos de clientes
-                </button>
-              </>
+              <MenuMas
+                opciones={[
+                  { etiqueta: "Importar Excel de cartera", alElegir: () => setImportando(true) },
+                  { etiqueta: "Plazos de clientes", alElegir: () => setPlazos(true) },
+                ]}
+              />
             }
           />
         )}

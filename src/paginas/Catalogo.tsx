@@ -4,7 +4,8 @@
  * empresa). Listas con su estado de documentos y formularios de crear/editar.
  */
 import { useEffect, useState } from "react";
-import { Paginacion, usarFilasPorPagina } from "../componentes/TablaDatos";
+import { BuscadorLupa, Paginacion, usarFilasPorPagina } from "../componentes/TablaDatos";
+import MenuMas from "../componentes/MenuMas";
 import type { ReactElement } from "react";
 import { api, fechaHora, hoyColombia, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
@@ -326,58 +327,57 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
       )}
 
       <div className="panel">
-        {pestanas.length > 1 && (
-        <div className="toolbar" style={{ borderBottom: "none", paddingBottom: 0 }}>
-          {PESTANAS.filter((p) => pestanas.includes(p.id)).map((p) => (
-            <button
-              key={p.id}
-              className={pestana === p.id ? "btn-primary" : "btn-secondary"}
-              onClick={() => cambiarPestana(p.id)}
-            >
-              {p.etiqueta}
-            </button>
-          ))}
-        </div>
-        )}
-
-        {pestana !== "empresa" && (
-          <div className="toolbar">
-            <div className="filtros-catalogo">
-              <input
-                className="search-input"
-                placeholder="Buscar..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-              />
-              {CON_ESTADO.includes(pestana) && (
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={verInactivos}
-                    onChange={(e) => setVerInactivos(e.target.checked)}
-                  />
-                  Mostrar inactivos
-                </label>
-              )}
-              {pestana === "vehiculos" && conTitularEmpresa > 0 && (
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={soloTitularEmpresa}
-                    onChange={(e) => setSoloTitularEmpresa(e.target.checked)}
-                  />
-                  Solo titular = empresa ({conTitularEmpresa})
-                </label>
-              )}
-            </div>
-            <button className="btn-primary boton-con-texto" onClick={abrirNuevo}>
-              {textoNuevo(pestana)}
-            </button>
+        {/* Misma barra que TablaDatos: pestanas a la izquierda; lupa, opciones
+            ("Más") y "Nuevo" a la derecha. */}
+        {(pestanas.length > 1 || pestana !== "empresa") && (
+          <div className="tabla-barra">
+            {pestanas.length > 1 && (
+              <div className="tabla-pestanas" role="tablist">
+                {PESTANAS.filter((p) => pestanas.includes(p.id)).map((p) => (
+                  <button
+                    key={p.id}
+                    role="tab"
+                    aria-selected={pestana === p.id}
+                    className={pestana === p.id ? "activa" : ""}
+                    onClick={() => cambiarPestana(p.id)}
+                  >
+                    {p.etiqueta}
+                  </button>
+                ))}
+              </div>
+            )}
+            {pestana !== "empresa" && (
+              <div className="tabla-herramientas">
+                <BuscadorLupa key={pestana} valor={busqueda} alCambiar={setBusqueda} />
+                <MenuMas
+                  etiqueta={verInactivos || soloTitularEmpresa ? `Más (${Number(verInactivos) + Number(soloTitularEmpresa)})` : "Más"}
+                  activo={verInactivos || soloTitularEmpresa}
+                  opciones={[
+                    ...(CON_ESTADO.includes(pestana)
+                      ? [{ etiqueta: "Mostrar inactivos", activa: verInactivos, extra: verInactivos ? "Sí" : "No", alElegir: () => setVerInactivos(!verInactivos) }]
+                      : []),
+                    ...(pestana === "vehiculos" && conTitularEmpresa > 0
+                      ? [
+                          {
+                            etiqueta: `Solo titular = empresa (${conTitularEmpresa})`,
+                            activa: soloTitularEmpresa,
+                            extra: soloTitularEmpresa ? "Sí" : "No",
+                            alElegir: () => setSoloTitularEmpresa(!soloTitularEmpresa),
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
+                <button className="btn-primary boton-con-texto" onClick={abrirNuevo}>
+                  {textoNuevo(pestana)}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {pestana !== "empresa" && (
-          <p className="resumen-catalogo" style={{ margin: "0 0 0.6rem" }}>
+          <p className="resumen-catalogo" style={{ margin: "0.5rem 1rem 0.6rem" }}>
             Haz clic en una fila para ver y editar todos sus datos.
           </p>
         )}

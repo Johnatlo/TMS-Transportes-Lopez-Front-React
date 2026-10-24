@@ -20,6 +20,7 @@ import Indicador from "../../componentes/Indicador";
 import Modal from "../../componentes/Modal";
 import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla, TonoPastilla } from "../../componentes/TablaDatos";
+import MenuMas from "../../componentes/MenuMas";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import { liquidarTercero, numeroONulo } from "./liquidacionTerceros";
 import ImportarNombresTerceros from "./ImportarNombresTerceros";
@@ -203,11 +204,7 @@ export default function PagoTerceros() {
     },
   ];
 
-  const botonNombres = (
-    <button className="boton-barra" onClick={() => setImportando(true)}>
-      Nombres desde la matriz
-    </button>
-  );
+  const botonNombres = <MenuMas opciones={[{ etiqueta: "Nombres desde la matriz", alElegir: () => setImportando(true) }]} />;
 
   return (
     <>

@@ -27,6 +27,7 @@ import Modal from "../../componentes/Modal";
 import Indicador from "../../componentes/Indicador";
 import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla, TonoPastilla } from "../../componentes/TablaDatos";
+import MenuMas from "../../componentes/MenuMas";
 import { fechaCorta, hoyColombia } from "./estadosCuadro";
 import { deInput, enInput, placaConGuion } from "./facturacion";
 import { agruparPorTanqueo, coloresBombas, DIFERENCIA_MINIMA, diferenciaTramo, faltaCruzar, posiblesVueltas } from "./tanqueos";
@@ -213,18 +214,16 @@ export default function CuadroAnticipos() {
         <button className="boton-barra" onClick={() => setVentana("abonos")}>
           Abonos a la bomba ({abonos.length})
         </button>
-        <button className="boton-barra" onClick={() => setVentana("empresas")}>
-          Anticipos del Zorro
-        </button>
         <button className="boton-barra" onClick={() => setVentana("reportes")}>
           Reportes
         </button>
-        <button className="boton-barra" style={{ marginLeft: "auto" }} onClick={() => setVentana("importar")}>
-          Importar Excel de anticipos
-        </button>
-        <button className="boton-barra" onClick={() => setVentana("cupo")}>
-          Cupo y precios de la bomba
-        </button>
+        <MenuMas
+          opciones={[
+            { etiqueta: "Anticipos del Zorro", alElegir: () => setVentana("empresas") },
+            { etiqueta: "Cupo y precios de la bomba", alElegir: () => setVentana("cupo") },
+            { etiqueta: "Importar Excel de anticipos", alElegir: () => setVentana("importar") },
+          ]}
+        />
       </div>
       <div className="section-desc" style={{ margin: "0.2rem 0 0.6rem" }}>
         Un tanqueo por fila (la ida y su vuelta). Clic en una fila para ver todo: los viajes, el cruce con la bomba, la

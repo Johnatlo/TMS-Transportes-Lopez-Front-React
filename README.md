@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_435 funciones, componentes, métodos y rutas en 62 archivos._
+_440 funciones, componentes, métodos y rutas en 64 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (146)
@@ -191,17 +191,19 @@ _435 funciones, componentes, métodos y rutas en 62 archivos._
 - [`src/componentes/DocumentosViaje.tsx`](#srccomponentesdocumentosviajetsx) (2)
 - [`src/componentes/Estado.tsx`](#srccomponentesestadotsx) (4)
 - [`src/componentes/EstadoSincronizacion.tsx`](#srccomponentesestadosincronizaciontsx) (3)
+- [`src/componentes/FiltrosTabla.tsx`](#srccomponentesfiltrostablatsx) (2)
 - [`src/componentes/FormularioGenerico.tsx`](#srccomponentesformulariogenericotsx) (2)
 - [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (24)
 - [`src/componentes/Indicador.tsx`](#srccomponentesindicadortsx) (1)
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
 - [`src/componentes/MapaSeguimiento.tsx`](#srccomponentesmapaseguimientotsx) (2)
+- [`src/componentes/MenuMas.tsx`](#srccomponentesmenumastsx) (1)
 - [`src/componentes/Modal.tsx`](#srccomponentesmodaltsx) (1)
 - [`src/componentes/PantallaAcceso.tsx`](#srccomponentespantallaaccesotsx) (1)
 - [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (3)
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
-- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (8)
+- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (10)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
 - [`src/componentes/periodos.ts`](#srccomponentesperiodosts) (4)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
@@ -989,6 +991,22 @@ _435 funciones, componentes, métodos y rutas en 62 archivos._
   Estado de la sincronizacion. `alSincronizar` se llama despues de una
   sincronizacion manual, para recargar la lista de la pantalla.
 
+### `src/componentes/FiltrosTabla.tsx`
+
+> Ventana de filtros de una tabla (TablaDatos), como en el ejemplo de
+> docs/filtros y comportamiento de las tablas ui.mp4: se abre a la derecha,
+> la pagina se pone gris detras, y cada filtro es una lista de seleccion
+> multiple con "chips". Los cambios se aplican con "Filtrar"; "Limpiar"
+> quita todos. Escape o clic afuera la cierran sin aplicar.
+
+- **`FiltrosTabla({...})`** · _componente React_
+  Ventana de filtros.
+
+- **`SeleccionMultiple({...})`** · _componente React_
+  Lista de seleccion multiple: muestra los elegidos como chips (con x para
+  quitarlos) y, al abrirla, las opciones con casillas y un buscador si son
+  muchas.
+
 ### `src/componentes/FormularioGenerico.tsx`
 
 > Formulario construido a partir de una descripcion de campos.
@@ -1141,6 +1159,15 @@ _435 funciones, componentes, métodos y rutas en 62 archivos._
   una sola vez en un useEffect y en otro se redibujan los puntos cuando
   cambian. El cleanup destruye el mapa al salir de la pantalla.
 
+### `src/componentes/MenuMas.tsx`
+
+> Menu "Más": agrupa las acciones que se usan poco para que la barra no se
+> llene de botones. Se abre con clic; un clic afuera, Escape o elegir una
+> opcion lo cierran.
+
+- **`MenuMas({...})`** · _componente React_
+  Boton con su lista desplegable.
+
 ### `src/componentes/Modal.tsx`
 
 > Ventana modal comun: se cierra con la X o Escape (no con clic fuera), se
@@ -1253,6 +1280,14 @@ _435 funciones, componentes, métodos y rutas en 62 archivos._
 
 - **`Pastilla({...})`** · _componente React_
   Pastilla de estado con punto de color (ver GUIA-UI.md, "Estados").
+
+- **`BuscadorLupa({...})`** · _componente React_
+  Buscador que no ocupa espacio mientras no se usa: se ve la lupa y al hacerle
+  clic se abre el campo; vacio y sin foco, se vuelve a cerrar. Lo usan
+  TablaDatos y las tablas que no son TablaDatos (catalogo).
+
+- **`IconoBuscar()`** · _componente React_
+  Icono del boton Buscar (lupa).
 
 - **`IconoFiltro()`** · _componente React_
   Icono del boton Filtros.
