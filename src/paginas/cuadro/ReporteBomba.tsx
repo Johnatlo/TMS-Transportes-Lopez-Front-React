@@ -191,6 +191,23 @@ export default function ReporteBomba({ alCerrar }: { alCerrar: () => void }) {
       {datos.error && <ErrorCarga mensaje={datos.error} alReintentar={datos.recargar} />}
       {r && (
         <>
+          {r.fechasRaras.length > 0 && (
+            <div className="alert danger">
+              <strong>
+                Hay {r.fechasRaras.length} anticipo{r.fechasRaras.length === 1 ? "" : "s"} con la fecha de pago a la bomba mal escrita.
+              </strong>{" "}
+              Descuadran el reporte (un pago con fecha de 1909 cuenta como pagado antes de deberle a la bomba). Corrigelos en
+              el cuadro de Anticipos, en el tanqueo y su "Pago a la bomba":
+              <ul style={{ margin: "0.4rem 0 0" }}>
+                {r.fechasRaras.map((f, i) => (
+                  <li key={i}>
+                    Anticipo del {fechaCorta(f.fechaAnticipo)} · {f.placa} · {f.bomba} · {moneda(f.valor)}: fecha de pago{" "}
+                    <strong>{f.fechaPago.split("-").reverse().join("/")}</strong> ({f.motivo})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="tarjeta indicadores" style={{ marginBottom: "0.8rem" }}>
             <Indicador dinero titulo="Deuda al inicio" valor={moneda(r.resumen.saldoInicial)} detalle={fechaCorta(desde)} />
             <Indicador

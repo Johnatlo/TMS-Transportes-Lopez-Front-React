@@ -930,6 +930,8 @@ export interface ReporteBomba {
   porMes: Array<{ mes: string; prestado: number; pagadoEmpresa: number; abonadoSocios: number }>;
   porBomba: TotalPrestado[];
   porEmpresaVehiculo: TotalPrestado[];
+  /** Anticipos con fecha de pago imposible (año raro, antes del anticipo o en el futuro): descuadran el saldo. */
+  fechasRaras: Array<{ fechaAnticipo: string; placa: string; bomba: string; fechaPago: string; valor: number; motivo: string }>;
 }
 
 /** Cupo con la bomba y valores sugeridos para el cruce. */
