@@ -57,13 +57,13 @@ const PESTANAS: PestanaTabla<FilaCuadro>[] = [
   // importar en que van los papeles (todo pagado y anulados quedan fuera).
   { id: "listoParaFacturar", etiqueta: "Listo para facturar", incluye: (f) => f.estado === "RADICADO" && f.estadoFactura === "SIN_FACTURAR" },
   { id: "radicados", etiqueta: "Radicados", incluye: (f) => f.estado === "RADICADOS" && f.estadoFactura === "SIN_FACTURAR" },
-  { id: "sinDatos", etiqueta: "Facturado sin datos", incluye: (f) => enCurso(f) && f.estadoFactura === "FACTURADO_SIN_DATOS", secundaria: true },
+  { id: "sinDatos", etiqueta: "Facturado sin datos", incluye: (f) => enCurso(f) && f.estadoFactura === "FACTURADO_SIN_DATOS" },
   { id: "facturados", etiqueta: "Facturados", incluye: (f) => enCurso(f) && f.estadoFactura === "FACTURADO" },
-  { id: "gerencia", etiqueta: "Falta gerencia", incluye: (f) => !f.anulado && !!f.revisadoContabilidadPor && !f.revisadoGerenciaPor, secundaria: true },
-  { id: "cobrar", etiqueta: "Cobro vencido", incluye: cobroVencido, secundaria: true },
-  { id: "saldos", etiqueta: "Saldos vencidos", incluye: saldoVencido, secundaria: true },
-  { id: "pagados", etiqueta: "Todo pagado", incluye: (f) => f.todoPagado, secundaria: true },
-  { id: "anulados", etiqueta: "Anulados", incluye: (f) => f.anulado, secundaria: true },
+  { id: "gerencia", etiqueta: "Falta gerencia", incluye: (f) => !f.anulado && !!f.revisadoContabilidadPor && !f.revisadoGerenciaPor },
+  { id: "cobrar", etiqueta: "Cobro vencido", incluye: cobroVencido },
+  { id: "saldos", etiqueta: "Saldos vencidos", incluye: saldoVencido },
+  { id: "pagados", etiqueta: "Todo pagado", incluye: (f) => f.todoPagado },
+  { id: "anulados", etiqueta: "Anulados", incluye: (f) => f.anulado },
   { id: "todos", etiqueta: "Todos", incluye: () => true },
 ];
 

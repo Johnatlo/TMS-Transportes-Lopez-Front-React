@@ -34,9 +34,10 @@ export interface PestanaTabla<T> {
   id: string;
   etiqueta: string;
   incluye: (fila: T) => boolean;
-  /** Pestana de uso ocasional: va dentro del menu "Más" en vez de a la vista. */
-  secundaria?: boolean;
 }
+
+/** La pestana "Todos"/"Todas" (sin filtrar), si la tabla la tiene. */
+const esTodas = (id: string) => id === "todos" || id === "todas";
 
 /** Opciones de "Filas por pagina"; la primera es la de siempre. */
 export const OPCIONES_POR_PAGINA = [15, 25, 50, 100];
@@ -135,7 +136,8 @@ export default function TablaDatos<T>({
   const tabla = useRef<HTMLTableElement>(null);
   /** Donde empieza cada columna fija (px desde la izquierda). */
   const [izquierdas, setIzquierdas] = useState<number[]>([]);
-  const [pestana, setPestana] = useState(pestanaInicial ?? pestanas?.[0]?.id ?? "");
+  // Arranca sin filtrar (en "Todos") salvo que la pantalla pida otra pestana.
+  const [pestana, setPestana] = useState(pestanaInicial ?? pestanas?.find((p) => esTodas(p.id))?.id ?? pestanas?.[0]?.id ?? "");
   const [busqueda, setBusqueda] = useState(busquedaInicial ?? "");
   const [verFiltros, setVerFiltros] = useState(false);
   /** Valores elegidos en cada filtro (seleccion multiple; vacio = todos). */
@@ -266,32 +268,28 @@ export default function TablaDatos<T>({
     <div className="tabla-datos">
       <div className="tabla-barra">
         {pestanas && (
-          <div className="tabla-pestanas" role="tablist">
-            {pestanas.filter((p) => !p.secundaria).map((p) => (
-              <button
-                key={p.id}
-                role="tab"
-                aria-selected={pestana === p.id}
-                className={pestana === p.id ? "activa" : ""}
-                onClick={() => setPestana(p.id)}
-              >
-                {p.etiqueta}
-                <span className="contador">{porPestana.get(p.id)?.length ?? 0}</span>
-              </button>
-            ))}
-            {/* Las secundarias van en "Más"; si la activa es una de ellas, el boton lleva su nombre. */}
+          <div className="tabla-pestanas">
+            {/* Todas las pestanas van dentro de "Más": la barra queda limpia y el
+                boton dice cual esta puesta (sin nada si es "Todos"). */}
             <MenuMas
               clase=""
-              activo={!!pestanas.find((p) => p.secundaria && p.id === pestana)}
-              etiqueta={pestanas.find((p) => p.secundaria && p.id === pestana)?.etiqueta ?? "Más"}
-              opciones={pestanas
-                .filter((p) => p.secundaria)
-                .map((p) => ({
-                  etiqueta: p.etiqueta,
-                  extra: porPestana.get(p.id)?.length ?? 0,
-                  activa: p.id === pestana,
-                  alElegir: () => setPestana(p.id),
-                }))}
+              activo={!esTodas(pestana)}
+              etiqueta={
+                esTodas(pestana) ? (
+                  "Más"
+                ) : (
+                  <>
+                    {pestanas.find((p) => p.id === pestana)?.etiqueta}
+                    <span className="contador">{porPestana.get(pestana)?.length ?? 0}</span>
+                  </>
+                )
+              }
+              opciones={pestanas.map((p) => ({
+                etiqueta: p.etiqueta,
+                extra: porPestana.get(p.id)?.length ?? 0,
+                activa: p.id === pestana,
+                alElegir: () => setPestana(p.id),
+              }))}
             />
           </div>
         )}

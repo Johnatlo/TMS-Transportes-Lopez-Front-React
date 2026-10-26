@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_440 funciones, componentes, métodos y rutas en 64 archivos._
+_441 funciones, componentes, métodos y rutas en 64 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (146)
@@ -203,7 +203,7 @@ _440 funciones, componentes, métodos y rutas en 64 archivos._
 - [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (3)
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
-- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (10)
+- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (11)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
 - [`src/componentes/periodos.ts`](#srccomponentesperiodosts) (4)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
@@ -1246,6 +1246,9 @@ _440 funciones, componentes, métodos y rutas en 64 archivos._
   todas las pantallas y el Inicio reutiliza los mismos datos.
 
 ### `src/componentes/TablaDatos.tsx`
+
+- **`esTodas(id)`** · _función_
+  La pestana "Todos"/"Todas" (sin filtrar), si la tabla la tiene.
 
 - **`usarFilasPorPagina()`** · _función_
   Filas por pagina que eligio el usuario (la misma para todas las tablas). Es
