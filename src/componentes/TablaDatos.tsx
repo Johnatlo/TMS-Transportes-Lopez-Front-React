@@ -269,14 +269,14 @@ export default function TablaDatos<T>({
       <div className="tabla-barra">
         {pestanas && (
           <div className="tabla-pestanas">
-            {/* Todas las pestanas van dentro de "Más": la barra queda limpia y el
-                boton dice cual esta puesta (sin nada si es "Todos"). */}
+            {/* Todas las pestanas van dentro de "Filtros": la barra queda limpia y
+                el boton dice cual esta puesta (solo "Filtros" si es "Todos"). */}
             <MenuMas
               clase=""
               activo={!esTodas(pestana)}
               etiqueta={
                 esTodas(pestana) ? (
-                  "Más"
+                  "Filtros"
                 ) : (
                   <>
                     {pestanas.find((p) => p.id === pestana)?.etiqueta}
