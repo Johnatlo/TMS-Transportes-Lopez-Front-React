@@ -55,6 +55,7 @@ const COLUMNAS: Columna<ViajeTercero>[] = [
     titulo: "Tercero",
     filtrable: true,
     valor: (v) => v.tercero,
+    buscar: (v) => v.placa,
     celda: (v) => (
       <>
         <span className="principal">{v.tercero}</span>
@@ -178,6 +179,7 @@ export default function PagoTerceros() {
       id: "tercero",
       titulo: "Tercero",
       valor: (t) => t.tercero,
+      buscar: (t) => t.placas.join(" "),
       celda: (t) => (
         <>
           <span className="principal">{t.tercero}</span>

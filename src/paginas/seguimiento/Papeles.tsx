@@ -96,6 +96,7 @@ const COLUMNAS: Columna<FilaSeguimiento>[] = [
     titulo: "Empresa",
     filtrable: true,
     valor: (f) => f.empresa,
+    buscar: (f) => f.conductor,
     celda: (f) => (
       <>
         {f.empresa}

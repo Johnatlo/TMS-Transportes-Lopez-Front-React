@@ -21,6 +21,11 @@ export interface Columna<T> {
   celda: (fila: T) => ReactNode;
   /** Valor para buscar, ordenar, filtrar y exportar. Sin el, la columna no participa. */
   valor?: (fila: T) => string | number | null | undefined;
+  /**
+   * Texto que tambien encuentra la fila al buscar, aunque no sea el `valor`
+   * (por ejemplo la placa que va debajo del nombre del tercero).
+   */
+  buscar?: (fila: T) => string | null | undefined;
   /** Ofrece un filtro con los valores distintos de la columna. */
   filtrable?: boolean;
   alinear?: "derecha";
@@ -70,6 +75,14 @@ export function usarFilasPorPagina(): [number, (n: number) => void] {
 const texto = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 /** Texto sin tildes y en minuscula, para buscar sin importar acentos ni mayusculas. */
 const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+/**
+ * true si el texto contiene lo buscado (ya pasado por sinTildes). Tambien sin
+ * guiones de ningun lado: "SPS-199" encuentra "SPS199" y al reves.
+ */
+export const contieneBusqueda = (texto: string, q: string) => {
+  const t = sinTildes(texto);
+  return t.includes(q) || t.replace(/-/g, "").includes(q.replace(/-/g, ""));
+};
 
 /**
  * Tabla de listados con pestanas, busqueda, filtros, orden, exportacion y paginas.
@@ -158,6 +171,7 @@ export default function TablaDatos<T>({
   useEffect(() => setPagina(0), [pestana, busqueda, filtros, orden, porPagina]);
 
   const conValor = columnas.filter((c) => c.valor);
+  const conBuscar = columnas.filter((c) => c.buscar);
   const filtrables = columnas.filter((c) => c.filtrable && c.valor);
   const filtrosActivos = Object.values(filtros).filter((v) => v?.length).length;
 
@@ -190,7 +204,11 @@ export default function TablaDatos<T>({
         return col?.valor ? v.includes(texto(col.valor(f))) : true;
       })
     );
-    if (q) r = r.filter((f) => conValor.some((c) => sinTildes(texto(c.valor!(f))).includes(q)));
+    if (q)
+      r = r.filter(
+        (f) =>
+          conValor.some((c) => contieneBusqueda(texto(c.valor!(f)), q)) || conBuscar.some((c) => contieneBusqueda(texto(c.buscar!(f)), q))
+      );
     if (orden) {
       const col = columnas.find((c) => c.id === orden.id);
       if (col?.valor) {

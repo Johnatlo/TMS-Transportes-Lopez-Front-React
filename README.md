@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_441 funciones, componentes, métodos y rutas en 64 archivos._
+_442 funciones, componentes, métodos y rutas en 64 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (146)
@@ -203,7 +203,7 @@ _441 funciones, componentes, métodos y rutas en 64 archivos._
 - [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (3)
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
-- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (11)
+- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (12)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
 - [`src/componentes/periodos.ts`](#srccomponentesperiodosts) (4)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
@@ -1259,6 +1259,10 @@ _441 funciones, componentes, métodos y rutas en 64 archivos._
 
 - **`sinTildes(s)`** · _función_
   Texto sin tildes y en minuscula, para buscar sin importar acentos ni mayusculas.
+
+- **`contieneBusqueda(texto, q)`** · _función_
+  true si el texto contiene lo buscado (ya pasado por sinTildes). Tambien sin
+  guiones de ningun lado: "SPS-199" encuentra "SPS199" y al reves.
 
 - **`TablaDatos({...})`** · _componente React_
   Tabla de listados con pestanas, busqueda, filtros, orden, exportacion y paginas.
