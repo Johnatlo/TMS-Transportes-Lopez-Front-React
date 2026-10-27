@@ -63,7 +63,6 @@ const PESTANAS: PestanaTabla<FilaCuadro>[] = [
   { id: "cobrar", etiqueta: "Cobro vencido", incluye: cobroVencido },
   { id: "saldos", etiqueta: "Saldos vencidos", incluye: saldoVencido },
   { id: "pagados", etiqueta: "Todo pagado", incluye: (f) => f.todoPagado },
-  { id: "anulados", etiqueta: "Anulados", incluye: (f) => f.anulado },
   { id: "todos", etiqueta: "Todos", incluye: () => true },
 ];
 
@@ -272,7 +271,8 @@ export default function CuadroCentral() {
 
   if (cargando && !datos) return <Cargando que="el cuadro pagos " />;
   if (error) return <ErrorCarga mensaje={error} alReintentar={recargar} />;
-  const filas = datos ?? [];
+  // Los anulados no van en el cuadro de pagos: se consultan en Viajes.
+  const filas = (datos ?? []).filter((f) => !f.anulado);
 
   return (
     <>
