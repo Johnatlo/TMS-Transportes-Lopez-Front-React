@@ -24,6 +24,8 @@ import MenuMas from "../../componentes/MenuMas";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import { liquidarTercero, numeroONulo } from "./liquidacionTerceros";
 import ImportarNombresTerceros from "./ImportarNombresTerceros";
+import { armarLiquidacion } from "./liquidacionPago";
+import { descargarLiquidacion } from "./excelLiquidacion";
 
 const ESTADO: Record<EstadoPagoTercero, { etiqueta: string; tono: TonoPastilla }> = {
   FALTA_PACTAR: { etiqueta: "Falta pactar", tono: "error" },
@@ -151,7 +153,8 @@ export default function PagoTerceros() {
   const datos = useDatos(() => apiSeguimiento.terceros(), []);
   const [parametros, setParametros] = useSearchParams();
   const [editando, setEditando] = useState<number | null>(null);
-  const [pagando, setPagando] = useState<ResumenTercero | null>(null);
+  /** Ventana de liquidacion: null cerrada, "" sin tercero elegido, o el tercero. */
+  const [pagando, setPagando] = useState<string | null>(null);
   const [vista, setVista] = useState<"viajes" | "terceros">("viajes");
   const [importando, setImportando] = useState(false);
 
@@ -199,14 +202,21 @@ export default function PagoTerceros() {
       alinear: "derecha",
       celda: (t) =>
         viajes.some((v) => v.tercero === t.tercero && listo(v)) ? (
-          <button className="boton-suave" onClick={() => setPagando(t)}>
-            Registrar pago
+          <button className="boton-suave" onClick={() => setPagando(t.tercero)}>
+            Liquidar
           </button>
         ) : null,
     },
   ];
 
-  const botonNombres = <MenuMas opciones={[{ etiqueta: "Nombres desde la matriz", alElegir: () => setImportando(true) }]} />;
+  const botonNombres = (
+    <>
+      <MenuMas opciones={[{ etiqueta: "Nombres desde la matriz", alElegir: () => setImportando(true) }]} />
+      <button className="btn-primary boton-con-texto" onClick={() => setPagando("")}>
+        Liquidar tercero
+      </button>
+    </>
+  );
 
   return (
     <>
@@ -261,10 +271,10 @@ export default function PagoTerceros() {
         </Modal>
       )}
       {importando && <ImportarNombresTerceros alCerrar={() => setImportando(false)} alCambiar={datos.recargar} />}
-      {pagando && (
-        <PagarTercero
-          tercero={pagando.tercero}
-          viajes={viajes.filter((v) => v.tercero === pagando.tercero && listo(v))}
+      {pagando !== null && (
+        <LiquidarTercero
+          viajes={viajes}
+          terceroInicial={pagando || null}
           alCerrar={() => setPagando(null)}
           alGuardar={() => {
             setPagando(null);
@@ -308,6 +318,7 @@ function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCer
       anticipoTransferencia: numeroONulo(f.anticipoTransferencia),
       aplicaDescuentosTercero: f.aplicaDescuentosTercero,
       icaPorMil,
+      cobraPoliza: viaje.cobraPoliza,
     },
     viaje
   );
@@ -483,79 +494,211 @@ function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCer
   );
 }
 
-/** Registra el pago de todos los viajes listos de un tercero, con su cuenta de cobro. */
-function PagarTercero({
-  tercero,
+/**
+ * Liquidacion del pago a un tercero (docs/Liq Viaje Pago ejemplo.xlsx): se
+ * eligen el tercero y sus viajes, se ve el cuadro (viajes, descuentos,
+ * avances y flete total) y se descarga en Excel; "Registrar pago" ademas
+ * marca los viajes como pagados con la fecha y la cuenta de cobro.
+ */
+function LiquidarTercero({
   viajes,
+  terceroInicial,
   alCerrar,
   alGuardar,
 }: {
-  tercero: string;
   viajes: ViajeTercero[];
+  terceroInicial: string | null;
   alCerrar: () => void;
   alGuardar: () => void;
 }) {
+  // Terceros con algo por pagar (los ya pagados no se vuelven a liquidar).
+  const sinPagar = viajes.filter((v) => v.estadoPagoTercero !== "PAGADO");
+  const nombres = [...new Set(sinPagar.map((v) => v.tercero))].sort((a, b) => a.localeCompare(b, "es"));
+  const [tercero, setTercero] = useState(terceroInicial ?? "");
+  const deTercero = sinPagar.filter((v) => v.tercero === tercero).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  // Marcados de entrada: los listos para pagar (documentos entregados).
+  const [marcados, setMarcados] = useState<Set<number>>(() => new Set(deTercero.filter(listo).map((v) => v.id)));
   const [fecha, setFecha] = useState(hoyColombia());
+  // Solo para los viajes que aun no tienen su cuenta de cobro.
   const [cuenta, setCuenta] = useState("");
+  const [descontar, setDescontar] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const total = viajes.reduce((s, v) => s + (v.valorAPagar ?? 0), 0);
 
-  async function pagar() {
+  const elegidos = deTercero.filter((v) => marcados.has(v.id));
+  const l = armarLiquidacion(elegidos, { fecha, descontar, cuenta: cuenta.trim() });
+
+  /** Cambia de tercero y marca sus viajes listos. */
+  function elegirTercero(t: string) {
+    setTercero(t);
+    setMarcados(new Set(sinPagar.filter((v) => v.tercero === t && listo(v)).map((v) => v.id)));
+  }
+
+  const alternar = (id: number) =>
+    setMarcados((m) => {
+      const n = new Set(m);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+
+  /** Descarga el Excel y, si se pide, antes registra el pago de los viajes elegidos. */
+  async function descargar(registrar: boolean) {
     setEnviando(true);
     setError(null);
     try {
-      await apiSeguimiento.pagarTerceros(
-        viajes.map((v) => v.id),
-        fecha,
-        cuenta
-      );
-      alGuardar();
+      if (registrar) await apiSeguimiento.pagarTerceros(elegidos.map((v) => v.id), fecha, cuenta.trim());
+      await descargarLiquidacion(l, `liquidacion-${tercero.split(" ")[0]?.toLowerCase() || "tercero"}-${fecha}`);
+      if (registrar) alGuardar();
+      else setEnviando(false);
     } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "No se pudo registrar el pago.");
+      setError(exc instanceof Error ? exc.message : "No se pudo generar la liquidacion.");
       setEnviando(false);
     }
   }
 
+  const renglon = (descripcion: string, valor: number, clase?: string) => (
+    <tr key={descripcion} className={clase}>
+      <td>{descripcion}</td>
+      <td className="num">{moneda(valor)}</td>
+    </tr>
+  );
+
   return (
     <Modal
-      titulo={`Pago · ${tercero}`}
+      ancho="pantalla"
+      titulo="Liquidar a un tercero"
       alCerrar={alCerrar}
       pie={
         <>
           <button className="btn-secondary" onClick={alCerrar}>
             Cancelar
           </button>
-          <button className="btn-primary" onClick={pagar} disabled={enviando || !fecha}>
-            {enviando ? "Guardando..." : "Registrar pago"}
+          <button className="btn-secondary" onClick={() => descargar(false)} disabled={enviando || l.filas.length === 0}>
+            Descargar Excel
+          </button>
+          <button className="btn-primary" onClick={() => descargar(true)} disabled={enviando || l.filas.length === 0 || !fecha}>
+            {enviando ? "Guardando..." : "Registrar pago y descargar"}
           </button>
         </>
       }
     >
       {error && <div className="alert danger">{error}</div>}
-      <p>
-        Se le pagan {viajes.length} viaje(s) por <strong>{moneda(total)}</strong>:
-      </p>
-      <ul className="dato-sec">
-        {viajes.map((v) => (
-          <li key={v.id}>
-            {fechaCorta(v.fecha)} · {v.placa} · {v.empresa} · {v.manifiesto ?? v.remision ?? "-"}: {moneda(v.valorAPagar ?? 0)}
-          </li>
-        ))}
-      </ul>
       <div className="campos-cuadro">
         <div>
-          <label>Fecha en que se le pago</label>
+          <label>Tercero</label>
+          <select value={tercero} onChange={(e) => elegirTercero(e.target.value)}>
+            <option value="">Elige el tercero...</option>
+            {nombres.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label>Fecha (de la liquidacion y del pago)</label>
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
         </div>
         <div>
-          <label>Cuenta de cobro (opcional)</label>
-          <input value={cuenta} onChange={(e) => setCuenta(e.target.value)} placeholder="AR-138" />
+          <label>Cuenta de cobro (para los viajes sin la suya)</label>
+          <input value={cuenta} onChange={(e) => setCuenta(e.target.value)} placeholder="FE210" />
         </div>
       </div>
-      <div className="dato-sec">
-        La cuenta de cobro se anota en los viajes que aun no la tienen. Si solo se pagan algunos, registralos uno por uno
-        desde "Por viaje".
+      <label className="check-linea">
+        <input type="checkbox" checked={descontar} onChange={(e) => setDescontar(e.target.checked)} />
+        Descontar retenciones (retefuente, FOPAT, ICA), gestion financiera y poliza RCE
+      </label>
+
+      {tercero && (
+        <div className="tabla-scroll" style={{ margin: "0.6rem 0" }}>
+        <table className="tabla tabla-compacta">
+          <thead>
+            <tr>
+              <th />
+              <th>Fecha</th>
+              <th>Placa</th>
+              <th>Empresa</th>
+              <th>Remision / manifiesto</th>
+              <th>Cuenta de cobro</th>
+              <th className="num">Toneladas</th>
+              <th className="num">Valor del tercero</th>
+              <th className="num">Anticipos</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {deTercero.map((v) => (
+              <tr key={v.id}>
+                <td>
+                  <input
+                    type="checkbox"
+                    style={{ width: "auto", margin: 0 }}
+                    checked={marcados.has(v.id)}
+                    disabled={v.valorTercero === null}
+                    title={v.valorTercero === null ? "Falta pactar el valor con el tercero" : undefined}
+                    onChange={() => alternar(v.id)}
+                  />
+                </td>
+                <td>{fechaCorta(v.fecha)}</td>
+                <td>{v.placa}</td>
+                <td>{v.empresa}</td>
+                <td>{v.remision ?? v.manifiesto ?? "-"}</td>
+                <td>{v.cuentaCobroTercero ?? "-"}</td>
+                <td className="num">{toneladas(v.pesoKg)}</td>
+                <td className="num">{v.valorTercero === null ? "Sin pactar" : moneda(v.valorTercero)}</td>
+                <td className="num">{moneda(v.efectivo + v.combustible + v.transferencia)}</td>
+                <td>
+                  <Pastilla tono={ESTADO[v.estadoPagoTercero].tono}>{ESTADO[v.estadoPagoTercero].etiqueta}</Pastilla>
+                </td>
+              </tr>
+            ))}
+            {deTercero.length === 0 && (
+              <tr>
+                <td colSpan={10} className="empty-row">
+                  Este tercero no tiene viajes por pagar.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        </div>
+      )}
+
+      {l.filas.length > 0 && (
+        <table className="tabla" style={{ maxWidth: 560 }}>
+          <tbody>
+            {renglon(`Total de ${l.filas.length} viaje(s)`, l.totalViajes)}
+            {l.descuentos.length > 0 && (
+              <tr>
+                <td colSpan={2}>
+                  <strong>Descuentos</strong>
+                </td>
+              </tr>
+            )}
+            {l.descuentos.map((d) => renglon(d.descripcion, -d.valor, "dato-sec"))}
+            {l.avances.length > 0 && (
+              <tr>
+                <td colSpan={2}>
+                  <strong>Avances del vehiculo</strong>
+                </td>
+              </tr>
+            )}
+            {l.avances.map((a) => renglon(a.descripcion, -a.valor, "dato-sec"))}
+            <tr>
+              <td>
+                <strong>Flete total (lo que se le paga)</strong>
+              </td>
+              <td className="num">
+                <strong className={l.fleteTotal < 0 ? "texto-vencido" : ""}>{moneda(l.fleteTotal)}</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      )}
+      <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
+        Los viajes sin pactar no se pueden liquidar. "Registrar pago" marca los viajes elegidos como pagados en esta fecha
+        y les anota la cuenta de cobro si no la tienen.
       </div>
     </Modal>
   );

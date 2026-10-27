@@ -18,6 +18,8 @@ export interface DatosPagoTercero {
   aplicaDescuentosTercero: boolean;
   /** ICA por mil (el escrito o el sugerido). */
   icaPorMil: number;
+  /** false en las demas filas de un manifiesto con varios clientes (la poliza va una vez). */
+  cobraPoliza: boolean;
 }
 
 /** Valor del tercero, retenciones y valor a pagar (efectivo y combustible salen de la bomba). */
@@ -32,7 +34,7 @@ export function liquidarTercero(d: DatosPagoTercero, bomba: Pick<ViajeTercero, "
   const retefuente = Math.round(base * RETEFUENTE_TERCERO);
   const ica = Math.round((base * d.icaPorMil) / 1000);
   const fopat = Math.round(base * FOPAT_TERCERO);
-  const poliza = valorTercero === null ? 0 : POLIZA_TERCERO;
+  const poliza = valorTercero === null || !d.cobraPoliza ? 0 : POLIZA_TERCERO;
   const totalDescuentos = retefuente + ica + fopat + poliza;
   const transferencia = d.anticipoTransferencia ?? 0;
   return {

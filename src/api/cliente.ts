@@ -1173,6 +1173,11 @@ export interface ViajeTercero extends FilaCuadro {
   estadoPagoTercero: EstadoPagoTercero;
   /** ICA por mil que se sugiere por el cliente. */
   icaSugerido: number;
+  /**
+   * Esta fila lleva la poliza RCE (una por manifiesto, aunque tenga varios
+   * clientes). Sin valor pactado: la llevaria si su manifiesto aun no la tiene.
+   */
+  cobraPoliza: boolean;
   /** Peso x valor por tonelada, o el fijo. null si no se ha pactado. */
   valorTercero: number | null;
   efectivo: number;

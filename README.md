@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_442 funciones, componentes, métodos y rutas en 64 archivos._
+_450 funciones, componentes, métodos y rutas en 66 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (146)
@@ -240,6 +240,8 @@ _442 funciones, componentes, métodos y rutas en 64 archivos._
 - [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
 - [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (11)
+- [`src/paginas/seguimiento/excelLiquidacion.ts`](#srcpaginasseguimientoexcelliquidacionts) (5)
+- [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
 
 ### `src/App.tsx`
@@ -2273,8 +2275,11 @@ _442 funciones, componentes, métodos y rutas en 64 archivos._
 - **`EditarPago({...})`** · _componente React_
   Formulario del pago de un viaje: lo pactado, la transferencia, documentos, retenciones y fechas.
 
-- **`PagarTercero({...})`** · _componente React_
-  Registra el pago de todos los viajes listos de un tercero, con su cuenta de cobro.
+- **`LiquidarTercero({...})`** · _componente React_
+  Liquidacion del pago a un tercero (docs/Liq Viaje Pago ejemplo.xlsx): se
+  eligen el tercero y sus viajes, se ve el cuadro (viajes, descuentos,
+  avances y flete total) y se descarga en Excel; "Registrar pago" ademas
+  marca los viajes como pagados con la fecha y la cuenta de cobro.
 
 ### `src/paginas/seguimiento/Papeles.tsx`
 
@@ -2363,6 +2368,53 @@ _442 funciones, componentes, métodos y rutas en 64 archivos._
   columna PLACA de los viajes. Las hojas repetidas ("(2)", "(3)") se juntan
   por nombre. Se saltan las hojas sin nombre arriba (Empaques-Celso empieza
   con los titulos).
+
+### `src/paginas/seguimiento/excelLiquidacion.ts`
+
+> Excel de la liquidacion del pago a un tercero, con el formato de
+> docs/Liq Viaje Pago ejemplo.xlsx: fecha y placa arriba, los viajes, los
+> DESCUENTOS, los AVANCES DEL VEHICULO y el flete total. Los totales van con
+> formula (como en el ejemplo) para que se puedan ajustar en el Excel.
+>
+> exceljs se carga solo al descargar (import dinamico).
+
+- **`fechaExcel(f)`** · _función_
+  "2026-10-05" -> Date a mediodia local (que Excel no lo corra de dia).
+
+- **`seccion(hoja, nombre)`** · _función_
+  Titulo de una seccion (DESCUENTOS, AVANCES DEL VEHICULO) y su encabezado Descripcion / Valor.
+
+- **`renglon(hoja, descripcion, valor, negrita)`** · _función_
+  Un renglon "descripcion | valor" (B:F y G:H unidas). Devuelve la fila.
+
+- **`agregarRenglones(hoja, renglones)`** · _función_
+  Celdas de valor (columna G) de unos renglones, para las formulas.
+
+- **`descargarLiquidacion(l, nombreArchivo)`** · _función_
+  Arma y descarga el Excel de la liquidacion.
+
+### `src/paginas/seguimiento/liquidacionPago.ts`
+
+> Liquidacion del pago a un tercero (igual a docs/Liq Viaje Pago ejemplo.xlsx):
+> el cuadro que se arma cada vez que se le paga, con sus viajes, los
+> descuentos (retenciones y gestion financiera) y los avances (anticipos y
+> poliza). Flete total = total de los viajes - descuentos - avances.
+>
+> No depende de exceljs: se prueba aparte (liquidacionPago.test.ts) y el
+> Excel lo arma excelLiquidacion.ts.
+
+- **`porMil(n)`** · _función_
+  "1.234,5" del por mil para la descripcion del ICA.
+
+- **`titulo(s)`** · _función_
+  Nombre del cliente como en el ejemplo ("Ecoambiental").
+
+- **`armarLiquidacion(viajes, {...})`** · _función_
+  Arma la liquidacion de unos viajes (de un mismo tercero, ya pactados).
+  - descontar: retenciones (retefuente 1 %, FOPAT 0,1 %, ICA por cliente),
+    gestion financiera y la poliza RCE de cada manifiesto. Sin marcar solo se
+    restan los anticipos.
+  - cuenta: cuenta de cobro para los viajes que no tienen la suya.
 
 ### `src/paginas/seguimiento/liquidacionTerceros.ts`
 

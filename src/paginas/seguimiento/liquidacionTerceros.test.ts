@@ -8,9 +8,14 @@ const datos = {
   anticipoTransferencia: null,
   aplicaDescuentosTercero: false,
   icaPorMil: 3.3,
+  cobraPoliza: true,
 };
 
 describe("liquidarTercero (las mismas cuentas del backend)", () => {
+  test("sin poliza en las demas filas de un manifiesto con varios clientes", () => {
+    expect(liquidarTercero({ ...datos, valorTerceroFijo: 1_000_000, cobraPoliza: false }, { efectivo: 0, combustible: 0 }).poliza).toBe(0);
+  });
+
   test("por tonelada menos efectivo y combustible (Aura TLN-362)", () => {
     const l = liquidarTercero({ ...datos, valorTerceroTon: 100_000 }, { efectivo: 1_100_000, combustible: 1_100_000 });
     expect(l.valorTercero).toBe(3_320_000);
