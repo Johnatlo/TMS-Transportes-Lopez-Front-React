@@ -25,6 +25,7 @@ export function NuevoViajeCuadro({
   alCrear: (id: number) => void;
 }) {
   const vehiculos = useDatos(() => api.getVehiculos(), []);
+  const conductores = useDatos(() => api.getConductores(), []);
   const [f, setF] = useState({
     fecha: hoyColombia(),
     placa: "",
@@ -38,10 +39,28 @@ export function NuevoViajeCuadro({
     valorFijo: "",
   });
   const [flujoCorame, setFlujoCorame] = useState<boolean | null>(null);
+  /** Conductor que se puso solo por la placa (si el usuario lo cambia, ya no se toca). */
+  const [conductorAuto, setConductorAuto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Se deduce de la empresa hasta que el usuario lo cambie a mano.
   const corame = flujoCorame ?? FLUJO_LARGO.test(f.empresa);
+
+  /** Nombre del conductor habitual de una placa (Flota -> conductor habitual); "" si no tiene. */
+  function conductorDe(placa: string): string {
+    const limpia = placa.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+    const v = (vehiculos.datos ?? []).find((x) => x.placa.replace(/[^A-Z0-9]/gi, "").toUpperCase() === limpia);
+    if (!v?.cedulaConductorHabitual) return "";
+    return (conductores.datos ?? []).find((c) => c.cedula === v.cedulaConductorHabitual)?.nombre ?? "";
+  }
+
+  /** Cambia la placa y, si el conductor esta vacio o lo habia puesto la placa anterior, pone el habitual. */
+  function cambiarPlaca(placa: string) {
+    const habitual = conductorDe(placa);
+    const tocarConductor = !f.conductor.trim() || f.conductor === conductorAuto;
+    setF({ ...f, placa, conductor: tocarConductor ? habitual : f.conductor });
+    if (tocarConductor) setConductorAuto(habitual);
+  }
 
   async function crear() {
     setEnviando(true);
@@ -86,7 +105,7 @@ export function NuevoViajeCuadro({
         {input("fecha", "Fecha", "date")}
         <div>
           <label>Placa</label>
-          <input list="cuadro-placas" value={f.placa} onChange={(e) => setF({ ...f, placa: e.target.value.toUpperCase() })} />
+          <input list="cuadro-placas" value={f.placa} onChange={(e) => cambiarPlaca(e.target.value.toUpperCase())} />
           <datalist id="cuadro-placas">
             {(vehiculos.datos ?? []).filter((v) => v.activo).map((v) => (
               <option key={v.id} value={v.placa} />
@@ -102,7 +121,16 @@ export function NuevoViajeCuadro({
             ))}
           </datalist>
         </div>
-        {input("conductor", "Conductor")}
+        <div>
+          <label>Conductor</label>
+          <input list="cuadro-conductores" value={f.conductor} onChange={(e) => setF({ ...f, conductor: e.target.value })} />
+          <datalist id="cuadro-conductores">
+            {(conductores.datos ?? []).filter((c) => c.activo).map((c) => (
+              <option key={c.cedula} value={c.nombre} />
+            ))}
+          </datalist>
+          {f.conductor && f.conductor === conductorAuto && <span className="dato-sec">Conductor habitual de la placa (Flota)</span>}
+        </div>
         {input("rutaManual", "Ruta (origen - destino)", "text", { placeholder: "SOACHA - CALI" })}
         {input("remision", "Remision")}
         {input("pesoKg", "Peso real (kg)", "number", { min: 0 })}

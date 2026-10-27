@@ -280,6 +280,7 @@ export default function PagoTerceros() {
 function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCerrar: () => void; alGuardar: () => void }) {
   const texto = (n: number | null) => (n === null ? "" : String(n));
   const [f, setF] = useState({
+    pesoKg: texto(viaje.pesoKg),
     valorTerceroTon: texto(viaje.valorTerceroTon),
     valorTerceroFijo: texto(viaje.valorTerceroFijo),
     anticipoTransferencia: texto(viaje.anticipoTransferencia),
@@ -298,9 +299,10 @@ function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCer
     setF({ ...f, [campo]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   const icaPorMil = numeroONulo(f.icaTerceroPorMil) ?? viaje.icaSugerido;
+  const pesoKg = numeroONulo(f.pesoKg);
   const l = liquidarTercero(
     {
-      pesoKg: viaje.pesoKg,
+      pesoKg,
       valorTerceroTon: numeroONulo(f.valorTerceroTon),
       valorTerceroFijo: numeroONulo(f.valorTerceroFijo),
       anticipoTransferencia: numeroONulo(f.anticipoTransferencia),
@@ -317,6 +319,8 @@ function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCer
     setError(null);
     try {
       await apiCuadro.actualizar(viaje.id, {
+        // El peso real es el del cuadro de pagos: se corrige aqui mismo (ver "Lo pactado").
+        ...(pesoKg !== viaje.pesoKg ? { pesoKg } : {}),
         valorTerceroTon: numeroONulo(f.valorTerceroTon),
         valorTerceroFijo: numeroONulo(f.valorTerceroFijo),
         anticipoTransferencia: numeroONulo(f.anticipoTransferencia),
@@ -369,6 +373,15 @@ function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCer
 
       <h4>Lo pactado con el tercero</h4>
       <div className="campos-cuadro">
+        <div>
+          <label>Peso real (kg)</label>
+          <input type="number" min={0} value={f.pesoKg} onChange={cambiar("pesoKg")} placeholder="Sin peso" />
+          {pesoKg !== viaje.pesoKg && (
+            <span className="dato-sec">
+              Antes {viaje.pesoKg === null ? "sin peso" : `${viaje.pesoKg.toLocaleString("es-CO")} kg`}: se cambia tambien en el Cuadro pagos.
+            </span>
+          )}
+        </div>
         <div>
           <label>Valor por tonelada</label>
           <input type="number" min={0} value={f.valorTerceroTon} onChange={cambiar("valorTerceroTon")} placeholder="0" />

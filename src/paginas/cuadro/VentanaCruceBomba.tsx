@@ -46,7 +46,7 @@ const montoDe = (t: AnticipoBomba, tipo: TipoVale) => (tipo === "EFECTIVO" ? t.e
 
 /** El tramo aun puede tomar un vale de ese tipo (tiene ese valor y no tiene vale). */
 const libreParaTipo = (t: AnticipoBomba, tipo: TipoVale) =>
-  t.bombaId !== null && montoDe(t, tipo) > 0 && !(tipo === "EFECTIVO" ? t.valeEfectivo : t.vale);
+  t.bombaId !== null && montoDe(t, tipo) > 0 && !(tipo === "EFECTIVO" ? t.cruzadoEfectivo : t.cruzadoCombustible);
 
 /** Estado de un vale frente al tramo elegido. */
 const estadoDe = (valor: number, t: AnticipoBomba | undefined, tipo: TipoVale): EstadoVale =>

@@ -517,7 +517,7 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
       )}
       <button
         type="button"
-        className="btn-secondary"
+        className="btn-primary"
         style={{ marginTop: "0.5rem" }}
         disabled={!listo}
         onClick={async () => {

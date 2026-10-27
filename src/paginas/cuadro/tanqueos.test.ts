@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { AnticipoBomba } from "../../api/cliente";
-import { agruparPorTanqueo, coloresBombas, posiblesVueltas } from "./tanqueos";
+import { agruparPorTanqueo, coloresBombas, faltaCruzar, posiblesVueltas } from "./tanqueos";
 
 /** Tramo de anticipo; cada prueba cambia lo que necesita. */
 const tramo = (cambios: Partial<AnticipoBomba>): AnticipoBomba => ({
@@ -33,6 +33,9 @@ const tramo = (cambios: Partial<AnticipoBomba>): AnticipoBomba => ({
   efectivoEntregado: null,
   relacionId: null,
   ...cambios,
+  // Con numero de vale queda cruzado, salvo que la prueba diga otra cosa.
+  cruzadoCombustible: cambios.cruzadoCombustible ?? !!cambios.vale,
+  cruzadoEfectivo: cambios.cruzadoEfectivo ?? !!cambios.valeEfectivo,
 });
 
 describe("agruparPorTanqueo", () => {
@@ -46,6 +49,12 @@ describe("agruparPorTanqueo", () => {
     expect(g.idaYVuelta).toBe(true);
     expect(g.total).toBe(4_000_000);
     expect(g.cruce).toBe("SIN_CRUZAR");
+  });
+
+  test("los vales armados a mano (sin numero) tambien dejan el tanqueo cruzado", () => {
+    const t = tramo({ cruzadoCombustible: true, cruzadoEfectivo: true, relacionId: 1 });
+    expect(faltaCruzar(t)).toEqual({ combustible: false, efectivo: false });
+    expect(agruparPorTanqueo([t])[0].cruce).toBe("CRUZADO");
   });
 
   test("cruzado cuando lo que dio la bomba (combustible y efectivo) tiene vale; con diferencia si el vale cambio el valor", () => {

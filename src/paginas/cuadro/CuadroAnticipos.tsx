@@ -321,7 +321,7 @@ function DetalleTanqueo({
       style={{ width: "6.5rem" }}
       defaultValue={enInput(t[campo])}
       placeholder={sugerido === undefined ? "" : String(sugerido)}
-      disabled={!!t.vale}
+      disabled={t.cruzadoCombustible}
       onBlur={(e) => deInput(e.target.value) !== t[campo] && guardar(() => apiCuadro.actualizarTramo(t.id, { [campo]: e.target.value }))}
     />
   );
@@ -365,13 +365,18 @@ function DetalleTanqueo({
                 </td>
                 <td>
                   {/* Un vale para el combustible y otro para el efectivo (la bomba da los dos). */}
-                  {t.vale ? <span className="codigo">Comb. {t.vale}</span> : falta.combustible && <span className="dato-sec">Combustible sin vale</span>}
-                  {t.valeEfectivo ? (
-                    <span className="dato-sec codigo">Efect. {t.valeEfectivo}</span>
+                  {/* Los vales armados a mano no traen numero: salen como "cruzado a mano". */}
+                  {t.cruzadoCombustible ? (
+                    <span className="codigo">Comb. {t.vale ?? "cruzado a mano"}</span>
+                  ) : (
+                    falta.combustible && <span className="dato-sec">Combustible sin vale</span>
+                  )}
+                  {t.cruzadoEfectivo ? (
+                    <span className="dato-sec codigo">Efect. {t.valeEfectivo ?? "cruzado a mano"}</span>
                   ) : (
                     falta.efectivo && <span className="dato-sec">Efectivo sin vale</span>
                   )}
-                  {!t.vale && !t.valeEfectivo && !falta.combustible && !falta.efectivo && "-"}
+                  {!t.cruzadoCombustible && !t.cruzadoEfectivo && !falta.combustible && !falta.efectivo && "-"}
                 </td>
                 <td>{campoCruce(t, "galones")}</td>
                 <td>{campoCruce(t, "precioGalon", resumen?.precioGalonBomba)}</td>

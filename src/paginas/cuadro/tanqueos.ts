@@ -61,8 +61,8 @@ export const diferenciaTramo = (t: AnticipoBomba) => diferenciaCombustible(t) + 
 export function faltaCruzar(t: AnticipoBomba): { combustible: boolean; efectivo: boolean } {
   const deBomba = t.bombaId !== null;
   return {
-    combustible: deBomba && t.combustible > 0 && !t.vale,
-    efectivo: deBomba && t.efectivo > 0 && !t.valeEfectivo,
+    combustible: deBomba && t.combustible > 0 && !t.cruzadoCombustible,
+    efectivo: deBomba && t.efectivo > 0 && !t.cruzadoEfectivo,
   };
 }
 
@@ -79,7 +79,7 @@ export function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
     const conCombustible = ts.filter((t) => t.combustible > 0 && t.bombaId !== null);
     const diferencia = ts.reduce((s, t) => s + diferenciaTramo(t), 0);
     // Sin ningun vale y con la factura de la bomba: se cargo del Excel ya cruzado.
-    const conVales = ts.some((t) => !!t.vale || !!t.valeEfectivo);
+    const conVales = ts.some((t) => t.cruzadoCombustible || t.cruzadoEfectivo);
     const cruzado =
       conCombustible.length > 0 &&
       (conVales ? ts.every((t) => !faltaCruzar(t).combustible && !faltaCruzar(t).efectivo) : !!ida.facturaBomba);

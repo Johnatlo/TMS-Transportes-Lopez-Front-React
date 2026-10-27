@@ -822,6 +822,12 @@ export interface AnticipoBomba {
   vale: string | null;
   /** Vale de efectivo de la relacion de la bomba con que se cruzo. */
   valeEfectivo: string | null;
+  /**
+   * El combustible / el efectivo ya esta cruzado con un vale de la bomba (los
+   * vales armados a mano no traen numero, por eso no basta con `vale`).
+   */
+  cruzadoCombustible: boolean;
+  cruzadoEfectivo: boolean;
   /** Efectivo que se habia registrado antes de cruzarlo con el vale. */
   efectivoEntregado: number | null;
   /** Relacion (factura) de la bomba con que se cruzo. */
