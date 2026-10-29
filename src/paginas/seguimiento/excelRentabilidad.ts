@@ -56,20 +56,25 @@ const COLUMNAS_TERCEROS: ColumnaExcel[] = [
   m("ica", "RETE ICA", (f) => f.reteIca),
   m("bancaria", "COMIS BANCAR", (f) => f.bancaria),
   m("super", "CONT. SUPERTR. 0,1201", (f) => f.supertransporte),
+  m("comision", "COMISION", (f) => f.comision),
   m("tLopez", "T. LOPEZ", (f) => f.tLopez),
-  m("saldoEmpresa", "SALDO EMPRESA CON DESCUENTOS", (f) => f.saldoEmpresa, (L) => `${L("valor")}-${L("retencion")}-${L("ica")}-${L("bancaria")}-${L("super")}-${L("tLopez")}`),
+  m(
+    "saldoEmpresa",
+    "SALDO EMPRESA CON DESCUENTOS",
+    (f) => f.saldoEmpresa,
+    (L) => `${L("valor")}-${L("retencion")}-${L("ica")}-${L("bancaria")}-${L("super")}-${L("comision")}-${L("tLopez")}`
+  ),
   m("flete", "FLETE TERCERO", (f) => f.fleteTercero),
   m("retTercero", "RETEF. RET.FOPAT TERCEROS", (f) => f.retencionTercero),
   m("icaTercero", "RETE ICA", (f) => f.reteIcaTercero),
   m("superTercero", "CONT. SUPERTR. 0,1201%", (f) => f.bancariaTercero),
   m("poliza", "PLANILLA- POLIZA RCE", (f) => f.poliza),
-  m("comision", "COMISION", (f) => f.comision),
   m("anticipo", "ANTICIPO", (f) => f.anticipo),
   m(
     "saldoTercero",
     "SALDO CONDUCTOR CON DESCUENTOS",
     (f) => f.saldoBeneficiario,
-    (L) => `${L("flete")}-${L("retTercero")}-${L("icaTercero")}-${L("superTercero")}-${L("poliza")}-${L("comision")}`
+    (L) => `${L("flete")}-${L("retTercero")}-${L("icaTercero")}-${L("superTercero")}-${L("poliza")}`
   ),
   m("rentabilidad", "RENTABIL. EMPRESA", (f) => f.rentabilidad, (L) => `${L("saldoEmpresa")}-${L("saldoTercero")}`),
   m("renta", "ANTICIPO DE RENTA 3,5", (f) => f.anticipoRenta, (L) => `ROUND(${L("rentabilidad")}*3.5%,0)`),

@@ -128,7 +128,7 @@ const COLUMNAS_TERCEROS: Columna<FilaRentabilidad>[] = [
     alinear: "derecha",
     valor: (f) => f.saldoBeneficiario,
     celda: (f) => (
-      <span title={`Retef. + FOPAT ${moneda(f.retencionTercero)} · ICA ${moneda(f.reteIcaTercero)} · Supertransporte ${moneda(f.bancariaTercero)} · poliza ${moneda(f.poliza)} · comision ${moneda(f.comision)}`}>
+      <span title={`Retef. + FOPAT ${moneda(f.retencionTercero)} · ICA ${moneda(f.reteIcaTercero)} · Supertransporte ${moneda(f.bancariaTercero)} · poliza ${moneda(f.poliza)}`}>
         {moneda(f.saldoBeneficiario)}
       </span>
     ),
@@ -216,7 +216,7 @@ export default function Rentabilidad() {
       </div>
       <div className="dato-sec" style={{ marginBottom: "0.5rem" }}>
         {terceros
-          ? "Terceros: lo que paga el cliente menos sus descuentos (saldo empresa) menos lo que se le paga al tercero con los suyos (saldo tercero) = rentabilidad; menos el anticipo de renta 3,5 % = ganancia. La comision de 30.000 por remision la paga el tercero."
+          ? "Terceros: lo que paga el cliente menos sus descuentos (saldo empresa) menos lo que se le paga al tercero con los suyos (saldo tercero) = rentabilidad; menos el anticipo de renta 3,5 % = ganancia. La comision de la matriz se descuenta del saldo empresa, como en los demas carros."
           : "Socios y carros propios: lo que paga el cliente menos retenciones, anticipo de renta, bancos, comision, T. Lopez, descargue, poliza y anticipo = saldo al dueno. La empresa gana la comision y T. Lopez."}{" "}
         Clic en un viaje para corregir sus valores.
       </div>
@@ -361,7 +361,7 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
         {fila.tercero ? ` · ${fila.tercero}` : ""}
       </div>
       <div className="campos-cuadro">
-        {campo("rentComision", terceros ? "Comision (la paga el tercero)" : "Comision", fila.comision)}
+        {campo("rentComision", "Comision", fila.comision)}
         {campo("rentTLopez", "T. Lopez", fila.tLopez)}
         {!terceros && campo("rentDescargue", "Descargue CAME", fila.descargue)}
         {campo("rentPoliza", "Planilla - poliza RCE", fila.poliza)}
@@ -381,10 +381,11 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
           {renglon("Comision bancaria (4 x 1000 + 5.000)", fila.bancaria)}
           {renglon("Supertransporte 0,1201 %", fila.supertransporte)}
           {renglon("T. Lopez", fila.tLopez)}
+          {terceros && renglon("Comision", fila.comision)}
           {terceros ? (
             <>
               {renglon("Saldo empresa", fila.saldoEmpresa, "=")}
-              {renglon("Saldo al tercero (flete pactado - sus descuentos - poliza - comision)", fila.saldoBeneficiario)}
+              {renglon("Saldo al tercero (flete pactado - sus descuentos - poliza)", fila.saldoBeneficiario)}
               {renglon("Rentabilidad", fila.rentabilidad, "=")}
               {renglon("Anticipo de renta 3,5 %", fila.anticipoRenta)}
             </>
