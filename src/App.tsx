@@ -22,6 +22,7 @@ const CuadroCentral = lazy(() => import("./paginas/cuadro/CuadroCentral"));
 const Anticipos = lazy(() => import("./paginas/cuadro/CuadroAnticipos"));
 const Cartera = lazy(() => import("./paginas/seguimiento/Cartera"));
 const PagoTerceros = lazy(() => import("./paginas/seguimiento/PagoTerceros"));
+const Rentabilidad = lazy(() => import("./paginas/seguimiento/Rentabilidad"));
 const Plantillas = lazy(() => import("./paginas/Plantillas"));
 const Catalogo = lazy(() => import("./paginas/Catalogo"));
 const Usuarios = lazy(() => import("./paginas/Usuarios"));
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/papeles" element={<Navigate to="/cuadro?papeles=0" replace />} />
         <Route path="/cartera" element={<Cartera />} />
         <Route path="/terceros" element={<PagoTerceros />} />
+        <Route path="/rentabilidad" element={<Rentabilidad />} />
         <Route path="/plantillas" element={<Plantillas />} />
         <Route path="/clientes" element={<Catalogo key="clientes" pestanas={["terceros"]} />} />
         <Route

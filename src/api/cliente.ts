@@ -1204,6 +1204,74 @@ export interface NombreTerceroPropuesto extends NombreTerceroImportado {
   vehiculos: Array<{ id: number; placa: string; nombreActual: string | null; por: "PLACA" | "CEDULA" }>;
 }
 
+/** Comision y T. Lopez de un cliente (Matriz Comisiones de la rentabilidad). */
+export interface ComisionCliente {
+  cliente: string;
+  comision: number;
+  tLopez: number;
+}
+
+/** ReteICA por mil de un cliente (Matriz Retenciones de la rentabilidad). */
+export interface RetencionCliente {
+  cliente: string;
+  reteicaPorMil: number;
+  ciudad: string | null;
+}
+
+/**
+ * Un viaje en la rentabilidad (ver src/rentabilidad.ts del backend). Los rent*
+ * son lo escrito a mano (null = el valor de siempre); los demas montos ya
+ * vienen calculados.
+ */
+export interface FilaRentabilidad {
+  id: number;
+  /** TERCEROS, CELSO, MAURICIO, MILLER, SOCIEDAD, JTY-221, SWK-973, XGJ-197 o PROPIOS. */
+  grupo: string;
+  fecha: string;
+  placa: string;
+  tercero: string | null;
+  empresa: string;
+  remision: string | null;
+  manifiesto: string | null;
+  facturaNumero: string | null;
+  facturaFecha: string | null;
+  /** Lo que paga el cliente (valor del flete). */
+  valorEmpresa: number;
+  efectivo: number;
+  combustible: number;
+  transferencia: number;
+  fechaPagoEmpresa: string | null;
+  fechaPagoBeneficiario: string | null;
+  fechaPagoRentabilidad: string | null;
+  concepto: string | null;
+  rentComision: number | null;
+  rentTLopez: number | null;
+  rentDescargue: number | null;
+  rentPoliza: number | null;
+  rentIcaPorMil: number | null;
+  retencion: number;
+  icaPorMil: number;
+  reteIca: number;
+  bancaria: number;
+  supertransporte: number;
+  comision: number;
+  tLopez: number;
+  descargue: number;
+  poliza: number;
+  anticipo: number;
+  anticipoRenta: number;
+  saldoEmpresa: number;
+  fleteTercero: number;
+  retencionTercero: number;
+  reteIcaTercero: number;
+  bancariaTercero: number;
+  /** Terceros: lo que se le paga al tercero; socios: lo que se le paga al dueno. */
+  saldoBeneficiario: number;
+  rentabilidad: number;
+  /** Lo que gana la empresa con el viaje. */
+  ganancia: number;
+}
+
 /** Totales de un tercero para pagarle. */
 export interface ResumenTercero {
   tercero: string;
@@ -1417,6 +1485,13 @@ export const apiSeguimiento = {
   anticiposEmpresas: () => get<{ viajes: FilaCuadro[]; empresas: ResumenAnticipoEmpresa[] }>("/seguimiento/anticipos-empresas"),
   /** Viajes de vehiculos terceros con lo que se les paga, y el resumen por tercero. */
   terceros: () => get<{ viajes: ViajeTercero[]; terceros: ResumenTercero[] }>("/seguimiento/terceros"),
+  /** Rentabilidad: todos los viajes no anulados con su grupo y lo que deja cada uno. */
+  rentabilidad: () => get<FilaRentabilidad[]>("/seguimiento/rentabilidad"),
+  /** Matrices de la rentabilidad (comisiones y retenciones por cliente). */
+  matricesRentabilidad: () => get<{ comisiones: ComisionCliente[]; retenciones: RetencionCliente[] }>("/seguimiento/rentabilidad/matrices"),
+  /** Reemplaza las matrices de la rentabilidad. */
+  guardarMatricesRentabilidad: (d: { comisiones?: ComisionCliente[]; retenciones?: RetencionCliente[] }) =>
+    put<{ comisiones: ComisionCliente[]; retenciones: RetencionCliente[] }>("/seguimiento/rentabilidad/matrices", d),
   /** Propone a que vehiculos se le pone cada nombre de la Matriz Terceros (no guarda). */
   previaNombresTerceros: (terceros: NombreTerceroImportado[]) =>
     post<NombreTerceroPropuesto[]>("/seguimiento/terceros/nombres/previa", { terceros }),

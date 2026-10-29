@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_450 funciones, componentes, métodos y rutas en 66 archivos._
+_469 funciones, componentes, métodos y rutas en 68 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (146)
+- [`src/api/cliente.ts`](#srcapiclientets) (149)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -239,8 +239,10 @@ _450 funciones, componentes, métodos y rutas en 66 archivos._
 - [`src/paginas/seguimiento/ImportarNombresTerceros.tsx`](#srcpaginasseguimientoimportarnombrestercerostsx) (1)
 - [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
+- [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (7)
 - [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (11)
 - [`src/paginas/seguimiento/excelLiquidacion.ts`](#srcpaginasseguimientoexcelliquidacionts) (5)
+- [`src/paginas/seguimiento/excelRentabilidad.ts`](#srcpaginasseguimientoexcelrentabilidadts) (9)
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
 
@@ -713,6 +715,15 @@ _450 funciones, componentes, métodos y rutas en 66 archivos._
 
   - **`apiSeguimiento.terceros()`** · _método_
     Viajes de vehiculos terceros con lo que se les paga, y el resumen por tercero.
+
+  - **`apiSeguimiento.rentabilidad()`** · _método_
+    Rentabilidad: todos los viajes no anulados con su grupo y lo que deja cada uno.
+
+  - **`apiSeguimiento.matricesRentabilidad()`** · _método_
+    Matrices de la rentabilidad (comisiones y retenciones por cliente).
+
+  - **`apiSeguimiento.guardarMatricesRentabilidad(d)`** · _método_
+    Reemplaza las matrices de la rentabilidad.
 
   - **`apiSeguimiento.previaNombresTerceros(terceros)`** · _método_
     Propone a que vehiculos se le pone cada nombre de la Matriz Terceros (no guarda).
@@ -2314,6 +2325,44 @@ _450 funciones, componentes, métodos y rutas en 66 archivos._
   llamar al conductor): donde estan, quien los tiene, si estan completos,
   que falta y una nota. Guardar apaga la alerta de "comunicarse" por hoy.
 
+### `src/paginas/seguimiento/Rentabilidad.tsx`
+
+> Rentabilidad: cuanto deja cada viaje cuando el cliente le paga a la empresa
+> (reemplaza el Excel "ejemplo rentabilidad"). Una pestana por grupo de
+> carros (TERCEROS, CELSO, MAURICIO, MILLER, SOCIEDAD, JTY-221, SWK-973,
+> XGJ-197); las cuentas las hace el backend (src/rentabilidad.ts) con lo que
+> ya esta en el Cuadro pagos, Anticipos y Pago a terceros.
+>
+> Clic en un viaje: se corrigen a mano la comision, T. Lopez, el descargue,
+> la poliza, el ReteICA del cliente y la fecha en que se repartio la ganancia.
+> Exportar descarga el Excel del grupo con lo filtrado (para sacar el de uno o
+> dos carros, se filtra por placa).
+
+- **`descuentosEmpresa(f)`** · _función_
+  Descuentos del lado de la empresa (retenciones, ICA, bancaria, Supertransporte y T. Lopez en terceros).
+
+- **`fechaO(f)`** · _función_
+  Fecha corta o "-".
+
+- **`columnasInicio(terceros)`** · _función_
+  Columnas comunes al principio de las dos tablas.
+
+- **`Rentabilidad()`** · _componente React_
+  Pagina de la rentabilidad.
+
+- **`enCampo(n)`** · _función_
+  Texto de un numero para un campo (null = vacio).
+
+- **`EditarRentabilidad({...})`** · _componente React_
+  Lo que se corrige a mano en un viaje para la rentabilidad. Vacio = el valor
+  de siempre (el que se muestra en gris).
+
+- **`VentanaMatrices({...})`** · _componente React_
+  Matrices de la rentabilidad: comision y T. Lopez por cliente, y ReteICA por
+  cliente. Se pueden cargar del Excel (hojas "Matriz Comisiones" y "Matriz
+  Retenciones") y corregir aqui. El nombre del cliente se busca dentro del de
+  la empresa del viaje (CORAME tambien encuentra CARTONES AMERICA).
+
 ### `src/paginas/seguimiento/cargaExcel.ts`
 
 > Lectura de los Excel de la carga inicial: "Cartera Total" (facturas
@@ -2392,6 +2441,44 @@ _450 funciones, componentes, métodos y rutas en 66 archivos._
 
 - **`descargarLiquidacion(l, nombreArchivo)`** · _función_
   Arma y descarga el Excel de la liquidacion.
+
+### `src/paginas/seguimiento/excelRentabilidad.ts`
+
+> Excel de la rentabilidad con las columnas de docs/ejemplo rentabilidad.xlsx:
+> una hoja por grupo (TERCEROS, CELSO, MAURICIO...). Los saldos, la
+> rentabilidad y la ganancia van con formula (como en el ejemplo) para que se
+> puedan ajustar en el Excel; al final, los totales.
+>
+> exceljs se carga solo al descargar (import dinamico).
+
+- **`m(id, titulo, valor, formula)`** · _función_
+  Columna de plata (se suma en los totales); con formula si se da.
+
+- **`t(id, titulo, valor)`** · _función_
+  Columna de texto.
+
+- **`d(id, titulo, valor)`** · _función_
+  Columna de fecha.
+
+- **`columnasSocio(grupo)`** · _función_
+  Columnas de la hoja de un socio o carro propio (saldo = lo que se le paga al dueno).
+
+- **`fechaExcel(f)`** · _función_
+  "2026-10-05" -> Date a mediodia local (que Excel no lo corra de dia).
+
+- **`letra(n)`** · _función_
+  Letra de la columna n (1 = A, 27 = AA).
+
+- **`hojaGrupo(hoja, grupo, filas)`** · _función_
+  Escribe una hoja: encabezado azul, una fila por viaje (con sus formulas) y los totales.
+
+- **`descargarRentabilidad(grupos, nombreArchivo)`** · _función_
+  Arma y descarga el Excel con una hoja por grupo (en el orden dado).
+
+- **`leerMatrices(archivo)`** · _función_
+  Lee las matrices del Excel de rentabilidad: "Matriz Comisiones" (CLIENTES,
+  COM, LOPEZ) y "Matriz Retenciones" (EMPRESA, RETEFUENTE, RETEICA, LUGAR).
+  Las filas sin cliente o sin numero se saltan.
 
 ### `src/paginas/seguimiento/liquidacionPago.ts`
 

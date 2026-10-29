@@ -116,6 +116,7 @@ export default function TablaDatos<T>({
   columnasFijas = 1,
   detalle,
   busquedaInicial,
+  alExportar,
 }: {
   filas: T[];
   columnas: Columna<T>[];
@@ -144,6 +145,11 @@ export default function TablaDatos<T>({
   detalle?: (fila: T) => ReactNode;
   /** Texto con que arranca el buscador (por ejemplo, el cliente de una alerta). */
   busquedaInicial?: string;
+  /**
+   * Exportar propio (un Excel con formato) en vez del CSV: recibe las filas
+   * que quedan con la pestana, la busqueda y los filtros puestos.
+   */
+  alExportar?: (filas: T[]) => void;
 }) {
   const [porPagina, setPorPagina] = usarFilasPorPagina();
   const tabla = useRef<HTMLTableElement>(null);
@@ -325,8 +331,13 @@ export default function TablaDatos<T>({
               {filtrosActivos > 0 && <span className="insignia">{filtrosActivos}</span>}
             </button>
           )}
-          {nombreArchivo && (
-            <button type="button" className="boton-barra boton-exportar" onClick={exportar} disabled={visibles.length === 0}>
+          {(nombreArchivo || alExportar) && (
+            <button
+              type="button"
+              className="boton-barra boton-exportar"
+              onClick={() => (alExportar ? alExportar(visibles) : exportar())}
+              disabled={visibles.length === 0}
+            >
               <IconoExportar /> Exportar
             </button>
           )}
