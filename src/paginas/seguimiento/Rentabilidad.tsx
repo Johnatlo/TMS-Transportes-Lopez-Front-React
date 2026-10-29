@@ -31,6 +31,7 @@ const PESTANAS: PestanaTabla<FilaRentabilidad>[] = [
   { id: "pagados", etiqueta: "Pagados por el cliente", incluye: (f) => !!f.fechaPagoEmpresa },
   { id: "porCobrar", etiqueta: "Por cobrar", incluye: (f) => f.valorEmpresa > 0 && !f.fechaPagoEmpresa },
   { id: "sinFlete", etiqueta: "Sin flete", incluye: (f) => f.valorEmpresa === 0 },
+  { id: "sinPagarDueno", etiqueta: "Cobrados sin pagar al dueno", incluye: (f) => !!f.fechaPagoEmpresa && !f.fechaPagoBeneficiario },
   { id: "sinRepartir", etiqueta: "Ganancia sin repartir", incluye: (f) => !!f.fechaPagoEmpresa && !f.fechaPagoRentabilidad },
   { id: "todos", etiqueta: "Todos", incluye: () => true },
 ];
@@ -91,8 +92,8 @@ const columnasInicio = (terceros: boolean): Columna<FilaRentabilidad>[] => [
   },
 ];
 
-/** Columnas de fechas y ganancia al final. */
-const columnasFin: Columna<FilaRentabilidad>[] = [
+/** Columnas de ganancia y fechas al final (terceros: "Pago al tercero"; socios: "Pago al dueno"). */
+const columnasFin = (terceros: boolean): Columna<FilaRentabilidad>[] => [
   {
     id: "ganancia",
     titulo: "Ganancia empresa",
@@ -100,16 +101,14 @@ const columnasFin: Columna<FilaRentabilidad>[] = [
     valor: (f) => f.ganancia,
     celda: (f) => <strong className={f.ganancia < 0 ? "texto-vencido" : ""}>{moneda(f.ganancia)}</strong>,
   },
+  { id: "pagoCliente", titulo: "Pago del cliente", valor: (f) => f.fechaPagoEmpresa ?? "", celda: (f) => fechaO(f.fechaPagoEmpresa) },
   {
-    id: "pagos",
-    titulo: "Pago cliente / pago / reparto",
-    valor: (f) => f.fechaPagoEmpresa ?? "",
-    celda: (f) => (
-      <span className="dato-sec">
-        {fechaO(f.fechaPagoEmpresa)} · {fechaO(f.fechaPagoBeneficiario)} · {fechaO(f.fechaPagoRentabilidad)}
-      </span>
-    ),
+    id: "pagoDueno",
+    titulo: terceros ? "Pago al tercero" : "Pago al dueno",
+    valor: (f) => f.fechaPagoBeneficiario ?? "",
+    celda: (f) => (f.fechaPagoBeneficiario ? fechaCorta(f.fechaPagoBeneficiario) : <span className="dato-sec">Sin pagar</span>),
   },
+  { id: "reparto", titulo: "Reparto ganancia", valor: (f) => f.fechaPagoRentabilidad ?? "", celda: (f) => fechaO(f.fechaPagoRentabilidad) },
 ];
 
 const COLUMNAS_TERCEROS: Columna<FilaRentabilidad>[] = [
@@ -134,7 +133,7 @@ const COLUMNAS_TERCEROS: Columna<FilaRentabilidad>[] = [
     ),
   },
   { id: "renta", titulo: "Anticipo renta", alinear: "derecha", valor: (f) => f.anticipoRenta, celda: (f) => moneda(f.anticipoRenta) },
-  ...columnasFin,
+  ...columnasFin(true),
 ];
 
 const COLUMNAS_SOCIOS: Columna<FilaRentabilidad>[] = [
@@ -168,7 +167,7 @@ const COLUMNAS_SOCIOS: Columna<FilaRentabilidad>[] = [
     valor: (f) => f.saldoBeneficiario,
     celda: (f) => <span className={f.saldoBeneficiario < 0 ? "texto-vencido" : ""}>{moneda(f.saldoBeneficiario)}</span>,
   },
-  ...columnasFin,
+  ...columnasFin(false),
 ];
 
 /** Pagina de la rentabilidad. */
@@ -293,6 +292,7 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
     rentPoliza: enCampo(fila.rentPoliza),
     rentIcaPorMil: enCampo(fila.rentIcaPorMil),
     fechaPagoRentabilidad: fila.fechaPagoRentabilidad ?? "",
+    fechaPagoSaldo: fila.fechaPagoBeneficiario ?? "",
   });
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -309,6 +309,8 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
         rentPoliza: numeroONulo(f.rentPoliza),
         rentIcaPorMil: numeroONulo(f.rentIcaPorMil),
         fechaPagoRentabilidad: f.fechaPagoRentabilidad || null,
+        // La misma fecha de pago al dueno del Cuadro pagos.
+        fechaPagoSaldo: f.fechaPagoSaldo || null,
       });
       alGuardar();
     } catch (exc) {
@@ -366,6 +368,10 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
         {!terceros && campo("rentDescargue", "Descargue CAME", fila.descargue)}
         {campo("rentPoliza", "Planilla - poliza RCE", fila.poliza)}
         {campo("rentIcaPorMil", "ReteICA del cliente (por mil)", fila.icaPorMil, "0.01")}
+        <div>
+          <label>{terceros ? "Pago al tercero" : "Pago al dueno"}</label>
+          <input type="date" value={f.fechaPagoSaldo} onChange={(e) => setF({ ...f, fechaPagoSaldo: e.target.value })} />
+        </div>
         <div>
           <label>Pago de la rentabilidad</label>
           <input type="date" value={f.fechaPagoRentabilidad} onChange={(e) => setF({ ...f, fechaPagoRentabilidad: e.target.value })} />

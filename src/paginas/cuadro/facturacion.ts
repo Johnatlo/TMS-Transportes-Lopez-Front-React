@@ -33,6 +33,9 @@ const palabras = (s: string) =>
     .map((p) => p.replace(/S$/, ""))
     .filter(Boolean);
 
+/** Palabras de enlace (ya sin la "S" final) que no ayudan a reconocer al cliente. */
+const ENLACE = new Set(["DE", "DEL", "LA", "LO", "EL", "Y", "E", "EN"]);
+
 /**
  * Que tanto se parece una tarifa al cliente del viaje (0 = nada). Se compara
  * contra la razon social de la tarifa y contra su nombre:
@@ -48,10 +51,12 @@ export function parecido(empresa: string, tarifa: TarifaFlete): number {
     if (t === e) mejor = Math.max(mejor, 3);
     else if (t.startsWith(e) || e.startsWith(t)) mejor = Math.max(mejor, 2);
     else {
-      const pe = new Set(e.split(" "));
-      const pt = t.split(" ");
+      // Las palabras de enlace (DE, Y, LA...) no cuentan: "BODEGAS DE RECICLAJES" no se parece a "INGENIERIA DE TUBOS DE CARTON".
+      // Tampoco las letras sueltas ("L&D" no es "L.D").
+      const pe = new Set(e.split(" ").filter((p) => p.length > 1 && !ENLACE.has(p)));
+      const pt = [...new Set(t.split(" ").filter((p) => p.length > 1 && !ENLACE.has(p)))];
       const comunes = pt.filter((p) => pe.has(p)).length;
-      if (comunes >= Math.ceil(Math.min(pe.size, pt.length) * 0.6)) mejor = Math.max(mejor, 1);
+      if (comunes > 0 && comunes >= Math.ceil(Math.min(pe.size, pt.length) * 0.6)) mejor = Math.max(mejor, 1);
     }
   }
   return mejor;
@@ -69,17 +74,86 @@ export function tarifasDelCliente(empresa: string, tarifas: TarifaFlete[]): Tari
     .map((x) => x.t);
 }
 
+/** Lo del manifiesto que sirve para elegir la tarifa: la ruta, si es urbano y el tipo de carro. */
+export interface DatosViajeTarifa {
+  /** "SOACHA CUNDINAMARCA → CALI VALLE DEL CAUCA" (del manifiesto) o la ruta escrita a mano ("SOACHA - CALI"). */
+  ruta: string | null;
+  urbano: boolean;
+  /** Configuracion del vehiculo: con S (3S3, 2S) es tractomula (MULA); sin S (2, 3), camion rigido (VOLVO). */
+  configuracion: string | null;
+}
+
+/** Abreviaturas de ciudades en los nombres de la matriz. */
+const ABREVIATURAS: Array<[RegExp, string]> = [
+  [/B\s*\/\s*VENTURA/gi, "BUENAVENTURA"],
+  [/M\s*\/\s*LLIN|\bMEDELL\b/gi, "MEDELLIN"],
+  [/M\s*\/\s*QUERA/gi, "MOSQUERA"],
+  [/V\s*\/\s*VICENCIO/gi, "VILLAVICENCIO"],
+  [/\bBGTA\b|\bBTA\b/gi, "BOGOTA"],
+];
+
+/** Palabras de la tarifa que no son ciudad: cantidades, adicionales y tipo de carro. */
+const NO_CIUDAD = new Set(["C", "Y", "CLI", "ADIC", "MULA", "VOLVO", "URBANO", "TON", "CLIENTES", "RECONOCIDO", "CARTULINA"]);
+
 /**
- * Tarifa sugerida para un viaje: la ultima usada con ese cliente; si no, la
- * mas parecida que no sea especial (-34 TON, clientes o ciudades adicionales,
- * urbano); si solo hay especiales, la primera. null si no hay ninguna.
+ * Puntaje de una tarifa para un viaje (mas alto = mejor): las ciudades de su
+ * nombre que estan en el destino (+2) o en el origen (+1), el tipo de carro
+ * (MULA / VOLVO), urbano, y las especiales (adicionales, -34 TON, reconocidos)
+ * abajo. Las palabras del cliente no cuentan como ciudad.
  */
-export function sugerirTarifa(empresa: string, tarifas: TarifaFlete[], ultimaId?: number | null): TarifaFlete | null {
+export function puntajeTarifa(tarifa: TarifaFlete, empresa: string, v: DatosViajeTarifa): number {
+  const nombre = normalizarNombre(ABREVIATURAS.reduce((n, [re, ciudad]) => n.replace(re, ciudad), tarifa.nombre));
+  const delCliente = new Set([...palabras(empresa), ...palabras(tarifa.razonSocial ?? "")]);
+  const [origen, destino] = (v.ruta ?? "").split(/→| - /).map((p) => ` ${normalizarNombre(p)} `);
+  const ciudad = nombre
+    .split(" ")
+    .filter((p) => p && !/^\d+$/.test(p) && !NO_CIUDAD.has(p) && !delCliente.has(p.replace(/S$/, "")));
+  let puntos = 0;
+  for (const p of ciudad) {
+    if (destino?.includes(` ${p} `)) puntos += 2;
+    else if (origen?.includes(` ${p} `)) puntos += 1;
+    else puntos -= 0.25;
+  }
+  const mula = !v.configuracion || /S/i.test(v.configuracion);
+  if (/\bVOLVO\b/.test(nombre)) puntos += mula ? -5 : 2;
+  if (/\bMULA\b/.test(nombre)) puntos += mula ? 2 : -5;
+  if (/\bURBANO\b/.test(nombre)) puntos += v.urbano ? 3 : -3;
+  // Las de reconocidos de cartulina se eligen a mano (los reconocidos de 4 clientes y 32 t van con la normal).
+  if (/\bRECONOCIDO\b/.test(nombre)) puntos -= 3;
+  if (/ADIC|CLIENTES|-\s*34\s*TON/i.test(tarifa.nombre)) puntos -= 2;
+  return puntos;
+}
+
+/**
+ * Tarifa sugerida para un viaje.
+ * - Con los datos del manifiesto (viaje): la de mejor puntaje (destino,
+ *   origen, tipo de carro, urbano); la ultima usada con el cliente solo
+ *   desempata. Asi un cliente con una tarifa por ruta (Tolua) no arrastra la
+ *   del viaje anterior.
+ * - Sin ellos: la ultima usada con ese cliente; si no, la mas parecida que no
+ *   sea especial (-34 TON, clientes o ciudades adicionales, urbano).
+ * null si el cliente no tiene tarifas.
+ */
+export function sugerirTarifa(
+  empresa: string,
+  tarifas: TarifaFlete[],
+  ultimaId?: number | null,
+  viaje?: DatosViajeTarifa
+): TarifaFlete | null {
+  const delCliente = tarifasDelCliente(empresa, tarifas);
+  if (viaje && delCliente.length) {
+    // Solo entre las que son del cliente (mismo nombre o uno contiene al otro), no las
+    // que apenas comparten una palabra: la ruta no salta a otro cliente.
+    const minimo = Math.min(parecido(empresa, delCliente[0]), 2);
+    const delMismo = delCliente.filter((t) => parecido(empresa, t) >= minimo);
+    const puntuadas = delMismo.map((t, i) => ({ t, i, p: puntajeTarifa(t, empresa, viaje) + (t.id === ultimaId ? 0.5 : 0) }));
+    // Mejor puntaje; empate: el orden de tarifasDelCliente (mas parecida, nombre mas corto).
+    return puntuadas.sort((a, b) => b.p - a.p || a.i - b.i)[0].t;
+  }
   if (ultimaId) {
     const ultima = tarifas.find((t) => t.id === ultimaId);
     if (ultima) return ultima;
   }
-  const delCliente = tarifasDelCliente(empresa, tarifas);
   return delCliente.find((t) => !ESPECIAL.test(t.nombre)) ?? delCliente[0] ?? null;
 }
 
@@ -252,7 +326,7 @@ export function filaInicial(f: FilaPorFacturar, tarifas: TarifaFlete[], ultimaId
     };
     return guardada.notaEditada ? guardada : { ...guardada, notaFactura: notaDe(guardada) };
   }
-  return aplicarTarifa(base, sugerirTarifa(f.empresa, tarifas, ultimaId));
+  return aplicarTarifa(base, sugerirTarifa(f.empresa, tarifas, ultimaId, f));
 }
 
 /**

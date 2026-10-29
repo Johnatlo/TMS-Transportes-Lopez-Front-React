@@ -63,6 +63,53 @@ describe("tarifa sugerida", () => {
   });
 });
 
+describe("tarifa sugerida con los datos del manifiesto", () => {
+  // Tarifas reales de Tolua: una por ciudad y por tipo de carro.
+  const TOLUA = "TOLUA MADERAS Y HERRAJES S.A.S.";
+  const MATRIZ_TOLUA = [
+    tarifa("TOLUA BOGOTA", TOLUA, 4569079, "FIJO"),
+    tarifa("TOLUA BOGOTA 1 C. Y 1 CLI. ADIC", TOLUA, 4919079, "FIJO"),
+    tarifa("TOLUA DUITAMA", TOLUA, 7192506, "FIJO"),
+    tarifa("TOLUA PEREIRA", TOLUA, 2564796, "FIJO"),
+    tarifa("TOLUA PEREIRA / VOLVO", TOLUA, 1904605, "FIJO"),
+    tarifa("TOLUA SANTA ROSA VOLVO", TOLUA, 1962955, "FIJO"),
+    tarifa("TOLUA B/VENTURA YUMBO", TOLUA, 2417300, "FIJO"),
+    tarifa("TOLUA URBANO", TOLUA, 902651, "FIJO"),
+    ...MATRIZ,
+  ];
+  const datos = (ruta: string, configuracion = "3S3", urbano = false) => ({ ruta, configuracion, urbano });
+  const sugerida = (ruta: string, configuracion?: string, urbano?: boolean, ultimaId?: number) =>
+    sugerirTarifa("TOLUA MADERAS Y HERRAJES SAS", MATRIZ_TOLUA, ultimaId, datos(ruta, configuracion, urbano))?.nombre;
+
+  test("por el destino del manifiesto, aunque la ultima usada sea otra", () => {
+    const bogota = MATRIZ_TOLUA[0].id;
+    expect(sugerida("YUMBO VALLE DEL CAUCA → DUITAMA BOYACA", "3S3", false, bogota)).toBe("TOLUA DUITAMA");
+    expect(sugerida("YUMBO VALLE DEL CAUCA → BOGOTA BOGOTA D. C.")).toBe("TOLUA BOGOTA");
+    expect(sugerida("YUMBO VALLE DEL CAUCA → SANTA ROSA DE CABAL RISARALDA", "2")).toBe("TOLUA SANTA ROSA VOLVO");
+    expect(sugerida("BUENAVENTURA VALLE DEL CAUCA → YUMBO VALLE DEL CAUCA")).toBe("TOLUA B/VENTURA YUMBO");
+  });
+
+  test("por el tipo de carro: tractomula sin VOLVO, camion rigido con VOLVO", () => {
+    expect(sugerida("YUMBO VALLE DEL CAUCA → PEREIRA RISARALDA", "3S3")).toBe("TOLUA PEREIRA");
+    expect(sugerida("YUMBO VALLE DEL CAUCA → PEREIRA RISARALDA", "2")).toBe("TOLUA PEREIRA / VOLVO");
+  });
+
+  test("urbano y reconocidos solo cuando el viaje lo es", () => {
+    expect(sugerida("YUMBO VALLE DEL CAUCA → YUMBO VALLE DEL CAUCA", "3S3", true)).toBe("TOLUA URBANO");
+    // Cartones America a Bogota: la normal, no la de reconocidos de cartulina a Bogota (esas se eligen a mano).
+    const corame = sugerirTarifa("CARTONES AMERICA", MATRIZ_TOLUA, null, { ruta: "CALI VALLE DEL CAUCA → BOGOTA BOGOTA D. C.", configuracion: "3S3", urbano: false });
+    expect(corame?.nombre).toBe("CORAME");
+  });
+
+  test("abreviaturas de la matriz y letras sueltas", () => {
+    const porcelatino = [tarifa("PORCELATINO B/VENTURA BGTA", null, 190000), tarifa("PORCELATINO B/VENTURA M/LLIN", null, 200000)];
+    const ruta = (r: string) => sugerirTarifa("PORCELATINO S.A.S", porcelatino, null, { ruta: r, configuracion: "3S3", urbano: false })?.nombre;
+    expect(ruta("BUENAVENTURA VALLE DEL CAUCA → BOGOTA BOGOTA D. C.")).toBe("PORCELATINO B/VENTURA BGTA");
+    expect(ruta("BUENAVENTURA VALLE DEL CAUCA → MEDELLIN ANTIOQUIA")).toBe("PORCELATINO B/VENTURA M/LLIN");
+    expect(sugerirTarifa("MADEIROS L&D SAS", [tarifa("ALDAPLAST L.D SAS", "ALDAPLAST L.D SAS", 165000)])).toBeNull();
+  });
+});
+
 describe("peso, total y nota", () => {
   test("por debajo del minimo pactado se factura el minimo", () => {
     const recolam = MATRIZ[3];

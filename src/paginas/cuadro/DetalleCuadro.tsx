@@ -235,6 +235,7 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
                       ? moneda(Number(f.valorFijo))
                       : "-"}
                 </div>
+                {d.tarifaFlete && <span className="dato-sec">Tarifa de la matriz: {d.tarifaFlete}</span>}
               </div>
             </div>
             <div style={{ marginTop: "0.6rem" }}>
@@ -296,9 +297,10 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
           )}
 
           <Seccion titulo="Pago al dueno del vehiculo">
+            {/* Todos los vehiculos: a los terceros se les paga el saldo y a los socios se les reparte la ganancia (Rentabilidad). */}
+            <div className="campos-cuadro">{campo("fechaPagoSaldo", "Fecha de pago al dueno", "date")}</div>
             {d.flota === "TERCERO" && !d.dueno ? (
               <>
-                <div className="campos-cuadro">{campo("fechaPagoSaldo", "Fecha de pago del saldo", "date")}</div>
                 {!d.fechaPagoSaldo && d.venceSaldo && (
                   <div className={saldoVencido(d) ? "texto-vencido" : "dato-sec"}>
                     Se le paga el viernes {fechaCorta(d.venceSaldo)} (descargue lunes o martes: el viernes de esa
@@ -313,8 +315,8 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
               </>
             ) : (
               <div className="dato-sec">
-                {d.dueno ? `Vehiculo de ${d.dueno} (socio)` : `Vehiculo de la flota propia (${ETIQUETA_FLOTA[d.flota]})`}: no hay saldo que
-                pagarle a un tercero.
+                {d.dueno ? `Vehiculo de ${d.dueno} (socio)` : `Vehiculo de la flota propia (${ETIQUETA_FLOTA[d.flota]})`}: la fecha en que se
+                le pago o se le repartio lo del viaje. Lo que le toca se ve en <Link to="/rentabilidad">Rentabilidad</Link>.
               </div>
             )}
           </Seccion>

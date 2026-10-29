@@ -683,6 +683,8 @@ export interface FilaCuadro {
   vehiculoId: number | null;
   placa: string;
   flota: Flota;
+  /** Configuracion del vehiculo (3S3, 2S = tractomula; 2, 3 = camion rigido). */
+  configuracion: string | null;
   /** Socio dueno del vehiculo (MAURICIO, CELSO, MILLER, LUISA); null = tercero. */
   dueno: string | null;
   conductor: string | null;

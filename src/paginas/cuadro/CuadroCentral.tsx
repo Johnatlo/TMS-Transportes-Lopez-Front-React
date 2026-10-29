@@ -164,8 +164,15 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
     titulo: "Flete",
     alinear: "derecha",
     valor: (f) => f.valorFlete ?? 0,
+    buscar: (f) => f.tarifaFlete,
+    // Encima, en letra pequena, la tarifa de la matriz de fletes con que se saco el valor.
     celda: (f) => (
       <>
+        {f.tarifaFlete && (
+          <span className="dato-sec" title="Tarifa de la matriz de fletes">
+            {f.tarifaFlete}
+          </span>
+        )}
         {f.valorFlete === null ? "-" : moneda(f.valorFlete)}
         {f.tipoFlete === "KILO" && f.tarifaKilo !== null && (
           <span className="dato-sec">{f.tarifaKilo.toLocaleString("es-CO")} $/kg</span>
