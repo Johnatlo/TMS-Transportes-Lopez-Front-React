@@ -857,9 +857,24 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               </li>
             )}
           </ul>
-          <button type="button" className="btn-link" style={{ marginTop: "0.5rem" }} onClick={empezarOtroDespacho}>
-            Dejar este viaje en RNDC y empezar otro despacho
-          </button>
+          <div style={{ marginTop: "0.5rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            <button type="button" className="btn-link" onClick={empezarOtroDespacho}>
+              Dejar este viaje en RNDC y empezar otro despacho
+            </button>
+            {/* RNDC caido y el carro tiene que salir: manifiesto de contingencia (queda con alerta para reintentar). */}
+            <button
+              type="button"
+              className="btn-link"
+              onClick={() =>
+                window.open(
+                  api.urlManifiestoContingencia(viajeEnCurso.id, `No se pudo expedir: ${(viajeEnCurso.mensajeError ?? "error del RNDC").slice(0, 200)}`),
+                  "_blank"
+                )
+              }
+            >
+              Imprimir manifiesto de contingencia
+            </button>
+          </div>
         </div>
       )}
       {/* Recien expedido: los documentos que debe llevar el conductor. */}

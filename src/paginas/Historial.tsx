@@ -2,8 +2,8 @@
  * Pantalla RNDC: libro de consecutivos de manifiestos y remesas (con su Excel)
  * y lista de despachos con las acciones de cada viaje.
  */
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api, fechaHora, moneda } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
@@ -44,6 +44,16 @@ export default function Historial() {
   const [viendo, setViendo] = useState<number | null>(null);
   /** Viajes (uno por fila) o libro de consecutivos (una fila por remesa). */
   const [vista, setVista] = useState<"viajes" | "consecutivos">("consecutivos");
+  // ?documentos=<id del viaje>: abre sus documentos (desde la alerta de contingencia).
+  const [parametros, setParametros] = useSearchParams();
+  useEffect(() => {
+    const id = Number(parametros.get("documentos"));
+    const v = id && datos ? datos.find((x) => x.id === id) : null;
+    if (v) {
+      setImprimiendo(v);
+      setParametros({}, { replace: true });
+    }
+  }, [parametros, datos, setParametros]);
 
   // Solo la primera carga muestra "Cargando". Las recargas (despues de cumplir,
   // anular o reintentar) dejan la tabla y la ventana abierta en pantalla: si se
@@ -169,7 +179,8 @@ export default function Historial() {
       // Los botones no abren tambien el detalle de la fila.
       celda: (v) => (
         <span className="acciones-fila" onClick={(e) => e.stopPropagation()}>
-          {(v.estado === "CONFIRMADO" || v.estado === "CUMPLIDO") && (
+          {/* Tambien sin radicado (RNDC caido): ahi se ofrece el manifiesto de contingencia. */}
+          {v.estado !== "ANULADO" && (v.estado === "CONFIRMADO" || v.estado === "CUMPLIDO" || v.origen !== "PORTAL") && (
             <button className="btn-primary" onClick={() => setImprimiendo(v)}>
               Imprimir
             </button>
@@ -243,6 +254,7 @@ export default function Historial() {
       {imprimiendo && (
         <VentanaDocumentosViaje
           viaje={imprimiendo}
+          alCambiar={recargar}
           alCerrar={() => setImprimiendo(null)}
         />
       )}

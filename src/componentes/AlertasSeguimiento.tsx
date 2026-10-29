@@ -11,6 +11,7 @@ import Modal from "./Modal";
 import { Pastilla } from "./TablaDatos";
 
 const GRUPOS: Array<{ tipo: TipoAlerta; etiqueta: string; vacio: string }> = [
+  { tipo: "CONTINGENCIA", etiqueta: "Manifiestos de contingencia", vacio: "Ningun manifiesto de contingencia pendiente." },
   { tipo: "PAPELES", etiqueta: "Papeles", vacio: "Ningun papel pendiente de seguimiento hoy." },
   { tipo: "FACTURACION", etiqueta: "Por facturar", vacio: "Nada pendiente de facturar." },
   { tipo: "CARTERA", etiqueta: "Cartera", vacio: "Ninguna factura vencida ni por vencer." },
@@ -25,6 +26,7 @@ export const ETIQUETA_CORTA: Record<TipoAlerta, string> = {
   CARTERA: "Cartera",
   ANTICIPO_EMPRESA: "Anticipos",
   BOMBA: "Bomba",
+  CONTINGENCIA: "Contingencia",
 };
 export const TIPOS_ALERTA: TipoAlerta[] = GRUPOS.map((g) => g.tipo);
 
@@ -35,6 +37,8 @@ function rutaDe(a: AlertaSeguimiento): string {
   if (a.tipo === "ANTICIPO_EMPRESA") return `${/bomba/i.test(a.motivos.join(" ")) ? "/anticipos" : "/cartera"}?anticipo=${a.cuadroId}`;
   // Factura de la bomba: en Anticipos, con el cruce abierto.
   if (a.tipo === "BOMBA") return "/anticipos?cruce=1";
+  // Manifiesto de contingencia: los documentos del viaje en RNDC (reintentar el oficial).
+  if (a.tipo === "CONTINGENCIA") return `/historial?documentos=${a.viajeId}`;
   if (a.tipo === "CARTERA") {
     // Una sola factura: se abre esa; varias de la empresa: Cartera filtrada por la empresa.
     if (!a.facturaNumero) return `/cartera?cliente=${encodeURIComponent(a.empresa ?? "")}`;

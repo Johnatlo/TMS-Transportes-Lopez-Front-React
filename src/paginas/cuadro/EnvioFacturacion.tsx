@@ -418,6 +418,23 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
     }
   }
 
+  /** Tarifa nueva (sin importar el Excel): se llena arriba de la tabla. */
+  const vacia: Omit<TarifaFlete, "id"> = { nombre: "", razonSocial: null, valor: null, tipo: "TON", pesoMinimoKg: null, pesoFijoKg: null, observaciones: null };
+  const [nueva, setNueva] = useState(vacia);
+
+  async function agregar() {
+    setMensaje(null);
+    try {
+      const t = await apiCuadro.crearTarifa({ ...nueva, nombre: nueva.nombre.trim().toUpperCase() });
+      setMensaje({ tipo: "success", texto: `Se agrego la tarifa ${t.nombre}.` });
+      setNueva(vacia);
+      tarifas.recargar();
+      alCambiar();
+    } catch (exc) {
+      setMensaje({ tipo: "danger", texto: exc instanceof Error ? exc.message : "No se pudo agregar." });
+    }
+  }
+
   async function guardar(t: TarifaFlete, cambios: Partial<TarifaFlete>) {
     try {
       await apiCuadro.actualizarTarifa(t.id, cambios);
@@ -447,8 +464,8 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
         Importa el Excel "MATRIZ FLETES" (columnas EMPRESA, RAZON SOCIAL, VALOR, TIPO, OBSERVACIONES). Las filas
         "-34 TON" se vuelven el peso minimo (34.000 kg) de su tarifa. POR suma 300.000 (2 clientes) y POR3 600.000
-        (3 clientes) al valor por tonelada. Las tarifas sin valor o con "?" se escriben a mano al enviar. Los cambios de abajo se guardan al salir de cada
-        campo.
+        (3 clientes) al valor por tonelada. Las tarifas sin valor o con "?" se escriben a mano al enviar. Tambien se pueden agregar
+        tarifas sin importar el Excel (fila de arriba). Los cambios de la tabla se guardan al salir de cada campo.
       </div>
       {mensaje && <div className={`alert ${mensaje.tipo}`}>{mensaje.texto}</div>}
       <div className="barra-envio">
@@ -488,10 +505,53 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
             </tr>
           </thead>
           <tbody>
+            {/* Tarifa nueva, sin importar el Excel. */}
+            <tr className="fila-nueva">
+              <td>
+                <input placeholder="Nombre (ej. TOLUA PASTO)" value={nueva.nombre} onChange={(e) => setNueva({ ...nueva, nombre: e.target.value })} />
+              </td>
+              <td>
+                <input placeholder="Razon social" value={nueva.razonSocial ?? ""} onChange={(e) => setNueva({ ...nueva, razonSocial: e.target.value || null })} />
+              </td>
+              <td>
+                <input type="number" min={0} placeholder="Valor" value={enInput(nueva.valor)} onChange={(e) => setNueva({ ...nueva, valor: deInput(e.target.value) })} />
+              </td>
+              <td>
+                <select value={nueva.tipo} onChange={(e) => setNueva({ ...nueva, tipo: e.target.value as TarifaFlete["tipo"] })}>
+                  <option value="TON">TON</option>
+                  <option value="FIJO">FIJO</option>
+                  <option value="POR">POR</option>
+                  <option value="POR3">POR3</option>
+                </select>
+              </td>
+              <td>
+                <input type="number" min={0} placeholder="-" value={enInput(nueva.pesoMinimoKg)} onChange={(e) => setNueva({ ...nueva, pesoMinimoKg: deInput(e.target.value) })} />
+              </td>
+              <td>
+                <input type="number" min={0} placeholder="-" value={enInput(nueva.pesoFijoKg)} onChange={(e) => setNueva({ ...nueva, pesoFijoKg: deInput(e.target.value) })} />
+              </td>
+              <td style={{ display: "flex", gap: "0.4rem" }}>
+                <input placeholder="Observaciones" value={nueva.observaciones ?? ""} onChange={(e) => setNueva({ ...nueva, observaciones: e.target.value || null })} />
+                <button className="btn-primary" onClick={agregar} disabled={!nueva.nombre.trim()}>
+                  Agregar
+                </button>
+              </td>
+            </tr>
             {lista.map((t) => (
               <tr key={t.id}>
-                <td>{t.nombre}</td>
-                <td>{t.razonSocial ?? "-"}</td>
+                <td>
+                  <input
+                    defaultValue={t.nombre}
+                    onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== t.nombre && guardar(t, { nombre: e.target.value.trim().toUpperCase() })}
+                  />
+                </td>
+                <td>
+                  <input
+                    defaultValue={t.razonSocial ?? ""}
+                    placeholder="-"
+                    onBlur={(e) => (e.target.value.trim() || null) !== t.razonSocial && guardar(t, { razonSocial: e.target.value.trim() || null })}
+                  />
+                </td>
                 <td>
                   <input
                     type="number"
@@ -528,7 +588,13 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                     onBlur={(e) => deInput(e.target.value) !== t.pesoFijoKg && guardar(t, { pesoFijoKg: deInput(e.target.value) })}
                   />
                 </td>
-                <td className="dato-sec">{t.observaciones ?? ""}</td>
+                <td>
+                  <input
+                    defaultValue={t.observaciones ?? ""}
+                    placeholder="-"
+                    onBlur={(e) => (e.target.value.trim() || null) !== t.observaciones && guardar(t, { observaciones: e.target.value.trim() || null })}
+                  />
+                </td>
               </tr>
             ))}
             {tarifas.datos && lista.length === 0 && (

@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_478 funciones, componentes, métodos y rutas en 69 archivos._
+_480 funciones, componentes, métodos y rutas en 69 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (150)
+- [`src/api/cliente.ts`](#srcapiclientets) (152)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -532,6 +532,9 @@ _478 funciones, componentes, métodos y rutas en 69 archivos._
   - **`api.urlPdfManifiesto(viajeId, original)`** · _método_
     PDF oficial del RNDC; por defecto con el logo de la empresa estampado.
 
+  - **`api.urlManifiestoContingencia(viajeId, motivo)`** · _método_
+    Manifiesto de contingencia (HTML para imprimir) cuando el RNDC no deja expedir o imprimir el oficial.
+
   - **`api.urlImprimirRemesa(remesaId)`** · _método_
     Remesa imprimible (HTML con el formato oficial), para abrir en otra pestana.
 
@@ -677,6 +680,9 @@ _478 funciones, componentes, métodos y rutas en 69 archivos._
 
   - **`apiCuadro.actualizarTarifa(id, datos)`** · _método_
     Cambia una tarifa.
+
+  - **`apiCuadro.crearTarifa(datos)`** · _método_
+    Agrega una tarifa a la matriz sin importar el Excel.
 
   - **`apiCuadro.porFacturar()`** · _método_
     Viajes listos para facturar y la ultima tarifa usada con cada cliente.
@@ -960,7 +966,8 @@ _478 funciones, componentes, métodos y rutas en 69 archivos._
 ### `src/componentes/DocumentosViaje.tsx`
 
 > Documentos de un viaje expedido: PDF oficial del manifiesto (con o sin logo)
-> y remesas imprimibles.
+> y remesas imprimibles. Si el RNDC no deja imprimir o expedir el manifiesto,
+> el manifiesto de contingencia.
 
 - **`DocumentosViaje({...})`** · _componente React_
   Documentos que el conductor debe llevar en el viaje: el manifiesto
@@ -970,6 +977,10 @@ _478 funciones, componentes, métodos y rutas en 69 archivos._
   El manifiesto es el documento que exige la autoridad en via: el policia
   escanea su QR para verificar que es el original del RNDC. El logo se
   estampa lejos del QR, que queda intacto.
+
+  Contingencia: si el RNDC no entrega el PDF (o el viaje no se ha podido
+  expedir), se ofrece el manifiesto de contingencia de la empresa. El viaje
+  queda con alerta hasta que se imprime el oficial.
 
 - **`VentanaDocumentosViaje({...})`** · _componente React_
   Los mismos documentos en una ventana, para abrirlos desde una lista.

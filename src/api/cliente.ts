@@ -583,6 +583,9 @@ export const api = {
   /** PDF oficial del RNDC; por defecto con el logo de la empresa estampado. */
   urlPdfManifiesto: (viajeId: number, original = false) =>
     `${BASE}/despacho/${viajeId}/manifiesto.pdf${original ? "?original=1" : ""}`,
+  /** Manifiesto de contingencia (HTML para imprimir) cuando el RNDC no deja expedir o imprimir el oficial. */
+  urlManifiestoContingencia: (viajeId: number, motivo: string | null) =>
+    `${BASE}/despacho/${viajeId}/manifiesto-contingencia${motivo ? `?motivo=${encodeURIComponent(motivo)}` : ""}`,
   /** Remesa imprimible (HTML con el formato oficial), para abrir en otra pestana. */
   urlImprimirRemesa: (remesaId: number) => `${BASE}/despacho/remesas/${remesaId}/imprimir`,
 };
@@ -1142,6 +1145,8 @@ export const apiCuadro = {
   importarTarifas: (tarifas: Omit<TarifaFlete, "id">[]) => put<{ importadas: number }>("/cuadro/tarifas", { tarifas }),
   /** Cambia una tarifa. */
   actualizarTarifa: (id: number, datos: Partial<TarifaFlete>) => put<TarifaFlete>(`/cuadro/tarifas/${id}`, datos),
+  /** Agrega una tarifa a la matriz sin importar el Excel. */
+  crearTarifa: (datos: Omit<TarifaFlete, "id">) => post<TarifaFlete>("/cuadro/tarifas", datos),
   /** Viajes listos para facturar y la ultima tarifa usada con cada cliente. */
   porFacturar: () => get<{ filas: FilaPorFacturar[]; ultimaTarifa: Record<string, number> }>("/cuadro/por-facturar"),
   /** Guarda en cada viaje lo que va en el cuadro de la contadora. */
@@ -1178,7 +1183,7 @@ export interface FilaSeguimiento extends FilaCuadro {
   alertaFacturacion: AlertaFila | null;
 }
 
-export type TipoAlerta = "PAPELES" | "FACTURACION" | "CARTERA" | "ANTICIPO_EMPRESA" | "BOMBA";
+export type TipoAlerta = "PAPELES" | "FACTURACION" | "CARTERA" | "ANTICIPO_EMPRESA" | "BOMBA" | "CONTINGENCIA";
 
 /**
  * Anticipo que da la empresa en un viaje (clientes del Zorro, Aburra Limpio y
@@ -1326,6 +1331,8 @@ export interface AlertaSeguimiento {
   cuadroId?: number;
   facturaNumero?: string;
   empresa?: string;
+  /** Viaje del RNDC (manifiesto de contingencia). */
+  viajeId?: number;
 }
 
 export interface ResumenAlertasSeguimiento {

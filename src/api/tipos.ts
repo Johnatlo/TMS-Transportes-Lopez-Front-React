@@ -220,6 +220,9 @@ export interface Viaje {
   estado: string;
   numeroRemesaRndc: string | null;
   numeroManifiestoRndc: string | null;
+  /** Se imprimio un manifiesto de contingencia (y por que); null cuando ya se imprimio el oficial. */
+  contingenciaEn?: string | null;
+  contingenciaMotivo?: string | null;
   consecutivoRemesa: string | null;
   consecutivoManifiesto: string | null;
   mensajeError: string | null;
