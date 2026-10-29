@@ -271,7 +271,7 @@ export default function CuadroCentral() {
 
   if (cargando && !datos) return <Cargando que="el cuadro pagos " />;
   if (error) return <ErrorCarga mensaje={error} alReintentar={recargar} />;
-  // Los anulados no van en el cuadro de pagos: se consultan en Viajes.
+  // Los anulados no van en el cuadro de pagos: se consultan en RNDC.
   const filas = (datos ?? []).filter((f) => !f.anulado);
 
   return (

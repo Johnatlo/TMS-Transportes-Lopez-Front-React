@@ -130,6 +130,8 @@ export interface FilaConsecutivo {
   cliente: string | null;
   pesoReal: number | null;
   valorManifiesto: number | null;
+  /** Valor a facturar de la remesa en el Cuadro pagos (el flete del cuadro de facturacion). */
+  valorFacturar: number | null;
   retencionFopat: number | null;
   valorAnticipo: number | null;
   citaCargue: string;

@@ -9,6 +9,7 @@ import { Cargando, ErrorCarga } from "./Estado";
 import TablaDatos, { Pastilla } from "./TablaDatos";
 import type { Columna, PestanaTabla } from "./TablaDatos";
 import { ERRORES, ETIQUETA_ESTADO, tonoEstado } from "../paginas/estadosViaje";
+import { descargarConsecutivos } from "./excelConsecutivos";
 
 /** Estado de la fila: el del viaje, salvo que la remesa ya este cumplida. */
 function estadoFila(f: FilaConsecutivo): string {
@@ -67,6 +68,13 @@ const COLUMNAS: Columna<FilaConsecutivo>[] = [
     ),
   },
   { id: "valor", titulo: "Valor manifiesto", alinear: "derecha", valor: (f) => f.valorManifiesto ?? 0, celda: (f) => (f.valorManifiesto === null ? "-" : moneda(f.valorManifiesto)) },
+  {
+    id: "facturar",
+    titulo: "Valor a facturar",
+    alinear: "derecha",
+    valor: (f) => f.valorFacturar ?? 0,
+    celda: (f) => (f.valorFacturar === null ? <span className="dato-sec">Sin tarifa</span> : moneda(f.valorFacturar)),
+  },
   { id: "fopat", titulo: "FOPAT 0,1%", alinear: "derecha", valor: (f) => f.retencionFopat ?? 0, celda: (f) => (f.retencionFopat === null ? "-" : moneda(f.retencionFopat)) },
   {
     id: "citas",
@@ -131,7 +139,8 @@ export default function LibroConsecutivos({ alAbrirViaje }: { alAbrirViaje: (via
       columnas={COLUMNAS}
       clave={(f) => f.remesaId}
       pestanas={PESTANAS}
-      nombreArchivo="consecutivos-manifiestos-remesas"
+      // Excel como el de la empresa (una hoja por mes) con lo filtrado.
+      alExportar={(filas) => descargarConsecutivos(filas, `consecutivos-manifiestos-remesas-${new Date().toISOString().slice(0, 10)}`)}
       placeholderBusqueda="Buscar placa, numero, radicado, NIT..."
       vacio="No hay remesas con estos criterios."
       alClicFila={(f) => alAbrirViaje(f.viajeId)}

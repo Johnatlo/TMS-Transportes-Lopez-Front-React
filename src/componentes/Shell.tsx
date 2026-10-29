@@ -39,7 +39,7 @@ import logoPequeno from "../assets/logo-pequeno.png";
 const SECCIONES: Array<{ ruta: string; etiqueta: string; icono: ReactNode }> = [
   { ruta: "/dashboard", etiqueta: "Inicio", icono: <IconoInicio /> },
   { ruta: "/despacho", etiqueta: "Despachar", icono: <IconoCamion /> },
-  { ruta: "/historial", etiqueta: "Viajes", icono: <IconoViajes /> },
+  { ruta: "/historial", etiqueta: "RNDC", icono: <IconoViajes /> },
   { ruta: "/cuadro", etiqueta: "Cuadro pagos", icono: <IconoDocumento /> },
   { ruta: "/anticipos", etiqueta: "Anticipos", icono: <IconoBomba /> },
   { ruta: "/cartera", etiqueta: "Cartera", icono: <IconoCartera /> },

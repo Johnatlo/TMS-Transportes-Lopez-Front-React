@@ -791,7 +791,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     }
   }
 
-  /** Deja el viaje fallido en Viajes (para reintentarlo o anularlo alla) y arranca uno nuevo. */
+  /** Deja el viaje fallido en RNDC (para reintentarlo o anularlo alla) y arranca uno nuevo. */
   function empezarOtroDespacho() {
     setViajeEnCurso(null);
     if (viajeParaEditar) setParametros({}, { replace: true });
@@ -858,7 +858,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             )}
           </ul>
           <button type="button" className="btn-link" style={{ marginTop: "0.5rem" }} onClick={empezarOtroDespacho}>
-            Dejar este viaje en Viajes y empezar otro despacho
+            Dejar este viaje en RNDC y empezar otro despacho
           </button>
         </div>
       )}

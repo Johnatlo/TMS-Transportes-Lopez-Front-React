@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_469 funciones, componentes, métodos y rutas en 68 archivos._
+_477 funciones, componentes, métodos y rutas en 69 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (149)
@@ -204,6 +204,7 @@ _469 funciones, componentes, métodos y rutas en 68 archivos._
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
 - [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (12)
+- [`src/componentes/excelConsecutivos.ts`](#srccomponentesexcelconsecutivosts) (8)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
 - [`src/componentes/periodos.ts`](#srccomponentesperiodosts) (4)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
@@ -1315,6 +1316,40 @@ _469 funciones, componentes, métodos y rutas en 68 archivos._
 - **`IconoExportar()`** · _componente React_
   Icono del boton Exportar.
 
+### `src/componentes/excelConsecutivos.ts`
+
+> Excel del libro de consecutivos de manifiestos y remesas, igual a
+> docs/Ejemplo consecutivos Manifiestos & Remesas.xlsx: una hoja por mes
+> ("JULIO 2026"), una fila por remesa, encabezado en negrita con filtro y el
+> FOPAT con su formula (=valor x 0,1 %).
+>
+> filaExcel no depende de exceljs y se prueba aparte (excelConsecutivos.test.ts);
+> exceljs se carga solo al descargar.
+
+- **`partes(fecha)`** · _función_
+  Partes de una fecha en hora de Colombia (el servidor guarda en UTC).
+
+- **`hojaDelMes(fecha)`** · _función_
+  "JULIO 2026": nombre de la hoja del mes (como en el ejemplo).
+
+- **`tipoId(t)`** · _función_
+  "(31) NIT" o "(13) Cedula de ciudadania", como en el ejemplo.
+
+- **`codigoMunicipio(c)`** · _función_
+  Codigo DANE del municipio como numero (el RNDC lo da con tres ceros al final: 25754000 -> 25754).
+
+- **`estado(f)`** · _función_
+  Estado como en el ejemplo (CUMPLIDO, ANULADO...).
+
+- **`empresa(f)`** · _función_
+  Empresa como en el ejemplo: Cartones America con sus toneladas ("CORAME 33,298").
+
+- **`filaExcel(f)`** · _función_
+  Valores de una fila del Excel (sin la formula del FOPAT, que se pone al escribirla).
+
+- **`descargarConsecutivos(filas, nombreArchivo)`** · _función_
+  Arma y descarga el Excel: una hoja por mes (del mas reciente al mas viejo, como el ejemplo).
+
 ### `src/componentes/excelReporte.ts`
 
 > Excel de un reporte (estado de cuenta, totales por mes...): una hoja por
@@ -1601,15 +1636,15 @@ _469 funciones, componentes, métodos y rutas en 68 archivos._
 
 ### `src/paginas/Historial.tsx`
 
-> Pantalla Viajes: lista de despachos y libro de consecutivos, con las
-> acciones de cada viaje.
+> Pantalla RNDC: libro de consecutivos de manifiestos y remesas (con su Excel)
+> y lista de despachos con las acciones de cada viaje.
 
 - **`Historial()`** · _componente React_
-  Pantalla Viajes: todos los despachos con su estado, plazo del cumplido y
-  acciones (imprimir, cumplir, corregir y reintentar, anular). Tiene dos
-  vistas: "Viajes" (uno por fila) y "Consecutivos manifiestos y remesas"
-  (una fila por remesa, como el libro de control). Clic en una fila abre todo
-  lo que se registro al despachar.
+  Pantalla RNDC. Dos vistas: "Consecutivos manifiestos y remesas" (la de
+  entrada: una fila por remesa, como el libro de control, con su Excel) y
+  "Viajes despachados" (uno por fila, con su estado, plazo del cumplido y
+  acciones: imprimir, cumplir, corregir y reintentar, anular). Clic en una
+  fila abre todo lo que se registro al despachar.
 
 - **`PlazoCumplido({...})`** · _componente React_
   Dias habiles que quedan para cumplir, en la columna de estado.

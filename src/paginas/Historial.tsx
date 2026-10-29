@@ -1,6 +1,6 @@
 /**
- * Pantalla Viajes: lista de despachos y libro de consecutivos, con las
- * acciones de cada viaje.
+ * Pantalla RNDC: libro de consecutivos de manifiestos y remesas (con su Excel)
+ * y lista de despachos con las acciones de cada viaje.
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,11 +20,11 @@ import type { Viaje } from "../api/tipos";
 import { ERRORES, ETIQUETA_ESTADO, tonoEstado } from "./estadosViaje";
 
 /**
- * Pantalla Viajes: todos los despachos con su estado, plazo del cumplido y
- * acciones (imprimir, cumplir, corregir y reintentar, anular). Tiene dos
- * vistas: "Viajes" (uno por fila) y "Consecutivos manifiestos y remesas"
- * (una fila por remesa, como el libro de control). Clic en una fila abre todo
- * lo que se registro al despachar.
+ * Pantalla RNDC. Dos vistas: "Consecutivos manifiestos y remesas" (la de
+ * entrada: una fila por remesa, como el libro de control, con su Excel) y
+ * "Viajes despachados" (uno por fila, con su estado, plazo del cumplido y
+ * acciones: imprimir, cumplir, corregir y reintentar, anular). Clic en una
+ * fila abre todo lo que se registro al despachar.
  */
 export default function Historial() {
   const { datos, cargando, error, recargar } = useDatos(
@@ -43,7 +43,7 @@ export default function Historial() {
   /** Viaje abierto en la ventana de detalle (clic en una fila). */
   const [viendo, setViendo] = useState<number | null>(null);
   /** Viajes (uno por fila) o libro de consecutivos (una fila por remesa). */
-  const [vista, setVista] = useState<"viajes" | "consecutivos">("viajes");
+  const [vista, setVista] = useState<"viajes" | "consecutivos">("consecutivos");
 
   // Solo la primera carga muestra "Cargando". Las recargas (despues de cumplir,
   // anular o reintentar) dejan la tabla y la ventana abierta en pantalla: si se
@@ -205,16 +205,16 @@ export default function Historial() {
       <EstadoSincronizacion alSincronizar={recargar} />
       <div className="tabla-pestanas selector-vista">
         <button
-          className={vista === "viajes" ? "activa" : ""}
-          onClick={() => setVista("viajes")}
-        >
-          Viajes
-        </button>
-        <button
           className={vista === "consecutivos" ? "activa" : ""}
           onClick={() => setVista("consecutivos")}
         >
           Consecutivos manifiestos y remesas
+        </button>
+        <button
+          className={vista === "viajes" ? "activa" : ""}
+          onClick={() => setVista("viajes")}
+        >
+          Viajes despachados
         </button>
       </div>
       <div className="panel">
