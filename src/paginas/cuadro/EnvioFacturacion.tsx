@@ -47,8 +47,8 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
   const tarifas = datos.datos?.[1] ?? [];
   useEffect(() => {
     if (!datos.datos) return;
-    const [{ filas: porFacturar, ultimaTarifa }, lista] = datos.datos;
-    setFilas(porFacturar.map((f) => filaInicial(f, lista, ultimaTarifa[f.empresa])));
+    const [{ filas: porFacturar }, lista] = datos.datos;
+    setFilas(porFacturar.map((f) => filaInicial(f, lista)));
   }, [datos.datos]);
 
   const empresas = useMemo(() => [...new Set((filas ?? []).map((e) => e.fila.empresa))].sort(), [filas]);

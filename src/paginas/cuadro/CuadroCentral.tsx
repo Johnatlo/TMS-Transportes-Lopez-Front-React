@@ -173,7 +173,16 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
             {f.tarifaFlete}
           </span>
         )}
-        {f.valorFlete === null ? "-" : moneda(f.valorFlete)}
+        {f.valorFlete !== null ? (
+          moneda(f.valorFlete)
+        ) : f.tarifasPosibles.length ? (
+          // Sin flete exacto: se elige en la ventana del viaje entre las posibles.
+          <span className="texto-aviso" title={`Posibles: ${f.tarifasPosibles.map((t) => t.nombre).join(" · ")}`}>
+            Elegir tarifa ({f.tarifasPosibles.length})
+          </span>
+        ) : (
+          "-"
+        )}
         {f.tipoFlete === "KILO" && f.tarifaKilo !== null && (
           <span className="dato-sec">{f.tarifaKilo.toLocaleString("es-CO")} $/kg</span>
         )}

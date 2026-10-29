@@ -254,6 +254,8 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 .lista-notas li { padding: 0.5rem 0.7rem; background: var(--gris-50); border-radius: var(--radio-md); font-size: var(--texto-sm); }
 .nota-celda { display: block; max-width: 220px; white-space: normal; }
 .texto-vencido { color: var(--error-700); font-size: var(--texto-xs); font-weight: 600; }
+/* Algo por resolver a mano (un flete sin tarifa exacta). */
+.texto-aviso { color: var(--aviso-700); font-size: var(--texto-xs); font-weight: 600; }
 table.tabla-compacta th, table.tabla-compacta td { padding: 0.35rem 0.55rem; }
 .lista-facturar { margin-top: 0.8rem; max-height: 50vh; overflow: auto; border: 1px solid var(--gris-200); border-radius: var(--radio-md); }
 @media (max-width: 640px) { .nota-nueva { flex-direction: column; align-items: stretch; } }

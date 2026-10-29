@@ -209,6 +209,25 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
           </Seccion>
 
           <Seccion titulo="Flete">
+            {/* Sin flete exacto: las tarifas de la matriz que podrian ser (no se pone una que no es). */}
+            {d.tarifasPosibles.length > 0 && (
+              <div className="alert info" style={{ marginBottom: "0.6rem" }}>
+                {d.tarifasPosibles.length === 1 ? "Tarifa de la matriz para este viaje:" : "No se pudo saber la tarifa exacta. Elige la que es:"}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.4rem" }}>
+                  {d.tarifasPosibles.map((t) => (
+                    <button
+                      key={t.id}
+                      className="boton-suave"
+                      disabled={t.valor === null}
+                      title={t.valor === null ? "Sin valor en la matriz: escribe el flete a mano" : undefined}
+                      onClick={() => aplicar(() => apiCuadro.aplicarTarifa(id, t.id), `Flete puesto con ${t.nombre}.`)}
+                    >
+                      {t.nombre} · {t.valor === null ? "sin valor" : t.tipo === "FIJO" ? moneda(t.valor) : `${moneda(t.valor)}/t`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="campos-cuadro">
               <div>
                 <label>Se cobra</label>

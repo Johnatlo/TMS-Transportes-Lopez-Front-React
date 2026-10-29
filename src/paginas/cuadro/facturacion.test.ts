@@ -10,7 +10,6 @@ import {
   pesoAFacturar,
   placaConGuion,
   adicionalDe,
-  sugerirTarifa,
   totalDe,
   totalPorPeso,
   unificarFacturas,
@@ -44,71 +43,7 @@ describe("nombres de clientes", () => {
   });
 });
 
-describe("tarifa sugerida", () => {
-  test("la de nombre mas corto del cliente (CORAME para Cartones America)", () => {
-    expect(sugerirTarifa("CARTONES AMERICA", MATRIZ)?.nombre).toBe("CORAME");
-  });
-  test("con nombres distintos en el cuadro y en la matriz", () => {
-    expect(sugerirTarifa("RECOLAM S.EN C.", MATRIZ)?.nombre).toBe("RECOLAM");
-    expect(sugerirTarifa("TOLUA MADERAS Y HERRAJES SAS", MATRIZ)?.nombre).toBe("TOLUA BOGOTA");
-    expect(sugerirTarifa("ECOAMBIENTAL RECICLAJE S.A.S.", MATRIZ)?.nombre).toBe("ECOAMBIENTAL CARTON");
-    expect(sugerirTarifa("RECICLAJES BOGOTA N.S. S.A.S.", MATRIZ)?.nombre).toBe("RECICLAJES CARTON");
-  });
-  test("la ultima usada con el cliente manda", () => {
-    const reconocido = MATRIZ[0];
-    expect(sugerirTarifa("CARTONES AMERICA", MATRIZ, reconocido.id)?.id).toBe(reconocido.id);
-  });
-  test("cliente sin tarifa: null", () => {
-    expect(sugerirTarifa("CLIENTE NUEVO SAS", MATRIZ)).toBeNull();
-  });
-});
-
-describe("tarifa sugerida con los datos del manifiesto", () => {
-  // Tarifas reales de Tolua: una por ciudad y por tipo de carro.
-  const TOLUA = "TOLUA MADERAS Y HERRAJES S.A.S.";
-  const MATRIZ_TOLUA = [
-    tarifa("TOLUA BOGOTA", TOLUA, 4569079, "FIJO"),
-    tarifa("TOLUA BOGOTA 1 C. Y 1 CLI. ADIC", TOLUA, 4919079, "FIJO"),
-    tarifa("TOLUA DUITAMA", TOLUA, 7192506, "FIJO"),
-    tarifa("TOLUA PEREIRA", TOLUA, 2564796, "FIJO"),
-    tarifa("TOLUA PEREIRA / VOLVO", TOLUA, 1904605, "FIJO"),
-    tarifa("TOLUA SANTA ROSA VOLVO", TOLUA, 1962955, "FIJO"),
-    tarifa("TOLUA B/VENTURA YUMBO", TOLUA, 2417300, "FIJO"),
-    tarifa("TOLUA URBANO", TOLUA, 902651, "FIJO"),
-    ...MATRIZ,
-  ];
-  const datos = (ruta: string, configuracion = "3S3", urbano = false) => ({ ruta, configuracion, urbano });
-  const sugerida = (ruta: string, configuracion?: string, urbano?: boolean, ultimaId?: number) =>
-    sugerirTarifa("TOLUA MADERAS Y HERRAJES SAS", MATRIZ_TOLUA, ultimaId, datos(ruta, configuracion, urbano))?.nombre;
-
-  test("por el destino del manifiesto, aunque la ultima usada sea otra", () => {
-    const bogota = MATRIZ_TOLUA[0].id;
-    expect(sugerida("YUMBO VALLE DEL CAUCA → DUITAMA BOYACA", "3S3", false, bogota)).toBe("TOLUA DUITAMA");
-    expect(sugerida("YUMBO VALLE DEL CAUCA → BOGOTA BOGOTA D. C.")).toBe("TOLUA BOGOTA");
-    expect(sugerida("YUMBO VALLE DEL CAUCA → SANTA ROSA DE CABAL RISARALDA", "2")).toBe("TOLUA SANTA ROSA VOLVO");
-    expect(sugerida("BUENAVENTURA VALLE DEL CAUCA → YUMBO VALLE DEL CAUCA")).toBe("TOLUA B/VENTURA YUMBO");
-  });
-
-  test("por el tipo de carro: tractomula sin VOLVO, camion rigido con VOLVO", () => {
-    expect(sugerida("YUMBO VALLE DEL CAUCA → PEREIRA RISARALDA", "3S3")).toBe("TOLUA PEREIRA");
-    expect(sugerida("YUMBO VALLE DEL CAUCA → PEREIRA RISARALDA", "2")).toBe("TOLUA PEREIRA / VOLVO");
-  });
-
-  test("urbano y reconocidos solo cuando el viaje lo es", () => {
-    expect(sugerida("YUMBO VALLE DEL CAUCA → YUMBO VALLE DEL CAUCA", "3S3", true)).toBe("TOLUA URBANO");
-    // Cartones America a Bogota: la normal, no la de reconocidos de cartulina a Bogota (esas se eligen a mano).
-    const corame = sugerirTarifa("CARTONES AMERICA", MATRIZ_TOLUA, null, { ruta: "CALI VALLE DEL CAUCA → BOGOTA BOGOTA D. C.", configuracion: "3S3", urbano: false });
-    expect(corame?.nombre).toBe("CORAME");
-  });
-
-  test("abreviaturas de la matriz y letras sueltas", () => {
-    const porcelatino = [tarifa("PORCELATINO B/VENTURA BGTA", null, 190000), tarifa("PORCELATINO B/VENTURA M/LLIN", null, 200000)];
-    const ruta = (r: string) => sugerirTarifa("PORCELATINO S.A.S", porcelatino, null, { ruta: r, configuracion: "3S3", urbano: false })?.nombre;
-    expect(ruta("BUENAVENTURA VALLE DEL CAUCA → BOGOTA BOGOTA D. C.")).toBe("PORCELATINO B/VENTURA BGTA");
-    expect(ruta("BUENAVENTURA VALLE DEL CAUCA → MEDELLIN ANTIOQUIA")).toBe("PORCELATINO B/VENTURA M/LLIN");
-    expect(sugerirTarifa("MADEIROS L&D SAS", [tarifa("ALDAPLAST L.D SAS", "ALDAPLAST L.D SAS", 165000)])).toBeNull();
-  });
-});
+// La tarifa de cada viaje la deduce el backend (src/tarifasFlete.ts y sus pruebas).
 
 describe("peso, total y nota", () => {
   test("por debajo del minimo pactado se factura el minimo", () => {
@@ -167,8 +102,8 @@ const viaje = (c: Partial<FilaPorFacturar> = {}): FilaPorFacturar =>
   }) as FilaPorFacturar;
 
 describe("fila del cuadro de envio", () => {
-  test("nueva: tarifa sugerida, peso minimo, total y nota", () => {
-    const e = filaInicial(viaje(), MATRIZ);
+  test("con la tarifa deducida en el cuadro: peso minimo, total y nota", () => {
+    const e = filaInicial(viaje({ tarifaFleteId: MATRIZ[3].id, tarifaKilo: 130 }), MATRIZ);
     expect(e.incluir).toBe(true);
     expect(e.tarifaId).toBe(MATRIZ[3].id);
     expect(e.pesoFacturadoKg).toBe(34000);
@@ -176,6 +111,16 @@ describe("fila del cuadro de envio", () => {
     expect(totalDe(e)).toBe(4420000);
     expect(e.notaFactura).toBe("REMISION 3964 TON 34,000 $130,000 SKN-250");
     expect(e.razonSocial).toBe("RECOLAM");
+  });
+  test("sin tarifa exacta: queda sin tarifa para elegirla (no se adivina)", () => {
+    const e = filaInicial(viaje(), MATRIZ);
+    expect(e.tarifaId).toBeNull();
+    expect(e.valorTon).toBeNull();
+    expect(totalDe(e)).toBeNull();
+  });
+  test("flete escrito a mano en el cuadro: se respeta", () => {
+    const e = filaInicial(viaje({ tipoFlete: "FIJO", valorFijo: 4000000 }), MATRIZ);
+    expect([e.tarifaId, e.tipo, totalDe(e)]).toEqual([null, "FIJO", 4000000]);
   });
   test("tarifa fija: total fijo y sin valor por tonelada", () => {
     const e = aplicarTarifa(filaInicial(viaje(), MATRIZ), MATRIZ[4]);

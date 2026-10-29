@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_479 funciones, componentes, métodos y rutas en 69 archivos._
+_478 funciones, componentes, métodos y rutas en 69 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (149)
+- [`src/api/cliente.ts`](#srcapiclientets) (150)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -230,7 +230,7 @@ _479 funciones, componentes, métodos y rutas en 69 archivos._
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (7)
 - [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
 - [`src/paginas/cuadro/excelVales.ts`](#srcpaginascuadroexcelvalests) (7)
-- [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (22)
+- [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (20)
 - [`src/paginas/cuadro/relacionBomba.ts`](#srcpaginascuadrorelacionbombats) (8)
 - [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (7)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
@@ -581,6 +581,9 @@ _479 funciones, componentes, métodos y rutas en 69 archivos._
 
   - **`apiCuadro.actualizar(id, datos)`** · _método_
     Guarda los campos enviados de un viaje.
+
+  - **`apiCuadro.aplicarTarifa(id, tarifaFleteId)`** · _método_
+    Pone el flete de una tarifa de la matriz elegida a mano.
 
   - **`apiCuadro.borrar(id)`** · _método_
     Borra un viaje creado a mano.
@@ -2048,22 +2051,6 @@ _479 funciones, componentes, métodos y rutas en 69 archivos._
 - **`tarifasDelCliente(empresa, tarifas)`** · _función_
   Las tarifas del cliente, la mas parecida primero y luego la de nombre mas corto.
 
-- **`puntajeTarifa(tarifa, empresa, v)`** · _función_
-  Puntaje de una tarifa para un viaje (mas alto = mejor): las ciudades de su
-  nombre que estan en el destino (+2) o en el origen (+1), el tipo de carro
-  (MULA / VOLVO), urbano, y las especiales (adicionales, -34 TON, reconocidos)
-  abajo. Las palabras del cliente no cuentan como ciudad.
-
-- **`sugerirTarifa(empresa, tarifas, ultimaId, viaje)`** · _función_
-  Tarifa sugerida para un viaje.
-  - Con los datos del manifiesto (viaje): la de mejor puntaje (destino,
-    origen, tipo de carro, urbano); la ultima usada con el cliente solo
-    desempata. Asi un cliente con una tarifa por ruta (Tolua) no arrastra la
-    del viaje anterior.
-  - Sin ellos: la ultima usada con ese cliente; si no, la mas parecida que no
-    sea especial (-34 TON, clientes o ciudades adicionales, urbano).
-  null si el cliente no tiene tarifas.
-
 - **`pesoAFacturar(pesoKg, tarifa)`** · _función_
   Peso a facturar: el fijo de la tarifa si lo tiene (33000 kg, sin importar el
   tiquete); si no, el real, o el minimo pactado si fue por menos (34000 kg).
@@ -2100,9 +2087,12 @@ _479 funciones, componentes, métodos y rutas en 69 archivos._
   social. Una tarifa sin valor (vacio o "?" en la matriz) deja el valor vacio
   para escribirlo a mano. La nota se rearma si no se edito a mano.
 
-- **`filaInicial(f, tarifas, ultimaId)`** · _función_
-  Fila inicial del cuadro de envio. Si el viaje ya se habia enviado, se parte
-  de lo guardado; si no, de la tarifa sugerida.
+- **`filaInicial(f, tarifas)`** · _función_
+  Fila inicial del cuadro de envio:
+  - ya enviado, o con el flete escrito a mano en el cuadro: parte de lo guardado;
+  - con tarifa de la matriz en el cuadro (deducida sola o elegida): esa tarifa;
+  - sin flete: sin tarifa, para elegirla (las posibles vienen en f.tarifasPosibles).
+  No se adivina: un flete que no es exacto se elige a mano.
 
 - **`claveCliente(razonSocial)`** · _función_
   Llave para juntar los viajes de un mismo cliente: la razon social sin

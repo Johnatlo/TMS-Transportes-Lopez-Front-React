@@ -725,6 +725,15 @@ export interface FilaCuadro {
   tarifaFleteId: number | null;
   /** Nombre de esa tarifa; con URBANO el viaje no lleva anticipo de la empresa. */
   tarifaFlete: string | null;
+  /** Producto de la remesa ("CARTON RECICLADO"). */
+  producto: string | null;
+  /** El flete se escribio o se eligio a mano: la deduccion de la matriz no lo toca. */
+  fleteManual: boolean;
+  /**
+   * Sin flete exacto: las tarifas de la matriz que podrian ser, para elegir
+   * (las deduce el backend con el destino, el producto y el tipo de carro).
+   */
+  tarifasPosibles: TarifaPosible[];
   /** Nota de la factura para la contadora. */
   notaFactura: string | null;
   /** Cuando se envio en el cuadro de facturacion. */
@@ -1012,6 +1021,14 @@ export interface TarifaFlete {
   observaciones: string | null;
 }
 
+/** Una tarifa de la matriz que podria ser la de un viaje sin flete exacto. */
+export interface TarifaPosible {
+  id: number;
+  nombre: string;
+  valor: number | null;
+  tipo: TarifaFlete["tipo"];
+}
+
 /** Viaje listo para facturar, con el radicado de su remesa. */
 export interface FilaPorFacturar extends FilaCuadro {
   radicadoRemesa: string | null;
@@ -1045,6 +1062,8 @@ export const apiCuadro = {
   crear: (datos: Record<string, unknown>) => post<DetalleCuadro>("/cuadro", datos),
   /** Guarda los campos enviados de un viaje. */
   actualizar: (id: number, datos: Record<string, unknown>) => put<DetalleCuadro>(`/cuadro/${id}`, datos),
+  /** Pone el flete de una tarifa de la matriz elegida a mano. */
+  aplicarTarifa: (id: number, tarifaFleteId: number) => post<DetalleCuadro>(`/cuadro/${id}/tarifa`, { tarifaFleteId }),
   /** Borra un viaje creado a mano. */
   borrar: (id: number) => del<{ ok: true }>(`/cuadro/${id}`),
   /** Marca o quita la revision de contabilidad o de gerencia. */
