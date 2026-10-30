@@ -233,6 +233,21 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 .pastilla-amarillo { background: #fdf6d8; color: #8a6a00; }
 .pastilla-turquesa { background: #e0f5f3; color: #0f766e; }
 
+/* Desglose de la rentabilidad: un color por dueno de los descuentos (un tbody por seccion). */
+.desglose-empresa { --tono: #1a56c2; --tono-fondo: #e7effb; }
+.desglose-tercero { --tono: #b4570f; --tono-fondo: #fdf0e4; }
+.desglose-dueno { --tono: #6b3fa0; --tono-fondo: #f1eafb; }
+.desglose-resultado { --tono: #1e7b3a; --tono-fondo: #e6f4ea; }
+table.desglose tbody > tr > :first-child { border-left: 4px solid var(--tono); }
+table.desglose tr.desglose-titulo > * {
+  background: var(--tono-fondo); color: var(--tono); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.03em; font-size: var(--texto-xs);
+}
+table.desglose td.num { color: var(--tono); font-variant-numeric: tabular-nums; }
+table.desglose tr.desglose-cero td { color: var(--color-text-muted); }
+table.desglose tr.desglose-total td { background: var(--tono-fondo); color: var(--tono); font-weight: 700; }
+table.desglose tr.desglose-total strong:not(.texto-vencido) { color: inherit; }
+
 /* Cuadro pagos */  
 .campos-cuadro { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.6rem 1rem; }
 .campos-cuadro label { display: block; font-size: var(--texto-xs); color: var(--gris-500); margin-bottom: 0.2rem; }

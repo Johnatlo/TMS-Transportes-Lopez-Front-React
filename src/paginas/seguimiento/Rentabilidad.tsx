@@ -8,7 +8,8 @@
  * Clic en un viaje: se corrigen a mano la comision, T. Lopez, el descargue,
  * la poliza, el ReteICA del cliente y la fecha en que se repartio la ganancia.
  * Exportar descarga el Excel del grupo con lo filtrado (para sacar el de uno o
- * dos carros, se filtra por placa).
+ * dos carros, se filtra por placa). "Liquidar dueno" arma las cuentas de un
+ * dueno (ver LiquidarDueno.tsx).
  */
 import { useState } from "react";
 import { apiCuadro, apiSeguimiento, moneda } from "../../api/cliente";
@@ -23,6 +24,7 @@ import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import { numeroONulo } from "./liquidacionTerceros";
 import { descargarRentabilidad, leerMatrices } from "./excelRentabilidad";
+import LiquidarDueno from "./LiquidarDueno";
 
 /** Orden de las pestanas (los grupos que no esten aqui van al final). */
 const ORDEN_GRUPOS = ["TERCEROS", "CELSO", "MAURICIO", "MILLER", "SOCIEDAD", "JTY-221", "SWK-973", "XGJ-197"];
@@ -199,6 +201,7 @@ export default function Rentabilidad() {
   const [grupo, setGrupo] = useState("TERCEROS");
   const [editando, setEditando] = useState<FilaRentabilidad | null>(null);
   const [matrices, setMatrices] = useState(false);
+  const [liquidando, setLiquidando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (datos.cargando && !datos.datos) return <Cargando que="la rentabilidad" />;
@@ -211,6 +214,7 @@ export default function Rentabilidad() {
   const delGrupo = filas.filter((f) => f.grupo === actual);
   const conFlete = delGrupo.filter((f) => f.valorEmpresa > 0);
   const terceros = actual === "TERCEROS";
+  const duenos = grupos.filter((g) => g !== "TERCEROS");
   const suma = (fs: FilaRentabilidad[], v: (f: FilaRentabilidad) => number) => fs.reduce((s, f) => s + v(f), 0);
 
   /** Descarga el Excel (una hoja por grupo). */
@@ -264,15 +268,22 @@ export default function Rentabilidad() {
           alClicFila={setEditando}
           alExportar={(visibles) => exportar([{ grupo: actual, filas: visibles }], `rentabilidad-${actual.toLowerCase()}-${hoyColombia()}`)}
           acciones={
-            <MenuMas
-              opciones={[
-                {
-                  etiqueta: "Excel de todos los grupos",
-                  alElegir: () => exportar(grupos.map((g) => ({ grupo: g, filas: filas.filter((f) => f.grupo === g) })), `rentabilidad-${hoyColombia()}`),
-                },
-                { etiqueta: "Matrices de comisiones y retenciones", alElegir: () => setMatrices(true) },
-              ]}
-            />
+            <>
+              <MenuMas
+                opciones={[
+                  {
+                    etiqueta: "Excel de todos los grupos",
+                    alElegir: () => exportar(grupos.map((g) => ({ grupo: g, filas: filas.filter((f) => f.grupo === g) })), `rentabilidad-${hoyColombia()}`),
+                  },
+                  { etiqueta: "Matrices de comisiones y retenciones", alElegir: () => setMatrices(true) },
+                ]}
+              />
+              {duenos.length > 0 && (
+                <button className="btn-primary boton-con-texto" onClick={() => setLiquidando(true)}>
+                  Liquidar dueno
+                </button>
+              )}
+            </>
           }
         />
       </div>
@@ -282,6 +293,18 @@ export default function Rentabilidad() {
           alCerrar={() => setEditando(null)}
           alGuardar={() => {
             setEditando(null);
+            datos.recargar();
+          }}
+        />
+      )}
+      {liquidando && (
+        <LiquidarDueno
+          filas={filas}
+          grupos={duenos}
+          grupoInicial={terceros ? duenos[0] : actual}
+          alCerrar={() => setLiquidando(false)}
+          alGuardar={() => {
+            setLiquidando(false);
             datos.recargar();
           }}
         />
@@ -418,11 +441,17 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
     </div>
   );
   const renglon = (etiqueta: string, valor: number, signo = "-") => (
-    <tr key={etiqueta}>
+    <tr key={etiqueta} className={signo === "=" ? "desglose-total" : valor ? "" : "desglose-cero"}>
       <td>{etiqueta}</td>
       <td className="num">{valor ? `${signo} ${moneda(valor)}` : "-"}</td>
     </tr>
   );
+  const titulo = (texto: string) => (
+    <tr className="desglose-titulo">
+      <th colSpan={2}>{texto}</th>
+    </tr>
+  );
+  const otros = () => renglon(fila.rentOtrosConcepto ? `Otros descuentos (${fila.rentOtrosConcepto})` : "Otros descuentos", fila.otrosDescuentos);
 
   return (
     <Modal
@@ -469,54 +498,60 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
       <div className="dato-sec">En gris, el valor de siempre (matriz de comisiones, descargue de 198.000, poliza de 3.000). Borrar un campo lo devuelve a ese valor.</div>
 
       <h4>Retenciones (desmarca las que no aplican)</h4>
-      <table className="tabla tabla-compacta" style={{ maxWidth: 560 }}>
-        <tbody>
-          <tr>
-            <th colSpan={2}>Flete de la empresa</th>
-          </tr>
+      <table className="tabla tabla-compacta desglose" style={{ maxWidth: 560 }}>
+        <tbody className="desglose-empresa">
+          {titulo("Flete de la empresa")}
           {RETENCIONES_EMPRESA.map(retencion)}
-          <tr>
-            <th colSpan={2}>{terceros ? "Flete del tercero" : "Flete del dueno"}</th>
-          </tr>
+        </tbody>
+        <tbody className={terceros ? "desglose-tercero" : "desglose-dueno"}>
+          {titulo(terceros ? "Flete del tercero" : "Flete del dueno")}
           {(terceros ? RETENCIONES_TERCERO : RETENCIONES_DUENO).map(retencion)}
         </tbody>
       </table>
       <div className="dato-sec">Los valores de abajo se actualizan al guardar.</div>
 
-      <table className="tabla" style={{ maxWidth: 560, marginTop: "0.6rem" }}>
-        <tbody>
+      <table className="tabla desglose" style={{ maxWidth: 560, marginTop: "0.6rem" }}>
+        <tbody className="desglose-empresa">
+          {titulo("Empresa")}
           {renglon("Valor empresa (lo que paga el cliente)", fila.valorEmpresa, "")}
           {renglon("Retefuente 1 % + FOPAT 0,1 %", fila.retencion)}
           {renglon(`ReteICA ${fila.icaPorMil} por mil`, fila.reteIca)}
           {renglon("Supertransporte 0,1201 %", fila.supertransporte)}
-          {renglon("T. Lopez", fila.tLopez)}
+          {terceros && renglon("T. Lopez", fila.tLopez)}
           {terceros && renglon("Comision", fila.comision)}
+          {terceros && renglon("Saldo empresa", fila.saldoEmpresa, "=")}
+        </tbody>
+        <tbody className={terceros ? "desglose-tercero" : "desglose-dueno"}>
+          {titulo(terceros ? "Tercero" : "Dueno")}
           {terceros ? (
             <>
-              {renglon("Saldo empresa", fila.saldoEmpresa, "=")}
               {renglon("Flete pactado con el tercero", fila.fleteTercero, "")}
               {renglon("Retefuente 1 % + FOPAT 0,1 % del tercero", fila.retencionTercero)}
               {renglon("ReteICA del tercero", fila.reteIcaTercero)}
               {renglon("Gestion financiera (4 x 1000 + 5.000 + Supertransporte)", fila.bancaria + fila.supertransporteTercero)}
               {renglon("Planilla - poliza RCE", fila.poliza)}
-              {renglon(fila.rentOtrosConcepto ? `Otros descuentos (${fila.rentOtrosConcepto})` : "Otros descuentos", fila.otrosDescuentos)}
+              {otros()}
               {renglon("Saldo al tercero", fila.saldoBeneficiario, "=")}
-              {renglon("Rentabilidad (saldo empresa - saldo tercero - otros descuentos)", fila.rentabilidad, "=")}
-              {renglon("Anticipo de renta 3,5 %", fila.anticipoRenta)}
             </>
           ) : (
             <>
               {renglon("Anticipo de renta 3,5 %", fila.anticipoRenta)}
               {renglon("Comision bancaria (4 x 1000 + 5.000)", fila.bancaria)}
+              {renglon("T. Lopez", fila.tLopez)}
               {renglon("Comision", fila.comision)}
               {renglon("Descargue CAME", fila.descargue)}
               {renglon("Planilla - poliza RCE", fila.poliza)}
               {renglon("Anticipo (bomba y transferencia)", fila.anticipo)}
-              {renglon(fila.rentOtrosConcepto ? `Otros descuentos (${fila.rentOtrosConcepto})` : "Otros descuentos", fila.otrosDescuentos)}
+              {otros()}
               {renglon("Saldo al dueno", fila.saldoBeneficiario, "=")}
             </>
           )}
-          <tr>
+        </tbody>
+        <tbody className="desglose-resultado">
+          {titulo("Resultado")}
+          {terceros && renglon("Rentabilidad (saldo empresa - saldo tercero - otros descuentos)", fila.rentabilidad, "")}
+          {terceros && renglon("Anticipo de renta 3,5 %", fila.anticipoRenta)}
+          <tr className="desglose-total">
             <td>
               <strong>Ganancia de la empresa</strong>
             </td>

@@ -1254,6 +1254,39 @@ export interface RetencionCliente {
  * son lo escrito a mano (null = el valor de siempre); los demas montos ya
  * vienen calculados.
  */
+/** Un viaje en la liquidacion a un dueno (la foto que guarda el backend). */
+export type FilaLiquidacionDueno = Pick<
+  FilaRentabilidad,
+  | "id" | "fecha" | "placa" | "empresa" | "remision" | "manifiesto" | "facturaNumero" | "facturaFecha" | "valorEmpresa"
+  | "retencion" | "reteIca" | "anticipoRenta" | "bancaria" | "supertransporte" | "comision" | "tLopez" | "descargue"
+  | "poliza" | "anticipo" | "fechaPagoEmpresa"
+> & {
+  /** Saldo del viaje sin sus otros descuentos (esos van como conceptos). */
+  saldo: number;
+};
+
+/** Un concepto de la liquidacion: valor con signo (negativo = se descuenta) y la cuenta escrita, si la hay. */
+export interface ConceptoLiquidacion {
+  descripcion: string;
+  expresion: string;
+  valor: number;
+}
+
+/** Una liquidacion a un dueno. */
+export interface LiquidacionDueno {
+  /** null mientras no se ha registrado. */
+  id: number | null;
+  grupo: string;
+  nombre: string;
+  fecha: string;
+  filas: FilaLiquidacionDueno[];
+  conceptos: ConceptoLiquidacion[];
+  totalViajes: number;
+  total: number;
+  pagado: number;
+  saldoPendiente: number;
+}
+
 export interface FilaRentabilidad {
   id: number;
   /** TERCEROS, CELSO, MAURICIO, MILLER, SOCIEDAD, JTY-221, SWK-973, XGJ-197 o PROPIOS. */
@@ -1529,6 +1562,13 @@ export const apiSeguimiento = {
   terceros: () => get<{ viajes: ViajeTercero[]; terceros: ResumenTercero[] }>("/seguimiento/terceros"),
   /** Rentabilidad: todos los viajes no anulados con su grupo y lo que deja cada uno. */
   rentabilidad: () => get<FilaRentabilidad[]>("/seguimiento/rentabilidad"),
+  /** Liquidaciones a los duenos ya registradas. */
+  liquidacionesDuenos: () => get<LiquidacionDueno[]>("/seguimiento/rentabilidad/liquidaciones"),
+  /** Registra la liquidacion a un dueno y marca sus viajes como pagados. */
+  registrarLiquidacionDueno: (d: { grupo: string; nombre: string; fecha: string; ids: number[]; conceptos: ConceptoLiquidacion[]; pagado: number | null }) =>
+    post<LiquidacionDueno>("/seguimiento/rentabilidad/liquidaciones", d),
+  /** Anula la ultima liquidacion de un grupo: sus viajes vuelven a sin pagar. */
+  anularLiquidacionDueno: (id: number) => del<{ ok: boolean }>(`/seguimiento/rentabilidad/liquidaciones/${id}`),
   /** Matrices de la rentabilidad (comisiones y retenciones por cliente). */
   matricesRentabilidad: () => get<{ comisiones: ComisionCliente[]; retenciones: RetencionCliente[] }>("/seguimiento/rentabilidad/matrices"),
   /** Reemplaza las matrices de la rentabilidad. */

@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_480 funciones, componentes, métodos y rutas en 69 archivos._
+_501 funciones, componentes, métodos y rutas en 72 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (152)
+- [`src/api/cliente.ts`](#srcapiclientets) (155)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -238,12 +238,15 @@ _480 funciones, componentes, métodos y rutas en 69 archivos._
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
 - [`src/paginas/seguimiento/ImportarCartera.tsx`](#srcpaginasseguimientoimportarcarteratsx) (3)
 - [`src/paginas/seguimiento/ImportarNombresTerceros.tsx`](#srcpaginasseguimientoimportarnombrestercerostsx) (1)
+- [`src/paginas/seguimiento/LiquidarDueno.tsx`](#srcpaginasseguimientoliquidarduenotsx) (6)
 - [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
 - [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (8)
 - [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (11)
 - [`src/paginas/seguimiento/excelLiquidacion.ts`](#srcpaginasseguimientoexcelliquidacionts) (5)
+- [`src/paginas/seguimiento/excelLiquidacionDueno.ts`](#srcpaginasseguimientoexcelliquidacionduenots) (5)
 - [`src/paginas/seguimiento/excelRentabilidad.ts`](#srcpaginasseguimientoexcelrentabilidadts) (9)
+- [`src/paginas/seguimiento/liquidacionDuenos.ts`](#srcpaginasseguimientoliquidacionduenosts) (7)
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
 
@@ -728,6 +731,15 @@ _480 funciones, componentes, métodos y rutas en 69 archivos._
 
   - **`apiSeguimiento.rentabilidad()`** · _método_
     Rentabilidad: todos los viajes no anulados con su grupo y lo que deja cada uno.
+
+  - **`apiSeguimiento.liquidacionesDuenos()`** · _método_
+    Liquidaciones a los duenos ya registradas.
+
+  - **`apiSeguimiento.registrarLiquidacionDueno(d)`** · _método_
+    Registra la liquidacion a un dueno y marca sus viajes como pagados.
+
+  - **`apiSeguimiento.anularLiquidacionDueno(id)`** · _método_
+    Anula la ultima liquidacion de un grupo: sus viajes vuelven a sin pagar.
 
   - **`apiSeguimiento.matricesRentabilidad()`** · _método_
     Matrices de la rentabilidad (comisiones y retenciones por cliente).
@@ -2308,6 +2320,35 @@ _480 funciones, componentes, métodos y rutas en 69 archivos._
 - **`ImportarNombresTerceros({...})`** · _componente React_
   Ventana: leer la matriz, ver a que vehiculos va cada nombre y confirmar.
 
+### `src/paginas/seguimiento/LiquidarDueno.tsx`
+
+> Liquidacion a un dueno (docs/Liq duenos ejemplo.xlsx), como la de Pago a
+> terceros: se elige el grupo y sus viajes, se escriben los conceptos, se ve el
+> total y se descarga en Excel; "Registrar pago" ademas marca los viajes como
+> pagados al dueno y guarda la liquidacion. Lo que no se pague pasa como saldo
+> pendiente a la siguiente.
+>
+> Los conceptos que se van escribiendo quedan como borrador en este navegador
+> hasta que se registra.
+
+- **`claveBorrador(grupo)`** · _función_
+  Donde queda el borrador de un grupo en este navegador.
+
+- **`leerBorrador(grupo)`** · _función_
+  Borrador guardado de un grupo (el navegador puede no dejar leerlo).
+
+- **`guardarBorrador(grupo, conceptos)`** · _función_
+  Guarda o borra el borrador de un grupo.
+
+- **`conceptoValido(c)`** · _función_
+  Sirve el concepto para liquidar: tiene descripcion y una cuenta que se entiende.
+
+- **`conceptoIncompleto(c)`** · _función_
+  Renglon a medio escribir o con una cuenta que no se entiende.
+
+- **`LiquidarDueno({...})`** · _componente React_
+  Ventana de la liquidacion a un dueno.
+
 ### `src/paginas/seguimiento/PagoTerceros.tsx`
 
 > Pago a terceros: lo que se le paga al dueno de cada vehiculo tercero por sus
@@ -2383,7 +2424,8 @@ _480 funciones, componentes, métodos y rutas en 69 archivos._
 > Clic en un viaje: se corrigen a mano la comision, T. Lopez, el descargue,
 > la poliza, el ReteICA del cliente y la fecha en que se repartio la ganancia.
 > Exportar descarga el Excel del grupo con lo filtrado (para sacar el de uno o
-> dos carros, se filtra por placa).
+> dos carros, se filtra por placa). "Liquidar dueno" arma las cuentas de un
+> dueno (ver LiquidarDueno.tsx).
 
 - **`descuentosEmpresa(f)`** · _función_
   Retenciones del flete de la empresa (retefuente y FOPAT, ICA y Supertransporte; la comision bancaria no).
@@ -2492,6 +2534,30 @@ _480 funciones, componentes, métodos y rutas en 69 archivos._
 - **`descargarLiquidacion(l, nombreArchivo)`** · _función_
   Arma y descarga el Excel de la liquidacion.
 
+### `src/paginas/seguimiento/excelLiquidacionDueno.ts`
+
+> Excel de la liquidacion a un dueno, con el formato de docs/Liq duenos
+> ejemplo.xlsx: titulo "CUENTAS ... A ...", los viajes con sus 20 columnas, la
+> suma, los conceptos y el total. Los totales van con formula, y las cuentas
+> escritas en un concepto tambien, para poder ajustarlos en el Excel.
+>
+> exceljs se carga solo al descargar (import dinamico).
+
+- **`fechaExcel(f)`** · _función_
+  "2026-10-05" -> Date a mediodia local (que Excel no lo corra de dia).
+
+- **`valorConcepto(c)`** · _función_
+  Valor de un concepto: con la cuenta escrita como formula, si es una cuenta.
+
+- **`renglon(hoja, descripcion, valor)`** · _función_
+  Un renglon de conceptos: descripcion en K:Q y valor en R.
+
+- **`suma(hoja, formula, resultado)`** · _función_
+  Una suma sin borde, en la columna del saldo.
+
+- **`descargarLiquidacionDueno(l)`** · _función_
+  Arma y descarga el Excel de la liquidacion a un dueno.
+
 ### `src/paginas/seguimiento/excelRentabilidad.ts`
 
 > Excel de la rentabilidad con las columnas de docs/ejemplo rentabilidad.xlsx:
@@ -2529,6 +2595,37 @@ _480 funciones, componentes, métodos y rutas en 69 archivos._
   Lee las matrices del Excel de rentabilidad: "Matriz Comisiones" (CLIENTES,
   COM, LOPEZ) y "Matriz Retenciones" (EMPRESA, RETEFUENTE, RETEICA, LUGAR).
   Las filas sin cliente o sin numero se saltan.
+
+### `src/paginas/seguimiento/liquidacionDuenos.ts`
+
+> Liquidacion a un dueno (igual a docs/Liq duenos ejemplo.xlsx): sus viajes
+> con el saldo de cada uno, los conceptos que se le suman o descuentan y lo
+> que se le paga; lo que no se pague queda pendiente para la siguiente.
+>
+> No depende de exceljs: se prueba aparte (liquidacionDuenos.test.ts) y el
+> Excel lo arma excelLiquidacionDueno.ts.
+
+- **`fechaCuenta(fecha)`** · _función_
+  "2026-07-08" -> "08-JULIO - 2026", como en el titulo del ejemplo.
+
+- **`tituloCuenta(nombre, fecha)`** · _función_
+  Titulo de la hoja: "CUENTAS MILLER A 08-JULIO - 2026".
+
+- **`limpiarExpresion(texto)`** · _función_
+  Deja una cuenta escrita como la entiende Excel: sin espacios ni puntos de mil y con punto decimal.
+
+- **`evaluarExpresion(texto)`** · _función_
+  Valor de una cuenta sencilla ("82000/12*2", "(5711800/14)*4"): numeros, + - *
+  / y parentesis. null si no se entiende o da algo que no es un numero.
+
+- **`filaDeViaje(f)`** · _función_
+  La foto de un viaje para la liquidacion: su saldo sin los otros descuentos, que van como conceptos.
+
+- **`conceptosAutomaticos(viajes, anterior)`** · _función_
+  Los conceptos que salen solos: el saldo de la liquidacion anterior y los otros descuentos de los viajes.
+
+- **`armarLiquidacionDueno(viajes, conceptos, {...})`** · _función_
+  Arma la liquidacion. Sin valor pagado se le paga todo; con total negativo, nada (queda debiendo).
 
 ### `src/paginas/seguimiento/liquidacionPago.ts`
 
