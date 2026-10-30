@@ -1304,6 +1304,10 @@ export interface FilaRentabilidad {
   efectivo: number;
   combustible: number;
   transferencia: number;
+  /** Dias en que se entrego el anticipo. */
+  fechasEfectivo: string[];
+  fechasCombustible: string[];
+  fechaTransferencia: string | null;
   fechaPagoEmpresa: string | null;
   fechaPagoBeneficiario: string | null;
   fechaPagoRentabilidad: string | null;

@@ -9,6 +9,7 @@
 import type { Cell, Worksheet } from "exceljs";
 import type { FilaRentabilidad } from "../../api/cliente";
 import { placaConGuion } from "../cuadro/facturacion";
+import { fechaCorta } from "../cuadro/estadosCuadro";
 
 /** Una columna del Excel: titulo, formato y su valor (o su formula con las letras de las demas). */
 interface ColumnaExcel {
@@ -42,6 +43,20 @@ const t = (id: string, titulo: string, valor: (f: FilaRentabilidad) => string | 
 /** Columna de fecha. */
 const d = (id: string, titulo: string, valor: (f: FilaRentabilidad) => string | null): ColumnaExcel => ({ id, titulo, tipo: "fecha", valor });
 
+/** Dias de entrega de un anticipo (un viaje puede tener varios). */
+const dias = (fechas: string[]) => fechas.map(fechaCorta).join(", ") || null;
+const FECHA_EFECTIVO = t("fechaEfectivo", "FECHA ANTICIPO EFECTIVO", (f) => dias(f.fechasEfectivo));
+const FECHA_COMBUSTIBLE = t("fechaCombustible", "FECHA COMBUST.", (f) => dias(f.fechasCombustible));
+/** Lo que suma el anticipo y cuando se entrego; se cruza al liquidar (fecha de pago al tercero o dueno). */
+const DETALLE_ANTICIPO: ColumnaExcel[] = [
+  m("antEfectivo", "ANTICIPO EFECTIVO", (f) => f.efectivo),
+  FECHA_EFECTIVO,
+  m("antCombustible", "COMBUST.", (f) => f.combustible),
+  FECHA_COMBUSTIBLE,
+  m("antTransferencia", "TRANSFERENCIA", (f) => f.transferencia),
+  d("fechaTransferencia", "FECHA TRANSFERENCIA", (f) => f.fechaTransferencia),
+];
+
 /** Columnas de la hoja TERCEROS (rentabilidad = saldo empresa - saldo tercero). */
 const COLUMNAS_TERCEROS: ColumnaExcel[] = [
   d("fecha", "FECHA", (f) => f.fecha),
@@ -71,6 +86,7 @@ const COLUMNAS_TERCEROS: ColumnaExcel[] = [
   m("poliza", "PLANILLA- POLIZA RCE", (f) => f.poliza),
   m("otros", "OTROS DESCUENTOS", (f) => f.otrosDescuentos),
   t("conceptoOtros", "CONCEPTO OTROS DESCUENTOS", (f) => f.rentOtrosConcepto),
+  ...DETALLE_ANTICIPO,
   m("anticipo", "ANTICIPO", (f) => f.anticipo),
   m(
     "saldoTercero",
@@ -91,8 +107,8 @@ function columnasSocio(grupo: string): ColumnaExcel[] {
   // XGJ-197 (dobletroque): el anticipo va en efectivo y combustible.
   const anticipo =
     grupo === "XGJ-197"
-      ? [m("efectivo", "ANTICIPO EFECTIVO", (f) => f.efectivo + f.transferencia), m("combustible", "COMBUST.", (f) => f.combustible)]
-      : [m("anticipo", "ANTICIPO", (f) => f.anticipo)];
+      ? [m("efectivo", "ANTICIPO EFECTIVO", (f) => f.efectivo + f.transferencia), FECHA_EFECTIVO, m("combustible", "COMBUST.", (f) => f.combustible), FECHA_COMBUSTIBLE]
+      : [...DETALLE_ANTICIPO, m("anticipo", "ANTICIPO", (f) => f.anticipo)];
   const restaAnticipo = grupo === "XGJ-197" ? ["efectivo", "combustible"] : ["anticipo"];
   return [
     d("fecha", "FECHA", (f) => f.fecha),

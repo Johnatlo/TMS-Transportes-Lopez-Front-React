@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_501 funciones, componentes, métodos y rutas en 72 archivos._
+_504 funciones, componentes, métodos y rutas en 72 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (155)
@@ -241,11 +241,11 @@ _501 funciones, componentes, métodos y rutas en 72 archivos._
 - [`src/paginas/seguimiento/LiquidarDueno.tsx`](#srcpaginasseguimientoliquidarduenotsx) (6)
 - [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
-- [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (8)
+- [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (10)
 - [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (11)
 - [`src/paginas/seguimiento/excelLiquidacion.ts`](#srcpaginasseguimientoexcelliquidacionts) (5)
 - [`src/paginas/seguimiento/excelLiquidacionDueno.ts`](#srcpaginasseguimientoexcelliquidacionduenots) (5)
-- [`src/paginas/seguimiento/excelRentabilidad.ts`](#srcpaginasseguimientoexcelrentabilidadts) (9)
+- [`src/paginas/seguimiento/excelRentabilidad.ts`](#srcpaginasseguimientoexcelrentabilidadts) (10)
 - [`src/paginas/seguimiento/liquidacionDuenos.ts`](#srcpaginasseguimientoliquidacionduenosts) (7)
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
@@ -2433,6 +2433,12 @@ _501 funciones, componentes, métodos y rutas en 72 archivos._
 - **`fechaO(f)`** · _función_
   Fecha corta o "-".
 
+- **`dias(fechas)`** · _función_
+  Dias de entrega de un anticipo (un viaje puede tener varios).
+
+- **`celdaAnticipo(valor, fechas)`** · _función_
+  Valor de un anticipo con los dias en que se entrego.
+
 - **`columnasInicio(terceros)`** · _función_
   Columnas comunes al principio de las dos tablas.
 
@@ -2575,6 +2581,9 @@ _501 funciones, componentes, métodos y rutas en 72 archivos._
 
 - **`d(id, titulo, valor)`** · _función_
   Columna de fecha.
+
+- **`dias(fechas)`** · _función_
+  Dias de entrega de un anticipo (un viaje puede tener varios).
 
 - **`columnasSocio(grupo)`** · _función_
   Columnas de la hoja de un socio o carro propio (saldo = lo que se le paga al dueno).

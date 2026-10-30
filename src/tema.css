@@ -238,6 +238,7 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 .desglose-tercero { --tono: #b4570f; --tono-fondo: #fdf0e4; }
 .desglose-dueno { --tono: #6b3fa0; --tono-fondo: #f1eafb; }
 .desglose-resultado { --tono: #1e7b3a; --tono-fondo: #e6f4ea; }
+.desglose-anticipo { --tono: #0f766e; --tono-fondo: #e0f5f3; }
 table.desglose tbody > tr > :first-child { border-left: 4px solid var(--tono); }
 table.desglose tr.desglose-titulo > * {
   background: var(--tono-fondo); color: var(--tono); font-weight: 700;

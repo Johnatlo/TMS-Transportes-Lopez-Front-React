@@ -34,6 +34,7 @@ const PESTANAS: PestanaTabla<FilaRentabilidad>[] = [
   { id: "porCobrar", etiqueta: "Por cobrar", incluye: (f) => f.valorEmpresa > 0 && !f.fechaPagoEmpresa },
   { id: "sinFlete", etiqueta: "Sin flete", incluye: (f) => f.valorEmpresa === 0 },
   { id: "sinPagarDueno", etiqueta: "Cobrados sin pagar al dueno", incluye: (f) => !!f.fechaPagoEmpresa && !f.fechaPagoBeneficiario },
+  { id: "porCruzar", etiqueta: "Anticipos por cruzar", incluye: (f) => f.anticipo > 0 && !f.fechaPagoBeneficiario },
   { id: "sinRepartir", etiqueta: "Ganancia sin repartir", incluye: (f) => !!f.fechaPagoEmpresa && !f.fechaPagoRentabilidad },
   { id: "todos", etiqueta: "Todos", incluye: () => true },
 ];
@@ -64,6 +65,41 @@ const columnasDescuentoBeneficiario: Columna<FilaRentabilidad>[] = [
 
 /** Fecha corta o "-". */
 const fechaO = (f: string | null) => (f ? fechaCorta(f) : "-");
+
+/** Dias de entrega de un anticipo (un viaje puede tener varios). */
+const dias = (fechas: string[]) => fechas.map(fechaCorta).join(", ");
+
+/** Valor de un anticipo con los dias en que se entrego. */
+const celdaAnticipo = (valor: number, fechas: string) =>
+  valor ? (
+    <>
+      {moneda(valor)}
+      {fechas && <span className="dato-sec">{fechas}</span>}
+    </>
+  ) : (
+    "-"
+  );
+
+/** Los anticipos con sus fechas de entrega; se cruzan el dia que se liquida al tercero o al dueno. */
+const columnasAnticipo: Columna<FilaRentabilidad>[] = [
+  { id: "efectivo", titulo: "Anticipo efectivo", alinear: "derecha", valor: (f) => f.efectivo, celda: (f) => celdaAnticipo(f.efectivo, dias(f.fechasEfectivo)) },
+  { id: "combustible", titulo: "Anticipo combustible", alinear: "derecha", valor: (f) => f.combustible, celda: (f) => celdaAnticipo(f.combustible, dias(f.fechasCombustible)) },
+  { id: "transferencia", titulo: "Transferencia", alinear: "derecha", valor: (f) => f.transferencia, celda: (f) => celdaAnticipo(f.transferencia, f.fechaTransferencia ? fechaCorta(f.fechaTransferencia) : "") },
+  {
+    id: "cruce",
+    titulo: "Cruce del anticipo",
+    filtrable: true,
+    valor: (f) => (!f.anticipo ? "Sin anticipo" : f.fechaPagoBeneficiario ? "Cruzado" : "Por cruzar"),
+    celda: (f) =>
+      !f.anticipo ? (
+        <span className="dato-sec">-</span>
+      ) : f.fechaPagoBeneficiario ? (
+        <Pastilla tono="ok">Cruzado {fechaCorta(f.fechaPagoBeneficiario)}</Pastilla>
+      ) : (
+        <Pastilla tono="aviso">Por cruzar</Pastilla>
+      ),
+  },
+];
 
 /** Columnas comunes al principio de las dos tablas. */
 const columnasInicio = (terceros: boolean): Columna<FilaRentabilidad>[] => [
@@ -156,6 +192,7 @@ const COLUMNAS_TERCEROS: Columna<FilaRentabilidad>[] = [
       </span>
     ),
   },
+  ...columnasAnticipo,
   { id: "renta", titulo: "Anticipo renta", alinear: "derecha", valor: (f) => f.anticipoRenta, celda: (f) => moneda(f.anticipoRenta) },
   ...columnasFin(true),
 ];
@@ -177,13 +214,7 @@ const COLUMNAS_SOCIOS: Columna<FilaRentabilidad>[] = [
     valor: (f) => f.descargue + f.poliza,
     celda: (f) => <span title={`Descargue CAME ${moneda(f.descargue)} · planilla-poliza ${moneda(f.poliza)}`}>{moneda(f.descargue + f.poliza)}</span>,
   },
-  {
-    id: "anticipo",
-    titulo: "Anticipo",
-    alinear: "derecha",
-    valor: (f) => f.anticipo,
-    celda: (f) => <span title={`Efectivo ${moneda(f.efectivo)} · combustible ${moneda(f.combustible)} · transferencia ${moneda(f.transferencia)}`}>{moneda(f.anticipo)}</span>,
-  },
+  ...columnasAnticipo,
   ...columnasDescuentoBeneficiario,
   {
     id: "saldo",
@@ -213,6 +244,7 @@ export default function Rentabilidad() {
   const actual = grupos.includes(grupo) ? grupo : grupos[0] ?? "TERCEROS";
   const delGrupo = filas.filter((f) => f.grupo === actual);
   const conFlete = delGrupo.filter((f) => f.valorEmpresa > 0);
+  const porCruzar = delGrupo.filter((f) => f.anticipo > 0 && !f.fechaPagoBeneficiario);
   const terceros = actual === "TERCEROS";
   const duenos = grupos.filter((g) => g !== "TERCEROS");
   const suma = (fs: FilaRentabilidad[], v: (f: FilaRentabilidad) => number) => fs.reduce((s, f) => s + v(f), 0);
@@ -238,12 +270,13 @@ export default function Rentabilidad() {
           valor={moneda(suma(conFlete, (f) => f.saldoBeneficiario))}
           detalle="despues de descuentos"
         />
+        <Indicador dinero titulo="Anticipos por cruzar" valor={moneda(suma(porCruzar, (f) => f.anticipo))} detalle={`${porCruzar.length} viajes sin liquidar`} />
         <Indicador titulo="Viajes sin flete" valor={delGrupo.length - conFlete.length} detalle="no suman en los totales" />
       </div>
       <div className="dato-sec" style={{ marginBottom: "0.5rem" }}>
         {terceros
-          ? "Terceros: retefuente y FOPAT, ReteICA y Supertransporte se calculan dos veces, sobre el flete de la empresa y sobre el del tercero. La comision bancaria sale del flete del tercero. Saldo empresa - saldo tercero = rentabilidad, sin contar los otros descuentos (prestamos, descuentos del cliente), que no son ganancia de la empresa; menos el anticipo de renta 3,5 % = ganancia."
-          : "Socios y carros propios: lo que paga el cliente menos retenciones, anticipo de renta, comision bancaria, comision, T. Lopez, descargue, poliza, anticipo y otros descuentos = saldo al dueno. La empresa gana la comision y T. Lopez."}{" "}
+          ? "Terceros: retefuente y FOPAT, ReteICA y Supertransporte se calculan dos veces, sobre el flete de la empresa y sobre el del tercero. La comision bancaria sale del flete del tercero. Saldo empresa - saldo tercero = rentabilidad, sin contar los otros descuentos (prestamos, descuentos del cliente), que no son ganancia de la empresa; menos el anticipo de renta 3,5 % = ganancia. El anticipo no toca la rentabilidad: se cruza el dia que se le liquida al tercero."
+          : "Socios y carros propios: lo que paga el cliente menos retenciones, anticipo de renta, comision bancaria, comision, T. Lopez, descargue, poliza, anticipo y otros descuentos = saldo al dueno. El anticipo se cruza el dia que se le liquida al dueno. La empresa gana la comision y T. Lopez."}{" "}
         Clic en un viaje para corregir sus valores.
       </div>
       {error && <div className="alert danger">{error}</div>}
@@ -546,6 +579,13 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
               {renglon("Saldo al dueno", fila.saldoBeneficiario, "=")}
             </>
           )}
+        </tbody>
+        <tbody className="desglose-anticipo">
+          {titulo(!fila.anticipo ? "Anticipos" : fila.fechaPagoBeneficiario ? `Anticipos · cruzados el ${fechaCorta(fila.fechaPagoBeneficiario)}` : "Anticipos · por cruzar")}
+          {renglon(`Efectivo${fila.fechasEfectivo.length ? ` (${dias(fila.fechasEfectivo)})` : ""}`, fila.efectivo, "")}
+          {renglon(`Combustible${fila.fechasCombustible.length ? ` (${dias(fila.fechasCombustible)})` : ""}`, fila.combustible, "")}
+          {renglon(`Transferencia${fila.fechaTransferencia ? ` (${fechaCorta(fila.fechaTransferencia)})` : ""}`, fila.transferencia, "")}
+          {terceros && renglon("Saldo al tercero - anticipos (neto al liquidar)", fila.saldoBeneficiario - fila.anticipo, "=")}
         </tbody>
         <tbody className="desglose-resultado">
           {titulo("Resultado")}
