@@ -2386,7 +2386,7 @@ _480 funciones, componentes, métodos y rutas en 69 archivos._
 > dos carros, se filtra por placa).
 
 - **`descuentosEmpresa(f)`** · _función_
-  Descuentos del lado de la empresa (retenciones, ICA, bancaria, Supertransporte y T. Lopez en terceros).
+  Retenciones del flete de la empresa (retefuente y FOPAT, ICA y Supertransporte; la comision bancaria no).
 
 - **`fechaO(f)`** · _función_
   Fecha corta o "-".

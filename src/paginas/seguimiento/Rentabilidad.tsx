@@ -12,7 +12,7 @@
  */
 import { useState } from "react";
 import { apiCuadro, apiSeguimiento, moneda } from "../../api/cliente";
-import type { ComisionCliente, FilaRentabilidad, RetencionCliente } from "../../api/cliente";
+import type { ClaveRetencion, ComisionCliente, FilaRentabilidad, RetencionCliente } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Indicador from "../../componentes/Indicador";
@@ -36,8 +36,29 @@ const PESTANAS: PestanaTabla<FilaRentabilidad>[] = [
   { id: "todos", etiqueta: "Todos", incluye: () => true },
 ];
 
-/** Descuentos del lado de la empresa (retenciones, ICA, bancaria, Supertransporte y T. Lopez en terceros). */
-const descuentosEmpresa = (f: FilaRentabilidad) => f.retencion + f.reteIca + f.bancaria + f.supertransporte;
+/** Retenciones del flete de la empresa (retefuente y FOPAT, ICA y Supertransporte; la comision bancaria no). */
+const descuentosEmpresa = (f: FilaRentabilidad) => f.retencion + f.reteIca + f.supertransporte;
+
+/** Lo que sale del flete del tercero o del dueno: comision bancaria (4 x 1000 + 5.000) y otros descuentos con su concepto. */
+const columnasDescuentoBeneficiario: Columna<FilaRentabilidad>[] = [
+  { id: "bancaria", titulo: "Comision bancaria", alinear: "derecha", valor: (f) => f.bancaria, celda: (f) => moneda(f.bancaria) },
+  {
+    id: "otros",
+    titulo: "Otros descuentos",
+    alinear: "derecha",
+    valor: (f) => f.otrosDescuentos,
+    buscar: (f) => f.rentOtrosConcepto,
+    celda: (f) =>
+      f.otrosDescuentos ? (
+        <>
+          {moneda(f.otrosDescuentos)}
+          {f.rentOtrosConcepto && <span className="dato-sec">{f.rentOtrosConcepto}</span>}
+        </>
+      ) : (
+        "-"
+      ),
+  },
+];
 
 /** Fecha corta o "-". */
 const fechaO = (f: string | null) => (f ? fechaCorta(f) : "-");
@@ -81,11 +102,11 @@ const columnasInicio = (terceros: boolean): Columna<FilaRentabilidad>[] => [
   },
   {
     id: "descuentos",
-    titulo: "Retenciones y bancos",
+    titulo: "Retenciones",
     alinear: "derecha",
     valor: descuentosEmpresa,
     celda: (f) => (
-      <span title={`Retef. + FOPAT ${moneda(f.retencion)} · ICA ${f.icaPorMil} por mil ${moneda(f.reteIca)} · bancaria ${moneda(f.bancaria)} · Supertransporte ${moneda(f.supertransporte)}`}>
+      <span title={`Retef. + FOPAT ${moneda(f.retencion)} · ICA ${f.icaPorMil} por mil ${moneda(f.reteIca)} · Supertransporte ${moneda(f.supertransporte)}`}>
         {moneda(descuentosEmpresa(f))}
       </span>
     ),
@@ -121,13 +142,14 @@ const COLUMNAS_TERCEROS: Columna<FilaRentabilidad>[] = [
     valor: (f) => f.fleteTercero,
     celda: (f) => (f.fleteTercero ? moneda(f.fleteTercero) : <span className="dato-sec">{f.concepto ? "Reconocido" : "Sin pactar"}</span>),
   },
+  ...columnasDescuentoBeneficiario,
   {
     id: "saldoTercero",
     titulo: "Saldo tercero",
     alinear: "derecha",
     valor: (f) => f.saldoBeneficiario,
     celda: (f) => (
-      <span title={`Retef. + FOPAT ${moneda(f.retencionTercero)} · ICA ${moneda(f.reteIcaTercero)} · Supertransporte ${moneda(f.bancariaTercero)} · poliza ${moneda(f.poliza)}`}>
+      <span title={`Retef. + FOPAT ${moneda(f.retencionTercero)} · ICA ${moneda(f.reteIcaTercero)} · comision bancaria ${moneda(f.bancaria)} · Supertransporte ${moneda(f.supertransporteTercero)} · poliza ${moneda(f.poliza)}`}>
         {moneda(f.saldoBeneficiario)}
       </span>
     ),
@@ -160,6 +182,7 @@ const COLUMNAS_SOCIOS: Columna<FilaRentabilidad>[] = [
     valor: (f) => f.anticipo,
     celda: (f) => <span title={`Efectivo ${moneda(f.efectivo)} · combustible ${moneda(f.combustible)} · transferencia ${moneda(f.transferencia)}`}>{moneda(f.anticipo)}</span>,
   },
+  ...columnasDescuentoBeneficiario,
   {
     id: "saldo",
     titulo: "Saldo al dueno",
@@ -215,8 +238,8 @@ export default function Rentabilidad() {
       </div>
       <div className="dato-sec" style={{ marginBottom: "0.5rem" }}>
         {terceros
-          ? "Terceros: lo que paga el cliente menos sus descuentos (saldo empresa) menos lo que se le paga al tercero con los suyos (saldo tercero) = rentabilidad; menos el anticipo de renta 3,5 % = ganancia. La comision de la matriz se descuenta del saldo empresa, como en los demas carros."
-          : "Socios y carros propios: lo que paga el cliente menos retenciones, anticipo de renta, bancos, comision, T. Lopez, descargue, poliza y anticipo = saldo al dueno. La empresa gana la comision y T. Lopez."}{" "}
+          ? "Terceros: retefuente y FOPAT, ReteICA y Supertransporte se calculan dos veces, sobre el flete de la empresa y sobre el del tercero. La comision bancaria sale del flete del tercero. Saldo empresa - saldo tercero = rentabilidad, sin contar los otros descuentos (prestamos, descuentos del cliente), que no son ganancia de la empresa; menos el anticipo de renta 3,5 % = ganancia."
+          : "Socios y carros propios: lo que paga el cliente menos retenciones, anticipo de renta, comision bancaria, comision, T. Lopez, descargue, poliza, anticipo y otros descuentos = saldo al dueno. La empresa gana la comision y T. Lopez."}{" "}
         Clic en un viaje para corregir sus valores.
       </div>
       {error && <div className="alert danger">{error}</div>}
@@ -276,6 +299,22 @@ export default function Rentabilidad() {
   );
 }
 
+/** Retenciones del flete de la empresa: se editan en todos los carros. */
+const RETENCIONES_EMPRESA: Array<[ClaveRetencion, string]> = [
+  ["retencion", "Retefuente 1 % + FOPAT 0,1 %"],
+  ["reteIca", "ReteICA"],
+  ["supertransporte", "Supertransporte 0,1201 %"],
+];
+/** Retenciones del flete pactado con el tercero. */
+const RETENCIONES_TERCERO: Array<[ClaveRetencion, string]> = [
+  ["retencionTercero", "Retefuente 1 % + FOPAT 0,1 %"],
+  ["reteIcaTercero", "ReteICA"],
+  ["supertransporteTercero", "Supertransporte 0,1201 %"],
+  ["bancaria", "Comision bancaria (4 x 1000 + 5.000)"],
+];
+/** La comision bancaria del dueno. */
+const RETENCIONES_DUENO: Array<[ClaveRetencion, string]> = [["bancaria", "Comision bancaria (4 x 1000 + 5.000)"]];
+
 /** Texto de un numero para un campo (null = vacio). */
 const enCampo = (n: number | null) => (n === null ? "" : String(n));
 
@@ -293,7 +332,15 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
     rentIcaPorMil: enCampo(fila.rentIcaPorMil),
     fechaPagoRentabilidad: fila.fechaPagoRentabilidad ?? "",
     fechaPagoSaldo: fila.fechaPagoBeneficiario ?? "",
+    rentOtrosDescuentos: enCampo(fila.rentOtrosDescuentos),
+    rentOtrosConcepto: fila.rentOtrosConcepto ?? "",
   });
+  /** Cada retencion: su valor escrito (vacio = el calculado) y si aplica (todas marcadas de entrada). */
+  const [retenciones, setRetenciones] = useState<Partial<Record<ClaveRetencion, { valor: string; aplica: boolean }>>>(() =>
+    Object.fromEntries(
+      Object.entries(fila.rentRetenciones).map(([clave, a]) => [clave, { valor: enCampo(a?.valor ?? null), aplica: a?.aplica !== false }])
+    )
+  );
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -311,6 +358,16 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
         fechaPagoRentabilidad: f.fechaPagoRentabilidad || null,
         // La misma fecha de pago al dueno del Cuadro pagos.
         fechaPagoSaldo: f.fechaPagoSaldo || null,
+        rentOtrosDescuentos: numeroONulo(f.rentOtrosDescuentos),
+        rentOtrosConcepto: f.rentOtrosConcepto.trim() || null,
+        // Solo las que se cambiaron; las demas se calculan y aplican.
+        rentRetenciones: JSON.stringify(
+          Object.fromEntries(
+            Object.entries(retenciones)
+              .filter(([, a]) => a && (a.valor !== "" || !a.aplica))
+              .map(([clave, a]) => [clave, { valor: numeroONulo(a!.valor), aplica: a!.aplica }])
+          )
+        ),
       });
       alGuardar();
     } catch (exc) {
@@ -319,7 +376,34 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
     }
   }
 
-  const campo = (clave: keyof typeof f, etiqueta: string, calculado: number, paso = "1") => (
+  /** Una retencion: casilla de si aplica y su valor (en gris, el calculado). */
+  const retencion = ([clave, etiqueta]: [ClaveRetencion, string]) => {
+    const a = retenciones[clave] ?? { valor: "", aplica: true };
+    const cambiar = (c: Partial<typeof a>) => setRetenciones({ ...retenciones, [clave]: { ...a, ...c } });
+    return (
+      <tr key={clave} className={a.aplica ? "" : "dato-sec"}>
+        <td>
+          <label className="check-linea" style={{ margin: 0 }}>
+            <input type="checkbox" checked={a.aplica} onChange={(e) => cambiar({ aplica: e.target.checked })} />
+            {etiqueta}
+          </label>
+        </td>
+        <td>
+          <input
+            type="number"
+            min={0}
+            aria-label={etiqueta}
+            disabled={!a.aplica}
+            value={a.valor}
+            onChange={(e) => cambiar({ valor: e.target.value })}
+            placeholder={String(fila.retencionesCalculadas[clave])}
+          />
+        </td>
+      </tr>
+    );
+  };
+
+  const campo = (clave: Exclude<keyof typeof f, "rentOtrosConcepto">, etiqueta: string, calculado: number, paso = "1") => (
     <div>
       <label>{etiqueta}</label>
       <input
@@ -368,6 +452,11 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
         {!terceros && campo("rentDescargue", "Descargue CAME", fila.descargue)}
         {campo("rentPoliza", "Planilla - poliza RCE", fila.poliza)}
         {campo("rentIcaPorMil", "ReteICA del cliente (por mil)", fila.icaPorMil, "0.01")}
+        {campo("rentOtrosDescuentos", "Otros descuentos", 0)}
+        <div>
+          <label>Concepto de otros descuentos</label>
+          <input value={f.rentOtrosConcepto} maxLength={200} onChange={(e) => setF({ ...f, rentOtrosConcepto: e.target.value })} placeholder="Bateria, arreglo..." />
+        </div>
         <div>
           <label>{terceros ? "Pago al tercero" : "Pago al dueno"}</label>
           <input type="date" value={f.fechaPagoSaldo} onChange={(e) => setF({ ...f, fechaPagoSaldo: e.target.value })} />
@@ -379,29 +468,51 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
       </div>
       <div className="dato-sec">En gris, el valor de siempre (matriz de comisiones, descargue de 198.000, poliza de 3.000). Borrar un campo lo devuelve a ese valor.</div>
 
+      <h4>Retenciones (desmarca las que no aplican)</h4>
+      <table className="tabla tabla-compacta" style={{ maxWidth: 560 }}>
+        <tbody>
+          <tr>
+            <th colSpan={2}>Flete de la empresa</th>
+          </tr>
+          {RETENCIONES_EMPRESA.map(retencion)}
+          <tr>
+            <th colSpan={2}>{terceros ? "Flete del tercero" : "Flete del dueno"}</th>
+          </tr>
+          {(terceros ? RETENCIONES_TERCERO : RETENCIONES_DUENO).map(retencion)}
+        </tbody>
+      </table>
+      <div className="dato-sec">Los valores de abajo se actualizan al guardar.</div>
+
       <table className="tabla" style={{ maxWidth: 560, marginTop: "0.6rem" }}>
         <tbody>
           {renglon("Valor empresa (lo que paga el cliente)", fila.valorEmpresa, "")}
           {renglon("Retefuente 1 % + FOPAT 0,1 %", fila.retencion)}
           {renglon(`ReteICA ${fila.icaPorMil} por mil`, fila.reteIca)}
-          {renglon("Comision bancaria (4 x 1000 + 5.000)", fila.bancaria)}
           {renglon("Supertransporte 0,1201 %", fila.supertransporte)}
           {renglon("T. Lopez", fila.tLopez)}
           {terceros && renglon("Comision", fila.comision)}
           {terceros ? (
             <>
               {renglon("Saldo empresa", fila.saldoEmpresa, "=")}
-              {renglon("Saldo al tercero (flete pactado - sus descuentos - poliza)", fila.saldoBeneficiario)}
-              {renglon("Rentabilidad", fila.rentabilidad, "=")}
+              {renglon("Flete pactado con el tercero", fila.fleteTercero, "")}
+              {renglon("Retefuente 1 % + FOPAT 0,1 % del tercero", fila.retencionTercero)}
+              {renglon("ReteICA del tercero", fila.reteIcaTercero)}
+              {renglon("Gestion financiera (4 x 1000 + 5.000 + Supertransporte)", fila.bancaria + fila.supertransporteTercero)}
+              {renglon("Planilla - poliza RCE", fila.poliza)}
+              {renglon(fila.rentOtrosConcepto ? `Otros descuentos (${fila.rentOtrosConcepto})` : "Otros descuentos", fila.otrosDescuentos)}
+              {renglon("Saldo al tercero", fila.saldoBeneficiario, "=")}
+              {renglon("Rentabilidad (saldo empresa - saldo tercero - otros descuentos)", fila.rentabilidad, "=")}
               {renglon("Anticipo de renta 3,5 %", fila.anticipoRenta)}
             </>
           ) : (
             <>
               {renglon("Anticipo de renta 3,5 %", fila.anticipoRenta)}
+              {renglon("Comision bancaria (4 x 1000 + 5.000)", fila.bancaria)}
               {renglon("Comision", fila.comision)}
               {renglon("Descargue CAME", fila.descargue)}
               {renglon("Planilla - poliza RCE", fila.poliza)}
               {renglon("Anticipo (bomba y transferencia)", fila.anticipo)}
+              {renglon(fila.rentOtrosConcepto ? `Otros descuentos (${fila.rentOtrosConcepto})` : "Otros descuentos", fila.otrosDescuentos)}
               {renglon("Saldo al dueno", fila.saldoBeneficiario, "=")}
             </>
           )}

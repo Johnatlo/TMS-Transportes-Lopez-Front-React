@@ -1232,6 +1232,9 @@ export interface NombreTerceroPropuesto extends NombreTerceroImportado {
   vehiculos: Array<{ id: number; placa: string; nombreActual: string | null; por: "PLACA" | "CEDULA" }>;
 }
 
+/** Retenciones de un viaje en la rentabilidad, que se pueden corregir o desmarcar. */
+export type ClaveRetencion = "retencion" | "reteIca" | "supertransporte" | "bancaria" | "retencionTercero" | "reteIcaTercero" | "supertransporteTercero";
+
 /** Comision y T. Lopez de un cliente (Matriz Comisiones de la rentabilidad). */
 export interface ComisionCliente {
   cliente: string;
@@ -1280,8 +1283,17 @@ export interface FilaRentabilidad {
   retencion: number;
   icaPorMil: number;
   reteIca: number;
+  /** Comision bancaria (4 x 1000 + 5.000): al flete del tercero o del dueno. */
   bancaria: number;
   supertransporte: number;
+  /** Lo que da cada retencion sin ajustes (en gris al editar). */
+  retencionesCalculadas: Record<ClaveRetencion, number>;
+  /** Retenciones corregidas o desmarcadas en el viaje. */
+  rentRetenciones: Partial<Record<ClaveRetencion, { valor: number | null; aplica: boolean }>>;
+  /** Otros descuentos al tercero o dueno: lo escrito, su concepto y lo que se resta. */
+  rentOtrosDescuentos: number | null;
+  rentOtrosConcepto: string | null;
+  otrosDescuentos: number;
   comision: number;
   tLopez: number;
   descargue: number;
@@ -1292,7 +1304,7 @@ export interface FilaRentabilidad {
   fleteTercero: number;
   retencionTercero: number;
   reteIcaTercero: number;
-  bancariaTercero: number;
+  supertransporteTercero: number;
   /** Terceros: lo que se le paga al tercero; socios: lo que se le paga al dueno. */
   saldoBeneficiario: number;
   rentabilidad: number;

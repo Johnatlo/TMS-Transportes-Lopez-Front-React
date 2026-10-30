@@ -54,7 +54,6 @@ const COLUMNAS_TERCEROS: ColumnaExcel[] = [
   m("valor", "VALOR SALDO EMPRESA", (f) => f.valorEmpresa),
   m("retencion", "RETEF. RET.FOPAT", (f) => f.retencion),
   m("ica", "RETE ICA", (f) => f.reteIca),
-  m("bancaria", "COMIS BANCAR", (f) => f.bancaria),
   m("super", "CONT. SUPERTR. 0,1201", (f) => f.supertransporte),
   m("comision", "COMISION", (f) => f.comision),
   m("tLopez", "T. LOPEZ", (f) => f.tLopez),
@@ -62,21 +61,24 @@ const COLUMNAS_TERCEROS: ColumnaExcel[] = [
     "saldoEmpresa",
     "SALDO EMPRESA CON DESCUENTOS",
     (f) => f.saldoEmpresa,
-    (L) => `${L("valor")}-${L("retencion")}-${L("ica")}-${L("bancaria")}-${L("super")}-${L("comision")}-${L("tLopez")}`
+    (L) => `${L("valor")}-${L("retencion")}-${L("ica")}-${L("super")}-${L("comision")}-${L("tLopez")}`
   ),
   m("flete", "FLETE TERCERO", (f) => f.fleteTercero),
   m("retTercero", "RETEF. RET.FOPAT TERCEROS", (f) => f.retencionTercero),
   m("icaTercero", "RETE ICA", (f) => f.reteIcaTercero),
-  m("superTercero", "CONT. SUPERTR. 0,1201%", (f) => f.bancariaTercero),
+  m("bancaria", "COMIS BANCAR", (f) => f.bancaria),
+  m("superTercero", "CONT. SUPERTR. 0,1201%", (f) => f.supertransporteTercero),
   m("poliza", "PLANILLA- POLIZA RCE", (f) => f.poliza),
+  m("otros", "OTROS DESCUENTOS", (f) => f.otrosDescuentos),
+  t("conceptoOtros", "CONCEPTO OTROS DESCUENTOS", (f) => f.rentOtrosConcepto),
   m("anticipo", "ANTICIPO", (f) => f.anticipo),
   m(
     "saldoTercero",
     "SALDO CONDUCTOR CON DESCUENTOS",
     (f) => f.saldoBeneficiario,
-    (L) => `${L("flete")}-${L("retTercero")}-${L("icaTercero")}-${L("superTercero")}-${L("poliza")}`
+    (L) => `${L("flete")}-${L("retTercero")}-${L("icaTercero")}-${L("bancaria")}-${L("superTercero")}-${L("poliza")}-${L("otros")}`
   ),
-  m("rentabilidad", "RENTABIL. EMPRESA", (f) => f.rentabilidad, (L) => `${L("saldoEmpresa")}-${L("saldoTercero")}`),
+  m("rentabilidad", "RENTABIL. EMPRESA", (f) => f.rentabilidad, (L) => `${L("saldoEmpresa")}-${L("saldoTercero")}-${L("otros")}`),
   m("renta", "ANTICIPO DE RENTA 3,5", (f) => f.anticipoRenta, (L) => `ROUND(${L("rentabilidad")}*3.5%,0)`),
   m("ganancia", "RENTABIL. EMPRESA TOTAL", (f) => f.ganancia, (L) => `${L("rentabilidad")}-${L("renta")}`),
   d("pagoEmpresa", "PAGO EMPRESA", (f) => f.fechaPagoEmpresa),
@@ -110,8 +112,10 @@ function columnasSocio(grupo: string): ColumnaExcel[] {
     m("descargue", "DESCARG. CAME", (f) => f.descargue),
     m("poliza", "PLANILLA- POLIZA RCE", (f) => f.poliza),
     ...anticipo,
+    m("otros", "OTROS DESCUENTOS", (f) => f.otrosDescuentos),
+    t("conceptoOtros", "CONCEPTO OTROS DESCUENTOS", (f) => f.rentOtrosConcepto),
     m("saldo", "SALDO CON DESCUENTOS", (f) => f.saldoBeneficiario, (L) =>
-      [L("valor"), ...["retencion", "ica", "renta", "bancaria", "super", "comision", "tLopez", "descargue", "poliza", ...restaAnticipo].map(L)].join("-")
+      [L("valor"), ...["retencion", "ica", "renta", "bancaria", "super", "comision", "tLopez", "descargue", "poliza", ...restaAnticipo, "otros"].map(L)].join("-")
     ),
     m("ganancia", "GANANCIA EMPRESA", (f) => f.ganancia, (L) => `${L("comision")}+${L("tLopez")}`),
     d("pagoEmpresa", "PAGO EMPRESA", (f) => f.fechaPagoEmpresa),
