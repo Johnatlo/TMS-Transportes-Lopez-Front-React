@@ -1022,6 +1022,8 @@ export interface TarifaFlete {
   /** Peso que se factura siempre, sin importar el tiquete (33000 kg). */
   pesoFijoKg: number | null;
   observaciones: string | null;
+  /** Sus viajes son urbanos aunque el nombre no diga URBANO (sin poliza RCE). El Excel no la trae. */
+  urbano?: boolean;
 }
 
 /** Una tarifa de la matriz que podria ser la de un viaje sin flete exacto. */

@@ -380,7 +380,7 @@ function FilaEditable({
 }
 
 /** Ancho de las columnas de la matriz (tarifa, razon social, valor, tipo, pesos y observaciones). */
-const COLUMNAS_MATRIZ = [270, 230, 140, 110, 130, 130, 360];
+const COLUMNAS_MATRIZ = [270, 230, 140, 110, 130, 130, 80, 360];
 const ANCHO_MATRIZ = COLUMNAS_MATRIZ.reduce((a, b) => a + b, 0);
 
 /**
@@ -419,7 +419,7 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
   }
 
   /** Tarifa nueva (sin importar el Excel): se llena arriba de la tabla. */
-  const vacia: Omit<TarifaFlete, "id"> = { nombre: "", razonSocial: null, valor: null, tipo: "TON", pesoMinimoKg: null, pesoFijoKg: null, observaciones: null };
+  const vacia: Omit<TarifaFlete, "id"> = { nombre: "", razonSocial: null, valor: null, tipo: "TON", pesoMinimoKg: null, pesoFijoKg: null, observaciones: null, urbano: false };
   const [nueva, setNueva] = useState(vacia);
 
   async function agregar() {
@@ -464,7 +464,8 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
         Importa el Excel "MATRIZ FLETES" (columnas EMPRESA, RAZON SOCIAL, VALOR, TIPO, OBSERVACIONES). Las filas
         "-34 TON" se vuelven el peso minimo (34.000 kg) de su tarifa. POR suma 300.000 (2 clientes) y POR3 600.000
-        (3 clientes) al valor por tonelada. Las tarifas sin valor o con "?" se escriben a mano al enviar. Tambien se pueden agregar
+        (3 clientes) al valor por tonelada. Las tarifas sin valor o con "?" se escriben a mano al enviar. "Urbano" marca
+        las tarifas cuyos viajes son urbanos aunque el nombre no lo diga (no llevan poliza RCE); se conserva al reimportar. Tambien se pueden agregar
         tarifas sin importar el Excel (fila de arriba). Los cambios de la tabla se guardan al salir de cada campo.
       </div>
       {mensaje && <div className={`alert ${mensaje.tipo}`}>{mensaje.texto}</div>}
@@ -501,6 +502,7 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
               <th>Tipo</th>
               <th>Peso minimo (kg)</th>
               <th>Peso fijo (kg)</th>
+              <th>Urbano</th>
               <th>Observaciones</th>
             </tr>
           </thead>
@@ -529,6 +531,9 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
               </td>
               <td>
                 <input type="number" min={0} placeholder="-" value={enInput(nueva.pesoFijoKg)} onChange={(e) => setNueva({ ...nueva, pesoFijoKg: deInput(e.target.value) })} />
+              </td>
+              <td style={{ textAlign: "center" }}>
+                <input type="checkbox" aria-label="Tarifa urbana" style={{ width: "auto" }} checked={!!nueva.urbano} onChange={(e) => setNueva({ ...nueva, urbano: e.target.checked })} />
               </td>
               <td style={{ display: "flex", gap: "0.4rem" }}>
                 <input placeholder="Observaciones" value={nueva.observaciones ?? ""} onChange={(e) => setNueva({ ...nueva, observaciones: e.target.value || null })} />
@@ -588,6 +593,9 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                     onBlur={(e) => deInput(e.target.value) !== t.pesoFijoKg && guardar(t, { pesoFijoKg: deInput(e.target.value) })}
                   />
                 </td>
+                <td style={{ textAlign: "center" }}>
+                  <input type="checkbox" aria-label={`${t.nombre} es urbana`} style={{ width: "auto" }} checked={!!t.urbano} onChange={(e) => guardar(t, { urbano: e.target.checked })} />
+                </td>
                 <td>
                   <input
                     defaultValue={t.observaciones ?? ""}
@@ -599,7 +607,7 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
             ))}
             {tarifas.datos && lista.length === 0 && (
               <tr>
-                <td colSpan={7} className="dato-sec">
+                <td colSpan={8} className="dato-sec">
                   {tarifas.datos.length ? "Ninguna tarifa coincide." : "Aun no hay matriz: importa el Excel."}
                 </td>
               </tr>
