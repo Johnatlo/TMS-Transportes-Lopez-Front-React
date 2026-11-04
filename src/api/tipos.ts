@@ -38,6 +38,8 @@ export interface Remolque extends RegistroRndc {
   placa: string;
   numEjes: number | null;
   capacidadKg: number | null;
+  /** Peso del remolque vacio en kg (el RNDC lo pide al registrarlo). */
+  pesoVehiculoVacio: number | null;
   fechaVencSoat: string | null;
   fechaVencTecnomecanica: string | null;
   activo: boolean;

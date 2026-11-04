@@ -151,15 +151,8 @@ const columnasInicio = (terceros: boolean): Columna<FilaRentabilidad>[] => [
   },
 ];
 
-/** Columnas de ganancia y fechas al final (terceros: "Pago al tercero"; socios: "Pago al dueno"). */
+/** Fechas al final (terceros: "Pago al tercero" y reparto de la ganancia; socios: "Pago al dueno"). */
 const columnasFin = (terceros: boolean): Columna<FilaRentabilidad>[] => [
-  {
-    id: "ganancia",
-    titulo: "Ganancia empresa",
-    alinear: "derecha",
-    valor: (f) => f.ganancia,
-    celda: (f) => <strong className={f.ganancia < 0 ? "texto-vencido" : ""}>{moneda(f.ganancia)}</strong>,
-  },
   { id: "pagoCliente", titulo: "Pago del cliente", valor: (f) => f.fechaPagoEmpresa ?? "", celda: (f) => fechaO(f.fechaPagoEmpresa) },
   {
     id: "pagoDueno",
@@ -167,7 +160,9 @@ const columnasFin = (terceros: boolean): Columna<FilaRentabilidad>[] => [
     valor: (f) => f.fechaPagoBeneficiario ?? "",
     celda: (f) => (f.fechaPagoBeneficiario ? fechaCorta(f.fechaPagoBeneficiario) : <span className="dato-sec">Sin pagar</span>),
   },
-  { id: "reparto", titulo: "Reparto ganancia", valor: (f) => f.fechaPagoRentabilidad ?? "", celda: (f) => fechaO(f.fechaPagoRentabilidad) },
+  ...(terceros
+    ? [{ id: "reparto", titulo: "Reparto ganancia", valor: (f: FilaRentabilidad) => f.fechaPagoRentabilidad ?? "", celda: (f: FilaRentabilidad) => fechaO(f.fechaPagoRentabilidad) }]
+    : []),
 ];
 
 const COLUMNAS_TERCEROS: Columna<FilaRentabilidad>[] = [
@@ -194,19 +189,23 @@ const COLUMNAS_TERCEROS: Columna<FilaRentabilidad>[] = [
   },
   ...columnasAnticipo,
   { id: "renta", titulo: "Anticipo renta", alinear: "derecha", valor: (f) => f.anticipoRenta, celda: (f) => moneda(f.anticipoRenta) },
+  // Ganancia de la empresa: solo la dejan los terceros.
+  {
+    id: "ganancia",
+    titulo: "Ganancia empresa",
+    alinear: "derecha",
+    valor: (f) => f.ganancia,
+    celda: (f) => <strong className={f.ganancia < 0 ? "texto-vencido" : ""}>{moneda(f.ganancia)}</strong>,
+  },
   ...columnasFin(true),
 ];
 
 const COLUMNAS_SOCIOS: Columna<FilaRentabilidad>[] = [
   ...columnasInicio(false),
   { id: "renta", titulo: "Anticipo renta", alinear: "derecha", valor: (f) => f.anticipoRenta, celda: (f) => moneda(f.anticipoRenta) },
-  {
-    id: "comision",
-    titulo: "Comision + T. Lopez",
-    alinear: "derecha",
-    valor: (f) => f.comision + f.tLopez,
-    celda: (f) => <span title={`Comision ${moneda(f.comision)} · T. Lopez ${moneda(f.tLopez)}`}>{moneda(f.comision + f.tLopez)}</span>,
-  },
+  // Gastos del dueno, cada uno en su columna (no son ganancia de la empresa).
+  { id: "comision", titulo: "Comision (gasto)", alinear: "derecha", valor: (f) => f.comision, celda: (f) => moneda(f.comision) },
+  { id: "tLopez", titulo: "T. Lopez (gasto)", alinear: "derecha", valor: (f) => f.tLopez, celda: (f) => moneda(f.tLopez) },
   {
     id: "descargue",
     titulo: "Descargue + poliza",
@@ -263,7 +262,14 @@ export default function Rentabilidad() {
     <>
       <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
         <Indicador dinero titulo="Fletes cobrados" valor={moneda(suma(conFlete, (f) => f.valorEmpresa))} detalle={`${conFlete.length} viajes con flete`} />
-        <Indicador dinero titulo="Ganancia de la empresa" valor={moneda(suma(conFlete, (f) => f.ganancia))} alerta={suma(conFlete, (f) => f.ganancia) < 0} />
+        {terceros ? (
+          <Indicador dinero titulo="Ganancia de la empresa" valor={moneda(suma(conFlete, (f) => f.ganancia))} alerta={suma(conFlete, (f) => f.ganancia) < 0} />
+        ) : (
+          <>
+            <Indicador dinero titulo="Comisiones" valor={moneda(suma(conFlete, (f) => f.comision))} detalle="gasto del dueno, no ganancia" />
+            <Indicador dinero titulo="T. Lopez" valor={moneda(suma(conFlete, (f) => f.tLopez))} detalle="gasto del dueno, no ganancia" />
+          </>
+        )}
         <Indicador
           dinero
           titulo={terceros ? "Para los terceros" : "Para el dueno"}
@@ -276,7 +282,7 @@ export default function Rentabilidad() {
       <div className="dato-sec" style={{ marginBottom: "0.5rem" }}>
         {terceros
           ? "Terceros: retefuente y FOPAT, ReteICA y Supertransporte se calculan dos veces, sobre el flete de la empresa y sobre el del tercero. La comision bancaria sale del flete del tercero. Saldo empresa - saldo tercero = rentabilidad, sin contar los otros descuentos (prestamos, descuentos del cliente), que no son ganancia de la empresa; menos el anticipo de renta 3,5 % = ganancia. El anticipo no toca la rentabilidad: se cruza el dia que se le liquida al tercero."
-          : "Socios y carros propios: lo que paga el cliente menos retenciones, anticipo de renta, comision bancaria, comision, T. Lopez, descargue, poliza, anticipo y otros descuentos = saldo al dueno. El anticipo se cruza el dia que se le liquida al dueno. La empresa gana la comision y T. Lopez."}{" "}
+          : "Socios y carros propios: lo que paga el cliente menos retenciones, anticipo de renta, comision bancaria, comision, T. Lopez, descargue, poliza, anticipo y otros descuentos = saldo al dueno. El anticipo se cruza el dia que se le liquida al dueno. La comision y T. Lopez son gastos: los carros de los socios no le dejan rentabilidad a la empresa."}{" "}
         Clic en un viaje para corregir sus valores.
       </div>
       {error && <div className="alert danger">{error}</div>}
@@ -294,7 +300,7 @@ export default function Rentabilidad() {
           filas={delGrupo}
           columnas={terceros ? COLUMNAS_TERCEROS : COLUMNAS_SOCIOS}
           clave={(f) => f.id}
-          pestanas={PESTANAS}
+          pestanas={terceros ? PESTANAS : PESTANAS.filter((p) => p.id !== "sinRepartir")}
           columnasFijas={1}
           placeholderBusqueda="Buscar placa, tercero, empresa, remision, factura..."
           vacio="No hay viajes con estos criterios."
@@ -523,10 +529,12 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
           <label>{terceros ? "Pago al tercero" : "Pago al dueno"}</label>
           <input type="date" value={f.fechaPagoSaldo} onChange={(e) => setF({ ...f, fechaPagoSaldo: e.target.value })} />
         </div>
-        <div>
-          <label>Pago de la rentabilidad</label>
-          <input type="date" value={f.fechaPagoRentabilidad} onChange={(e) => setF({ ...f, fechaPagoRentabilidad: e.target.value })} />
-        </div>
+        {terceros && (
+          <div>
+            <label>Pago de la rentabilidad</label>
+            <input type="date" value={f.fechaPagoRentabilidad} onChange={(e) => setF({ ...f, fechaPagoRentabilidad: e.target.value })} />
+          </div>
+        )}
       </div>
       <div className="dato-sec">En gris, el valor de siempre (matriz de comisiones, descargue de 198.000, poliza de 3.000). Borrar un campo lo devuelve a ese valor.</div>
 
@@ -587,19 +595,21 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
           {renglon(`Transferencia${fila.fechaTransferencia ? ` (${fechaCorta(fila.fechaTransferencia)})` : ""}`, fila.transferencia, "")}
           {terceros && renglon("Saldo al tercero - anticipos (neto al liquidar)", fila.saldoBeneficiario - fila.anticipo, "=")}
         </tbody>
-        <tbody className="desglose-resultado">
-          {titulo("Resultado")}
-          {terceros && renglon("Rentabilidad (saldo empresa - saldo tercero - otros descuentos)", fila.rentabilidad, "")}
-          {terceros && renglon("Anticipo de renta 3,5 %", fila.anticipoRenta)}
-          <tr className="desglose-total">
-            <td>
-              <strong>Ganancia de la empresa</strong>
-            </td>
-            <td className="num">
-              <strong className={fila.ganancia < 0 ? "texto-vencido" : ""}>{moneda(fila.ganancia)}</strong>
-            </td>
-          </tr>
-        </tbody>
+        {terceros && (
+          <tbody className="desglose-resultado">
+            {titulo("Resultado")}
+            {renglon("Rentabilidad (saldo empresa - saldo tercero - otros descuentos)", fila.rentabilidad, "")}
+            {renglon("Anticipo de renta 3,5 %", fila.anticipoRenta)}
+            <tr className="desglose-total">
+              <td>
+                <strong>Ganancia de la empresa</strong>
+              </td>
+              <td className="num">
+                <strong className={fila.ganancia < 0 ? "texto-vencido" : ""}>{moneda(fila.ganancia)}</strong>
+              </td>
+            </tr>
+          </tbody>
+        )}
       </table>
       <div className="dato-sec" style={{ marginTop: "0.4rem" }}>
         Pago del cliente {fechaO(fila.fechaPagoEmpresa)} · pago {terceros ? "al tercero" : "al dueno"} {fechaO(fila.fechaPagoBeneficiario)}

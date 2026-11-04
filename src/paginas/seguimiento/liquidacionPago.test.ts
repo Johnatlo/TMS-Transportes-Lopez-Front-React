@@ -58,6 +58,11 @@ describe("armarLiquidacion", () => {
     expect(sin.fleteTotal).toBe(2300000);
   });
 
+  it("a un urbano no se le descuenta la poliza RCE con el anticipo", () => {
+    const l = armarLiquidacion([viaje({ urbano: true })], { fecha: "2026-10-23", descontar: true, cuenta: "" });
+    expect(l.avances).toEqual([{ descripcion: "Anticipo (23/10/2026 · 00006887)", valor: 2200000 }]);
+  });
+
   it("deja fuera los viajes sin pactar y usa la cuenta escrita si el viaje no tiene", () => {
     const l = armarLiquidacion([viaje({ cuentaCobroTercero: null }), viaje({ id: 2, valorTercero: null })], {
       fecha: "2026-10-23",

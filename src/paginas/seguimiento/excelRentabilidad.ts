@@ -133,10 +133,9 @@ function columnasSocio(grupo: string): ColumnaExcel[] {
     m("saldo", "SALDO CON DESCUENTOS", (f) => f.saldoBeneficiario, (L) =>
       [L("valor"), ...["retencion", "ica", "renta", "bancaria", "super", "comision", "tLopez", "descargue", "poliza", ...restaAnticipo, "otros"].map(L)].join("-")
     ),
-    m("ganancia", "GANANCIA EMPRESA", (f) => f.ganancia, (L) => `${L("comision")}+${L("tLopez")}`),
+    // Sin ganancia: la comision y T. Lopez son gastos del dueno.
     d("pagoEmpresa", "PAGO EMPRESA", (f) => f.fechaPagoEmpresa),
     d("pagoDueno", `PAGO A ${grupo}`, (f) => f.fechaPagoBeneficiario),
-    d("pagoRentabilidad", "PAGO RENTABIL.", (f) => f.fechaPagoRentabilidad),
   ];
 }
 

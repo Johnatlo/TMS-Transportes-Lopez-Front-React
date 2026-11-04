@@ -103,21 +103,24 @@ export function armarLiquidacion(
 
   // Avances: uno por viaje del vehiculo (manifiesto), aunque lleve varios
   // clientes: sus anticipos juntos y una sola poliza RCE, como en el ejemplo.
-  const porManifiesto = new Map<string, { cual: string; anticipo: number; transferencia: number }>();
+  const porManifiesto = new Map<string, { cual: string; anticipo: number; transferencia: number; urbano: boolean }>();
   for (const v of ordenados) {
     const clave = v.manifiesto || `viaje ${v.id}`;
     const g = porManifiesto.get(clave) ?? {
       cual: `${v.fecha.split("-").reverse().join("/")}${v.manifiesto ? ` · ${v.manifiesto}` : ""}`,
       anticipo: 0,
       transferencia: 0,
+      urbano: true,
     };
     g.anticipo += v.efectivo + v.combustible;
+    // Los urbanos no llevan poliza RCE: el manifiesto la lleva si alguno no es urbano.
+    g.urbano = g.urbano && v.urbano;
     g.transferencia += v.transferencia;
     porManifiesto.set(clave, g);
   }
   const avances: RenglonLiquidacion[] = [];
-  for (const { cual, anticipo, transferencia } of porManifiesto.values()) {
-    const poliza = descontar ? POLIZA_TERCERO : 0;
+  for (const { cual, anticipo, transferencia, urbano } of porManifiesto.values()) {
+    const poliza = descontar && !urbano ? POLIZA_TERCERO : 0;
     if (anticipo + poliza > 0) {
       avances.push({ descripcion: `${anticipo ? "Anticipo" : ""}${anticipo && poliza ? " + " : ""}${poliza ? "Poliza RCE" : ""} (${cual})`, valor: anticipo + poliza });
     }

@@ -51,7 +51,7 @@ const MAESTROS_RNDC = ["vehiculos", "remolques", "conductores", "terceros"] as c
  */
 const CAMPOS_RNDC: Partial<Record<Pestana, readonly string[]>> = {
   vehiculos: ["placa", "pesoVehiculoVacio", "codTipoIdTenedor", "numIdTenedor"],
-  remolques: ["placa"],
+  remolques: ["placa", "pesoVehiculoVacio"],
   conductores: ["codTipoId", "cedula", "nombre", "direccion", "codMunicipioRndc"],
   terceros: [
     "codTipoId", "nit", "nombre", "direccion", "telefono", "codSede", "nombreSede",
@@ -476,7 +476,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
         {pestana === "remolques" && (
           <Tabla
             estado={remolques}
-            columnas={["Placa", "Ejes", "Capacidad", "Estado", "RNDC"]}
+            columnas={["Placa", "Ejes", "Capacidad", "Peso vacio", "Estado", "RNDC"]}
             filas={listaRemolques.map((r) => (
               <tr
                 key={r.id}
@@ -488,6 +488,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                 </td>
                 <td>{r.numEjes ?? "-"}</td>
                 <td>{kg(r.capacidadKg)}</td>
+                <td>{kg(r.pesoVehiculoVacio)}</td>
                 <td>
                   {/* Los remolques no tienen SOAT ni tecnomecanica: solo activo o inactivo. */}
                   <EstadoRegistro activo={r.activo} vigente />
@@ -1303,6 +1304,7 @@ const SECCIONES_REMOLQUE: SeccionFormulario[] = [
       { key: "placa", label: "Placa del remolque", tipo: "text", placeholder: "R37108" },
       { key: "numEjes", label: "Numero de ejes", tipo: "number", placeholder: "3" },
       { key: "capacidadKg", label: "Capacidad de carga (kg)", tipo: "number" },
+      { key: "pesoVehiculoVacio", label: "Peso del remolque vacio (kg)", tipo: "number", placeholder: "7000" },
     ],
   },
 ];

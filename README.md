@@ -2443,7 +2443,7 @@ _504 funciones, componentes, métodos y rutas en 72 archivos._
   Columnas comunes al principio de las dos tablas.
 
 - **`columnasFin(terceros)`** · _función_
-  Columnas de ganancia y fechas al final (terceros: "Pago al tercero"; socios: "Pago al dueno").
+  Fechas al final (terceros: "Pago al tercero" y reparto de la ganancia; socios: "Pago al dueno").
 
 - **`Rentabilidad()`** · _componente React_
   Pagina de la rentabilidad.
