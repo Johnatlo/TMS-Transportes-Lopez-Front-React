@@ -20,7 +20,7 @@ import Indicador from "../../componentes/Indicador";
 import Modal from "../../componentes/Modal";
 import MenuMas from "../../componentes/MenuMas";
 import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
-import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
+import type { Columna, FiltroSinColumna, PestanaTabla } from "../../componentes/TablaDatos";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import { numeroONulo } from "./liquidacionTerceros";
 import { descargarRentabilidad, leerMatrices } from "./excelRentabilidad";
@@ -66,6 +66,9 @@ const columnasDescuentoBeneficiario: Columna<FilaRentabilidad>[] = [
 /** Fecha corta o "-". */
 const fechaO = (f: string | null) => (f ? fechaCorta(f) : "-");
 
+/** Mes del viaje ("2026-11"), para filtrar. */
+const mesDe = (f: FilaRentabilidad) => f.fecha.slice(0, 7);
+
 /** Dias de entrega de un anticipo (un viaje puede tener varios). */
 const dias = (fechas: string[]) => fechas.map(fechaCorta).join(", ");
 
@@ -104,7 +107,6 @@ const columnasAnticipo: Columna<FilaRentabilidad>[] = [
 /** Columnas comunes al principio de las dos tablas. */
 const columnasInicio = (terceros: boolean): Columna<FilaRentabilidad>[] => [
   { id: "fecha", titulo: "Fecha", valor: (f) => f.fecha, celda: (f) => fechaCorta(f.fecha) },
-  { id: "mes", titulo: "Mes", filtrable: true, valor: (f) => f.fecha.slice(0, 7), celda: (f) => f.fecha.slice(0, 7) },
   {
     id: "placa",
     titulo: terceros ? "Placa / tercero" : "Placa",
@@ -228,6 +230,9 @@ const COLUMNAS_SOCIOS: Columna<FilaRentabilidad>[] = [
 /** Pestana con los viajes de todos los grupos (la de entrada). */
 const TODOS = "TODOS";
 
+/** Filtro por mes (2026-11) sin columna: la fecha ya esta al lado. */
+const FILTROS_SIN_COLUMNA: FiltroSinColumna<FilaRentabilidad>[] = [{ id: "mes", titulo: "Mes", valor: mesDe }];
+
 /** "Revisado" o "Sin revisar" (para filtrar y ordenar). */
 const estadoRevision = (f: FilaRentabilidad) => (f.rentRevisadoEn ? "Revisado" : "Sin revisar");
 
@@ -252,9 +257,9 @@ const COLUMNA_REVISADO: Columna<FilaRentabilidad> = {
 
 /** Todos los grupos juntos: lo comun a terceros y socios, con el grupo de cada viaje. */
 const COLUMNAS_TODOS: Columna<FilaRentabilidad>[] = [
-  ...columnasInicio(true).slice(0, 3),
+  ...columnasInicio(true).slice(0, 2),
   { id: "grupo", titulo: "Grupo", filtrable: true, valor: (f) => f.grupo, celda: (f) => f.grupo },
-  ...columnasInicio(true).slice(3),
+  ...columnasInicio(true).slice(2),
   {
     id: "saldo",
     titulo: "Saldo tercero / dueno",
@@ -370,6 +375,7 @@ export default function Rentabilidad() {
           clave={(f) => f.id}
           pestanas={terceros || todos ? PESTANAS : PESTANAS.filter((p) => p.id !== "sinRepartir")}
           columnasFijas={1}
+          filtrosSinColumna={FILTROS_SIN_COLUMNA}
           placeholderBusqueda="Buscar placa, tercero, empresa, remision, factura..."
           vacio="No hay viajes con estos criterios."
           alClicFila={setEditando}

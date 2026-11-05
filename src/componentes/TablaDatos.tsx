@@ -35,6 +35,13 @@ export interface Columna<T> {
   etiquetaMovil?: string | null;
 }
 
+/** Filtro que no tiene columna en la tabla (por ejemplo el mes, si ya se ve la fecha). */
+export interface FiltroSinColumna<T> {
+  id: string;
+  titulo: string;
+  valor: (fila: T) => string;
+}
+
 export interface PestanaTabla<T> {
   id: string;
   etiqueta: string;
@@ -117,6 +124,7 @@ export default function TablaDatos<T>({
   detalle,
   busquedaInicial,
   alExportar,
+  filtrosSinColumna,
 }: {
   filas: T[];
   columnas: Columna<T>[];
@@ -150,6 +158,8 @@ export default function TablaDatos<T>({
    * que quedan con la pestana, la busqueda y los filtros puestos.
    */
   alExportar?: (filas: T[]) => void;
+  /** Filtros que no tienen columna visible (van con los de las columnas filtrables). */
+  filtrosSinColumna?: FiltroSinColumna<T>[];
 }) {
   const [porPagina, setPorPagina] = usarFilasPorPagina();
   const tabla = useRef<HTMLTableElement>(null);
@@ -178,7 +188,10 @@ export default function TablaDatos<T>({
 
   const conValor = columnas.filter((c) => c.valor);
   const conBuscar = columnas.filter((c) => c.buscar);
-  const filtrables = columnas.filter((c) => c.filtrable && c.valor);
+  const filtrables: FiltroSinColumna<T>[] = [
+    ...columnas.filter((c) => c.filtrable && c.valor).map((c) => ({ id: c.id, titulo: c.titulo, valor: (f: T) => texto(c.valor!(f)) })),
+    ...(filtrosSinColumna ?? []),
+  ];
   const filtrosActivos = Object.values(filtros).filter((v) => v?.length).length;
 
   /** Filas de cada pestana, para los contadores. */
@@ -194,20 +207,20 @@ export default function TablaDatos<T>({
   const opcionesFiltro = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const c of filtrables) {
-      const set = new Set(base.map((f) => texto(c.valor!(f))).filter(Boolean));
+      const set = new Set(base.map((f) => texto(c.valor(f))).filter(Boolean));
       m.set(c.id, [...set].sort((a, b) => a.localeCompare(b, "es")));
     }
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base, columnas]);
+  }, [base, columnas, filtrosSinColumna]);
 
   const visibles = useMemo(() => {
     const q = sinTildes(busqueda.trim());
     let r = base.filter((f) =>
       Object.entries(filtros).every(([id, v]) => {
         if (!v?.length) return true;
-        const col = columnas.find((c) => c.id === id);
-        return col?.valor ? v.includes(texto(col.valor(f))) : true;
+        const filtro = filtrables.find((c) => c.id === id);
+        return filtro ? v.includes(texto(filtro.valor(f))) : true;
       })
     );
     if (q)
@@ -231,7 +244,7 @@ export default function TablaDatos<T>({
     }
     return r;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base, busqueda, filtros, orden, columnas]);
+  }, [base, busqueda, filtros, orden, columnas, filtrosSinColumna]);
 
   const paginas = Math.max(1, Math.ceil(visibles.length / porPagina));
   const paginaActual = Math.min(pagina, paginas - 1);

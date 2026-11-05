@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_506 funciones, componentes, métodos y rutas en 72 archivos._
+_507 funciones, componentes, métodos y rutas en 72 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (155)
@@ -241,7 +241,7 @@ _506 funciones, componentes, métodos y rutas en 72 archivos._
 - [`src/paginas/seguimiento/LiquidarDueno.tsx`](#srcpaginasseguimientoliquidarduenotsx) (6)
 - [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
-- [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (12)
+- [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (13)
 - [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (11)
 - [`src/paginas/seguimiento/excelLiquidacion.ts`](#srcpaginasseguimientoexcelliquidacionts) (5)
 - [`src/paginas/seguimiento/excelLiquidacionDueno.ts`](#srcpaginasseguimientoexcelliquidacionduenots) (5)
@@ -2432,6 +2432,9 @@ _506 funciones, componentes, métodos y rutas en 72 archivos._
 
 - **`fechaO(f)`** · _función_
   Fecha corta o "-".
+
+- **`mesDe(f)`** · _función_
+  Mes del viaje ("2026-11"), para filtrar.
 
 - **`dias(fechas)`** · _función_
   Dias de entrega de un anticipo (un viaje puede tener varios).
