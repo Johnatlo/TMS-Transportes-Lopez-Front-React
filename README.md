@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_504 funciones, componentes, métodos y rutas en 72 archivos._
+_506 funciones, componentes, métodos y rutas en 72 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (155)
@@ -241,7 +241,7 @@ _504 funciones, componentes, métodos y rutas en 72 archivos._
 - [`src/paginas/seguimiento/LiquidarDueno.tsx`](#srcpaginasseguimientoliquidarduenotsx) (6)
 - [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
-- [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (10)
+- [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (12)
 - [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (11)
 - [`src/paginas/seguimiento/excelLiquidacion.ts`](#srcpaginasseguimientoexcelliquidacionts) (5)
 - [`src/paginas/seguimiento/excelLiquidacionDueno.ts`](#srcpaginasseguimientoexcelliquidacionduenots) (5)
@@ -2444,6 +2444,12 @@ _504 funciones, componentes, métodos y rutas en 72 archivos._
 
 - **`columnasFin(terceros)`** · _función_
   Fechas al final (terceros: "Pago al tercero" y reparto de la ganancia; socios: "Pago al dueno").
+
+- **`estadoRevision(f)`** · _función_
+  "Revisado" o "Sin revisar" (para filtrar y ordenar).
+
+- **`celdaRevision(f)`** · _función_
+  Estado de revision con la fecha (y quien, al pasar el mouse) debajo.
 
 - **`Rentabilidad()`** · _componente React_
   Pagina de la rentabilidad.

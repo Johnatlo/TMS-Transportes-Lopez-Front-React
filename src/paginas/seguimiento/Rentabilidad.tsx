@@ -228,6 +228,28 @@ const COLUMNAS_SOCIOS: Columna<FilaRentabilidad>[] = [
 /** Pestana con los viajes de todos los grupos (la de entrada). */
 const TODOS = "TODOS";
 
+/** "Revisado" o "Sin revisar" (para filtrar y ordenar). */
+const estadoRevision = (f: FilaRentabilidad) => (f.rentRevisadoEn ? "Revisado" : "Sin revisar");
+
+/** Estado de revision con la fecha (y quien, al pasar el mouse) debajo. */
+function celdaRevision(f: FilaRentabilidad) {
+  return (
+    <span title={f.rentRevisadoPor ? `Lo marco ${f.rentRevisadoPor}` : undefined}>
+      <Pastilla tono={f.rentRevisadoEn ? "ok" : "neutro"}>{estadoRevision(f)}</Pastilla>
+      {f.rentRevisadoEn && <span className="dato-sec">{fechaHora(f.rentRevisadoEn)}</span>}
+    </span>
+  );
+}
+
+/** Estado de revision: se marca al abrir el viaje. */
+const COLUMNA_REVISADO: Columna<FilaRentabilidad> = {
+  id: "revisado",
+  titulo: "Revision",
+  filtrable: true,
+  valor: estadoRevision,
+  celda: celdaRevision,
+};
+
 /** Todos los grupos juntos: lo comun a terceros y socios, con el grupo de cada viaje. */
 const COLUMNAS_TODOS: Columna<FilaRentabilidad>[] = [
   ...columnasInicio(true).slice(0, 3),
@@ -275,35 +297,8 @@ export default function Rentabilidad() {
   const duenos = grupos.filter((g) => g !== "TERCEROS");
   const suma = (fs: FilaRentabilidad[], v: (f: FilaRentabilidad) => number) => fs.reduce((s, f) => s + v(f), 0);
 
-  /** Marca o quita "Revisado" en un viaje (guarda quien y cuando) y vuelve a pedir los datos. */
-  async function marcarRevisado(f: FilaRentabilidad, revisado: boolean) {
-    setError(null);
-    try {
-      await apiCuadro.revisar(f.id, "RENTABILIDAD", revisado);
-      datos.recargar();
-    } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "No se pudo marcar como revisado.");
-    }
-  }
-
-  /** Casilla "Revisado" con la fecha debajo (no abre el viaje al hacer clic). */
-  const columnaRevisado: Columna<FilaRentabilidad> = {
-    id: "revisado",
-    titulo: "Revisado",
-    filtrable: true,
-    valor: (f) => (f.rentRevisadoEn ? "Revisado" : "Sin revisar"),
-    celda: (f) => (
-      <span onClick={(e) => e.stopPropagation()} title={f.rentRevisadoPor ? `Lo marco ${f.rentRevisadoPor}` : undefined}>
-        <label className="check-linea" style={{ margin: 0 }}>
-          <input type="checkbox" style={{ width: "auto" }} checked={!!f.rentRevisadoEn} disabled={datos.cargando} onChange={(e) => marcarRevisado(f, e.target.checked)} />
-          Revisado
-        </label>
-        {f.rentRevisadoEn && <span className="dato-sec">{fechaHora(f.rentRevisadoEn)}</span>}
-      </span>
-    ),
-  };
-  /** La casilla va despues de la fecha, en todas las tablas. */
-  const conRevisado = (columnas: Columna<FilaRentabilidad>[]) => [columnas[0], columnaRevisado, ...columnas.slice(1)];
+  /** El estado de revision va despues de la fecha, en todas las tablas. */
+  const conRevisado = (columnas: Columna<FilaRentabilidad>[]) => [columnas[0], COLUMNA_REVISADO, ...columnas.slice(1)];
 
   /**
    * Descarga en Excel lo que esta en pantalla (con la pestana, la busqueda y
@@ -462,6 +457,8 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
     rentOtrosDescuentos: enCampo(fila.rentOtrosDescuentos),
     rentOtrosConcepto: fila.rentOtrosConcepto ?? "",
   });
+  /** Revisado: se guarda (con quien y cuando) solo si cambia. */
+  const [revisado, setRevisado] = useState(!!fila.rentRevisadoEn);
   /** Cada retencion: su valor escrito (vacio = el calculado) y si aplica (todas marcadas de entrada). */
   const [retenciones, setRetenciones] = useState<Partial<Record<ClaveRetencion, { valor: string; aplica: boolean }>>>(() =>
     Object.fromEntries(
@@ -496,6 +493,7 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
           )
         ),
       });
+      if (revisado !== !!fila.rentRevisadoEn) await apiCuadro.revisar(fila.id, "RENTABILIDAD", revisado);
       alGuardar();
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "No se pudo guardar.");
@@ -578,6 +576,22 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
         {fila.empresa} · {fila.remision ?? fila.manifiesto ?? "sin remision"}
         {fila.facturaNumero ? ` · factura ${fila.facturaNumero}` : " · sin factura"} · grupo {fila.grupo}
         {fila.tercero ? ` · ${fila.tercero}` : ""}
+      </div>
+      <div className="revision-viaje">
+        <label className="check-linea" style={{ margin: 0 }}>
+          <input type="checkbox" style={{ width: "auto" }} checked={revisado} onChange={(e) => setRevisado(e.target.checked)} />
+          Revisado
+        </label>
+        <Pastilla tono={revisado ? "ok" : "neutro"}>{revisado ? "Revisado" : "Sin revisar"}</Pastilla>
+        <span className="dato-sec">
+          {revisado && fila.rentRevisadoEn
+            ? `Marcado el ${fechaHora(fila.rentRevisadoEn)}${fila.rentRevisadoPor ? ` por ${fila.rentRevisadoPor}` : ""}`
+            : revisado
+              ? "Se marca al guardar, con la fecha de hoy."
+              : fila.rentRevisadoEn
+                ? "Se quita la marca al guardar."
+                : ""}
+        </span>
       </div>
       <div className="campos-cuadro">
         {campo("rentComision", "Comision", fila.comision)}

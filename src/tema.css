@@ -243,6 +243,8 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 /* Tabla que se esta actualizando despues de guardar: se atenua y se avisa. */
 .panel.actualizando { opacity: 0.55; transition: opacity 0.15s; pointer-events: none; }
 .aviso-actualizando { margin-left: auto; align-self: center; }
+/* Casilla "Revisado" al abrir un viaje de Rentabilidad. */
+.revision-viaje { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
 table.desglose tbody > tr > :first-child { border-left: 4px solid var(--tono); }
 table.desglose tr.desglose-titulo > * {
   background: var(--tono-fondo); color: var(--tono); font-weight: 700;
