@@ -95,7 +95,8 @@ const COLUMNAS_TERCEROS: ColumnaExcel[] = [
     (L) => `${L("flete")}-${L("retTercero")}-${L("icaTercero")}-${L("bancaria")}-${L("superTercero")}-${L("poliza")}-${L("otros")}`
   ),
   m("rentabilidad", "RENTABIL. EMPRESA", (f) => f.rentabilidad, (L) => `${L("saldoEmpresa")}-${L("saldoTercero")}-${L("otros")}`),
-  m("renta", "ANTICIPO DE RENTA 3,5", (f) => f.anticipoRenta, (L) => `ROUND(${L("rentabilidad")}*3.5%,0)`),
+  // Valor, no formula: se puede quitar en el viaje (Corona no lo lleva).
+  m("renta", "ANTICIPO DE RENTA 3,5", (f) => f.anticipoRenta),
   m("ganancia", "RENTABIL. EMPRESA TOTAL", (f) => f.ganancia, (L) => `${L("rentabilidad")}-${L("renta")}`),
   d("pagoEmpresa", "PAGO EMPRESA", (f) => f.fechaPagoEmpresa),
   d("pagoTercero", "PAGO A TERCERO", (f) => f.fechaPagoBeneficiario),

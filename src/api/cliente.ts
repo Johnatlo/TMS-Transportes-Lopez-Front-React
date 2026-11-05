@@ -1235,7 +1235,19 @@ export interface NombreTerceroPropuesto extends NombreTerceroImportado {
 }
 
 /** Retenciones de un viaje en la rentabilidad, que se pueden corregir o desmarcar. */
-export type ClaveRetencion = "retencion" | "reteIca" | "supertransporte" | "bancaria" | "retencionTercero" | "reteIcaTercero" | "supertransporteTercero";
+export type ClaveRetencion =
+  | "retencion"
+  | "reteIca"
+  | "supertransporte"
+  | "bancaria"
+  | "retencionTercero"
+  | "reteIcaTercero"
+  | "supertransporteTercero"
+  | "anticipoRenta"
+  | "comision"
+  | "tLopez"
+  | "descargue"
+  | "poliza";
 
 /** Comision y T. Lopez de un cliente (Matriz Comisiones de la rentabilidad). */
 export interface ComisionCliente {

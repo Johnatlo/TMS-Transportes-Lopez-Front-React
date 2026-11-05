@@ -439,9 +439,25 @@ const RETENCIONES_TERCERO: Array<[ClaveRetencion, string]> = [
   ["reteIcaTercero", "ReteICA"],
   ["supertransporteTercero", "Supertransporte 0,1201 %"],
   ["bancaria", "Comision bancaria (4 x 1000 + 5.000)"],
+  ["poliza", "Planilla - poliza RCE"],
 ];
-/** La comision bancaria del dueno. */
-const RETENCIONES_DUENO: Array<[ClaveRetencion, string]> = [["bancaria", "Comision bancaria (4 x 1000 + 5.000)"]];
+/** Terceros: lo demas que se le resta a la empresa (comision, T. Lopez y el anticipo de renta de la rentabilidad). */
+const EMPRESA_TERCEROS: Array<[ClaveRetencion, string]> = [
+  ["comision", "Comision"],
+  ["tLopez", "T. Lopez"],
+  ["anticipoRenta", "Anticipo de renta 3,5 % (de la rentabilidad)"],
+];
+/** Todo lo que sale del flete del dueno. */
+const RETENCIONES_DUENO: Array<[ClaveRetencion, string]> = [
+  ["anticipoRenta", "Anticipo de renta 3,5 %"],
+  ["bancaria", "Comision bancaria (4 x 1000 + 5.000)"],
+  ["comision", "Comision"],
+  ["tLopez", "T. Lopez"],
+  ["descargue", "Descargue CAME"],
+  ["poliza", "Planilla - poliza RCE"],
+];
+/** Las que solo se desmarcan: su valor se escribe arriba, en su campo. */
+const SOLO_CASILLA = new Set<ClaveRetencion>(["comision", "tLopez", "descargue", "poliza"]);
 
 /** Texto de un numero para un campo (null = vacio). */
 const enCampo = (n: number | null) => (n === null ? "" : String(n));
@@ -520,15 +536,19 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
           </label>
         </td>
         <td>
-          <input
-            type="number"
-            min={0}
-            aria-label={etiqueta}
-            disabled={!a.aplica}
-            value={a.valor}
-            onChange={(e) => cambiar({ valor: e.target.value })}
-            placeholder={String(fila.retencionesCalculadas[clave])}
-          />
+          {SOLO_CASILLA.has(clave) ? (
+            <span className="dato-sec">{moneda(fila.retencionesCalculadas[clave])} (se cambia arriba)</span>
+          ) : (
+            <input
+              type="number"
+              min={0}
+              aria-label={etiqueta}
+              disabled={!a.aplica}
+              value={a.valor}
+              onChange={(e) => cambiar({ valor: e.target.value })}
+              placeholder={String(fila.retencionesCalculadas[clave])}
+            />
+          )}
         </td>
       </tr>
     );
@@ -623,11 +643,11 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
       </div>
       <div className="dato-sec">En gris, el valor de siempre (matriz de comisiones, descargue de 198.000, poliza de 3.000). Borrar un campo lo devuelve a ese valor.</div>
 
-      <h4>Retenciones (desmarca las que no aplican)</h4>
+      <h4>Descuentos (desmarca los que no aplican)</h4>
       <table className="tabla tabla-compacta desglose" style={{ maxWidth: 560 }}>
         <tbody className="desglose-empresa">
           {titulo("Flete de la empresa")}
-          {RETENCIONES_EMPRESA.map(retencion)}
+          {(terceros ? [...RETENCIONES_EMPRESA, ...EMPRESA_TERCEROS] : RETENCIONES_EMPRESA).map(retencion)}
         </tbody>
         <tbody className={terceros ? "desglose-tercero" : "desglose-dueno"}>
           {titulo(terceros ? "Flete del tercero" : "Flete del dueno")}
