@@ -330,8 +330,14 @@ export default function Rentabilidad() {
             <span className="contador">{filas.filter((f) => f.grupo === g).length}</span>
           </button>
         ))}
+        {/* Despues de guardar se vuelven a pedir los datos: mientras llegan se ven los de antes. */}
+        {datos.cargando && (
+          <span className="aviso-actualizando">
+            <Pastilla tono="info">Actualizando...</Pastilla>
+          </span>
+        )}
       </div>
-      <div className="panel">
+      <div className={`panel${datos.cargando ? " actualizando" : ""}`} aria-busy={datos.cargando}>
         <TablaDatos
           key={actual}
           filas={delGrupo}
