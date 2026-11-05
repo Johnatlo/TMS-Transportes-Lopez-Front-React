@@ -1071,8 +1071,8 @@ export const apiCuadro = {
   aplicarTarifa: (id: number, tarifaFleteId: number) => post<DetalleCuadro>(`/cuadro/${id}/tarifa`, { tarifaFleteId }),
   /** Borra un viaje creado a mano. */
   borrar: (id: number) => del<{ ok: true }>(`/cuadro/${id}`),
-  /** Marca o quita la revision de contabilidad o de gerencia. */
-  revisar: (id: number, quien: "CONTABILIDAD" | "GERENCIA", revisado: boolean) =>
+  /** Marca o quita la revision de contabilidad, de gerencia o de Rentabilidad. */
+  revisar: (id: number, quien: "CONTABILIDAD" | "GERENCIA" | "RENTABILIDAD", revisado: boolean) =>
     post<DetalleCuadro>(`/cuadro/${id}/revision`, { quien, revisado }),
   /** Asigna una factura (numero y fecha) a varios viajes. */
   facturar: (ids: number[], facturaNumero: string, facturaFecha: string, facturaVence = "") =>
@@ -1314,6 +1314,9 @@ export interface FilaRentabilidad {
   fechaPagoBeneficiario: string | null;
   fechaPagoRentabilidad: string | null;
   concepto: string | null;
+  /** Marcado como revisado en Rentabilidad: cuando (ISO) y quien. */
+  rentRevisadoEn: string | null;
+  rentRevisadoPor: string | null;
   rentComision: number | null;
   rentTLopez: number | null;
   rentDescargue: number | null;

@@ -595,7 +595,7 @@ _504 funciones, componentes, métodos y rutas en 72 archivos._
     Borra un viaje creado a mano.
 
   - **`apiCuadro.revisar(id, quien, revisado)`** · _método_
-    Marca o quita la revision de contabilidad o de gerencia.
+    Marca o quita la revision de contabilidad, de gerencia o de Rentabilidad.
 
   - **`apiCuadro.facturar(ids, facturaNumero, facturaFecha, facturaVence)`** · _método_
     Asigna una factura (numero y fecha) a varios viajes.

@@ -12,7 +12,7 @@
  * dueno (ver LiquidarDueno.tsx).
  */
 import { useState } from "react";
-import { apiCuadro, apiSeguimiento, moneda } from "../../api/cliente";
+import { apiCuadro, apiSeguimiento, fechaHora, moneda } from "../../api/cliente";
 import type { ClaveRetencion, ComisionCliente, FilaRentabilidad, RetencionCliente } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
@@ -275,6 +275,36 @@ export default function Rentabilidad() {
   const duenos = grupos.filter((g) => g !== "TERCEROS");
   const suma = (fs: FilaRentabilidad[], v: (f: FilaRentabilidad) => number) => fs.reduce((s, f) => s + v(f), 0);
 
+  /** Marca o quita "Revisado" en un viaje (guarda quien y cuando) y vuelve a pedir los datos. */
+  async function marcarRevisado(f: FilaRentabilidad, revisado: boolean) {
+    setError(null);
+    try {
+      await apiCuadro.revisar(f.id, "RENTABILIDAD", revisado);
+      datos.recargar();
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo marcar como revisado.");
+    }
+  }
+
+  /** Casilla "Revisado" con la fecha debajo (no abre el viaje al hacer clic). */
+  const columnaRevisado: Columna<FilaRentabilidad> = {
+    id: "revisado",
+    titulo: "Revisado",
+    filtrable: true,
+    valor: (f) => (f.rentRevisadoEn ? "Revisado" : "Sin revisar"),
+    celda: (f) => (
+      <span onClick={(e) => e.stopPropagation()} title={f.rentRevisadoPor ? `Lo marco ${f.rentRevisadoPor}` : undefined}>
+        <label className="check-linea" style={{ margin: 0 }}>
+          <input type="checkbox" style={{ width: "auto" }} checked={!!f.rentRevisadoEn} disabled={datos.cargando} onChange={(e) => marcarRevisado(f, e.target.checked)} />
+          Revisado
+        </label>
+        {f.rentRevisadoEn && <span className="dato-sec">{fechaHora(f.rentRevisadoEn)}</span>}
+      </span>
+    ),
+  };
+  /** La casilla va despues de la fecha, en todas las tablas. */
+  const conRevisado = (columnas: Columna<FilaRentabilidad>[]) => [columnas[0], columnaRevisado, ...columnas.slice(1)];
+
   /**
    * Descarga en Excel lo que esta en pantalla (con la pestana, la busqueda y
    * los filtros), una hoja por grupo.
@@ -341,7 +371,7 @@ export default function Rentabilidad() {
         <TablaDatos
           key={actual}
           filas={delGrupo}
-          columnas={todos ? COLUMNAS_TODOS : terceros ? COLUMNAS_TERCEROS : COLUMNAS_SOCIOS}
+          columnas={conRevisado(todos ? COLUMNAS_TODOS : terceros ? COLUMNAS_TERCEROS : COLUMNAS_SOCIOS)}
           clave={(f) => f.id}
           pestanas={terceros || todos ? PESTANAS : PESTANAS.filter((p) => p.id !== "sinRepartir")}
           columnasFijas={1}
