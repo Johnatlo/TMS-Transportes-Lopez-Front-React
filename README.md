@@ -2423,8 +2423,8 @@ _504 funciones, componentes, métodos y rutas en 72 archivos._
 >
 > Clic en un viaje: se corrigen a mano la comision, T. Lopez, el descargue,
 > la poliza, el ReteICA del cliente y la fecha en que se repartio la ganancia.
-> Exportar descarga el Excel del grupo con lo filtrado (para sacar el de uno o
-> dos carros, se filtra por placa). "Liquidar dueno" arma las cuentas de un
+> De entrada se ven todos los grupos juntos. Exportar descarga en Excel solo
+> lo que esta en pantalla (pestana, busqueda y filtros), una hoja por grupo. "Liquidar dueno" arma las cuentas de un
 > dueno (ver LiquidarDueno.tsx).
 
 - **`descuentosEmpresa(f)`** · _función_

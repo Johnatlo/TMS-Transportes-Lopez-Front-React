@@ -7,8 +7,8 @@
  *
  * Clic en un viaje: se corrigen a mano la comision, T. Lopez, el descargue,
  * la poliza, el ReteICA del cliente y la fecha en que se repartio la ganancia.
- * Exportar descarga el Excel del grupo con lo filtrado (para sacar el de uno o
- * dos carros, se filtra por placa). "Liquidar dueno" arma las cuentas de un
+ * De entrada se ven todos los grupos juntos. Exportar descarga en Excel solo
+ * lo que esta en pantalla (pestana, busqueda y filtros), una hoja por grupo. "Liquidar dueno" arma las cuentas de un
  * dueno (ver LiquidarDueno.tsx).
  */
 import { useState } from "react";
@@ -225,10 +225,36 @@ const COLUMNAS_SOCIOS: Columna<FilaRentabilidad>[] = [
   ...columnasFin(false),
 ];
 
+/** Pestana con los viajes de todos los grupos (la de entrada). */
+const TODOS = "TODOS";
+
+/** Todos los grupos juntos: lo comun a terceros y socios, con el grupo de cada viaje. */
+const COLUMNAS_TODOS: Columna<FilaRentabilidad>[] = [
+  ...columnasInicio(true).slice(0, 3),
+  { id: "grupo", titulo: "Grupo", filtrable: true, valor: (f) => f.grupo, celda: (f) => f.grupo },
+  ...columnasInicio(true).slice(3),
+  {
+    id: "saldo",
+    titulo: "Saldo tercero / dueno",
+    alinear: "derecha",
+    valor: (f) => f.saldoBeneficiario,
+    celda: (f) => <span className={f.saldoBeneficiario < 0 ? "texto-vencido" : ""}>{moneda(f.saldoBeneficiario)}</span>,
+  },
+  ...columnasAnticipo,
+  {
+    id: "ganancia",
+    titulo: "Ganancia empresa",
+    alinear: "derecha",
+    valor: (f) => f.ganancia,
+    celda: (f) => <strong className={f.ganancia < 0 ? "texto-vencido" : ""}>{moneda(f.ganancia)}</strong>,
+  },
+  ...columnasFin(true).map((c) => (c.id === "pagoDueno" ? { ...c, titulo: "Pago al tercero / dueno" } : c)),
+];
+
 /** Pagina de la rentabilidad. */
 export default function Rentabilidad() {
   const datos = useDatos(() => apiSeguimiento.rentabilidad(), []);
-  const [grupo, setGrupo] = useState("TERCEROS");
+  const [grupo, setGrupo] = useState(TODOS);
   const [editando, setEditando] = useState<FilaRentabilidad | null>(null);
   const [matrices, setMatrices] = useState(false);
   const [liquidando, setLiquidando] = useState(false);
@@ -240,19 +266,24 @@ export default function Rentabilidad() {
   const filas = datos.datos;
   const presentes = [...new Set(filas.map((f) => f.grupo))];
   const grupos = [...ORDEN_GRUPOS.filter((g) => presentes.includes(g)), ...presentes.filter((g) => !ORDEN_GRUPOS.includes(g)).sort()];
-  const actual = grupos.includes(grupo) ? grupo : grupos[0] ?? "TERCEROS";
-  const delGrupo = filas.filter((f) => f.grupo === actual);
+  const actual = grupo === TODOS || grupos.includes(grupo) ? grupo : TODOS;
+  const todos = actual === TODOS;
+  const delGrupo = todos ? filas : filas.filter((f) => f.grupo === actual);
   const conFlete = delGrupo.filter((f) => f.valorEmpresa > 0);
   const porCruzar = delGrupo.filter((f) => f.anticipo > 0 && !f.fechaPagoBeneficiario);
   const terceros = actual === "TERCEROS";
   const duenos = grupos.filter((g) => g !== "TERCEROS");
   const suma = (fs: FilaRentabilidad[], v: (f: FilaRentabilidad) => number) => fs.reduce((s, f) => s + v(f), 0);
 
-  /** Descarga el Excel (una hoja por grupo). */
-  async function exportar(lista: Array<{ grupo: string; filas: FilaRentabilidad[] }>, nombre: string) {
+  /**
+   * Descarga en Excel lo que esta en pantalla (con la pestana, la busqueda y
+   * los filtros), una hoja por grupo.
+   */
+  async function exportar(visibles: FilaRentabilidad[]) {
     setError(null);
+    const lista = grupos.map((g) => ({ grupo: g, filas: visibles.filter((f) => f.grupo === g) })).filter((h) => h.filas.length);
     try {
-      await descargarRentabilidad(lista, nombre);
+      await descargarRentabilidad(lista, `rentabilidad-${actual.toLowerCase()}-${hoyColombia()}`);
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "No se pudo armar el Excel.");
     }
@@ -262,7 +293,7 @@ export default function Rentabilidad() {
     <>
       <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
         <Indicador dinero titulo="Fletes cobrados" valor={moneda(suma(conFlete, (f) => f.valorEmpresa))} detalle={`${conFlete.length} viajes con flete`} />
-        {terceros ? (
+        {terceros || todos ? (
           <Indicador dinero titulo="Ganancia de la empresa" valor={moneda(suma(conFlete, (f) => f.ganancia))} alerta={suma(conFlete, (f) => f.ganancia) < 0} />
         ) : (
           <>
@@ -272,7 +303,7 @@ export default function Rentabilidad() {
         )}
         <Indicador
           dinero
-          titulo={terceros ? "Para los terceros" : "Para el dueno"}
+          titulo={todos ? "Para terceros y duenos" : terceros ? "Para los terceros" : "Para el dueno"}
           valor={moneda(suma(conFlete, (f) => f.saldoBeneficiario))}
           detalle="despues de descuentos"
         />
@@ -280,13 +311,19 @@ export default function Rentabilidad() {
         <Indicador titulo="Viajes sin flete" valor={delGrupo.length - conFlete.length} detalle="no suman en los totales" />
       </div>
       <div className="dato-sec" style={{ marginBottom: "0.5rem" }}>
-        {terceros
+        {todos
+          ? "Todos los grupos juntos. La ganancia de la empresa sale solo de los terceros; en los carros de los socios la comision y T. Lopez son gastos del dueno. Elige un grupo para ver todas sus columnas."
+          : terceros
           ? "Terceros: retefuente y FOPAT, ReteICA y Supertransporte se calculan dos veces, sobre el flete de la empresa y sobre el del tercero. La comision bancaria sale del flete del tercero. Saldo empresa - saldo tercero = rentabilidad, sin contar los otros descuentos (prestamos, descuentos del cliente), que no son ganancia de la empresa; menos el anticipo de renta 3,5 % = ganancia. El anticipo no toca la rentabilidad: se cruza el dia que se le liquida al tercero."
           : "Socios y carros propios: lo que paga el cliente menos retenciones, anticipo de renta, comision bancaria, comision, T. Lopez, descargue, poliza, anticipo y otros descuentos = saldo al dueno. El anticipo se cruza el dia que se le liquida al dueno. La comision y T. Lopez son gastos: los carros de los socios no le dejan rentabilidad a la empresa."}{" "}
         Clic en un viaje para corregir sus valores.
       </div>
       {error && <div className="alert danger">{error}</div>}
       <div className="tabla-pestanas selector-vista">
+        <button className={todos ? "activa" : ""} onClick={() => setGrupo(TODOS)}>
+          Todos
+          <span className="contador">{filas.length}</span>
+        </button>
         {grupos.map((g) => (
           <button key={g} className={g === actual ? "activa" : ""} onClick={() => setGrupo(g)}>
             {g}
@@ -298,25 +335,17 @@ export default function Rentabilidad() {
         <TablaDatos
           key={actual}
           filas={delGrupo}
-          columnas={terceros ? COLUMNAS_TERCEROS : COLUMNAS_SOCIOS}
+          columnas={todos ? COLUMNAS_TODOS : terceros ? COLUMNAS_TERCEROS : COLUMNAS_SOCIOS}
           clave={(f) => f.id}
-          pestanas={terceros ? PESTANAS : PESTANAS.filter((p) => p.id !== "sinRepartir")}
+          pestanas={terceros || todos ? PESTANAS : PESTANAS.filter((p) => p.id !== "sinRepartir")}
           columnasFijas={1}
           placeholderBusqueda="Buscar placa, tercero, empresa, remision, factura..."
           vacio="No hay viajes con estos criterios."
           alClicFila={setEditando}
-          alExportar={(visibles) => exportar([{ grupo: actual, filas: visibles }], `rentabilidad-${actual.toLowerCase()}-${hoyColombia()}`)}
+          alExportar={exportar}
           acciones={
             <>
-              <MenuMas
-                opciones={[
-                  {
-                    etiqueta: "Excel de todos los grupos",
-                    alElegir: () => exportar(grupos.map((g) => ({ grupo: g, filas: filas.filter((f) => f.grupo === g) })), `rentabilidad-${hoyColombia()}`),
-                  },
-                  { etiqueta: "Matrices de comisiones y retenciones", alElegir: () => setMatrices(true) },
-                ]}
-              />
+              <MenuMas opciones={[{ etiqueta: "Matrices de comisiones y retenciones", alElegir: () => setMatrices(true) }]} />
               {duenos.length > 0 && (
                 <button className="btn-primary boton-con-texto" onClick={() => setLiquidando(true)}>
                   Liquidar dueno
@@ -340,7 +369,7 @@ export default function Rentabilidad() {
         <LiquidarDueno
           filas={filas}
           grupos={duenos}
-          grupoInicial={terceros ? duenos[0] : actual}
+          grupoInicial={terceros || todos ? duenos[0] : actual}
           alCerrar={() => setLiquidando(false)}
           alGuardar={() => {
             setLiquidando(false);
