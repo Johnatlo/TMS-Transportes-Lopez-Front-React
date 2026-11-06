@@ -104,8 +104,8 @@ export const contieneBusqueda = (texto: string, q: string) => {
  * La tabla no tiene scroll vertical propio: crece con la pagina (una sola
  * barra). Los textos largos se cortan con "..." y se leen completos al pasar
  * el mouse (title con el valor de la columna).
- * Exportar descarga un CSV (separado por ';', con BOM para que Excel lea las
- * tildes) con todo lo filtrado, no solo la pagina visible.
+ * Exportar descarga un Excel organizado (ver excelTabla.ts: encabezado azul,
+ * pesos, fechas y totales) con todo lo filtrado, no solo la pagina visible.
  */
 export default function TablaDatos<T>({
   filas,
@@ -131,7 +131,7 @@ export default function TablaDatos<T>({
   clave: (fila: T) => string | number;
   pestanas?: PestanaTabla<T>[];
   pestanaInicial?: string;
-  /** Si se da, aparece "Exportar" y descarga un CSV con lo filtrado. */
+  /** Si se da, aparece "Exportar" y descarga un Excel con lo filtrado (este es el nombre del archivo). */
   nombreArchivo?: string;
   placeholderBusqueda?: string;
   /** Botones propios de la pantalla, a la derecha de la barra (ej. "+"). */
@@ -154,7 +154,7 @@ export default function TablaDatos<T>({
   /** Texto con que arranca el buscador (por ejemplo, el cliente de una alerta). */
   busquedaInicial?: string;
   /**
-   * Exportar propio (un Excel con formato) en vez del CSV: recibe las filas
+   * Exportar propio (un Excel con su formato) en vez del generico: recibe las filas
    * que quedan con la pestana, la busqueda y los filtros puestos.
    */
   alExportar?: (filas: T[]) => void;
@@ -256,21 +256,17 @@ export default function TablaDatos<T>({
     setOrden((o) => (o?.id !== c.id ? { id: c.id, asc: true } : o.asc ? { id: c.id, asc: false } : null));
   }
 
-  function exportar() {
-    const cols = conValor;
-    const campo = (v: unknown) => `"${texto(v).replace(/"/g, '""')}"`;
-    const lineas = [
-      cols.map((c) => campo(c.titulo)).join(";"),
-      ...visibles.map((f) => cols.map((c) => campo(c.valor!(f))).join(";")),
-    ];
-    // BOM para que Excel abra bien las tildes; ";" es el separador de Excel en espanol.
-    const blob = new Blob(["﻿" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${nombreArchivo}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  /** Descarga en Excel las filas que quedan (pestana, busqueda, filtros y orden), con las columnas que tienen valor. */
+  async function exportar() {
+    try {
+      const { descargarTabla } = await import("./excelTabla");
+      const columnasExcel = conValor
+        .filter((c) => c.titulo.trim())
+        .map((c) => ({ titulo: c.titulo, derecha: c.alinear === "derecha", valores: visibles.map((f) => c.valor!(f)) }));
+      await descargarTabla(columnasExcel, nombreArchivo ?? "Datos", nombreArchivo ?? "datos");
+    } catch (exc) {
+      window.alert(exc instanceof Error ? `No se pudo armar el Excel: ${exc.message}` : "No se pudo armar el Excel.");
+    }
   }
 
   // Columnas fijas: cada una empieza donde termina la anterior. Se mide al

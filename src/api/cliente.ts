@@ -128,6 +128,8 @@ export interface FilaConsecutivo {
   fechaPlanillada: string;
   placa: string | null;
   cliente: string | null;
+  /** NIT del cliente (contratante de la plantilla o propietario de la carga). */
+  clienteNit: string | null;
   pesoReal: number | null;
   valorManifiesto: number | null;
   /** Valor a facturar de la remesa en el Cuadro pagos (el flete del cuadro de facturacion). */
@@ -848,6 +850,8 @@ export interface AnticipoBomba {
   efectivoEntregado: number | null;
   /** Relacion (factura) de la bomba con que se cruzo. */
   relacionId: number | null;
+  /** Descuento por galon de su bomba vigente en su fecha (0 si la bomba no tiene; solo Chuzaca). */
+  descuentoGalon: number;
 }
 
 /** Que entrego la bomba en el vale: combustible (con galones) o efectivo. */
@@ -956,11 +960,18 @@ export interface ReporteBomba {
   fechasRaras: Array<{ fechaAnticipo: string; placa: string; bomba: string; fechaPago: string; valor: number; motivo: string }>;
 }
 
-/** Cupo con la bomba y valores sugeridos para el cruce. */
+/** Cupo con la bomba y precio por galon sugerido para el cruce (el descuento va por bomba). */
 export interface ParametrosBomba {
   cupoBomba: number;
   precioGalonBomba: number;
-  descuentoGalonBomba: number;
+}
+
+/** Descuento por galon de una bomba vigente en una fecha. */
+export interface DescuentoGalonBomba {
+  bombaId: number;
+  bomba: string;
+  ciudad: string | null;
+  descuentoGalon: number;
 }
 
 /** Cuentas con la bomba. */
@@ -1129,8 +1140,13 @@ export const apiCuadro = {
   borrarPagoBomba: (id: number) => del<PagoBomba[]>(`/cuadro/pagos-bomba/${id}`),
   /** Borra la relacion y deshace el cruce. */
   borrarRelacionBomba: (id: number) => del<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}`),
-  /** Cambia el cupo con la bomba o el precio / descuento por galon sugeridos. */
+  /** Cambia el cupo con la bomba o el precio por galon sugerido. */
   guardarParametrosBomba: (datos: Partial<ParametrosBomba>) => put<ParametrosBomba>("/cuadro/anticipos/parametros", datos),
+  /** Descuento por galon de cada bomba vigente en una fecha (hoy si no se da). */
+  descuentosGalon: (fecha?: string) => get<DescuentoGalonBomba[]>(`/cuadro/anticipos/descuentos-galon${fecha ? `?fecha=${fecha}` : ""}`),
+  /** Guarda el descuento por galon de las bombas desde una fecha (los anticipos de antes no cambian). */
+  guardarDescuentosGalon: (vigenteDesde: string, descuentos: Array<{ bombaId: number; descuentoGalon: number }>) =>
+    put<DescuentoGalonBomba[]>("/cuadro/anticipos/descuentos-galon", { vigenteDesde, descuentos }),
   /** Abonos del socio a la bomba. */
   abonosSocio: () => get<AbonoSocio[]>("/cuadro/abonos-socio"),
   /** Registra un abono del socio; devuelve todos. */
@@ -1591,9 +1607,10 @@ export const apiSeguimiento = {
   /** Anula la ultima liquidacion de un grupo: sus viajes vuelven a sin pagar. */
   anularLiquidacionDueno: (id: number) => del<{ ok: boolean }>(`/seguimiento/rentabilidad/liquidaciones/${id}`),
   /** Matrices de la rentabilidad (comisiones y retenciones por cliente). */
-  matricesRentabilidad: () => get<{ comisiones: ComisionCliente[]; retenciones: RetencionCliente[] }>("/seguimiento/rentabilidad/matrices"),
-  /** Reemplaza las matrices de la rentabilidad. */
-  guardarMatricesRentabilidad: (d: { comisiones?: ComisionCliente[]; retenciones?: RetencionCliente[] }) =>
+  matricesRentabilidad: (fecha?: string) =>
+    get<{ comisiones: ComisionCliente[]; retenciones: RetencionCliente[] }>(`/seguimiento/rentabilidad/matrices${fecha ? `?fecha=${fecha}` : ""}`),
+  /** Guarda las matrices de la rentabilidad desde una fecha (los viajes anteriores conservan sus valores). */
+  guardarMatricesRentabilidad: (d: { vigenteDesde?: string; comisiones?: ComisionCliente[]; retenciones?: RetencionCliente[] }) =>
     put<{ comisiones: ComisionCliente[]; retenciones: RetencionCliente[] }>("/seguimiento/rentabilidad/matrices", d),
   /** Propone a que vehiculos se le pone cada nombre de la Matriz Terceros (no guarda). */
   previaNombresTerceros: (terceros: NombreTerceroImportado[]) =>

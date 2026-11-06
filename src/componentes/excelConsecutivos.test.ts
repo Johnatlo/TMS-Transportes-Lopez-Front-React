@@ -10,6 +10,7 @@ const fila = (c: Partial<FilaConsecutivo>): FilaConsecutivo => ({
   fechaPlanillada: "2026-07-01T15:00:00.000Z",
   placa: "SPS199",
   cliente: "ECOAMBIENTAL RECICLAJES",
+  clienteNit: "9014557062",
   pesoReal: 34000,
   valorManifiesto: 4024082,
   valorFacturar: 3740000,
@@ -41,11 +42,12 @@ const fila = (c: Partial<FilaConsecutivo>): FilaConsecutivo => ({
 });
 
 describe("excel de consecutivos", () => {
-  it("arma la fila como la del ejemplo", () => {
+  it("arma la fila como la del ejemplo, con el NIT de la empresa y el valor de la factura", () => {
     const v = filaExcel(fila({}));
-    expect(v.slice(1, 4)).toEqual(["SPS-199", "ECOAMBIENTAL RECICLAJES", 4024082]);
-    expect(v[5]).toBe("CARGUE 01/07 06:00 DESCARGUE 06/07 18:00");
-    expect(v.slice(6, 19)).toEqual([
+    // Empresa, su NIT aparte, valor de la factura y FOPAT del manifiesto.
+    expect(v.slice(1, 6)).toEqual(["SPS-199", "ECOAMBIENTAL RECICLAJES", 9014557062, 3740000, 4024]);
+    expect(v[6]).toBe("CARGUE 01/07 06:00 DESCARGUE 06/07 18:00");
+    expect(v.slice(7, 20)).toEqual([
       "00006185",
       "00006185",
       163013870,
@@ -61,13 +63,15 @@ describe("excel de consecutivos", () => {
       "CARTONES AMERICA",
     ]);
     // Valor Total Viaje: el valor a facturar del cuadro.
-    expect(v[19]).toBe(3740000);
+    expect(v[20]).toBe(3740000);
+    // Sin FOPAT guardado, el del valor del manifiesto.
+    expect(filaExcel(fila({ retencionFopat: null }))[5]).toBeCloseTo(4024.082, 3);
   });
 
   it("Cartones America con sus toneladas y los anulados marcados", () => {
     expect(filaExcel(fila({ cliente: "CARTONES AMERICA", pesoReal: 33298 }))[2]).toBe("CORAME 33,298");
     const anulado = filaExcel(fila({ estadoViaje: "ANULADO" }));
-    expect([anulado[2], anulado[3], anulado[9]]).toEqual(["ANULADO", "ANULADO", "ANULADO"]);
+    expect([anulado[2], anulado[3], anulado[4], anulado[5], anulado[10]]).toEqual(["ANULADO", null, "ANULADO", "ANULADO", "ANULADO"]);
   });
 
   it("la hoja del mes", () => {

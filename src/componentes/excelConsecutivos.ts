@@ -1,8 +1,9 @@
 /**
- * Excel del libro de consecutivos de manifiestos y remesas, igual a
+ * Excel del libro de consecutivos de manifiestos y remesas, como
  * docs/Ejemplo consecutivos Manifiestos & Remesas.xlsx: una hoja por mes
- * ("JULIO 2026"), una fila por remesa, encabezado en negrita con filtro y el
- * FOPAT con su formula (=valor x 0,1 %).
+ * ("JULIO 2026"), una fila por remesa y encabezado en negrita con filtro. Junto
+ * a la empresa va su NIT, y el valor es el de la factura (lo que se le cobra
+ * al cliente); el FOPAT sigue siendo el del manifiesto (valor del manifiesto x 0,1 %).
  *
  * filaExcel no depende de exceljs y se prueba aparte (excelConsecutivos.test.ts);
  * exceljs se carga solo al descargar.
@@ -15,7 +16,8 @@ export const COLUMNAS_CONSECUTIVOS: Array<{ titulo: string; ancho: number }> = [
   { titulo: "FECHA PLANILLADA", ancho: 12 },
   { titulo: "PLACA", ancho: 11.5 },
   { titulo: "EMPRESA", ancho: 20 },
-  { titulo: "VALOR DE MANIFIESTO", ancho: 12.5 },
+  { titulo: "NIT EMPRESA", ancho: 13 },
+  { titulo: "VALOR FACTURA", ancho: 13 },
   { titulo: "LIQUIDACION RETENCION FOPAT 0,1%", ancho: 14.5 },
   { titulo: "CITA CARGUE Y DESCARGUE", ancho: 29.5 },
   { titulo: "N° MANIFIESTO", ancho: 14 },
@@ -85,7 +87,10 @@ function empresa(f: FilaConsecutivo): string {
   return cliente;
 }
 
-/** Valores de una fila del Excel (sin la formula del FOPAT, que se pone al escribirla). */
+/** NIT como numero si son solo digitos (como en el ejemplo). */
+const nit = (n: string | null) => (n ? (/^\d+$/.test(n) ? Number(n) : n) : null);
+
+/** Valores de una fila del Excel. */
 export function filaExcel(f: FilaConsecutivo): Array<string | number | Date | null> {
   const fecha = partes(f.fechaPlanillada);
   const cargue = partes(f.citaCargue);
@@ -95,8 +100,11 @@ export function filaExcel(f: FilaConsecutivo): Array<string | number | Date | nu
     new Date(Number(fecha.anio), Number(fecha.mes) - 1, Number(fecha.dia), 12),
     f.placa ? f.placa.replace(/^([A-Z]{3})-?(\w{3})$/i, "$1-$2") : "",
     anulado ? "ANULADO" : empresa(f),
-    anulado ? "ANULADO" : f.valorManifiesto ?? null,
-    null,
+    anulado ? null : nit(f.clienteNit),
+    // Valor de la factura: lo que se le cobra al cliente (el flete del cuadro de facturacion).
+    anulado ? "ANULADO" : f.valorFacturar,
+    // FOPAT del manifiesto (solo en la remesa 1, la que lleva el valor del manifiesto).
+    anulado ? "ANULADO" : f.retencionFopat ?? (f.valorManifiesto === null ? null : f.valorManifiesto * 0.001),
     `CARGUE ${cargue.dia}/${cargue.mes} ${cargue.hora} DESCARGUE ${descargue.dia}/${descargue.mes} ${descargue.hora}`,
     f.consecutivoManifiesto ?? "",
     f.consecutivoRemesa ?? "",
@@ -105,11 +113,11 @@ export function filaExcel(f: FilaConsecutivo): Array<string | number | Date | nu
     codigoMunicipio(f.codMunicipioCargue),
     f.producto ?? "",
     tipoId(f.remitenteTipoId),
-    f.remitenteNit ? (/^\d+$/.test(f.remitenteNit) ? Number(f.remitenteNit) : f.remitenteNit) : null,
+    nit(f.remitenteNit),
     f.remitenteNombre ?? "",
     codigoMunicipio(f.codMunicipioDescargue),
     tipoId(f.destinatarioTipoId),
-    f.destinatarioNit ? (/^\d+$/.test(f.destinatarioNit) ? Number(f.destinatarioNit) : f.destinatarioNit) : null,
+    nit(f.destinatarioNit),
     f.destinatarioNombre ?? "",
     // Valor Total Viaje: lo que se le factura al cliente (el flete del cuadro de facturacion).
     anulado ? null : f.valorFacturar,
@@ -141,18 +149,11 @@ export async function descargarConsecutivos(filas: FilaConsecutivo[], nombreArch
     hoja.views = [{ state: "frozen", ySplit: 1 }];
     hoja.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: COLUMNAS_CONSECUTIVOS.length } };
     for (const f of delMes) {
-      const valores = filaExcel(f);
-      const fila = hoja.addRow(valores);
-      // FOPAT: formula sobre el valor del manifiesto (vacio si no lleva valor).
-      if (typeof valores[3] === "number") {
-        fila.getCell(5).value = { formula: `D${fila.number}*0.1%`, result: valores[3] * 0.001 };
-      } else if (valores[3] === "ANULADO") {
-        fila.getCell(5).value = "ANULADO";
-      }
+      const fila = hoja.addRow(filaExcel(f));
       fila.getCell(1).numFmt = "dd/mm/yyyy";
-      fila.getCell(4).numFmt = "#,##0";
       fila.getCell(5).numFmt = "#,##0";
-      fila.getCell(20).numFmt = "#,##0";
+      fila.getCell(6).numFmt = "#,##0";
+      fila.getCell(21).numFmt = "#,##0";
     }
   }
   if (!libro.worksheets.length) libro.addWorksheet("SIN DATOS");

@@ -736,7 +736,9 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
  * la empresa del viaje (CORAME tambien encuentra CARTONES AMERICA).
  */
 function VentanaMatrices({ alCerrar, alGuardar }: { alCerrar: () => void; alGuardar: () => void }) {
-  const actuales = useDatos(() => apiSeguimiento.matricesRentabilidad(), []);
+  /** Desde que fecha rigen los cambios: se ve la matriz de ese dia y los viajes anteriores no cambian. */
+  const [desde, setDesde] = useState(hoyColombia());
+  const actuales = useDatos(() => apiSeguimiento.matricesRentabilidad(desde), [desde]);
   const [comisiones, setComisiones] = useState<ComisionCliente[] | null>(null);
   const [retenciones, setRetenciones] = useState<RetencionCliente[] | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -763,12 +765,21 @@ function VentanaMatrices({ alCerrar, alGuardar }: { alCerrar: () => void; alGuar
     }
   }
 
-  /** Guarda las dos matrices (reemplaza las anteriores). */
+  /** Cambia la fecha desde la que rigen: carga la matriz de ese dia (se pierde lo que no se guardo). */
+  function cambiarDesde(fecha: string) {
+    if (!fecha) return;
+    setDesde(fecha);
+    setComisiones(null);
+    setRetenciones(null);
+    setAviso(null);
+  }
+
+  /** Guarda las dos matrices desde la fecha elegida (lo anterior no se borra). */
   async function guardar() {
     setError(null);
     setTrabajando(true);
     try {
-      await apiSeguimiento.guardarMatricesRentabilidad({ comisiones: listaC, retenciones: listaR });
+      await apiSeguimiento.guardarMatricesRentabilidad({ vigenteDesde: desde, comisiones: listaC, retenciones: listaR });
       alGuardar();
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "No se pudo guardar.");
@@ -799,6 +810,16 @@ function VentanaMatrices({ alCerrar, alGuardar }: { alCerrar: () => void; alGuar
       {error && <div className="alert danger">{error}</div>}
       {aviso && <div className="alert info">{aviso}</div>}
       {actuales.cargando && <Cargando que="las matrices" />}
+      <div className="campos-cuadro">
+        <div>
+          <label>Los cambios rigen desde</label>
+          <input type="date" value={desde} onChange={(e) => cambiarDesde(e.target.value)} />
+        </div>
+      </div>
+      <div className="dato-sec" style={{ marginBottom: "0.6rem" }}>
+        Se ve la matriz como rige el {fechaCorta(desde)}. Al guardar, los viajes con fecha desde ese dia usan los valores nuevos; los
+        anteriores conservan los que tenian.
+      </div>
       <div className="barra-envio">
         <label className="boton-barra" style={{ cursor: "pointer" }}>
           Cargar desde el Excel de rentabilidad

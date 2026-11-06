@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_507 funciones, componentes, métodos y rutas en 72 archivos._
+_515 funciones, componentes, métodos y rutas en 73 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (155)
+- [`src/api/cliente.ts`](#srcapiclientets) (157)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -204,8 +204,9 @@ _507 funciones, componentes, métodos y rutas en 72 archivos._
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
 - [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (12)
-- [`src/componentes/excelConsecutivos.ts`](#srccomponentesexcelconsecutivosts) (8)
+- [`src/componentes/excelConsecutivos.ts`](#srccomponentesexcelconsecutivosts) (9)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
+- [`src/componentes/excelTabla.ts`](#srccomponentesexceltablats) (5)
 - [`src/componentes/periodos.ts`](#srccomponentesperiodosts) (4)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
@@ -661,7 +662,13 @@ _507 funciones, componentes, métodos y rutas en 72 archivos._
     Borra la relacion y deshace el cruce.
 
   - **`apiCuadro.guardarParametrosBomba(datos)`** · _método_
-    Cambia el cupo con la bomba o el precio / descuento por galon sugeridos.
+    Cambia el cupo con la bomba o el precio por galon sugerido.
+
+  - **`apiCuadro.descuentosGalon(fecha)`** · _método_
+    Descuento por galon de cada bomba vigente en una fecha (hoy si no se da).
+
+  - **`apiCuadro.guardarDescuentosGalon(vigenteDesde, descuentos)`** · _método_
+    Guarda el descuento por galon de las bombas desde una fecha (los anticipos de antes no cambian).
 
   - **`apiCuadro.abonosSocio()`** · _método_
     Abonos del socio a la bomba.
@@ -741,11 +748,11 @@ _507 funciones, componentes, métodos y rutas en 72 archivos._
   - **`apiSeguimiento.anularLiquidacionDueno(id)`** · _método_
     Anula la ultima liquidacion de un grupo: sus viajes vuelven a sin pagar.
 
-  - **`apiSeguimiento.matricesRentabilidad()`** · _método_
+  - **`apiSeguimiento.matricesRentabilidad(fecha)`** · _método_
     Matrices de la rentabilidad (comisiones y retenciones por cliente).
 
   - **`apiSeguimiento.guardarMatricesRentabilidad(d)`** · _método_
-    Reemplaza las matrices de la rentabilidad.
+    Guarda las matrices de la rentabilidad desde una fecha (los viajes anteriores conservan sus valores).
 
   - **`apiSeguimiento.previaNombresTerceros(terceros)`** · _método_
     Propone a que vehiculos se le pone cada nombre de la Matriz Terceros (no guarda).
@@ -1317,8 +1324,8 @@ _507 funciones, componentes, métodos y rutas en 72 archivos._
   La tabla no tiene scroll vertical propio: crece con la pagina (una sola
   barra). Los textos largos se cortan con "..." y se leen completos al pasar
   el mouse (title con el valor de la columna).
-  Exportar descarga un CSV (separado por ';', con BOM para que Excel lea las
-  tildes) con todo lo filtrado, no solo la pagina visible.
+  Exportar descarga un Excel organizado (ver excelTabla.ts: encabezado azul,
+  pesos, fechas y totales) con todo lo filtrado, no solo la pagina visible.
 
 - **`Paginacion({...})`** · _componente React_
   Pie de la tabla: "Filas por pagina", "1-15 de 312" y los botones de pagina
@@ -1344,10 +1351,11 @@ _507 funciones, componentes, métodos y rutas en 72 archivos._
 
 ### `src/componentes/excelConsecutivos.ts`
 
-> Excel del libro de consecutivos de manifiestos y remesas, igual a
+> Excel del libro de consecutivos de manifiestos y remesas, como
 > docs/Ejemplo consecutivos Manifiestos & Remesas.xlsx: una hoja por mes
-> ("JULIO 2026"), una fila por remesa, encabezado en negrita con filtro y el
-> FOPAT con su formula (=valor x 0,1 %).
+> ("JULIO 2026"), una fila por remesa y encabezado en negrita con filtro. Junto
+> a la empresa va su NIT, y el valor es el de la factura (lo que se le cobra
+> al cliente); el FOPAT sigue siendo el del manifiesto (valor del manifiesto x 0,1 %).
 >
 > filaExcel no depende de exceljs y se prueba aparte (excelConsecutivos.test.ts);
 > exceljs se carga solo al descargar.
@@ -1370,8 +1378,11 @@ _507 funciones, componentes, métodos y rutas en 72 archivos._
 - **`empresa(f)`** · _función_
   Empresa como en el ejemplo: Cartones America con sus toneladas ("CORAME 33,298").
 
+- **`nit(n)`** · _función_
+  NIT como numero si son solo digitos (como en el ejemplo).
+
 - **`filaExcel(f)`** · _función_
-  Valores de una fila del Excel (sin la formula del FOPAT, que se pone al escribirla).
+  Valores de una fila del Excel.
 
 - **`descargarConsecutivos(filas, nombreArchivo)`** · _función_
   Arma y descarga el Excel: una hoja por mes (del mas reciente al mas viejo, como el ejemplo).
@@ -1388,6 +1399,33 @@ _507 funciones, componentes, métodos y rutas en 72 archivos._
 
 - **`descargarReporte(d, nombreArchivo)`** · _función_
   Arma y descarga el Excel del reporte.
+
+### `src/componentes/excelTabla.ts`
+
+> Excel de cualquier tabla del sistema (el boton "Exportar" de TablaDatos),
+> con el mismo estilo que el de Rentabilidad: encabezado azul con filtro y
+> congelado, pesos con separador de miles, fechas como fecha de Excel y una
+> fila de totales en las columnas de numeros.
+>
+> columnaExcel y tipoDe no dependen de exceljs y se prueban aparte
+> (excelTabla.test.ts); exceljs se carga solo al descargar.
+
+- **`tipoDe(c)`** · _función_
+  Tipo de una columna por sus valores: numeros -> pesos si son enteros y la
+  columna va a la derecha (montos), si no numero; "2026-10-05" -> fecha; lo
+  demas, texto. Las vacias no cuentan.
+
+- **`fechaExcel(f)`** · _función_
+  "2026-10-05" (o con hora) -> Date a mediodia local, para que Excel no la corra de dia.
+
+- **`valorCelda(v, tipo)`** · _función_
+  Valor de una celda segun el tipo de su columna.
+
+- **`letra(n)`** · _función_
+  Letra de la columna n (1 = A, 27 = AA).
+
+- **`descargarTabla(columnas, nombreHoja, nombreArchivo)`** · _función_
+  Arma y descarga el Excel: una hoja con las filas que se pasan (las que estan en pantalla con los filtros).
 
 ### `src/componentes/periodos.ts`
 
@@ -1776,7 +1814,9 @@ _507 funciones, componentes, métodos y rutas en 72 archivos._
   Abonos del socio: la lista y el boton para registrar uno nuevo.
 
 - **`VentanaCupo({...})`** · _componente React_
-  Cupo de credito con la bomba y precio / descuento por galon sugeridos para el cruce.
+  Cupo de credito con la bomba, precio por galon sugerido y la matriz del
+  descuento por galon de cada bomba (solo Chuzaca lo tiene), que rige desde una
+  fecha: los anticipos de antes y los ya cruzados no cambian.
 
 - **`VentanaAbono({...})`** · _componente React_
   Abono del socio directamente a la bomba: quien, cuando y cuanto a cada viaje

@@ -32,6 +32,7 @@ const tramo = (cambios: Partial<AnticipoBomba>): AnticipoBomba => ({
   valeEfectivo: null,
   efectivoEntregado: null,
   relacionId: null,
+  descuentoGalon: 0,
   ...cambios,
   // Con numero de vale queda cruzado, salvo que la prueba diga otra cosa.
   cruzadoCombustible: cambios.cruzadoCombustible ?? !!cambios.vale,

@@ -380,7 +380,7 @@ function DetalleTanqueo({
                 </td>
                 <td>{campoCruce(t, "galones")}</td>
                 <td>{campoCruce(t, "precioGalon", resumen?.precioGalonBomba)}</td>
-                <td>{campoCruce(t, "descuento", t.galones !== null && resumen ? Math.round(t.galones * resumen.descuentoGalonBomba) : undefined)}</td>
+                <td>{campoCruce(t, "descuento", t.galones !== null ? Math.round(t.galones * t.descuentoGalon) : undefined)}</td>
                 <td className="num">
                   {t.combustibleEntregado === null && t.efectivoEntregado === null && "-"}
                   {t.combustibleEntregado !== null && <span>Comb. {moneda(t.combustibleEntregado)}</span>}
@@ -618,13 +618,21 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
   );
 }
 
-/** Cupo de credito con la bomba y precio / descuento por galon sugeridos para el cruce. */
+/**
+ * Cupo de credito con la bomba, precio por galon sugerido y la matriz del
+ * descuento por galon de cada bomba (solo Chuzaca lo tiene), que rige desde una
+ * fecha: los anticipos de antes y los ya cruzados no cambian.
+ */
 function VentanaCupo({ resumen, alCerrar, alGuardar }: { resumen: ResumenBomba; alCerrar: () => void; alGuardar: () => void }) {
   const [f, setF] = useState({
     cupoBomba: String(resumen.cupoBomba),
     precioGalonBomba: String(resumen.precioGalonBomba),
-    descuentoGalonBomba: String(resumen.descuentoGalonBomba),
   });
+  /** Desde que fecha rige el descuento: se ve el de ese dia. */
+  const [desde, setDesde] = useState(hoyColombia());
+  const descuentos = useDatos(() => apiCuadro.descuentosGalon(desde), [desde]);
+  /** Lo escrito por bomba (vacio = sin cambio). */
+  const [escritos, setEscritos] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   async function guardar() {
@@ -634,8 +642,11 @@ function VentanaCupo({ resumen, alCerrar, alGuardar }: { resumen: ResumenBomba; 
       await apiCuadro.guardarParametrosBomba({
         cupoBomba: Number(f.cupoBomba),
         precioGalonBomba: Number(f.precioGalonBomba),
-        descuentoGalonBomba: Number(f.descuentoGalonBomba),
       });
+      const cambios = (descuentos.datos ?? [])
+        .filter((d) => escritos[d.bombaId] !== undefined && escritos[d.bombaId].trim() !== "")
+        .map((d) => ({ bombaId: d.bombaId, descuentoGalon: Number(escritos[d.bombaId]) }));
+      if (cambios.length) await apiCuadro.guardarDescuentosGalon(desde, cambios);
       alGuardar();
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "No se pudo guardar.");
@@ -668,14 +679,61 @@ function VentanaCupo({ resumen, alCerrar, alGuardar }: { resumen: ResumenBomba; 
           <label>Precio por galon sugerido</label>
           <input type="number" min={0} value={f.precioGalonBomba} onChange={(e) => setF({ ...f, precioGalonBomba: e.target.value })} />
         </div>
+      </div>
+
+      <h4>Descuento por galon de cada bomba</h4>
+      <div className="campos-cuadro">
         <div>
-          <label>Descuento por galon sugerido</label>
-          <input type="number" min={0} value={f.descuentoGalonBomba} onChange={(e) => setF({ ...f, descuentoGalonBomba: e.target.value })} />
-          <span className="dato-sec">Por la sociedad. En el cruce se sugiere galones x este valor, en pesos.</span>
+          <label>Los cambios rigen desde</label>
+          <input
+            type="date"
+            value={desde}
+            onChange={(e) => {
+              if (!e.target.value) return;
+              setDesde(e.target.value);
+              setEscritos({});
+            }}
+          />
         </div>
       </div>
+      {descuentos.cargando && !descuentos.datos && <Cargando que="los descuentos" />}
+      {descuentos.error && <div className="alert danger">{descuentos.error}</div>}
+      {descuentos.datos && (
+        <table className="tabla tabla-compacta" style={{ maxWidth: 560 }}>
+          <thead>
+            <tr>
+              <th>Bomba</th>
+              <th className="num">Descuento por galon el {fechaCorta(desde)}</th>
+              <th>Nuevo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {descuentos.datos.map((d) => (
+              <tr key={d.bombaId}>
+                <td>
+                  {d.bomba}
+                  {d.ciudad && <span className="dato-sec">{d.ciudad}</span>}
+                </td>
+                <td className="num">{d.descuentoGalon ? moneda(d.descuentoGalon) : "-"}</td>
+                <td>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label={`Descuento por galon de ${d.bomba}`}
+                    placeholder="Sin cambio"
+                    value={escritos[d.bombaId] ?? ""}
+                    onChange={(e) => setEscritos({ ...escritos, [d.bombaId]: e.target.value })}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
       <div className="dato-sec" style={{ marginTop: "0.6rem" }}>
-        Se sugieren en el cruce de los tramos que no tienen uno propio: combustible = galones x precio - descuento.
+        Solo Chuzaca lleva descuento (en las demas, 0). En el cruce se sugiere combustible = galones x precio - galones x descuento
+        de su bomba, vigente en la fecha del anticipo. El nuevo valor rige para los anticipos desde la fecha elegida; los
+        anteriores y los ya cruzados conservan su descuento.
       </div>
     </Modal>
   );

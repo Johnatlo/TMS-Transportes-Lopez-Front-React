@@ -77,7 +77,7 @@ const COLUMNAS: Columna<ViajeTercero>[] = [
       </>
     ),
   },
-  { id: "peso", titulo: "Toneladas", alinear: "derecha", valor: (v) => v.pesoKg ?? 0, celda: (v) => toneladas(v.pesoKg) },
+  { id: "peso", titulo: "Toneladas", alinear: "derecha", valor: (v) => (v.pesoKg === null ? null : v.pesoKg / 1000), celda: (v) => toneladas(v.pesoKg) },
   {
     id: "valorTercero",
     titulo: "Valor tercero",
