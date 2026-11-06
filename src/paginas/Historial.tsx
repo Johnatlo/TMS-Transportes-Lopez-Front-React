@@ -237,6 +237,7 @@ export default function Historial() {
             filas={viajes}
             columnas={columnas}
             clave={(v) => v.id}
+            fechaMes={(v) => v.fechaHoraCargue}
             pestanas={PESTANAS_VIAJES}
             claseTabla="tabla-viajes"
             nombreArchivo="viajes"

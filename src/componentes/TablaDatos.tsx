@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import FiltrosTabla from "./FiltrosTabla";
 import MenuMas from "./MenuMas";
 import type { ValoresFiltro } from "./FiltrosTabla";
+import { mesDeFecha } from "./mesDeFecha";
 
 /**
  * Tabla de listados del sistema (ver GUIA-UI.md, "Tablas").
@@ -125,6 +126,7 @@ export default function TablaDatos<T>({
   busquedaInicial,
   alExportar,
   filtrosSinColumna,
+  fechaMes,
 }: {
   filas: T[];
   columnas: Columna<T>[];
@@ -160,6 +162,11 @@ export default function TablaDatos<T>({
   alExportar?: (filas: T[]) => void;
   /** Filtros que no tienen columna visible (van con los de las columnas filtrables). */
   filtrosSinColumna?: FiltroSinColumna<T>[];
+  /**
+   * Fecha de cada fila para el filtro "Mes". Sin darla, se usa la columna
+   * "fecha" si la tabla la tiene; si la tabla ya tiene columna "mes", no se agrega.
+   */
+  fechaMes?: (fila: T) => string | null | undefined;
 }) {
   const [porPagina, setPorPagina] = usarFilasPorPagina();
   const tabla = useRef<HTMLTableElement>(null);
@@ -188,9 +195,13 @@ export default function TablaDatos<T>({
 
   const conValor = columnas.filter((c) => c.valor);
   const conBuscar = columnas.filter((c) => c.buscar);
+  // Filtro "Mes" en todas las tablas con fecha (sin mostrar la columna).
+  const fechaParaMes = fechaMes ?? columnas.find((c) => c.id === "fecha" && c.valor)?.valor;
+  const yaHayMes = columnas.some((c) => c.id === "mes") || !!filtrosSinColumna?.some((f) => f.id === "mes");
   const filtrables: FiltroSinColumna<T>[] = [
     ...columnas.filter((c) => c.filtrable && c.valor).map((c) => ({ id: c.id, titulo: c.titulo, valor: (f: T) => texto(c.valor!(f)) })),
     ...(filtrosSinColumna ?? []),
+    ...(fechaParaMes && !yaHayMes ? [{ id: "mes", titulo: "Mes", valor: (f: T) => mesDeFecha(fechaParaMes(f)) }] : []),
   ];
   const filtrosActivos = Object.values(filtros).filter((v) => v?.length).length;
 

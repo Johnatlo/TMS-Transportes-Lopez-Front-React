@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_515 funciones, componentes, métodos y rutas en 73 archivos._
+_515 funciones, componentes, métodos y rutas en 74 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (157)
@@ -207,6 +207,7 @@ _515 funciones, componentes, métodos y rutas en 73 archivos._
 - [`src/componentes/excelConsecutivos.ts`](#srccomponentesexcelconsecutivosts) (9)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
 - [`src/componentes/excelTabla.ts`](#srccomponentesexceltablats) (5)
+- [`src/componentes/mesDeFecha.ts`](#srccomponentesmesdefechats) (1)
 - [`src/componentes/periodos.ts`](#srccomponentesperiodosts) (4)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
@@ -242,7 +243,7 @@ _515 funciones, componentes, métodos y rutas en 73 archivos._
 - [`src/paginas/seguimiento/LiquidarDueno.tsx`](#srcpaginasseguimientoliquidarduenotsx) (6)
 - [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
-- [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (13)
+- [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (12)
 - [`src/paginas/seguimiento/cargaExcel.ts`](#srcpaginasseguimientocargaexcelts) (11)
 - [`src/paginas/seguimiento/excelLiquidacion.ts`](#srcpaginasseguimientoexcelliquidacionts) (5)
 - [`src/paginas/seguimiento/excelLiquidacionDueno.ts`](#srcpaginasseguimientoexcelliquidacionduenots) (5)
@@ -1427,6 +1428,19 @@ _515 funciones, componentes, métodos y rutas en 73 archivos._
 - **`descargarTabla(columnas, nombreHoja, nombreArchivo)`** · _función_
   Arma y descarga el Excel: una hoja con las filas que se pasan (las que estan en pantalla con los filtros).
 
+### `src/componentes/mesDeFecha.ts`
+
+> Mes ("2026-11") de una fecha, para el filtro "Mes" de las tablas. Acepta
+> "2026-11-05" o una fecha con hora ("2026-11-01T03:00:00.000Z"), que se pasa
+> a hora de Colombia (asi un viaje de la noche del 31 no cae en el mes
+> siguiente). Lo que no es fecha da "".
+
+- **`mesDeFecha(v)`** · _función_
+  Mes ("2026-11") de una fecha, para el filtro "Mes" de las tablas. Acepta
+  "2026-11-05" o una fecha con hora ("2026-11-01T03:00:00.000Z"), que se pasa
+  a hora de Colombia (asi un viaje de la noche del 31 no cae en el mes
+  siguiente). Lo que no es fecha da "".
+
 ### `src/componentes/periodos.ts`
 
 > Periodos rapidos de los reportes (como en los programas contables): ultimos
@@ -2472,9 +2486,6 @@ _515 funciones, componentes, métodos y rutas en 73 archivos._
 
 - **`fechaO(f)`** · _función_
   Fecha corta o "-".
-
-- **`mesDe(f)`** · _función_
-  Mes del viaje ("2026-11"), para filtrar.
 
 - **`dias(fechas)`** · _función_
   Dias de entrega de un anticipo (un viaje puede tener varios).

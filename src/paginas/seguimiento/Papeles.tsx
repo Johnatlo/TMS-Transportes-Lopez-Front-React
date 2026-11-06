@@ -206,6 +206,7 @@ export default function Papeles({
           columnas={COLUMNAS}
           clave={(f) => f.id}
           pestanas={PESTANAS}
+          fechaMes={(f) => f.fecha}
           nombreArchivo="seguimiento-papeles"
           placeholderBusqueda="Buscar placa, empresa, conductor, manifiesto..."
           vacio="No hay viajes con estos criterios."
