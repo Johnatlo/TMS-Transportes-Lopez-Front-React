@@ -604,3 +604,81 @@ table.tabla tbody tr.fila-detalle > td {
   .tabla-datos table.tabla tbody td, .modal-overlay, .modal-overlay > .modal-card, .filtros-capa, .filtros-panel, .filtro-lista, .tabla-buscar.abierto,
   .tabla-scroll table.modern tbody td, table.tabla-tablero tbody td, .menu-mas-lista { animation: none !important; }
 }
+
+/* ---------- Vehiculos: tarjetas y perfil con el camion desde arriba y de frente ---------- */
+/* Todas las tarjetas del mismo alto: dibujo de tamano fijo y textos de una linea. */
+.lista-vehiculos { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 0.75rem; align-items: start; }
+.tarjeta-vehiculo { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 14px; overflow: hidden; transition: box-shadow 0.15s; min-width: 0; }
+.tarjeta-vehiculo:hover, .tarjeta-vehiculo.abierta { box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08); }
+.tarjeta-vehiculo-cabeza { display: grid; grid-template-columns: 64px minmax(0, 1fr) 32px; align-items: center; gap: 0.75rem; padding: 0.7rem 0.8rem; cursor: pointer; height: 92px; box-sizing: border-box; }
+.tarjeta-vehiculo-dibujo { width: 64px; height: 72px; background: radial-gradient(ellipse at 50% 40%, #ffffff, #eef1f5); border-radius: 10px; padding: 4px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+.tarjeta-vehiculo-datos { display: flex; flex-direction: column; min-width: 0; }
+.tarjeta-vehiculo-datos > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tarjeta-vehiculo-datos strong { font-size: 1.05rem; letter-spacing: 0.02em; }
+.tarjeta-vehiculo-dibujo { position: relative; }
+.tarjeta-vehiculo-alerta { position: absolute; top: 3px; left: 3px; transform: scale(0.85); transform-origin: top left; }
+.tarjeta-vehiculo-boton { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--gris-100, #eef0f3); font-size: 1.1rem; }
+.tarjeta-vehiculo-boton.abierta { background: #111827; color: #fff; }
+.tarjeta-vehiculo-detalle { border-top: 1px solid var(--color-border); padding: 0.75rem 0.8rem; display: grid; gap: 0.7rem; }
+.resumen-vehiculo { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.6rem 1rem; margin: 0; }
+.resumen-vehiculo dt { font-size: var(--texto-xs, 0.72rem); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.resumen-vehiculo dd { margin: 0.15rem 0 0; font-weight: 500; }
+
+.perfil-cabeza { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 1rem; margin-bottom: 0.75rem; }
+.perfil-cabeza-dibujo { height: 118px; background: radial-gradient(ellipse at 50% 40%, #ffffff, #eef1f5); border: 1px solid var(--color-border); border-radius: 14px; padding: 6px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+.perfil-cabeza-textos { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.perfil-cabeza h2 { margin: 0.2rem 0 0; }
+.grupos-partes { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem; }
+.chip-grupo { border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.82rem; cursor: pointer; }
+.chip-grupo.activo { background: #111827; color: #fff; border-color: #111827; }
+.leyenda-partes { margin-left: auto; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; color: var(--color-text-muted); }
+.leyenda-partes i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; margin-left: 0.5rem; border: 2px solid; }
+.leyenda-partes i.estado-novedad { border-color: #dc2626; background: #fee2e2; }
+
+/* Mula de mantenimiento: lamina sobre el mismo papel de la imagen, con bordes que se funden; se inclina en 3D al arrastrarla. */
+.perfil-3d { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 0.9rem; align-items: stretch; }
+@media (max-width: 1000px) { .perfil-3d { grid-template-columns: 1fr; } }
+.visor-mula { display: flex; flex-direction: column; border-radius: 16px; overflow: hidden; border: 1px solid var(--color-border); background: #f1f3f7; min-width: 0; }
+.visor-mula-escenario { position: relative; height: 460px; display: grid; place-items: center; perspective: 1400px; cursor: grab; touch-action: none; user-select: none; outline: none; }
+.visor-mula-escenario.arrastrando { cursor: grabbing; }
+.visor-mula-escenario:focus-visible { box-shadow: inset 0 0 0 2px #84cc16; }
+.visor-mula-lamina { position: relative; transform-style: preserve-3d; transition: transform 0.25s ease-out; }
+.visor-mula-escenario.arrastrando .visor-mula-lamina { transition: none; }
+.visor-mula-lamina img { width: 100%; height: 100%; display: block; pointer-events: none; filter: drop-shadow(0 16px 18px rgba(15, 23, 42, 0.2)); }
+.visor-mula-escenario { background: radial-gradient(ellipse at 50% 42%, #ffffff 0%, #f1f3f7 55%, #e2e6ec 100%); }
+.visor-mula-lamina img.espejo { transform: scaleX(-1); }
+.visor-mula-lamina img.papel { filter: none; -webkit-mask-image: radial-gradient(ellipse at center, #000 72%, transparent 100%); mask-image: radial-gradient(ellipse at center, #000 72%, transparent 100%); }
+.visor-mula-lamina.entra-der { animation: entra-der 0.45s ease-out; }
+.visor-mula-lamina.entra-izq { animation: entra-izq 0.45s ease-out; }
+@keyframes entra-der { from { opacity: 0; transform: translateX(14%) rotateY(-55deg); } to { opacity: 1; transform: none; } }
+@keyframes entra-izq { from { opacity: 0; transform: translateX(-14%) rotateY(55deg); } to { opacity: 1; transform: none; } }
+.visor-mula-flecha { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 999px; border: 1px solid rgba(15, 23, 42, 0.12); background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(6px); font-size: 1.4rem; line-height: 1; cursor: pointer; color: #1f2937; }
+.visor-mula-flecha:hover { background: #fff; }
+.visor-mula-flecha:disabled { opacity: 0.35; cursor: default; }
+.visor-mula-flecha.izquierda { left: 12px; }
+.visor-mula-flecha.derecha { right: 12px; }
+.visor-mula-pie { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.55rem 0.75rem 0.65rem; background: rgba(255, 255, 255, 0.55); border-top: 1px solid rgba(15, 23, 42, 0.06); }
+.visor-mula-vistas { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.visor-mula-vistas button { border: 1px solid rgba(15, 23, 42, 0.1); background: #fff; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.78rem; cursor: pointer; color: #1f2937; }
+.visor-mula-vistas button.activo { background: #111827; color: #fff; border-color: #111827; }
+.visor-mula-ayuda { font-size: 0.8rem; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Zonas de las partes: invisibles hasta pasar el mouse; verdes por grupo o elegidas; rojas si tuvieron novedad. */
+.zona-parte { position: absolute; border: 0; padding: 0; margin: 0; background: transparent; border-radius: 10px; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; }
+.zona-parte.encima, .zona-parte.iluminada { background: rgba(163, 230, 53, 0.28); box-shadow: 0 0 0 2px #84cc16, 0 0 18px rgba(132, 204, 22, 0.65); }
+.zona-parte.elegida { background: rgba(163, 230, 53, 0.4); box-shadow: 0 0 0 2.5px #65a30d, 0 0 24px rgba(101, 163, 13, 0.8); }
+.zona-parte.estado-novedad:not(.encima):not(.iluminada):not(.elegida) { background: rgba(220, 38, 38, 0.16); box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.85); }
+/* Lista de todas las partes (tambien las del remolque y las que no se ven). */
+.lista-partes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.6rem 1rem; margin-top: 0.9rem; }
+.lista-partes-grupo > div { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem; }
+.lista-partes-grupo.activo .chip-parte { border-color: #84cc16; background: #f7fee7; }
+.chip-parte { border: 1px solid var(--color-border); background: var(--color-surface); border-radius: 999px; padding: 0.12rem 0.55rem; font-size: 0.74rem; cursor: pointer; color: inherit; }
+.chip-parte.estado-novedad { border-color: #dc2626; color: #b91c1c; background: #fef2f2; }
+.chip-parte.elegida { background: #d9f99d; border-color: #65a30d; }
+.detalle-parte { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; border: 1px solid var(--color-border); border-radius: 16px; padding: 1rem; background: var(--color-surface); min-width: 0; }
+.detalle-parte-nombre { font-size: 1.05rem; }
+.detalle-parte-preguntas { width: 100%; grid-template-columns: 1fr; }
+.leyenda-partes i.estado-elegida { border-color: #65a30d; background: #d9f99d; }
+.camion-frente { max-width: 100%; max-height: 100%; display: block; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(15, 23, 42, 0.18)); }
+.tarjetas-perfil { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin: 0.75rem 0; align-items: stretch; }
+@media (max-width: 1000px) { .tarjetas-perfil { grid-template-columns: 1fr; } }
+.tarjetas-perfil .panel { margin: 0; }

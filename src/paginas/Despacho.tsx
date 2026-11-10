@@ -13,6 +13,7 @@ import { Avisos, Cargando } from "../componentes/Estado";
 import ComboBuscable from "../componentes/ComboBuscable";
 import Modal from "../componentes/Modal";
 import AccesoGps from "../componentes/AccesoGps";
+import FormularioPreoperacional from "./preoperacional/FormularioPreoperacional";
 import type { PlantillaViaje, Via, Viaje, ViajeRemesa } from "../api/tipos";
 
 /** Viaje que ya se guardo (y fallo en el RNDC), con lo que trae la respuesta de error. */
@@ -155,6 +156,8 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const [mensaje, setMensaje] = useState<{ tipo: "success" | "danger"; texto: string } | null>(null);
   /** Viaje recien expedido: se muestran sus documentos para imprimir. */
   const [viajeExpedido, setViajeExpedido] = useState<Viaje | null>(null);
+  /** Inspeccion preoperacional del viaje recien expedido (sale sola; "Despues" la deja pendiente). */
+  const [preoperacional, setPreoperacional] = useState<Viaje | null>(null);
   /**
    * Viaje guardado cuyo envio al RNDC fallo. Mientras exista, el boton reintenta
    * ESE viaje en vez de crear otro: asi no se repite el numero ni se reenvian
@@ -629,6 +632,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       setViajeEnCurso(null);
       if (viajeParaEditar) setParametros({}, { replace: true });
       setViajeExpedido(viaje);
+      setPreoperacional(viaje);
       setMensaje({
         tipo: "success",
         texto: `Manifiesto ${viaje.numeroManifiestoRndc} generado con ${remesas.length} remesa(s).`,
@@ -785,6 +789,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       const v = await api.usarManifiestoExistente(viajeEnCurso.id);
       setViajeEnCurso(null);
       setViajeExpedido(v);
+      setPreoperacional(v);
       setMensaje({ tipo: "success", texto: `Manifiesto tomado del RNDC (radicado ${v.numeroManifiestoRndc}).` });
     } catch (exc: any) {
       setMensaje({ tipo: "danger", texto: exc?.message ?? "No se pudo tomar el manifiesto." });
@@ -885,6 +890,17 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         </div>
       )}
       <Avisos avisos={avisos} />
+      {preoperacional && (
+        <FormularioPreoperacional
+          viajeId={preoperacional.id}
+          titulo={`Manifiesto ${preoperacional.consecutivoManifiesto ?? ""}`}
+          alCerrar={() => setPreoperacional(null)}
+          alGuardar={() => {
+            setPreoperacional(null);
+            setMensaje({ tipo: "success", texto: "Inspeccion preoperacional guardada." });
+          }}
+        />
+      )}
       {/* Acceso al GPS del vehiculo en todos los pasos: se planilla con la
           plataforma abierta en otra pestana para ver la hora de salida. */}
       {vehiculoId && <AccesoGps vehiculoId={vehiculoId} />}

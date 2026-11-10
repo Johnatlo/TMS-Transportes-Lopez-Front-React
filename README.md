@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_515 funciones, componentes, métodos y rutas en 74 archivos._
+_563 funciones, componentes, métodos y rutas en 83 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (157)
+- [`src/api/cliente.ts`](#srcapiclientets) (168)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -236,6 +236,10 @@ _515 funciones, componentes, métodos y rutas en 74 archivos._
 - [`src/paginas/cuadro/relacionBomba.ts`](#srcpaginascuadrorelacionbombats) (8)
 - [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (7)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
+- [`src/paginas/preoperacional/FormularioPreoperacional.tsx`](#srcpaginaspreoperacionalformulariopreoperacionaltsx) (1)
+- [`src/paginas/preoperacional/Preoperacional.tsx`](#srcpaginaspreoperacionalpreoperacionaltsx) (2)
+- [`src/paginas/preoperacional/excelPreoperacional.ts`](#srcpaginaspreoperacionalexcelpreoperacionalts) (6)
+- [`src/paginas/preoperacional/preguntasPreoperacional.ts`](#srcpaginaspreoperacionalpreguntaspreoperacionalts) (7)
 - [`src/paginas/seguimiento/AnticiposEmpresas.tsx`](#srcpaginasseguimientoanticiposempresastsx) (4)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
 - [`src/paginas/seguimiento/ImportarCartera.tsx`](#srcpaginasseguimientoimportarcarteratsx) (3)
@@ -251,6 +255,11 @@ _515 funciones, componentes, métodos y rutas en 74 archivos._
 - [`src/paginas/seguimiento/liquidacionDuenos.ts`](#srcpaginasseguimientoliquidacionduenosts) (7)
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
+- [`src/paginas/vehiculos/PerfilVehiculo.tsx`](#srcpaginasvehiculosperfilvehiculotsx) (1)
+- [`src/paginas/vehiculos/Vehiculos.tsx`](#srcpaginasvehiculosvehiculostsx) (4)
+- [`src/paginas/vehiculos/VisorCamion.tsx`](#srcpaginasvehiculosvisorcamiontsx) (2)
+- [`src/paginas/vehiculos/esquemaCamion.ts`](#srcpaginasvehiculosesquemacamionts) (6)
+- [`src/paginas/vehiculos/vistasMantenimiento.ts`](#srcpaginasvehiculosvistasmantenimientots) (8)
 
 ### `src/App.tsx`
 
@@ -787,6 +796,39 @@ _515 funciones, componentes, métodos y rutas en 74 archivos._
 
   - **`apiSeguimiento.registrarPago(facturaNumero, empresa, fecha)`** · _método_
     Registra el pago de una factura (todos sus viajes).
+
+- **`apiPreoperacional`** · _módulo_
+  Inspeccion preoperacional de vehiculos.
+
+  - **`apiPreoperacional.listar()`** · _método_
+    Todas las inspecciones, las mas recientes primero.
+
+  - **`apiPreoperacional.pendientes()`** · _método_
+    Viajes con manifiesto sin inspeccion.
+
+  - **`apiPreoperacional.sugerido(d)`** · _método_
+    Respuestas sugeridas para un viaje (o una placa y conductor).
+
+  - **`apiPreoperacional.guardar(viajeId, respuestas)`** · _método_
+    Guarda una inspeccion (si el viaje ya tenia una, la reemplaza).
+
+  - **`apiPreoperacional.actualizar(id, viajeId, respuestas)`** · _método_
+    Corrige una inspeccion.
+
+  - **`apiPreoperacional.borrar(id)`** · _método_
+    Borra una inspeccion.
+
+  - **`apiPreoperacional.importarBase(d)`** · _método_
+    Reemplaza la base de respuestas importada de la Matriz Control Integral.
+
+- **`apiVehiculos`** · _módulo_
+  Perfiles de los vehiculos.
+
+  - **`apiVehiculos.perfiles()`** · _método_
+    Todos los vehiculos de los socios y la flota propia.
+
+  - **`apiVehiculos.perfil(placa)`** · _método_
+    El perfil de un vehiculo (con sus ultimos 10 viajes).
 
 ### `src/componentes/AccesoGps.tsx`
 
@@ -2286,6 +2328,98 @@ _515 funciones, componentes, métodos y rutas en 74 archivos._
   Color de la pastilla de un estado de viaje: verde cumplido, azul expedido,
   gris anulado, amarillo mientras se envia, rojo los errores.
 
+### `src/paginas/preoperacional/FormularioPreoperacional.tsx`
+
+> Ventana de la inspeccion preoperacional de un viaje (o suelta): las 38
+> preguntas del formulario por secciones, ya contestadas con lo sugerido (todo
+> en Si / Cumple, con los datos del vehiculo y el conductor). Sale sola al
+> expedir un manifiesto; "Despues" la deja pendiente en el modulo
+> Preoperacional, sin frenar el despacho.
+
+- **`FormularioPreoperacional({...})`** · _componente React_
+  Ventana del formulario. Con `existente` corrige esa inspeccion.
+
+### `src/paginas/preoperacional/Preoperacional.tsx`
+
+> Modulo Preoperacional: el historico de inspecciones preoperacionales (antes
+> en el Excel de respuestas del Google Forms) y los viajes despachados que aun
+> no la tienen. Exportar descarga el Excel con una columna por pregunta.
+>
+> "Cargar matriz" importa la MATRIZ CONTROL INTEGRAL CONDUCTORES (enlaces
+> precargados, mantenimientos, extintores y EPS / ARL / pension) para que el
+> formulario venga contestado.
+
+- **`novedades(p)`** · _función_
+  Items con novedad: los que no quedaron en Si / Cumple / No aplica, o con algo escrito en su novedad.
+
+- **`Preoperacional()`** · _componente React_
+  Pagina del modulo.
+
+### `src/paginas/preoperacional/excelPreoperacional.ts`
+
+> Excel del preoperacional:
+> - leerMatriz: lee la "MATRIZ CONTROL INTEGRAL CONDUCTORES" (los enlaces
+>   precargados de la hoja RESPUESTAS, el ultimo mantenimiento de "Documentos
+>   Vehiculo", el vencimiento del extintor de "Equipo Carretera" y EPS / ARL /
+>   pension de "Datos Conductor") para sugerir las respuestas.
+> - descargarPreoperacionales: el historico con una columna por pregunta, con
+>   el formato de los demas Excel (ver componentes/excelTabla.ts).
+>
+> exceljs se carga solo al usarlo.
+
+- **`textoCelda(c)`** · _función_
+  Texto de una celda (enlaces, textos enriquecidos y fechas como 2026-12-31).
+
+- **`clavePlaca(p)`** · _función_
+  Placa sin guion para cruzar las hojas.
+
+- **`filas(hoja)`** · _función_
+  Filas de una hoja como objetos por titulo de columna (la fila 1 es el encabezado).
+
+- **`columna(f, ...inicios)`** · _función_
+  Celda de la primera columna cuyo titulo empieza por alguno de los textos.
+
+- **`leerMatriz(archivo)`** · _función_
+  Lee la matriz de control integral (ver el comentario del archivo).
+
+- **`descargarPreoperacionales(lista, nombreArchivo)`** · _función_
+  Descarga el historico de inspecciones: una fila por inspeccion y una columna por pregunta.
+
+### `src/paginas/preoperacional/preguntasPreoperacional.ts`
+
+> Preguntas de la inspeccion preoperacional, en el orden del formulario de
+> Google "Inspeccion Preoperacional de Vehiculos" (Resolucion 40595), con sus
+> opciones y la respuesta por defecto (todo en "Si" / "Cumple", como estaban
+> los enlaces precargados).
+>
+> Tambien: como se leen los enlaces precargados de la Matriz Control Integral
+> (entry.N de Google Forms -> clave) y las respuestas sugeridas.
+> No depende de React: se prueba aparte (preguntasPreoperacional.test.ts).
+
+- **`item(clave, titulo, opciones, requerida)`** · _función_
+  Item de la inspeccion con su novedad.
+
+- **`normal(s)`** · _función_
+  Texto sin tildes, en mayuscula y sin espacios de mas, para comparar.
+
+- **`respuestaNormal(p, clave, valor)`** · _función_
+  Una respuesta como la escribe el formulario: "Si" / "SI" -> "Sí", la opcion
+  con su forma exacta si coincide sin tildes, y "NO" en una novedad -> vacio.
+
+- **`ciudadDeOrigen(origen)`** · _función_
+  Ciudad del formulario para el origen del viaje ("SOACHA CUNDINAMARCA" -> SOACHA, "BOGOTA, D.C." -> BOGOTA).
+
+- **`respuestasIniciales(sugeridas)`** · _función_
+  Respuestas para el formulario: las de por defecto (todo en Si / Cumple), y
+  encima las sugeridas por el servidor (ultima inspeccion de la placa o la
+  matriz importada, y lo del viaje).
+
+- **`faltantes(r)`** · _función_
+  Preguntas obligatorias sin contestar.
+
+- **`respuestasDeEnlace(url)`** · _función_
+  Respuestas de un enlace precargado de Google Forms (las entry.N conocidas).
+
 ### `src/paginas/seguimiento/AnticiposEmpresas.tsx`
 
 > Anticipos que dan las empresas (clientes) en sus viajes: los del Zorro
@@ -2730,5 +2864,115 @@ _515 funciones, componentes, métodos y rutas en 74 archivos._
 
 - **`numeroONulo(t)`** · _función_
   Texto del formulario a numero; vacio = null.
+
+### `src/paginas/vehiculos/PerfilVehiculo.tsx`
+
+> Perfil de un vehiculo: su costado y el camion de su marca, que se gira
+> (izquierda, frente, derecha) y deja elegir sus partes en la imagen o en la
+> lista (las del remolque y las que no se ven, como los ejes) para ver lo que
+> dijo de cada una el ultimo preoperacional. Alrededor: datos, documentos y
+> vencimientos, equipo y botiquin, ultimo mantenimiento y los ultimos viajes.
+
+- **`PerfilVehiculo()`** · _componente React_
+  Pagina del perfil.
+
+### `src/paginas/vehiculos/Vehiculos.tsx`
+
+> Vehiculos de los socios y la flota propia (no los terceros), en tarjetas:
+> la foto frontal del camion segun su marca (todas del mismo tamano), sus datos principales y, al
+> abrirla, el resumen (viajes, documentos, ultimo preoperacional) con el
+> enlace a su perfil.
+
+- **`estadoVencimiento(fecha)`** · _función_
+  Vencido, por vencer (30 dias) o al dia.
+
+- **`toneladas(kg)`** · _función_
+  Kilos a toneladas ("34 t").
+
+- **`Vehiculos()`** · _componente React_
+  Pagina de la lista de vehiculos.
+
+- **`TarjetaVehiculo({...})`** · _componente React_
+  Tarjeta de un vehiculo: dibujo, datos principales y, abierta, el resumen.
+
+### `src/paginas/vehiculos/VisorCamion.tsx`
+
+> Imagenes del camion:
+> - CamionFrente: la foto frontal de la marca para las tarjetas y la cabeza
+>   del perfil (la mula de mantenimiento para las marcas sin foto).
+> - VisorMantenimiento: el camion de la marca que se gira arrastrando (o con
+>   las flechas) entre izquierda, frente y derecha; mientras se arrastra se
+>   inclina en 3D. Sus partes se iluminan al pasar el mouse o por grupo, se
+>   eligen con clic y se marcan en rojo si tuvieron novedad en el ultimo
+>   preoperacional.
+
+- **`CamionFrente({...})`** · _componente React_
+  Foto frontal del camion segun su marca.
+
+- **`VisorMantenimiento({...})`** · _componente React_
+  El camion de la marca, girable entre izquierda, frente y derecha, con sus partes.
+
+### `src/paginas/vehiculos/esquemaCamion.ts`
+
+> Partes del camion segun su configuracion RNDC: "3S3" es un tracto de 3 ejes
+> con un semirremolque de 3 (22 llantas), "2S2" uno de 2 + 2, "3" un
+> dobletroque y "2" un sencillo. El eje delantero lleva 2 llantas y los demas
+> 4 (dobles). Cada parte tiene un id (el mismo de la pieza en el modelo 3D),
+> su grupo y las preguntas del preoperacional que la revisan. No depende de
+> React ni de Three.js: se prueba aparte (esquemaCamion.test.ts).
+
+- **`ejesDe(configuracion)`** · _función_
+  Ejes del tracto y del remolque segun la configuracion ("3S3" -> 3 y 3; "3" -> 3 y 0). Sin dato, 3S3.
+
+- **`tipoDe(configuracion)`** · _función_
+  Tipo del vehiculo en palabras, como en el preoperacional.
+
+- **`nombreEje(i, traseros)`** · _función_
+  Nombre de un eje (0 es el delantero).
+
+- **`esquemaCamion(configuracion)`** · _función_
+  Arma la lista de partes del camion para su configuracion.
+
+- **`estadoParte(p, respuestas)`** · _función_
+  Ok si todas sus preguntas quedaron en Si / Cumple / No aplica y sin novedad escrita; sin dato si no tiene preguntas o no hay inspeccion.
+
+- **`nombreCorto(p)`** · _función_
+  Nombre corto de una parte para la lista ("Llanta 7", "Eje 2", "Tanque der.").
+
+### `src/paginas/vehiculos/vistasMantenimiento.ts`
+
+> Vistas de mantenimiento del camion segun su marca: izquierda, frente y
+> derecha, de los renders sin fondo de la flota (Kenworth, International,
+> Shacman y Volvo). Las marcas sin render usan la mula de mantenimiento
+> (Peterbilt); como de ella solo hay un costado, el otro es la misma imagen
+> en espejo, con sus zonas volteadas (izquierda <-> derecha).
+> Cada vista tiene sus zonas: el rectangulo (en % de la imagen) de cada parte
+> que se ve ahi, para iluminarla y elegirla. Las llantas se ubican por grupo
+> de ejes (delantero, traccion, remolque), numero de eje y lado, porque su
+> numero depende de la configuracion del vehiculo.
+
+- **`z(parte, x0, y0, x1, y1)`** · _función_
+  Arma una zona desde sus bordes (izquierda, arriba, derecha, abajo) en %.
+
+- **`ll(grupo, n, lado)`** · _función_
+  Llanta de afuera de un eje.
+
+- **`imagenesDe(marca)`** · _función_
+  Imagenes de la marca, o la mula generica si no hay.
+
+- **`otroLado(parte)`** · _función_
+  La misma parte del otro lado (para la imagen en espejo).
+
+- **`zonasEnEspejo(zonas)`** · _función_
+  Zonas de la imagen volteada horizontalmente.
+
+- **`espejo(im)`** · _función_
+  La imagen del otro costado: la misma en espejo, con las zonas volteadas.
+
+- **`vistasDe(marca)`** · _función_
+  Las tres vistas del camion de la marca: izquierda, frente y derecha.
+
+- **`parteDeZona(parte, configuracion)`** · _función_
+  Id de la parte de una zona para el vehiculo; null si su configuracion no la tiene (p. ej. un segundo eje de traccion).
 
 <!-- REFERENCIA:FIN -->

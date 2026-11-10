@@ -1679,3 +1679,103 @@ export interface EstadoSincronizacion {
   error: string | null;
   cadaMinutos: number;
 }
+
+// ---------------------------------------------------------------------------
+// Preoperacional
+// ---------------------------------------------------------------------------
+
+/** Una inspeccion preoperacional guardada (ver src/preoperacional.ts del backend). */
+export interface Preoperacional {
+  id: number;
+  viajeId: number | null;
+  manifiesto: string | null;
+  fecha: string;
+  placa: string;
+  conductor: string;
+  aprobo: boolean;
+  /** Clave de la pregunta -> respuesta (ver paginas/preoperacional/preguntasPreoperacional.ts). */
+  respuestas: Record<string, string>;
+  creadoPor: string | null;
+  creadoEn: string;
+}
+
+/** Viaje con manifiesto de los ultimos 30 dias que aun no tiene inspeccion. */
+export interface PreoperacionalPendiente {
+  viajeId: number;
+  manifiesto: string | null;
+  fecha: string;
+  placa: string | null;
+  conductor: string | null;
+}
+
+/** Inspeccion preoperacional de vehiculos. */
+export const apiPreoperacional = {
+  /** Todas las inspecciones, las mas recientes primero. */
+  listar: () => get<Preoperacional[]>("/preoperacional"),
+  /** Viajes con manifiesto sin inspeccion. */
+  pendientes: () => get<PreoperacionalPendiente[]>("/preoperacional/pendientes"),
+  /** Respuestas sugeridas para un viaje (o una placa y conductor). */
+  sugerido: (d: { viajeId?: number | null; placa?: string; conductor?: string }) => {
+    const q = new URLSearchParams();
+    if (d.viajeId) q.set("viajeId", String(d.viajeId));
+    if (d.placa) q.set("placa", d.placa);
+    if (d.conductor) q.set("conductor", d.conductor);
+    return get<Record<string, string>>(`/preoperacional/sugerido?${q.toString()}`);
+  },
+  /** Guarda una inspeccion (si el viaje ya tenia una, la reemplaza). */
+  guardar: (viajeId: number | null, respuestas: Record<string, string>) => post<Preoperacional>("/preoperacional", { viajeId, respuestas }),
+  /** Corrige una inspeccion. */
+  actualizar: (id: number, viajeId: number | null, respuestas: Record<string, string>) =>
+    put<Preoperacional>(`/preoperacional/${id}`, { viajeId, respuestas }),
+  /** Borra una inspeccion. */
+  borrar: (id: number) => del<{ ok: boolean }>(`/preoperacional/${id}`),
+  /** Reemplaza la base de respuestas importada de la Matriz Control Integral. */
+  importarBase: (d: {
+    vehiculos: Array<{ placa: string; conductor: string; respuestas: Record<string, string> }>;
+    conductores: Array<{ cedula: string; nombre: string; eps: string; arl: string; pension: string }>;
+  }) => put<{ vehiculos: number; conductores: number }>("/preoperacional/base", d),
+};
+
+// ---------------------------------------------------------------------------
+// Perfil de los vehiculos (socios y flota propia)
+// ---------------------------------------------------------------------------
+
+/** Un viaje reciente del vehiculo. */
+export interface ViajePerfil {
+  id: number;
+  fecha: string;
+  empresa: string;
+  manifiesto: string | null;
+  conductor: string | null;
+  ruta: string | null;
+}
+
+/** Perfil de un vehiculo que no es de terceros (ver src/perfilVehiculos.ts del backend). */
+export interface PerfilVehiculo {
+  id: number;
+  placa: string;
+  placaRemolque: string | null;
+  marca: string | null;
+  /** Configuracion RNDC: 3S3, 2S2, 3, 2... */
+  configuracion: string | null;
+  capacidadKg: number | null;
+  pesoVacioKg: number | null;
+  grupo: string;
+  flota: string;
+  conductorHabitual: string | null;
+  tieneGps: boolean;
+  vencSoat: string | null;
+  vencTecno: string | null;
+  viajes30Dias: number;
+  ultimosViajes: ViajePerfil[];
+  ultimoPreoperacional: { fecha: string; conductor: string; aprobo: boolean; respuestas: Record<string, string> } | null;
+  preoperacionales: number;
+}
+
+/** Perfiles de los vehiculos. */
+export const apiVehiculos = {
+  /** Todos los vehiculos de los socios y la flota propia. */
+  perfiles: () => get<PerfilVehiculo[]>("/catalogo/perfiles-vehiculos"),
+  /** El perfil de un vehiculo (con sus ultimos 10 viajes). */
+  perfil: (placa: string) => get<PerfilVehiculo>(`/catalogo/perfiles-vehiculos/${encodeURIComponent(placa)}`),
+};

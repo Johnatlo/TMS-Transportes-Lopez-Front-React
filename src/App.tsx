@@ -23,6 +23,9 @@ const Anticipos = lazy(() => import("./paginas/cuadro/CuadroAnticipos"));
 const Cartera = lazy(() => import("./paginas/seguimiento/Cartera"));
 const PagoTerceros = lazy(() => import("./paginas/seguimiento/PagoTerceros"));
 const Rentabilidad = lazy(() => import("./paginas/seguimiento/Rentabilidad"));
+const Preoperacional = lazy(() => import("./paginas/preoperacional/Preoperacional"));
+const Vehiculos = lazy(() => import("./paginas/vehiculos/Vehiculos"));
+const PerfilVehiculo = lazy(() => import("./paginas/vehiculos/PerfilVehiculo"));
 const Plantillas = lazy(() => import("./paginas/Plantillas"));
 const Catalogo = lazy(() => import("./paginas/Catalogo"));
 const Usuarios = lazy(() => import("./paginas/Usuarios"));
@@ -62,6 +65,9 @@ export default function App() {
         <Route path="/cartera" element={<Cartera />} />
         <Route path="/terceros" element={<PagoTerceros />} />
         <Route path="/rentabilidad" element={<Rentabilidad />} />
+        <Route path="/preoperacional" element={<Preoperacional />} />
+        <Route path="/vehiculos" element={<Vehiculos />} />
+        <Route path="/vehiculos/:placa" element={<PerfilVehiculo />} />
         <Route path="/plantillas" element={<Plantillas />} />
         <Route path="/clientes" element={<Catalogo key="clientes" pestanas={["terceros"]} />} />
         <Route
