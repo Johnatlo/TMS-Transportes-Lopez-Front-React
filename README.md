@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_563 funciones, componentes, métodos y rutas en 83 archivos._
+_565 funciones, componentes, métodos y rutas en 83 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (168)
+- [`src/api/cliente.ts`](#srcapiclientets) (169)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -220,7 +220,7 @@ _563 funciones, componentes, métodos y rutas en 83 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
-- [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (8)
+- [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (9)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (4)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (6)
 - [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (3)
@@ -685,6 +685,9 @@ _563 funciones, componentes, métodos y rutas en 83 archivos._
 
   - **`apiCuadro.registrarAbono(datos)`** · _método_
     Registra un abono del socio; devuelve todos.
+
+  - **`apiCuadro.cruzarAbono(id, cruzado, fecha)`** · _método_
+    Marca un abono del socio como cruzado (desde la fecha) o lo devuelve a por cruzar; devuelve todos.
 
   - **`apiCuadro.borrarAbono(id)`** · _método_
     Borra un abono del socio; devuelve los que quedan.
@@ -1868,6 +1871,10 @@ _563 funciones, componentes, métodos y rutas en 83 archivos._
 
 - **`VentanaAbonos({...})`** · _componente React_
   Abonos del socio: la lista y el boton para registrar uno nuevo.
+
+- **`EstadoCruceAbono({...})`** · _componente React_
+  Estado del abono: cruzado (con su fecha) o por cruzar, con el boton para
+  cambiarlo a mano. Los usados en un pago a la bomba quedan cruzados con el pago.
 
 - **`VentanaCupo({...})`** · _componente React_
   Cupo de credito con la bomba, precio por galon sugerido y la matriz del

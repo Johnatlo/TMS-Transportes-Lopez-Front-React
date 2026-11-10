@@ -196,7 +196,12 @@ export default function CuadroAnticipos() {
         <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
           <Indicador dinero titulo="Deuda con la bomba" valor={moneda(r.pendiente)} detalle={`de ${moneda(r.deuda)} entregado`} />
           <Indicador dinero titulo="Pagado a la bomba" valor={moneda(r.pagado)} />
-          <Indicador dinero titulo="Abonado por el socio" valor={moneda(r.abonadoSocio)} detalle={`${abonos.length} abono(s)`} />
+          <Indicador
+            dinero
+            titulo="Abonado por el socio"
+            valor={moneda(r.abonadoSocio)}
+            detalle={r.abonadoPorCruzar > 0 ? `${moneda(r.abonadoPorCruzar)} por cruzar` : `${abonos.length} abono(s)`}
+          />
           <Indicador
             dinero
             titulo="Cupo disponible"
@@ -551,7 +556,7 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
   }
   return (
     <Modal
-      ancho="wide"
+      ancho="pantalla"
       titulo="Abonos a la bomba"
       alCerrar={alCerrar}
       pie={
@@ -566,7 +571,8 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
       }
     >
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
-        Lo que el socio (el Zorro) le paga directamente a la bomba por algunos viajes. Se descuenta de la deuda con la bomba.
+        Lo que el socio (el Zorro) le paga directamente a la bomba por algunos viajes. Solo se descuenta de la deuda con la bomba
+        cuando se cruza: al usarlo en el pago a la bomba o marcandolo aqui como cruzado.
       </div>
       {abonos.length === 0 ? (
         <div className="alert info">Aun no hay abonos a la bomba.</div>
@@ -579,6 +585,7 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
               <th className="num">Abonado</th>
               <th>Viajes</th>
               <th>Nota</th>
+              <th>Estado</th>
               <th />
             </tr>
           </thead>
@@ -593,11 +600,15 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
                 <td>
                   {a.viajes.map((v) => (
                     <span key={v.cuadroViajeId} className="dato-sec">
+                      {v.remesa ? `Remesa ${v.remesa} · ` : ""}
                       {placaConGuion(v.placa ?? "")} · {v.empresa ?? "-"} {v.fecha ? `(${fechaCorta(v.fecha)})` : ""} · {moneda(v.valor)}
                     </span>
                   ))}
                 </td>
                 <td>{a.nota ?? "-"}</td>
+                <td>
+                  <EstadoCruceAbono abono={a} alCambiar={alCambiar} />
+                </td>
                 <td className="num">
                   <button
                     className="btn-link"
@@ -615,6 +626,50 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
         </table>
       )}
     </Modal>
+  );
+}
+
+/**
+ * Estado del abono: cruzado (con su fecha) o por cruzar, con el boton para
+ * cambiarlo a mano. Los usados en un pago a la bomba quedan cruzados con el pago.
+ */
+function EstadoCruceAbono({ abono, alCambiar }: { abono: AbonoSocio; alCambiar: (lista: AbonoSocio[]) => void }) {
+  const [fecha, setFecha] = useState(hoyColombia());
+  const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  /** Lo marca cruzado (desde la fecha elegida) o lo devuelve a por cruzar. */
+  async function cambiar(cruzado: boolean) {
+    setGuardando(true);
+    setError(null);
+    try {
+      alCambiar(await apiCuadro.cruzarAbono(abono.id, cruzado, cruzado ? fecha : undefined));
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo cambiar.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+  if (abono.pagoId) return <Pastilla tono="ok">{`Cruzado en el pago${abono.cruzadoFecha ? ` del ${fechaCorta(abono.cruzadoFecha)}` : ""}`}</Pastilla>;
+  return (
+    <div className="estado-abono">
+      {abono.cruzado ? (
+        <>
+          <Pastilla tono="ok">{`Cruzado ${abono.cruzadoFecha ? fechaCorta(abono.cruzadoFecha) : ""}`}</Pastilla>
+          <button className="btn-link" disabled={guardando} onClick={() => cambiar(false)}>
+            Pasar a por cruzar
+          </button>
+        </>
+      ) : (
+        <>
+          <Pastilla tono="aviso">Por cruzar</Pastilla>
+          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} aria-label="Fecha del cruce" />
+          <button className="btn-link" disabled={guardando || !fecha} onClick={() => cambiar(true)}>
+            Marcar cruzado
+          </button>
+        </>
+      )}
+      {error && <span className="texto-vencido">{error}</span>}
+    </div>
   );
 }
 
@@ -800,8 +855,8 @@ function VentanaAbono({ alCerrar, alGuardar }: { alCerrar: () => void; alGuardar
       }
     >
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
-        El socio le paga directamente a la bomba los anticipos de algunos viajes. Lo abonado se descuenta de la deuda con
-        la bomba al cruzar con ella.
+        El socio le paga directamente a la bomba los anticipos de algunos viajes. Al registrarlo queda por cruzar: no se
+        descuenta de la deuda con la bomba hasta que se cruce (en el pago a la bomba o marcandolo como cruzado).
       </div>
       {error && <div className="alert danger">{error}</div>}
       <div className="campos-cuadro">
@@ -829,9 +884,11 @@ function VentanaAbono({ alCerrar, alGuardar }: { alCerrar: () => void; alGuardar
               alCambiar={(id) => cambiar(i, { cuadroViajeId: id })}
               obtenerId={(v) => v.id}
               obtenerEtiqueta={(v) =>
-                `${placaConGuion(v.placa)} · ${fechaCorta(v.fecha)} · ${v.empresa}${v.manifiesto ? ` · ${v.manifiesto}` : ""}`
+                `${v.remesa ? `Remesa ${v.remesa} · ` : ""}${placaConGuion(v.placa)} · ${fechaCorta(v.fecha)} · ${v.empresa}${
+                  v.manifiesto ? ` · Manif. ${v.manifiesto}` : ""
+                }`
               }
-              placeholder="Busca por placa, fecha o empresa..."
+              placeholder="Busca por remesa, placa, fecha o empresa..."
             />
           </div>
           <input type="number" min={0} placeholder="Valor" style={{ width: "10rem" }} value={l.valor} onChange={(e) => cambiar(i, { valor: e.target.value })} />

@@ -682,3 +682,7 @@ table.tabla tbody tr.fila-detalle > td {
 .tarjetas-perfil { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin: 0.75rem 0; align-items: stretch; }
 @media (max-width: 1000px) { .tarjetas-perfil { grid-template-columns: 1fr; } }
 .tarjetas-perfil .panel { margin: 0; }
+
+/* Abonos del socio a la bomba: estado del cruce y el boton para cambiarlo. */
+.estado-abono { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+.estado-abono input[type="date"] { width: 9.5rem; padding: 0.15rem 0.35rem; }

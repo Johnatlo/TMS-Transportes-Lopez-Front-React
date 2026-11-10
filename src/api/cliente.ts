@@ -979,9 +979,11 @@ export interface ResumenBomba extends ParametrosBomba {
   /** Todo lo entregado en la bomba (efectivo y combustible). */
   deuda: number;
   pagado: number;
-  /** Lo que abono el socio directamente a la bomba. */
+  /** Lo que abono el socio directamente a la bomba y ya se cruzo (solo eso cuenta). */
   abonadoSocio: number;
-  /** deuda - pagado - abonado. */
+  /** Abonos del socio registrados que aun no se cruzan: no se descuentan de la deuda. */
+  abonadoPorCruzar: number;
+  /** deuda - pagado - abonado cruzado. */
   pendiente: number;
   /** cupo - pendiente. */
   cupoDisponible: number;
@@ -996,7 +998,19 @@ export interface AbonoSocio {
   nota: string | null;
   /** Pago a la bomba en que se desconto; null = aun no se ha usado. */
   pagoId: number | null;
-  viajes: Array<{ cuadroViajeId: number; valor: number; placa: string | null; empresa: string | null; manifiesto: string | null; fecha: string | null }>;
+  /** Ya se cruzo (en un pago a la bomba o a mano): solo asi se descuenta de la deuda. */
+  cruzado: boolean;
+  /** Fecha del cruce: la del pago a la bomba o la puesta a mano. */
+  cruzadoFecha: string | null;
+  viajes: Array<{
+    cuadroViajeId: number;
+    valor: number;
+    placa: string | null;
+    empresa: string | null;
+    manifiesto: string | null;
+    remesa: string | null;
+    fecha: string | null;
+  }>;
 }
 
 export interface NotaCuadro {
@@ -1152,6 +1166,8 @@ export const apiCuadro = {
   /** Registra un abono del socio; devuelve todos. */
   registrarAbono: (datos: { socio: string; fecha: string; nota: string; viajes: Array<{ cuadroViajeId: number; valor: number }> }) =>
     post<AbonoSocio[]>("/cuadro/abonos-socio", datos),
+  /** Marca un abono del socio como cruzado (desde la fecha) o lo devuelve a por cruzar; devuelve todos. */
+  cruzarAbono: (id: number, cruzado: boolean, fecha?: string) => put<AbonoSocio[]>(`/cuadro/abonos-socio/${id}/cruce`, { cruzado, fecha }),
   /** Borra un abono del socio; devuelve los que quedan. */
   borrarAbono: (id: number) => del<AbonoSocio[]>(`/cuadro/abonos-socio/${id}`),
   /** Factura de la bomba (numero, fecha) o bomba de un tanqueo; devuelve el cuadro de anticipos. */
