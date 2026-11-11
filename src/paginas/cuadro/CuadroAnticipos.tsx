@@ -233,7 +233,7 @@ export default function CuadroAnticipos() {
       </div>
       <div className="section-desc" style={{ margin: "0.2rem 0 0.6rem" }}>
         Un tanqueo por fila (la ida y su vuelta). Clic en una fila para ver todo: los viajes, el cruce con la bomba, la
-        factura y el pago. En verde, los ya cruzados con la relacion de la bomba. Los anticipos se registran en cada viaje
+        factura y el pago. En verde, los ya cruzados: con sus vales de la bomba, con factura y pago a la bomba, o marcados a mano. Los anticipos se registran en cada viaje
         del Cuadro pagos.
       </div>
       <div className="panel">
@@ -455,6 +455,38 @@ function DetalleTanqueo({
             </label>
           </>
         )}
+        {g.bombaId &&
+          (g.cruzadoManual ? (
+            <button
+              className="btn-link"
+              onClick={() =>
+                window.confirm("¿Quitar el cruce a mano? El tanqueo vuelve a depender de sus vales.") &&
+                guardar(async () => {
+                  let lista: AnticipoBomba[] = [];
+                  for (const t of g.tramos) lista = await apiCuadro.actualizarTramo(t.id, { cruzadoManual: null });
+                  return lista;
+                })
+              }
+            >
+              Quitar cruce a mano ({fechaCorta(g.ida.cruzadoManual)})
+            </button>
+          ) : (
+            g.cruce !== "CRUZADO" && (
+              <button
+                className="btn-secondary"
+                onClick={() =>
+                  window.confirm(`¿Marcar este tanqueo como cruzado con la bomba (${g.tramos.length > 1 ? "la ida y la vuelta" : "el tramo"})?`) &&
+                  guardar(async () => {
+                    let lista: AnticipoBomba[] = [];
+                    for (const t of g.tramos) lista = await apiCuadro.actualizarTramo(t.id, { cruzadoManual: hoyColombia() });
+                    return lista;
+                  })
+                }
+              >
+                Marcar cruzado
+              </button>
+            )
+          ))}
         {g.vuelta && g.tanqueoId && (
           <button
             className="btn-link"

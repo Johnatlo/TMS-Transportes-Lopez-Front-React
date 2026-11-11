@@ -42,6 +42,8 @@ export interface Tanqueo {
   pagado: boolean;
   /** Fecha de pago (la de la ida). */
   fechaPago: string | null;
+  /** Todos sus tramos marcados a mano como cruzados. */
+  cruzadoManual: boolean;
 }
 
 /** Diferencia que se toma como real (por debajo son redondeos). */
@@ -78,12 +80,17 @@ export function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
     const vuelta = ts.find((t) => t.tramo === "VUELTA" && t !== ida) ?? null;
     const conCombustible = ts.filter((t) => t.combustible > 0 && t.bombaId !== null);
     const diferencia = ts.reduce((s, t) => s + diferenciaTramo(t), 0);
-    // Sin ningun vale y con la factura de la bomba: se cargo del Excel ya cruzado.
+    const conBomba = ts.filter((t) => t.bombaId !== null);
+    const pagado = conBomba.length > 0 && conBomba.every((t) => !!t.fechaPago);
+    // Cruzado: marcado a mano; o con la factura de la bomba y ya pagado; o con
+    // todos sus vales. Sin ningun vale y con la factura: se cargo del Excel ya cruzado.
     const conVales = ts.some((t) => t.cruzadoCombustible || t.cruzadoEfectivo);
+    const aMano = ts.every((t) => !!t.cruzadoManual);
     const cruzado =
       conCombustible.length > 0 &&
-      (conVales ? ts.every((t) => !faltaCruzar(t).combustible && !faltaCruzar(t).efectivo) : !!ida.facturaBomba);
-    const conBomba = ts.filter((t) => t.bombaId !== null);
+      (aMano ||
+        (!!ida.facturaBomba && pagado) ||
+        (conVales ? ts.every((t) => !faltaCruzar(t).combustible && !faltaCruzar(t).efectivo) : !!ida.facturaBomba));
     return {
       clave,
       tanqueoId: ida.tanqueoId,
@@ -102,16 +109,19 @@ export function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
       combustible: ts.reduce((s, t) => s + t.combustible, 0),
       total: ts.reduce((s, t) => s + t.valor, 0),
       // Una diferencia se muestra aunque aun falten vales: es lo que hay que revisar.
+      cruzadoManual: aMano,
       cruce:
         conCombustible.length === 0
           ? "SOLO_EFECTIVO"
-          : Math.abs(diferencia) >= DIFERENCIA_MINIMA
+          : aMano
+            ? "CRUZADO"
+            : Math.abs(diferencia) >= DIFERENCIA_MINIMA
             ? "DIFERENCIA"
             : cruzado
               ? "CRUZADO"
               : "SIN_CRUZAR",
       diferencia,
-      pagado: conBomba.length > 0 && conBomba.every((t) => !!t.fechaPago),
+      pagado,
       fechaPago: ida.fechaPago,
     };
   });

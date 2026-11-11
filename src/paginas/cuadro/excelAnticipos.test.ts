@@ -36,6 +36,7 @@ const tramo = (cambios: Partial<AnticipoBomba>): AnticipoBomba => ({
   efectivoEntregado: null,
   relacionId: null,
   descuentoGalon: 0,
+  cruzadoManual: null,
   ...cambios,
 });
 

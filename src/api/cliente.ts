@@ -850,6 +850,8 @@ export interface AnticipoBomba {
   efectivoEntregado: number | null;
   /** Relacion (factura) de la bomba con que se cruzo. */
   relacionId: number | null;
+  /** Marcado a mano como cruzado con la bomba (fecha); null = segun los vales. */
+  cruzadoManual: string | null;
   /** Descuento por galon de su bomba vigente en su fecha (0 si la bomba no tiene; solo Chuzaca). */
   descuentoGalon: number;
 }

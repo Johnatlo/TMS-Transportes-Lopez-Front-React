@@ -33,6 +33,7 @@ const tramo = (cambios: Partial<AnticipoBomba>): AnticipoBomba => ({
   efectivoEntregado: null,
   relacionId: null,
   descuentoGalon: 0,
+  cruzadoManual: null,
   ...cambios,
   // Con numero de vale queda cruzado, salvo que la prueba diga otra cosa.
   cruzadoCombustible: cambios.cruzadoCombustible ?? !!cambios.vale,
@@ -75,6 +76,27 @@ describe("agruparPorTanqueo", () => {
 
   test("los cargados del Excel con factura de la bomba cuentan como cruzados", () => {
     expect(agruparPorTanqueo([tramo({ facturaBomba: "AE5043413" })])[0].cruce).toBe("CRUZADO");
+  });
+
+  test("con factura de la bomba y pagado queda cruzado aunque le falte algun vale", () => {
+    // La ida tiene vale y la vuelta no, pero la factura ya se pago.
+    const pagados = [
+      tramo({ vale: "V1", facturaBomba: "AE5043413", fechaPago: "2026-10-08" }),
+      tramo({ id: 2, tramo: "VUELTA", facturaBomba: "AE5043413", fechaPago: "2026-10-08" }),
+    ];
+    expect(agruparPorTanqueo(pagados)[0].cruce).toBe("CRUZADO");
+    // Sin la fecha de pago de la vuelta sigue sin cruzar.
+    expect(agruparPorTanqueo([pagados[0], { ...pagados[1], fechaPago: null }])[0].cruce).toBe("SIN_CRUZAR");
+  });
+
+  test("marcado a mano queda cruzado (aun con diferencia); quitarlo vuelve a depender de los vales", () => {
+    const [g] = agruparPorTanqueo([
+      tramo({ vale: "V1", combustible: 1_000_000, combustibleEntregado: 1_100_000, cruzadoManual: "2026-11-11" }),
+      tramo({ id: 2, tramo: "VUELTA", cruzadoManual: "2026-11-11" }),
+    ]);
+    expect([g.cruce, g.cruzadoManual]).toEqual(["CRUZADO", true]);
+    // Solo la ida marcada: no cuenta como cruce a mano.
+    expect(agruparPorTanqueo([tramo({ vale: "V1", cruzadoManual: "2026-11-11" }), tramo({ id: 2, tramo: "VUELTA" })])[0].cruce).toBe("SIN_CRUZAR");
   });
 
   test("sin bomba es solo efectivo; pagado cuando todos sus tramos de la bomba tienen fecha", () => {
