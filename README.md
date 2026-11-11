@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_565 funciones, componentes, métodos y rutas en 83 archivos._
+_569 funciones, componentes, métodos y rutas en 84 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (169)
@@ -230,6 +230,7 @@ _565 funciones, componentes, métodos y rutas en 83 archivos._
 - [`src/paginas/cuadro/VentanaCruceBomba.tsx`](#srcpaginascuadroventanacrucebombatsx) (9)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (7)
+- [`src/paginas/cuadro/excelAnticipos.ts`](#srcpaginascuadroexcelanticiposts) (4)
 - [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
 - [`src/paginas/cuadro/excelVales.ts`](#srcpaginascuadroexcelvalests) (7)
 - [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (20)
@@ -2084,6 +2085,29 @@ _565 funciones, componentes, métodos y rutas en 83 archivos._
 
 - **`saldoVencido(f)`** · _función_
   Saldo de un tercero sin pagar y ya vencido (su viernes de pago ya llego).
+
+### `src/paginas/cuadro/excelAnticipos.ts`
+
+> Excel del cuadro de anticipos (el boton Exportar), como la hoja "EDS
+> CHUSACA - RETORNO - S ESTE" de docs/ejemplo cuadro anticipos.xlsx: una fila
+> por anticipo entregado, con la ida y la vuelta en filas aparte (en pantalla
+> van juntas en el tanqueo, pero en ningun lado se suman). Solo lo que esta en
+> pantalla con los filtros.
+>
+> filasAnticipos y columnasAnticipos no dependen de exceljs y se prueban
+> aparte (excelAnticipos.test.ts).
+
+- **`flotaTexto(f)`** · _función_
+  "LOPEZ", "M&C" o "TERCERO" (como en el Excel de anticipos).
+
+- **`filasAnticipos(tanqueos)`** · _función_
+  Los tramos de los tanqueos (ida y vuelta por separado), por fecha, placa e ida antes que vuelta.
+
+- **`columnasAnticipos(tramos)`** · _función_
+  Columnas del Excel (titulos del ejemplo) con los valores de cada tramo.
+
+- **`descargarAnticipos(tanqueos, nombreArchivo)`** · _función_
+  Descarga el Excel de los tanqueos en pantalla, una fila por ida y otra por vuelta.
 
 ### `src/paginas/cuadro/excelFacturacion.ts`
 

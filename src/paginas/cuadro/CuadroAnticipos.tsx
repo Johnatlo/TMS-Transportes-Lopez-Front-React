@@ -35,6 +35,7 @@ import type { EstadoCruce, Tanqueo } from "./tanqueos";
 import ImportarAnticipos from "./ImportarAnticipos";
 import VentanaCruceBomba from "./VentanaCruceBomba";
 import ReporteBomba from "./ReporteBomba";
+import { descargarAnticipos } from "./excelAnticipos";
 import AnticiposEmpresas from "../seguimiento/AnticiposEmpresas";
 
 /** "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo. */
@@ -243,6 +244,7 @@ export default function CuadroAnticipos() {
           clave={(g) => g.clave}
           pestanas={pestanas}
           nombreArchivo="anticipos"
+          alExportar={(visibles) => descargarAnticipos(visibles, `anticipos-${hoyColombia()}`)}
           placeholderBusqueda="Buscar placa, empresa, bomba, factura..."
           vacio="No hay anticipos con estos criterios."
           claseFila={(g) => (g.cruce === "CRUZADO" ? "fila-cruzada" : g.cruce === "DIFERENCIA" ? "fila-diferencia" : undefined)}
