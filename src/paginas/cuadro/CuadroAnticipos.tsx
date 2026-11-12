@@ -37,6 +37,20 @@ import VentanaCruceBomba from "./VentanaCruceBomba";
 import ReporteBomba from "./ReporteBomba";
 import { descargarAnticipos } from "./excelAnticipos";
 import AnticiposEmpresas from "../seguimiento/AnticiposEmpresas";
+import VistaTramos from "./VistaTramos";
+
+/** Como se ven los anticipos: un tramo por fila (como el cuadro de la empresa) o un tanqueo por fila. */
+type Vista = "tramos" | "tanqueos";
+const CLAVE_VISTA = "anticipos.vista";
+
+/** La vista que el usuario dejo la ultima vez (por tramo si no hay o no se puede leer). */
+function vistaGuardada(): Vista {
+  try {
+    return localStorage.getItem(CLAVE_VISTA) === "tanqueos" ? "tanqueos" : "tramos";
+  } catch {
+    return "tramos";
+  }
+}
 
 /** "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo. */
 const flotaTexto = (f: string | null) => (f === "LOPEZ" ? "LOPEZ" : f === "MYC" ? "M&C" : f === "TERCERO" ? "TERCERO" : "-");
@@ -80,6 +94,16 @@ export default function CuadroAnticipos() {
   const [parametros, setParametros] = useSearchParams();
   /** Viaje cuyo anticipo del Zorro se abre (desde la alerta de la campana). */
   const [anticipoViaje, setAnticipoViaje] = useState<number | null>(null);
+  const [vista, setVista] = useState<Vista>(vistaGuardada);
+  /** Cambia la vista y la recuerda en este navegador. */
+  const elegirVista = (v: Vista) => {
+    setVista(v);
+    try {
+      localStorage.setItem(CLAVE_VISTA, v);
+    } catch {
+      // Sin almacenamiento: solo dura mientras la pagina este abierta.
+    }
+  };
 
   // ?anticipo=<id del cuadro>: abre los anticipos de empresas en ese viaje.
   useEffect(() => {
@@ -223,6 +247,14 @@ export default function CuadroAnticipos() {
         <button className="boton-barra" onClick={() => setVentana("reportes")}>
           Reportes
         </button>
+        <div className="selector-vista" role="group" aria-label="Vista de los anticipos">
+          <button type="button" className={vista === "tramos" ? "activo" : ""} onClick={() => elegirVista("tramos")}>
+            Por tramo
+          </button>
+          <button type="button" className={vista === "tanqueos" ? "activo" : ""} onClick={() => elegirVista("tanqueos")}>
+            Por tanqueo
+          </button>
+        </div>
         <MenuMas
           opciones={[
             { etiqueta: "Anticipos del Zorro", alElegir: () => setVentana("empresas") },
@@ -232,11 +264,24 @@ export default function CuadroAnticipos() {
         />
       </div>
       <div className="section-desc" style={{ margin: "0.2rem 0 0.6rem" }}>
-        Un tanqueo por fila (la ida y su vuelta). Clic en una fila para ver todo: los viajes, el cruce con la bomba, la
-        factura y el pago. En verde, los ya cruzados: con sus vales de la bomba, con factura y pago a la bomba, o marcados a mano. Los anticipos se registran en cada viaje
-        del Cuadro pagos.
+        {vista === "tramos"
+          ? "Un anticipo por fila, como el cuadro de la empresa: la ida y la vuelta por separado. Si quedo mal marcado, cambia Ida / Vuelta en la fila; la ultima columna sugiere su pareja y la junta con un clic. "
+          : "Un tanqueo por fila (la ida y su vuelta). "}
+        Clic en una fila para ver el cruce con la bomba, la factura y el pago. En verde, los ya cruzados: con sus vales de la
+        bomba, con factura y pago a la bomba, o marcados a mano. Los anticipos se registran en cada viaje del Cuadro pagos.
       </div>
       <div className="panel">
+        {vista === "tramos" ? (
+          <VistaTramos
+            tramos={tramos}
+            tanqueos={tanqueos}
+            cruce={CRUCE}
+            Bomba={Bomba}
+            flotaTexto={flotaTexto}
+            guardar={guardar}
+            detalle={(g) => <DetalleTanqueo g={g} posibles={posiblesVueltas(g, tanqueos)} abonos={abonos} resumen={r} Bomba={Bomba} guardar={guardar} />}
+          />
+        ) : (
         <TablaDatos
           filas={tanqueos}
           columnas={columnas}
@@ -259,6 +304,7 @@ export default function CuadroAnticipos() {
             />
           )}
         />
+        )}
       </div>
 
       {ventana === "reportes" && <ReporteBomba alCerrar={() => setVentana(null)} />}
@@ -361,7 +407,15 @@ function DetalleTanqueo({
               <Fragment key={t.id}>
               <tr>
                 <td>
-                  <Pastilla tono={t.tramo === "VUELTA" ? "info" : "neutro"}>{t.tramo === "VUELTA" ? "Vuelta" : "Ida"}</Pastilla>
+                  <select
+                    className={`selector-tramo ${t.tramo === "VUELTA" ? "es-vuelta" : "es-ida"}`}
+                    value={t.tramo}
+                    onChange={(e) => guardar(() => apiCuadro.actualizarTramo(t.id, { tramo: e.target.value }))}
+                    aria-label="Ida o vuelta"
+                  >
+                    <option value="IDA">Ida</option>
+                    <option value="VUELTA">Vuelta</option>
+                  </select>
                 </td>
                 <td>
                   <Viaje t={t} />

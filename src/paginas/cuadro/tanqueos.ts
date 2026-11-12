@@ -149,3 +149,43 @@ export function coloresBombas(nombres: Array<string | null>): Map<string, TonoPa
   const unicos = [...new Set(nombres.filter((n): n is string => !!n))].sort((a, b) => a.localeCompare(b, "es"));
   return new Map(unicos.map((n, i) => [n, COLORES_BOMBA[i % COLORES_BOMBA.length]]));
 }
+
+/**
+ * Estado de un solo tramo frente a la bomba (la vista por tramo, como el
+ * cuadro de la empresa), con las mismas reglas del tanqueo: marcado a mano,
+ * diferencia con el vale, con factura y pagado, o con sus vales (sin ningun
+ * vale, la factura de la bomba basta).
+ */
+export function estadoTramo(t: AnticipoBomba): EstadoCruce {
+  // Como en el tanqueo: sin combustible de la bomba no hay nada que cruzar.
+  if (t.bombaId === null || t.combustible <= 0) return "SOLO_EFECTIVO";
+  if (t.cruzadoManual) return "CRUZADO";
+  if (Math.abs(diferenciaTramo(t)) >= DIFERENCIA_MINIMA) return "DIFERENCIA";
+  if (t.facturaBomba && t.fechaPago) return "CRUZADO";
+  const falta = faltaCruzar(t);
+  if (t.cruzadoCombustible || t.cruzadoEfectivo) return !falta.combustible && !falta.efectivo ? "CRUZADO" : "SIN_CRUZAR";
+  return t.facturaBomba ? "CRUZADO" : "SIN_CRUZAR";
+}
+
+/** Sugerencia del otro tramo (la vuelta de una ida o la ida de una vuelta). */
+export interface SugerenciaTramo {
+  /** PAREJA: ya estan juntos en el tanqueo; POSIBLE: otro tramo suelto de la placa ese dia. */
+  tipo: "PAREJA" | "POSIBLE";
+  otro: AnticipoBomba;
+}
+
+/**
+ * El otro tramo de un anticipo: su pareja en el tanqueo, o (indicio) los
+ * tramos sueltos de la misma placa el mismo dia que estan en otro tanqueo de
+ * un solo tramo, para juntarlos con un clic.
+ */
+export function sugerenciasTramo(t: AnticipoBomba, todos: AnticipoBomba[]): SugerenciaTramo[] {
+  const delTanqueo = (x: AnticipoBomba) => (x.tanqueoId ? todos.filter((o) => o.tanqueoId === x.tanqueoId) : [x]);
+  const pareja = t.tanqueoId ? todos.find((o) => o.tanqueoId === t.tanqueoId && o.id !== t.id) : undefined;
+  if (pareja) return [{ tipo: "PAREJA", otro: pareja }];
+  if (!t.tanqueoId) return [];
+  const placa = (p: string | null) => String(p ?? "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  return todos
+    .filter((o) => o.id !== t.id && !!o.tanqueoId && o.tanqueoId !== t.tanqueoId && placa(o.placa) === placa(t.placa) && o.fecha === t.fecha && delTanqueo(o).length === 1)
+    .map((otro) => ({ tipo: "POSIBLE" as const, otro }));
+}

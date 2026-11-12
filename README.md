@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_570 funciones, componentes, métodos y rutas en 84 archivos._
+_575 funciones, componentes, métodos y rutas en 85 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
 - [`src/api/cliente.ts`](#srcapiclientets) (170)
@@ -220,7 +220,7 @@ _570 funciones, componentes, métodos y rutas en 84 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
-- [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (9)
+- [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (10)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (4)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (6)
 - [`src/paginas/cuadro/EnvioFacturacion.tsx`](#srcpaginascuadroenviofacturaciontsx) (3)
@@ -229,13 +229,14 @@ _570 funciones, componentes, métodos y rutas en 84 archivos._
 - [`src/paginas/cuadro/ReporteBomba.tsx`](#srcpaginascuadroreportebombatsx) (2)
 - [`src/paginas/cuadro/VentanaCruceBomba.tsx`](#srcpaginascuadroventanacrucebombatsx) (9)
 - [`src/paginas/cuadro/VentanasCuadro.tsx`](#srcpaginascuadroventanascuadrotsx) (3)
+- [`src/paginas/cuadro/VistaTramos.tsx`](#srcpaginascuadrovistatramostsx) (2)
 - [`src/paginas/cuadro/estadosCuadro.ts`](#srcpaginascuadroestadoscuadrots) (7)
 - [`src/paginas/cuadro/excelAnticipos.ts`](#srcpaginascuadroexcelanticiposts) (4)
 - [`src/paginas/cuadro/excelFacturacion.ts`](#srcpaginascuadroexcelfacturacionts) (7)
 - [`src/paginas/cuadro/excelVales.ts`](#srcpaginascuadroexcelvalests) (7)
 - [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (20)
 - [`src/paginas/cuadro/relacionBomba.ts`](#srcpaginascuadrorelacionbombats) (8)
-- [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (7)
+- [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (9)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
 - [`src/paginas/preoperacional/FormularioPreoperacional.tsx`](#srcpaginaspreoperacionalformulariopreoperacionaltsx) (1)
 - [`src/paginas/preoperacional/Preoperacional.tsx`](#srcpaginaspreoperacionalpreoperacionaltsx) (2)
@@ -1853,6 +1854,9 @@ _570 funciones, componentes, métodos y rutas en 84 archivos._
 > - Botones: cruce con la bomba (la relacion quincenal de vales, en PDF,
 >   Excel o a mano), abonos del socio y anticipos de empresas.
 
+- **`vistaGuardada()`** · _función_
+  La vista que el usuario dejo la ultima vez (por tramo si no hay o no se puede leer).
+
 - **`flotaTexto(f)`** · _función_
   "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo.
 
@@ -2059,6 +2063,25 @@ _570 funciones, componentes, métodos y rutas en 84 archivos._
 
 - **`VentanaBombas({...})`** · _componente React_
   Bombas aliadas que entregan anticipos.
+
+### `src/paginas/cuadro/VistaTramos.tsx`
+
+> Anticipos por tramo, como el cuadro que lleva la empresa: una fila por
+> anticipo entregado (la ida y la vuelta por separado), con fecha, placa,
+> empresa, efectivo, combustible, galones, total, EDS, factura, empresa del
+> vehiculo, pago a la bomba y cruce.
+>
+> - Ida / Vuelta se cambia a mano en cada fila (cuando quedo mal marcado).
+> - Columna "Ida / vuelta sugerida": el otro tramo del mismo tanqueo, o el
+>   tramo suelto de la misma placa ese dia (indicio) con el boton para
+>   juntarlos.
+> - Clic en la fila: el detalle de su tanqueo (cruce, factura, pago).
+
+- **`resumenTramo(t)`** · _función_
+  Texto corto de un tramo: empresa, manifiesto y valor.
+
+- **`VistaTramos({...})`** · _componente React_
+  Cuadro de anticipos con una fila por tramo.
 
 ### `src/paginas/cuadro/estadosCuadro.ts`
 
@@ -2353,6 +2376,17 @@ _570 funciones, componentes, métodos y rutas en 84 archivos._
   Color de cada bomba: por orden alfabetico, uno distinto a cada una (con
   mas de 5 bombas se repiten). El mismo nombre siempre da el mismo color
   mientras no se agreguen bombas.
+
+- **`estadoTramo(t)`** · _función_
+  Estado de un solo tramo frente a la bomba (la vista por tramo, como el
+  cuadro de la empresa), con las mismas reglas del tanqueo: marcado a mano,
+  diferencia con el vale, con factura y pagado, o con sus vales (sin ningun
+  vale, la factura de la bomba basta).
+
+- **`sugerenciasTramo(t, todos)`** · _función_
+  El otro tramo de un anticipo: su pareja en el tanqueo, o (indicio) los
+  tramos sueltos de la misma placa el mismo dia que estan en otro tanqueo de
+  un solo tramo, para juntarlos con un clic.
 
 ### `src/paginas/estadosViaje.ts`
 
