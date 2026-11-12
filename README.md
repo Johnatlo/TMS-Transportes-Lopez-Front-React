@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_569 funciones, componentes, métodos y rutas en 84 archivos._
+_570 funciones, componentes, métodos y rutas en 84 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (1)
-- [`src/api/cliente.ts`](#srcapiclientets) (169)
+- [`src/api/cliente.ts`](#srcapiclientets) (170)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -620,6 +620,9 @@ _569 funciones, componentes, métodos y rutas en 84 archivos._
 
   - **`apiCuadro.agregarAnticipo(id, datos)`** · _método_
     Registra un anticipo de bomba.
+
+  - **`apiCuadro.revisarAnticipo(id, datos)`** · _método_
+    Avisos si el anticipo se repite con los de la misma placa ese dia (no guarda).
 
   - **`apiCuadro.actualizarAnticipo(id, anticipoId, datos)`** · _método_
     Cambia la fecha de pago a la bomba o la nota de un anticipo.

@@ -1110,6 +1110,8 @@ export const apiCuadro = {
   borrarNota: (id: number, notaId: number) => del<DetalleCuadro>(`/cuadro/${id}/notas/${notaId}`),
   /** Registra un anticipo de bomba. */
   agregarAnticipo: (id: number, datos: Record<string, unknown>) => post<DetalleCuadro>(`/cuadro/${id}/anticipos`, datos),
+  /** Avisos si el anticipo se repite con los de la misma placa ese dia (no guarda). */
+  revisarAnticipo: (id: number, datos: Record<string, unknown>) => post<{ avisos: string[] }>(`/cuadro/${id}/anticipos/revisar`, datos),
   /** Cambia la fecha de pago a la bomba o la nota de un anticipo. */
   actualizarAnticipo: (id: number, anticipoId: number, datos: Record<string, unknown>) =>
     put<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`, datos),

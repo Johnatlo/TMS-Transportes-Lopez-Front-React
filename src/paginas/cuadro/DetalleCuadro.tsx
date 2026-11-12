@@ -542,6 +542,9 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
         style={{ marginTop: "0.5rem" }}
         disabled={!listo}
         onClick={async () => {
+          // Antes de guardar: avisa si se repite con otro anticipo de la placa ese dia.
+          const { avisos } = await apiCuadro.revisarAnticipo(d.id, nuevo).catch(() => ({ avisos: [] as string[] }));
+          if (avisos.length && !window.confirm(`Revisa antes de guardar:\n\n- ${avisos.join("\n- ")}\n\n¿Guardar el anticipo de todas formas?`)) return;
           await aplicar(() => apiCuadro.agregarAnticipo(d.id, nuevo), "Anticipo agregado.");
           setNuevo(anticipoVacio());
         }}
