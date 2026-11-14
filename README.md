@@ -175,9 +175,9 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_575 funciones, componentes, métodos y rutas en 85 archivos._
+_578 funciones, componentes, métodos y rutas en 86 archivos._
 
-- [`src/App.tsx`](#srcapptsx) (1)
+- [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (170)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
@@ -262,12 +262,16 @@ _575 funciones, componentes, métodos y rutas en 85 archivos._
 - [`src/paginas/vehiculos/VisorCamion.tsx`](#srcpaginasvehiculosvisorcamiontsx) (2)
 - [`src/paginas/vehiculos/esquemaCamion.ts`](#srcpaginasvehiculosesquemacamionts) (6)
 - [`src/paginas/vehiculos/vistasMantenimiento.ts`](#srcpaginasvehiculosvistasmantenimientots) (8)
+- [`src/permisos.ts`](#srcpermisosts) (2)
 
 ### `src/App.tsx`
 
 > Raiz de la aplicacion: sin sesion muestra el login; con clave temporal, el
 > cambio obligatorio de clave; con sesion, el marco (Shell) y las rutas de
 > cada pantalla, que se descargan al abrirlas por primera vez (React.lazy).
+
+- **`ConPermiso({...})`** · _componente React_
+  Deja ver la pantalla solo si el rol puede abrir esa ruta (si no, al inicio).
 
 - **`App()`** · _componente React_
   Clientes, Flota, Conductores y Configuracion son el mismo Catalogo con
@@ -340,12 +344,12 @@ _575 funciones, componentes, métodos y rutas en 85 archivos._
   - **`auth.listarUsuarios()`** · _método_
     Usuarios del sistema.
 
-  - **`auth.crearUsuario(email, nombre)`** · _método_
+  - **`auth.crearUsuario(email, nombre, rol)`** · _método_
     La clave temporal se envia por correo. Solo si el correo no esta
     configurado o falla, llega en la respuesta (una sola vez).
 
   - **`auth.actualizarUsuario(id, datos)`** · _método_
-    Cambia nombre y/o estado activo de un usuario.
+    Cambia nombre, estado activo y/o rol de un usuario.
 
   - **`auth.restablecerClave(id)`** · _método_
     Genera una clave temporal nueva para un usuario (por correo, o en la respuesta).
@@ -1629,11 +1633,11 @@ _575 funciones, componentes, métodos y rutas en 85 archivos._
   Seccion "Estado" del formulario (casilla Activo): un registro inactivo no
   aparece en el despacho pero se conserva para el historial.
 
-- **`seccionesDe(p, empresas, edicion)`** · _función_
+- **`seccionesDe(p, empresas, edicion, administra)`** · _función_
   Secciones del formulario segun la pestana. Al editar se agrega la seccion
   de estado (activo/inactivo), que al crear no tiene sentido.
 
-- **`seccionesVehiculo(empresas)`** · _función_
+- **`seccionesVehiculo(empresas, administra)`** · _función_
   El formulario de vehiculos incluye el proveedor de GPS, cuyas opciones salen
   del catalogo de empresas de monitoreo y por eso no pueden ser fijas.
 
@@ -1814,12 +1818,14 @@ _575 funciones, componentes, métodos y rutas en 85 archivos._
 
 ### `src/paginas/Usuarios.tsx`
 
-> Pantalla Usuarios: crear usuarios, cambiarles el nombre, activarlos o
-> desactivarlos y restablecer su clave (temporal, por correo o en pantalla).
+> Pantalla Usuarios (solo el rol total): crear usuarios con su rol,
+> cambiarles el nombre o el rol, activarlos o desactivarlos y restablecer su
+> clave (temporal, por correo o en pantalla).
 
 - **`Usuarios()`** · _componente React_
-  Administracion de usuarios. Sin roles por ahora: cualquier usuario activo
-  crea, renombra (a si mismo y a los demas), desactiva y restablece cuentas.
+  Administracion de usuarios y sus roles: TOTAL (todo), ADMINISTRATIVO (lo
+  operativo sin cuentas de vehiculos) y MYC (RNDC y las cuentas de sus
+  vehiculos). Siempre queda al menos un usuario con acceso total.
 
   Las contrasenas temporales las genera el servidor y se muestran UNA sola
   vez: hay que copiarlas y entregarlas al usuario, que debera cambiarla en su
@@ -3042,5 +3048,24 @@ _575 funciones, componentes, métodos y rutas en 85 archivos._
 
 - **`parteDeZona(parte, configuracion)`** · _función_
   Id de la parte de una zona para el vehiculo; null si su configuracion no la tiene (p. ej. un segundo eje de traccion).
+
+### `src/permisos.ts`
+
+> Que puede ver cada rol en el navegador (igual que backend/src/roles.ts; el
+> backend es el que de verdad lo hace cumplir).
+>
+> - TOTAL: todo.
+> - ADMINISTRATIVO: lo operativo del TMS, sin las cuentas de los vehiculos
+>   (Rentabilidad, liquidacion a duenos y reparto de ganancias) ni Usuarios.
+> - MYC: Transportes M&C. Lo del RNDC (despachar, RNDC, plantillas, clientes,
+>   flota, conductores, preoperacional, vehiculos) y las cuentas de sus
+>   vehiculos (Rentabilidad), sin Cuadro pagos, Anticipos, Cartera ni Pago a
+>   terceros.
+
+- **`puede(rol, area)`** · _función_
+  El rol (o un rol desconocido, como administrativo) tiene esa area.
+
+- **`puedeRuta(rol, ruta)`** · _función_
+  El rol puede abrir esa ruta (las que no estan en la lista se dejan pasar).
 
 <!-- REFERENCIA:FIN -->

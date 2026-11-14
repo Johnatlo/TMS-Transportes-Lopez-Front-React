@@ -68,6 +68,10 @@ export interface Vehiculo extends RegistroRndc {
   flota?: "LOPEZ" | "MYC" | "TERCERO";
   /** Socio dueno (MAURICIO, CELSO, MILLER o LUISA) para separar la cartera; null = tercero. */
   dueno?: string | null;
+  /** Empresa que liquida el vehiculo (LOPEZ o MYC; null = tercero). */
+  empresa?: "LOPEZ" | "MYC" | null;
+  /** Lo ven todos los roles (como el Volvo XGJ-197). */
+  visibleTodos?: boolean;
   /** Propietario segun la tarjeta de propiedad. Informativo. */
   propietarioNit: string | null;
   /** Nombre del titular del manifiesto. Informativo: no viaja al RNDC. */
@@ -476,6 +480,9 @@ export interface PeticionDespacho {
 }
 
 /** Usuario del sistema. Por ahora sin roles: todos pueden todo. */
+/** Rol del usuario: TOTAL (todo), ADMINISTRATIVO (lo operativo sin cuentas) o MYC (RNDC y las cuentas de sus vehiculos). */
+export type Rol = "TOTAL" | "ADMINISTRATIVO" | "MYC";
+
 export interface Usuario {
   id: number;
   email: string;
@@ -483,6 +490,7 @@ export interface Usuario {
   activo: boolean;
   /** Entro con una clave temporal: debe cambiarla antes de seguir. */
   debeCambiarClave: boolean;
+  rol: Rol;
   ultimoAcceso: string | null;
   creadoEn: string;
 }

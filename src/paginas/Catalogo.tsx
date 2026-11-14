@@ -4,6 +4,8 @@
  * empresa). Listas con su estado de documentos y formularios de crear/editar.
  */
 import { useEffect, useState } from "react";
+import { useSesion } from "../ganchos/useSesion";
+import { puede } from "../permisos";
 import { BuscadorLupa, Paginacion, usarFilasPorPagina } from "../componentes/TablaDatos";
 import MenuMas from "../componentes/MenuMas";
 import type { ReactElement } from "react";
@@ -78,6 +80,7 @@ type Edicion = { modo: "crear" } | { modo: "editar"; id: number; original: Model
  * se ven todas.
  */
 export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pestanas?: Pestana[] }) {
+  const { usuario } = useSesion();
   const [pestana, setPestana] = useState<Pestana>(pestanas[0]);
   const [busqueda, setBusqueda] = useState("");
   const [verInactivos, setVerInactivos] = useState(false);
@@ -713,7 +716,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
             </div>
           )}
           <FormularioGenerico
-            secciones={seccionesDe(pestana, empresasGps, edicion.modo === "editar")}
+            secciones={seccionesDe(pestana, empresasGps, edicion.modo === "editar", puede(usuario?.rol, "ADMINISTRACION"))}
             modelo={modelo}
             alCambiar={setModelo}
             camposRndc={camposRndc}
@@ -1119,11 +1122,12 @@ function seccionEstado(que: string): SeccionFormulario {
 function seccionesDe(
   p: Pestana,
   empresas: EmpresaMonitoreo[],
-  edicion: boolean
+  edicion: boolean,
+  administra: boolean
 ): SeccionFormulario[] {
   switch (p) {
     case "vehiculos":
-      return [...seccionesVehiculo(empresas), ...(edicion ? [seccionEstado("vehiculo")] : [])];
+      return [...seccionesVehiculo(empresas, administra), ...(edicion ? [seccionEstado("vehiculo")] : [])];
     case "remolques":
       return [...SECCIONES_REMOLQUE, ...(edicion ? [seccionEstado("remolque")] : [])];
     case "conductores":
@@ -1141,7 +1145,7 @@ function seccionesDe(
  * El formulario de vehiculos incluye el proveedor de GPS, cuyas opciones salen
  * del catalogo de empresas de monitoreo y por eso no pueden ser fijas.
  */
-function seccionesVehiculo(empresas: EmpresaMonitoreo[]): SeccionFormulario[] {
+function seccionesVehiculo(empresas: EmpresaMonitoreo[], administra: boolean): SeccionFormulario[] {
   return [
     {
       titulo: "Identificacion",
@@ -1256,6 +1260,22 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[]): SeccionFormulario[] {
             { value: "LUISA", label: "Luisa" },
           ],
         },
+        // Empresa que liquida el vehiculo: decide que usuarios ven sus cuentas (solo la cambia administracion).
+        ...(administra
+          ? [
+              {
+                key: "empresa",
+                label: "Empresa a la que pertenece (cuentas y liquidacion)",
+                tipo: "select" as const,
+                opciones: [
+                  { value: "", label: "Ninguna (tercero)" },
+                  { value: "LOPEZ", label: "Transportes Lopez" },
+                  { value: "MYC", label: "Transportes M&C" },
+                ],
+              },
+              { key: "visibleTodos", label: "Lo ven todos los usuarios (como el Volvo XGJ-197)", tipo: "checkbox" as const },
+            ]
+          : []),
       ],
     },
     {

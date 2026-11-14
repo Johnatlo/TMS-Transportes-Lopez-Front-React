@@ -13,6 +13,7 @@ import CambiarClave from "./CambiarClave";
 import Modal from "./Modal";
 import { Cargando } from "./Estado";
 import { useSesion } from "../ganchos/useSesion";
+import { NOMBRE_ROL, puedeRuta } from "../permisos";
 import {
   IconoCampana,
   IconoClientes,
@@ -166,7 +167,7 @@ export default function Shell() {
           <span className="solo-expandido">Transportes Lopez</span>
         </div>
         <nav>
-          {SECCIONES.map((s) => (
+          {SECCIONES.filter((s) => puedeRuta(usuario?.rol, s.ruta)).map((s) => (
             <NavLink
               key={s.ruta}
               to={s.ruta}
@@ -258,6 +259,7 @@ export default function Shell() {
                   <div className="menu-usuario">
                     <div className="menu-usuario-cabecera">
                       <strong>{usuario?.nombre}</strong>
+                      {usuario && <span className="dato-sec">{NOMBRE_ROL[usuario.rol] ?? usuario.rol}</span>}
                       <span>{usuario?.email}</span>
                     </div>
                     <button

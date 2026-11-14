@@ -32,7 +32,7 @@ import type {
   ViajeRemesa,
   PreviaAnulacion,
   SugerenciaVehiculo,
-  Usuario,
+  Rol, Usuario,
 } from "./tipos";
 
 const BASE = "/api";
@@ -307,10 +307,10 @@ export const auth = {
    * La clave temporal se envia por correo. Solo si el correo no esta
    * configurado o falla, llega en la respuesta (una sola vez).
    */
-  crearUsuario: (email: string, nombre: string) =>
-    post<Usuario & EntregaClave>("/usuarios", { email, nombre }),
-  /** Cambia nombre y/o estado activo de un usuario. */
-  actualizarUsuario: (id: number, datos: { nombre?: string; activo?: boolean }) =>
+  crearUsuario: (email: string, nombre: string, rol: Rol) =>
+    post<Usuario & EntregaClave>("/usuarios", { email, nombre, rol }),
+  /** Cambia nombre, estado activo y/o rol de un usuario. */
+  actualizarUsuario: (id: number, datos: { nombre?: string; activo?: boolean; rol?: Rol }) =>
     put<Usuario>(`/usuarios/${id}`, datos),
   /** Genera una clave temporal nueva para un usuario (por correo, o en la respuesta). */
   restablecerClave: (id: number) => post<EntregaClave>(`/usuarios/${id}/restablecer-clave`, {}),

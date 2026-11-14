@@ -4,6 +4,8 @@
  * cada pantalla, que se descargan al abrirlas por primera vez (React.lazy).
  */
 import { lazy } from "react";
+import type { ReactNode } from "react";
+import { puedeRuta } from "./permisos";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Shell from "./componentes/Shell";
 import Login from "./paginas/Login";
@@ -30,6 +32,12 @@ const Plantillas = lazy(() => import("./paginas/Plantillas"));
 const Catalogo = lazy(() => import("./paginas/Catalogo"));
 const Usuarios = lazy(() => import("./paginas/Usuarios"));
 
+/** Deja ver la pantalla solo si el rol puede abrir esa ruta (si no, al inicio). */
+function ConPermiso({ ruta, children }: { ruta: string; children: ReactNode }) {
+  const { usuario } = useSesion();
+  return puedeRuta(usuario?.rol, ruta) ? <>{children}</> : <Navigate to="/dashboard" replace />;
+}
+
 /**
  * Clientes, Flota, Conductores y Configuracion son el mismo Catalogo con
  * distintas pestanas. La `key` distinta hace que React monte uno nuevo al
@@ -55,30 +63,127 @@ export default function App() {
     <Routes>
       <Route element={<Shell />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/despacho" element={<Despacho />} />
-        <Route path="/historial" element={<Historial />} />
-        <Route path="/cuadro" element={<CuadroCentral />} />
-        <Route path="/anticipos" element={<Anticipos />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ConPermiso ruta="/dashboard">
+              <Dashboard />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/despacho"
+          element={
+            <ConPermiso ruta="/despacho">
+              <Despacho />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/historial"
+          element={
+            <ConPermiso ruta="/historial">
+              <Historial />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/cuadro"
+          element={
+            <ConPermiso ruta="/cuadro">
+              <CuadroCentral />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/anticipos"
+          element={
+            <ConPermiso ruta="/anticipos">
+              <Anticipos />
+            </ConPermiso>
+          }
+        />
         {/* Seguimiento de papeles ahora es una ventana del Cuadro pagos. */}
         <Route path="/papeles" element={<Navigate to="/cuadro?papeles=0" replace />} />
-        <Route path="/cartera" element={<Cartera />} />
-        <Route path="/terceros" element={<PagoTerceros />} />
-        <Route path="/rentabilidad" element={<Rentabilidad />} />
-        <Route path="/preoperacional" element={<Preoperacional />} />
-        <Route path="/vehiculos" element={<Vehiculos />} />
-        <Route path="/vehiculos/:placa" element={<PerfilVehiculo />} />
-        <Route path="/plantillas" element={<Plantillas />} />
-        <Route path="/clientes" element={<Catalogo key="clientes" pestanas={["terceros"]} />} />
         <Route
-          path="/flota"
-          element={<Catalogo key="flota" pestanas={["vehiculos", "remolques", "monitoreo"]} />}
+          path="/cartera"
+          element={
+            <ConPermiso ruta="/cartera">
+              <Cartera />
+            </ConPermiso>
+          }
         />
+        <Route
+          path="/terceros"
+          element={
+            <ConPermiso ruta="/terceros">
+              <PagoTerceros />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/rentabilidad"
+          element={
+            <ConPermiso ruta="/rentabilidad">
+              <Rentabilidad />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/preoperacional"
+          element={
+            <ConPermiso ruta="/preoperacional">
+              <Preoperacional />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/vehiculos"
+          element={
+            <ConPermiso ruta="/vehiculos">
+              <Vehiculos />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/vehiculos/:placa"
+          element={
+            <ConPermiso ruta="/vehiculos">
+              <PerfilVehiculo />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/plantillas"
+          element={
+            <ConPermiso ruta="/plantillas">
+              <Plantillas />
+            </ConPermiso>
+          }
+        />
+        <Route path="/clientes" element={<Catalogo key="clientes" pestanas={["terceros"]} />} />
+        <Route path="/flota" element={<Catalogo key="flota" pestanas={["vehiculos", "remolques", "monitoreo"]} />} />
         <Route path="/conductores" element={<Catalogo key="conductores" pestanas={["conductores"]} />} />
-        <Route path="/configuracion" element={<Catalogo key="configuracion" pestanas={["empresa"]} />} />
-        <Route path="/usuarios" element={<Usuarios />} />
+        <Route
+          path="/configuracion"
+          element={
+            <ConPermiso ruta="/configuracion">
+              <Catalogo key="configuracion" pestanas={["empresa"]} />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/usuarios"
+          element={
+            <ConPermiso ruta="/usuarios">
+              <Usuarios />
+            </ConPermiso>
+          }
+        />
         {/* La ruta vieja sigue funcionando. */}
         <Route path="/catalogo" element={<Navigate to="/flota" replace />} />
+        {/* Lo que no existe vuelve al inicio. */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
   );

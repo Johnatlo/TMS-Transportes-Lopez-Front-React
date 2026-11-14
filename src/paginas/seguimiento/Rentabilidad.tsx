@@ -12,6 +12,7 @@
  * dueno (ver LiquidarDueno.tsx).
  */
 import { useState } from "react";
+import { useSesion } from "../../ganchos/useSesion";
 import { apiCuadro, apiSeguimiento, fechaHora, moneda } from "../../api/cliente";
 import type { ClaveRetencion, ComisionCliente, FilaRentabilidad, RetencionCliente } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
@@ -276,6 +277,7 @@ const COLUMNAS_TODOS: Columna<FilaRentabilidad>[] = [
 
 /** Pagina de la rentabilidad. */
 export default function Rentabilidad() {
+  const { usuario } = useSesion();
   const datos = useDatos(() => apiSeguimiento.rentabilidad(), []);
   const [grupo, setGrupo] = useState(TODOS);
   const [editando, setEditando] = useState<FilaRentabilidad | null>(null);
@@ -377,7 +379,9 @@ export default function Rentabilidad() {
           alExportar={exportar}
           acciones={
             <>
-              <MenuMas opciones={[{ etiqueta: "Matrices de comisiones y retenciones", alElegir: () => setMatrices(true) }]} />
+              {usuario?.rol === "TOTAL" && (
+                <MenuMas opciones={[{ etiqueta: "Matrices de comisiones y retenciones", alElegir: () => setMatrices(true) }]} />
+              )}
               {duenos.length > 0 && (
                 <button className="btn-primary boton-con-texto" onClick={() => setLiquidando(true)}>
                   Liquidar dueno
