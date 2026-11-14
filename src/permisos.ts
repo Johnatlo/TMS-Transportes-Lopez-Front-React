@@ -3,8 +3,8 @@
  * backend es el que de verdad lo hace cumplir).
  *
  * - TOTAL: todo.
- * - ADMINISTRATIVO: lo operativo del TMS, sin las cuentas de los vehiculos
- *   (Rentabilidad, liquidacion a duenos y reparto de ganancias) ni Usuarios.
+ * - ADMINISTRATIVO: lo operativo del TMS y Rentabilidad, sin liquidar a los
+ *   duenos, repartir ganancias ni Usuarios.
  * - MYC: Transportes M&C. Lo del RNDC (despachar, RNDC, plantillas, clientes,
  *   flota, conductores, preoperacional, vehiculos) y las cuentas de sus
  *   vehiculos (Rentabilidad), sin Cuadro pagos, Anticipos, Cartera ni Pago a
@@ -13,12 +13,12 @@
 import type { Rol } from "./api/tipos";
 
 /** Areas del aplicativo. */
-export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "ADMINISTRACION" | "USUARIOS";
+export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "ADMINISTRACION" | "USUARIOS";
 
 const AREAS: Record<Rol, Area[]> = {
-  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "ADMINISTRACION", "USUARIOS"],
-  ADMINISTRATIVO: ["RNDC", "OPERACION", "ADMINISTRACION"],
-  MYC: ["RNDC", "CUENTAS"],
+  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "ADMINISTRACION", "USUARIOS"],
+  ADMINISTRATIVO: ["RNDC", "OPERACION", "CUENTAS", "ADMINISTRACION"],
+  MYC: ["RNDC", "CUENTAS", "LIQUIDACION"],
 };
 
 /** Nombre del rol para mostrarlo. */

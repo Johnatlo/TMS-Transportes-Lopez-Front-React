@@ -3055,8 +3055,8 @@ _578 funciones, componentes, métodos y rutas en 86 archivos._
 > backend es el que de verdad lo hace cumplir).
 >
 > - TOTAL: todo.
-> - ADMINISTRATIVO: lo operativo del TMS, sin las cuentas de los vehiculos
->   (Rentabilidad, liquidacion a duenos y reparto de ganancias) ni Usuarios.
+> - ADMINISTRATIVO: lo operativo del TMS y Rentabilidad, sin liquidar a los
+>   duenos, repartir ganancias ni Usuarios.
 > - MYC: Transportes M&C. Lo del RNDC (despachar, RNDC, plantillas, clientes,
 >   flota, conductores, preoperacional, vehiculos) y las cuentas de sus
 >   vehiculos (Rentabilidad), sin Cuadro pagos, Anticipos, Cartera ni Pago a

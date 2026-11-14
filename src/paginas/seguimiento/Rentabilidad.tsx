@@ -13,6 +13,7 @@
  */
 import { useState } from "react";
 import { useSesion } from "../../ganchos/useSesion";
+import { puede } from "../../permisos";
 import { apiCuadro, apiSeguimiento, fechaHora, moneda } from "../../api/cliente";
 import type { ClaveRetencion, ComisionCliente, FilaRentabilidad, RetencionCliente } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
@@ -382,7 +383,7 @@ export default function Rentabilidad() {
               {usuario?.rol === "TOTAL" && (
                 <MenuMas opciones={[{ etiqueta: "Matrices de comisiones y retenciones", alElegir: () => setMatrices(true) }]} />
               )}
-              {duenos.length > 0 && (
+              {duenos.length > 0 && puede(usuario?.rol, "LIQUIDACION") && (
                 <button className="btn-primary boton-con-texto" onClick={() => setLiquidando(true)}>
                   Liquidar dueno
                 </button>
@@ -466,6 +467,8 @@ const enCampo = (n: number | null) => (n === null ? "" : String(n));
  * de siempre (el que se muestra en gris).
  */
 function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabilidad; alCerrar: () => void; alGuardar: () => void }) {
+  // El pago al dueno y el reparto de ganancias solo los marca quien liquida (no los administrativos).
+  const liquida = puede(useSesion().usuario?.rol, "LIQUIDACION");
   const terceros = fila.grupo === "TERCEROS";
   const [f, setF] = useState({
     rentComision: enCampo(fila.rentComision),
@@ -629,11 +632,13 @@ function EditarRentabilidad({ fila, alCerrar, alGuardar }: { fila: FilaRentabili
           <label>Concepto de otros descuentos</label>
           <input value={f.rentOtrosConcepto} maxLength={200} onChange={(e) => setF({ ...f, rentOtrosConcepto: e.target.value })} placeholder="Bateria, arreglo..." />
         </div>
-        <div>
-          <label>{terceros ? "Pago al tercero" : "Pago al dueno"}</label>
-          <input type="date" value={f.fechaPagoSaldo} onChange={(e) => setF({ ...f, fechaPagoSaldo: e.target.value })} />
-        </div>
-        {terceros && (
+        {(terceros || liquida) && (
+          <div>
+            <label>{terceros ? "Pago al tercero" : "Pago al dueno"}</label>
+            <input type="date" value={f.fechaPagoSaldo} onChange={(e) => setF({ ...f, fechaPagoSaldo: e.target.value })} />
+          </div>
+        )}
+        {terceros && liquida && (
           <div>
             <label>Pago de la rentabilidad</label>
             <input type="date" value={f.fechaPagoRentabilidad} onChange={(e) => setF({ ...f, fechaPagoRentabilidad: e.target.value })} />

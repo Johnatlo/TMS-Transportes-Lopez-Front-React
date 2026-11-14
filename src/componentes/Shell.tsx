@@ -54,7 +54,7 @@ const SECCIONES: Array<{ ruta: string; etiqueta: string; icono: ReactNode }> = [
   { ruta: "/flota", etiqueta: "Flota", icono: <IconoFlota /> },
   { ruta: "/conductores", etiqueta: "Conductores", icono: <IconoConductores /> },
   { ruta: "/configuracion", etiqueta: "Configuracion", icono: <IconoConfiguracion /> },
-  { ruta: "/usuarios", etiqueta: "Usuarios", icono: <IconoUsuarios /> },
+  { ruta: "/usuarios", etiqueta: "Usuarios y roles", icono: <IconoUsuarios /> },
 ];
 
 /** Lo que el marco comparte con las paginas (ver usarShell). */

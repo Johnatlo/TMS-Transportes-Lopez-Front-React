@@ -19,8 +19,8 @@ const ROLES: Rol[] = ["TOTAL", "ADMINISTRATIVO", "MYC"];
 /** Que ve cada rol (para elegirlo al crear el usuario). */
 const DESCRIPCION_ROL: Record<Rol, string> = {
   TOTAL: "todo el aplicativo",
-  ADMINISTRATIVO: "lo operativo, sin cuentas de vehiculos ni liquidaciones",
-  MYC: "RNDC y las cuentas de los vehiculos de M&C",
+  ADMINISTRATIVO: "lo operativo y Rentabilidad, sin liquidar duenos ni repartir ganancias",
+  MYC: "RNDC y las cuentas y liquidaciones solo de los vehiculos de M&C",
 };
 
 /**
@@ -94,6 +94,9 @@ export default function Usuarios() {
     <>
       {exito && <div className="alert success">{exito}</div>}
       {error && <div className="alert danger">{error}</div>}
+      <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
+        Crea los usuarios y cambia su rol en la columna <strong>Rol</strong>. {ROLES.map((r) => `${NOMBRE_ROL[r]}: ${DESCRIPCION_ROL[r]}`).join(". ")}.
+      </div>
       <div className="panel">
         <TablaDatos
           filas={lista.datos ?? []}
