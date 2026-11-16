@@ -43,6 +43,7 @@ const AREA_RUTA: Array<[string, Area]> = [
   ["/terceros", "OPERACION"],
   ["/rentabilidad", "CUENTAS"],
   ["/gastos", "GASTOS"],
+  ["/nomina", "GASTOS"],
   ["/preoperacional", "RNDC"],
   ["/vehiculos", "RNDC"],
   ["/plantillas", "RNDC"],

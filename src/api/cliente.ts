@@ -1836,10 +1836,13 @@ export interface Gasto {
   soporteUrl: string | null;
   causaDesde: string;
   causaCuotas: number;
+  /** Si tiene, se causa por dias hasta esta fecha (nomina). */
+  causaHasta: string | null;
   destinos: DestinoGasto[];
-  /** MANUAL o CREDITO. */
+  /** MANUAL, CREDITO o NOMINA. */
   origen: string;
   creditoId: number | null;
+  nominaId: number | null;
   anulado: boolean;
   creadoPor: string | null;
   creadoEn: string;
@@ -1938,4 +1941,152 @@ export const apiGastos = {
   pagarCuota: (id: number, numero: number, d: { fechaPago: string; soporteUrl?: string | null }) => post<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`, d),
   /** Quita el pago de una cuota y borra su gasto. */
   quitarPagoCuota: (id: number, numero: number) => del<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`),
+};
+
+// ---------- Empleados y nomina (backend/src/nomina.ts) ----------
+
+/** Parametros de nomina de un ano (porcentajes en %). */
+export interface ParametrosNomina {
+  anio: number;
+  smmlv: number;
+  auxilioTransporte: number;
+  pensionEmpleador: number;
+  saludEmpleador: number;
+  /** ARL por nivel de riesgo I a V. */
+  arl: [number, number, number, number, number];
+  caja: number;
+  prima: number;
+  cesantias: number;
+  interesesCesantias: number;
+  vacaciones: number;
+  saludEmpleado: number;
+  pensionEmpleado: number;
+  limiteNoSalarial: number;
+}
+
+/** Un empleado (conductor u oficina). */
+export interface Empleado {
+  id: number;
+  empresa: EmpresaGasto;
+  tipo: "CONDUCTOR" | "OFICINA";
+  nombre: string;
+  cedula: string | null;
+  cargo: string | null;
+  conductorId: number | null;
+  riesgoArl: number;
+  /** Salario mensual fijo; null = el minimo del ano. */
+  salarioBase: number | null;
+  salarioAdicional: number;
+  pctSalarial: number;
+  pctViaticos: number;
+  auxilio: boolean;
+  /** A quien se reparte el costo (oficina). */
+  destinos: DestinoGasto[];
+  fechaIngreso: string;
+  fechaRetiro: string | null;
+  nota: string | null;
+  vehiculoId: number | null;
+  placa: string | null;
+  vehiculos: Array<{ id: number; vehiculoId: number; placa: string; desde: string; hasta: string | null }>;
+}
+
+/** Lo que se manda al crear o cambiar un empleado. */
+export type DatosEmpleado = Omit<Empleado, "id" | "placa" | "vehiculos" | "vehiculoId" | "conductorId"> & { vehiculoId?: number | null };
+
+/** El calculo de una linea de nomina. */
+export interface CalculoNomina {
+  basico: number;
+  variable: number;
+  salarial: number;
+  viaticos: number;
+  auxilio: number;
+  devengado: number;
+  ibc: number;
+  saludEmpleado: number;
+  pensionEmpleado: number;
+  neto: number;
+  pensionEmpleador: number;
+  saludEmpleador: number;
+  arl: number;
+  caja: number;
+  prima: number;
+  cesantias: number;
+  interesesCesantias: number;
+  vacaciones: number;
+  ajuste: number;
+  costoEmpleador: number;
+  costoTotal: number;
+}
+
+/** Una linea (empleado) de una nomina. */
+export interface LineaNomina {
+  id: number;
+  empleadoId: number;
+  nombre: string;
+  empresa: EmpresaGasto;
+  tipo: "CONDUCTOR" | "OFICINA";
+  cargo: string | null;
+  vehiculoId: number | null;
+  placa: string | null;
+  dias: number;
+  producido: number;
+  ajuste: number;
+  notaAjuste: string | null;
+  entrada: { riesgoArl: number; pctSalarial: number; pctViaticos: number };
+  calculo: CalculoNomina;
+  gastoId: number | null;
+  /** Por que no se puede aprobar. */
+  problema: string | null;
+}
+
+/** Una nomina (periodo) con sus lineas. */
+export interface Nomina {
+  id: number;
+  desde: string;
+  hasta: string;
+  estado: "BORRADOR" | "APROBADA";
+  nota: string | null;
+  anioParametros: number;
+  creadoPor: string | null;
+  aprobadaPor: string | null;
+  aprobadaEn: string | null;
+  lineas: LineaNomina[];
+  totales: { devengado: number; neto: number; costoEmpleador: number; costoTotal: number };
+}
+
+/** Empleados, parametros y nominas. */
+export const apiNomina = {
+  /** Parametros por ano. */
+  parametros: () => get<ParametrosNomina[]>("/nomina/parametros"),
+  /** Crea o cambia los parametros de un ano (solo rol total). */
+  guardarParametros: (p: ParametrosNomina) => put<ParametrosNomina[]>("/nomina/parametros", p),
+  /** Empleados (M&C: los suyos). */
+  empleados: () => get<Empleado[]>("/nomina/empleados"),
+  /** Crea un empleado. */
+  crearEmpleado: (d: DatosEmpleado) => post<Empleado>("/nomina/empleados", d),
+  /** Cambia un empleado. */
+  actualizarEmpleado: (id: number, d: DatosEmpleado) => put<Empleado>(`/nomina/empleados/${id}`, d),
+  /** Borra un empleado que no esta en nominas. */
+  borrarEmpleado: (id: number) => del<{ ok: boolean }>(`/nomina/empleados/${id}`),
+  /** El conductor pasa a otro vehiculo desde una fecha. */
+  asignarVehiculo: (id: number, vehiculoId: number, desde: string) => post<Empleado>(`/nomina/empleados/${id}/vehiculos`, { vehiculoId, desde }),
+  /** Quita una asignacion de vehiculo. */
+  quitarAsignacion: (id: number, asignacion: number) => del<Empleado>(`/nomina/empleados/${id}/vehiculos/${asignacion}`),
+  /** Nominas con sus lineas. */
+  nominas: () => get<Nomina[]>("/nomina"),
+  /** Crea una nomina con los empleados activos del periodo. */
+  crear: (desde: string, hasta: string, nota: string | null) => post<Nomina>("/nomina", { desde, hasta, nota }),
+  /** Borra una nomina en borrador. */
+  borrar: (id: number) => del<{ ok: boolean }>(`/nomina/${id}`),
+  /** Aprueba: guarda el calculo y crea los gastos. */
+  aprobar: (id: number) => post<Nomina>(`/nomina/${id}/aprobar`, {}),
+  /** Reabre: borra sus gastos. */
+  reabrir: (id: number) => post<Nomina>(`/nomina/${id}/reabrir`, {}),
+  /** Agrega un empleado a la nomina. */
+  agregarLinea: (id: number, empleadoId: number) => post<Nomina>(`/nomina/${id}/lineas`, { empleadoId }),
+  /** Cambia dias, producido, vehiculo o ajuste de una linea. */
+  actualizarLinea: (id: number, linea: number, d: Partial<Pick<LineaNomina, "dias" | "producido" | "vehiculoId" | "ajuste" | "notaAjuste">>) =>
+    put<Nomina>(`/nomina/${id}/lineas/${linea}`, d),
+  /** Quita a un empleado de la nomina. */
+  quitarLinea: (id: number, linea: number) => del<Nomina>(`/nomina/${id}/lineas/${linea}`),
 };

@@ -26,6 +26,7 @@ const Cartera = lazy(() => import("./paginas/seguimiento/Cartera"));
 const PagoTerceros = lazy(() => import("./paginas/seguimiento/PagoTerceros"));
 const Rentabilidad = lazy(() => import("./paginas/seguimiento/Rentabilidad"));
 const Gastos = lazy(() => import("./paginas/gastos/Gastos"));
+const Nomina = lazy(() => import("./paginas/nomina/Nomina"));
 const Preoperacional = lazy(() => import("./paginas/preoperacional/Preoperacional"));
 const Vehiculos = lazy(() => import("./paginas/vehiculos/Vehiculos"));
 const PerfilVehiculo = lazy(() => import("./paginas/vehiculos/PerfilVehiculo"));
@@ -135,6 +136,14 @@ export default function App() {
           element={
             <ConPermiso ruta="/gastos">
               <Gastos />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/nomina"
+          element={
+            <ConPermiso ruta="/nomina">
+              <Nomina />
             </ConPermiso>
           }
         />

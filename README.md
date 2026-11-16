@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_609 funciones, componentes, métodos y rutas en 90 archivos._
+_640 funciones, componentes, métodos y rutas en 94 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (185)
+- [`src/api/cliente.ts`](#srcapiclientets) (202)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -242,6 +242,10 @@ _609 funciones, componentes, métodos y rutas en 90 archivos._
 - [`src/paginas/gastos/Gastos.tsx`](#srcpaginasgastosgastostsx) (7)
 - [`src/paginas/gastos/SelectorDestinos.tsx`](#srcpaginasgastosselectordestinostsx) (1)
 - [`src/paginas/gastos/destinos.ts`](#srcpaginasgastosdestinosts) (4)
+- [`src/paginas/nomina/Empleados.tsx`](#srcpaginasnominaempleadostsx) (4)
+- [`src/paginas/nomina/Nomina.tsx`](#srcpaginasnominanominatsx) (7)
+- [`src/paginas/nomina/Parametros.tsx`](#srcpaginasnominaparametrostsx) (2)
+- [`src/paginas/nomina/excelNomina.ts`](#srcpaginasnominaexcelnominats) (1)
 - [`src/paginas/preoperacional/FormularioPreoperacional.tsx`](#srcpaginaspreoperacionalformulariopreoperacionaltsx) (1)
 - [`src/paginas/preoperacional/Preoperacional.tsx`](#srcpaginaspreoperacionalpreoperacionaltsx) (2)
 - [`src/paginas/preoperacional/excelPreoperacional.ts`](#srcpaginaspreoperacionalexcelpreoperacionalts) (6)
@@ -890,6 +894,57 @@ _609 funciones, componentes, métodos y rutas en 90 archivos._
 
   - **`apiGastos.quitarPagoCuota(id, numero)`** · _método_
     Quita el pago de una cuota y borra su gasto.
+
+- **`apiNomina`** · _módulo_
+  Empleados, parametros y nominas.
+
+  - **`apiNomina.parametros()`** · _método_
+    Parametros por ano.
+
+  - **`apiNomina.guardarParametros(p)`** · _método_
+    Crea o cambia los parametros de un ano (solo rol total).
+
+  - **`apiNomina.empleados()`** · _método_
+    Empleados (M&C: los suyos).
+
+  - **`apiNomina.crearEmpleado(d)`** · _método_
+    Crea un empleado.
+
+  - **`apiNomina.actualizarEmpleado(id, d)`** · _método_
+    Cambia un empleado.
+
+  - **`apiNomina.borrarEmpleado(id)`** · _método_
+    Borra un empleado que no esta en nominas.
+
+  - **`apiNomina.asignarVehiculo(id, vehiculoId, desde)`** · _método_
+    El conductor pasa a otro vehiculo desde una fecha.
+
+  - **`apiNomina.quitarAsignacion(id, asignacion)`** · _método_
+    Quita una asignacion de vehiculo.
+
+  - **`apiNomina.nominas()`** · _método_
+    Nominas con sus lineas.
+
+  - **`apiNomina.crear(desde, hasta, nota)`** · _método_
+    Crea una nomina con los empleados activos del periodo.
+
+  - **`apiNomina.borrar(id)`** · _método_
+    Borra una nomina en borrador.
+
+  - **`apiNomina.aprobar(id)`** · _método_
+    Aprueba: guarda el calculo y crea los gastos.
+
+  - **`apiNomina.reabrir(id)`** · _método_
+    Reabre: borra sus gastos.
+
+  - **`apiNomina.agregarLinea(id, empleadoId)`** · _método_
+    Agrega un empleado a la nomina.
+
+  - **`apiNomina.actualizarLinea(id, linea, d)`** · _método_
+    Cambia dias, producido, vehiculo o ajuste de una linea.
+
+  - **`apiNomina.quitarLinea(id, linea)`** · _método_
+    Quita a un empleado de la nomina.
 
 ### `src/componentes/AccesoGps.tsx`
 
@@ -2536,6 +2591,81 @@ _609 funciones, componentes, métodos y rutas en 90 archivos._
   Vista previa: cuanto va directo a socios, cuanto queda para repartir y
   cuanto le toca a cada parte (vehiculo marcado o socio "por partes").
   `problema` dice por que no se puede guardar todavia.
+
+### `src/paginas/nomina/Empleados.tsx`
+
+> Empleados de las dos empresas: conductores (con su vehiculo por fechas,
+> riesgo ARL IV y su % del producido) y personal de oficina (con a quien se
+> reparte su costo: vehiculos y/o socios, como un gasto).
+
+- **`salarioTexto(e)`** · _función_
+  Salario del empleado en texto ("Minimo + 200.000").
+
+- **`Empleados({...})`** · _componente React_
+  Lista de empleados con su formulario.
+
+- **`DetalleEmpleado({...})`** · _componente React_
+  Historial de vehiculos (conductor) o reparto (oficina) y acciones.
+
+- **`FormularioEmpleado({...})`** · _componente React_
+  Formulario de un empleado.
+
+### `src/paginas/nomina/Nomina.tsx`
+
+> Pantalla Nomina (fase 2 del modulo de gastos): liquidaciones por periodo,
+> empleados y parametros por ano.
+>
+> - Liquidacion: se crea con desde y hasta y trae a los empleados activos.
+>   En cada linea se escriben los dias, el producido (conductores), el
+>   vehiculo y un ajuste con nota. Se ve lo que se le paga al empleado y el
+>   costo del empleador (aportes redondeados a la centena + provisiones).
+> - Aprobar crea un gasto por empleado en el libro (categoria Nomina) por su
+>   costo total, causado por dias entre los meses del periodo: el del
+>   conductor a su vehiculo, el de oficina a su reparto. Reabrir los borra.
+> - Exportar saca el Excel con las columnas del modelo de nomina.
+
+- **`Nomina()`** · _componente React_
+  Pantalla de nomina.
+
+- **`periodo(n)`** · _función_
+  "21/10 - 20/11/2026".
+
+- **`Liquidaciones({...})`** · _componente React_
+  Liquidaciones: elegir una nomina, editar sus lineas, aprobar o reabrir.
+
+- **`CampoValor({...})`** · _componente React_
+  Numero que se guarda al salir del campo (si cambio).
+
+- **`FilaLinea({...})`** · _componente React_
+  Una linea de la nomina y, al abrirla, el detalle de cada concepto.
+
+- **`Concepto({...})`** · _componente React_
+  Un concepto del detalle.
+
+- **`NuevaNomina({...})`** · _componente React_
+  Crear una nomina: por defecto el periodo que sigue a la ultima.
+
+### `src/paginas/nomina/Parametros.tsx`
+
+> Parametros de nomina por ano: minimo, auxilio de transporte y todos los
+> porcentajes (empleado y empleador, ARL por nivel de riesgo). La nomina usa
+> los del ano en que termina el periodo. Solo el rol total los cambia.
+
+- **`Parametros({...})`** · _componente React_
+  Tabla de parametros por ano.
+
+- **`FormularioParametros({...})`** · _componente React_
+  Formulario de los parametros de un ano.
+
+### `src/paginas/nomina/excelNomina.ts`
+
+> Excel de una nomina con las mismas columnas del "Modelo Nomina" que se
+> llevaba a mano (empleado y empleador), pero con los aportes ya redondeados
+> una sola vez y el costo del empleador sin contar dos veces pension, ARL y
+> caja. Una fila por empleado y la fila de totales que agrega descargarTabla.
+
+- **`exportarNomina(n)`** · _función_
+  Descarga el Excel de la nomina.
 
 ### `src/paginas/preoperacional/FormularioPreoperacional.tsx`
 

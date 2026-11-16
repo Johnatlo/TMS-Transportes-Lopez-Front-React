@@ -110,7 +110,11 @@ export default function Gastos() {
       celda: (g) => (
         <>
           <span className="principal">{g.descripcion}</span>
-          {g.causaCuotas > 1 && <span className="dato-sec">Se causa en {g.causaCuotas} cuotas mensuales</span>}
+          {g.causaHasta ? (
+            <span className="dato-sec">Causado por dias hasta {fechaCorta(g.causaHasta)}</span>
+          ) : (
+            g.causaCuotas > 1 && <span className="dato-sec">Se causa en {g.causaCuotas} cuotas mensuales</span>
+          )}
         </>
       ),
     },
@@ -293,15 +297,18 @@ function DetalleGasto({
               Editar
             </button>
           )}
-          <button className="btn-link" onClick={alDuplicar}>
-            Duplicar (otro mes)
-          </button>
+          {g.origen === "MANUAL" && (
+            <button className="btn-link" onClick={alDuplicar}>
+              Duplicar (otro mes)
+            </button>
+          )}
           {g.origen === "MANUAL" && !cerrado && (
             <button className="btn-link" onClick={alAnular}>
               Anular
             </button>
           )}
           {g.origen === "CREDITO" && <span className="dato-sec">Cuota de un credito: se cambia en Creditos.</span>}
+          {g.origen === "NOMINA" && <span className="dato-sec">Sale de la nomina: para cambiarlo, reabre la nomina en Nomina.</span>}
         </div>
       )}
     </div>
