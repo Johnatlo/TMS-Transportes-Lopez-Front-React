@@ -2,12 +2,13 @@
  * Participaciones: de quien es cada vehiculo de la flota propia y en que
  * porcentaje (100 % del dueno, o una sociedad), con vigencia. Una nueva
  * participacion empieza en una fecha y la anterior se cierra el dia antes;
- * los meses anteriores no cambian. Aqui tambien se crean los socios. Solo el
+ * los meses anteriores no cambian. Los socios (tambien los externos) se crean
+ * en la pestana Socios. Solo el
  * rol total cambia algo.
  */
 import { useState } from "react";
 import { apiUtilidades, hoyColombia } from "../../api/cliente";
-import type { ParticipacionVehiculo } from "../../api/cliente";
+import type { ParticipacionVehiculo, SocioUtilidad } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Modal from "../../componentes/Modal";
@@ -16,28 +17,15 @@ import type { Columna } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
 
-type Socio = { id: number; nombre: string; activo: boolean };
+type Socio = Pick<SocioUtilidad, "id" | "nombre" | "activo" | "externo">;
 
 /** Lista de vehiculos con su participacion. */
 export default function Participaciones({ editable }: { editable: boolean }) {
   const carga = useDatos(() => Promise.all([apiUtilidades.participaciones(), apiUtilidades.socios()]), []);
   const [editando, setEditando] = useState<ParticipacionVehiculo | null>(null);
-  const [nuevoSocio, setNuevoSocio] = useState("");
-  const [error, setError] = useState<string | null>(null);
   if (carga.cargando && !carga.datos) return <Cargando que="las participaciones" />;
   if (carga.error || !carga.datos) return <ErrorCarga mensaje={carga.error ?? "Sin datos"} alReintentar={carga.recargar} />;
   const [vehiculos, socios] = carga.datos;
-
-  /** Ejecuta una accion y recarga. */
-  async function accion(fn: () => Promise<unknown>) {
-    setError(null);
-    try {
-      await fn();
-      carga.recargar();
-    } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "No se pudo guardar.");
-    }
-  }
 
   const columnas: Columna<ParticipacionVehiculo>[] = [
     { id: "placa", titulo: "Vehiculo", valor: (v) => v.placa, celda: (v) => <span className="principal">{placaConGuion(v.placa)}</span> },
@@ -66,7 +54,6 @@ export default function Participaciones({ editable }: { editable: boolean }) {
 
   return (
     <>
-      {error && <div className="alert danger">{error}</div>}
       <div className="panel">
         <TablaDatos
           filas={vehiculos}
@@ -100,38 +87,6 @@ export default function Participaciones({ editable }: { editable: boolean }) {
             </div>
           )}
         />
-      </div>
-      <div className="panel" style={{ marginTop: "0.75rem", padding: "0.8rem" }}>
-        <h4 style={{ margin: "0 0 0.4rem" }}>Socios</h4>
-        <div className="reparto-gasto">
-          {socios.map((s) => (
-            <span key={s.id} className="reparto-gasto-parte">
-              <strong>{s.nombre}</strong>
-              {editable ? (
-                <button className="btn-link" onClick={() => accion(() => apiUtilidades.activarSocio(s.id, !s.activo))}>
-                  {s.activo ? "Activo · desactivar" : "Inactivo · activar"}
-                </button>
-              ) : (
-                <span className="dato-sec">{s.activo ? "Activo" : "Inactivo"}</span>
-              )}
-            </span>
-          ))}
-        </div>
-        {editable && (
-          <div className="detalle-tanqueo-pie">
-            <input placeholder="Nombre del socio nuevo" value={nuevoSocio} maxLength={80} onChange={(e) => setNuevoSocio(e.target.value)} />
-            <button
-              className="btn-secondary"
-              disabled={!nuevoSocio.trim()}
-              onClick={() => {
-                accion(() => apiUtilidades.crearSocio(nuevoSocio));
-                setNuevoSocio("");
-              }}
-            >
-              Agregar socio
-            </button>
-          </div>
-        )}
       </div>
       {editando && (
         <FormularioParticipacion
@@ -207,6 +162,9 @@ function FormularioParticipacion({
           <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
         </div>
       </div>
+      <div className="dato-sec" style={{ marginTop: "0.4rem" }}>
+        Si el socio no esta en la lista, crealo primero en la pestana Socios (los externos se marcan como tales).
+      </div>
       <div className="destinos-socios" style={{ marginTop: "0.6rem" }}>
         {partes.map((p, i) => (
           <div key={i} className="linea-abono">
@@ -215,6 +173,7 @@ function FormularioParticipacion({
               {socios.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.nombre}
+                  {s.externo ? " (externo)" : ""}
                 </option>
               ))}
             </select>

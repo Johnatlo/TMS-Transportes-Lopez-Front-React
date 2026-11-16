@@ -2226,6 +2226,29 @@ export interface ParticipacionVehiculo {
   historial: Array<{ id: number; socioId: number; socio: string; porcentaje: number; desde: string; hasta: string | null }>;
 }
 
+/** Un socio: de la empresa o externo (solo esta en una sociedad). */
+export interface SocioUtilidad {
+  id: number;
+  nombre: string;
+  activo: boolean;
+  externo: boolean;
+  documento: string | null;
+  nota: string | null;
+}
+
+/** Lo que se manda al crear o cambiar un socio. */
+export type DatosSocio = Pick<SocioUtilidad, "nombre" | "externo" | "documento" | "nota">;
+
+/** La cuenta de un socio: lo repartido por mes, sus pagos y el saldo. */
+export interface CuentaSocio extends SocioUtilidad {
+  meses: Array<{ mes: string; utilidadVehiculos: number; gastosPropios: number; total: number; vehiculos: number }>;
+  pagos: Array<{ id: number; fecha: string; monto: number; nota: string | null; soporteUrl: string | null; registradoPor: string | null }>;
+  repartido: number;
+  pagado: number;
+  /** repartido - pagado (negativo = lo que el socio debe). */
+  saldo: number;
+}
+
 /** Cascada, reparto, participaciones y socios. */
 export const apiUtilidades = {
   /** Cascada por vehiculo y reparto por socio del mes ("AAAA-MM"). */
@@ -2242,9 +2265,18 @@ export const apiUtilidades = {
   guardarParticipacion: (vehiculoId: number, desde: string, partes: Array<{ socioId: number; porcentaje: number }>) =>
     put<ParticipacionVehiculo[]>(`/utilidades/participaciones/${vehiculoId}`, { desde, partes }),
   /** Socios. */
-  socios: () => get<Array<{ id: number; nombre: string; activo: boolean }>>("/utilidades/socios"),
-  /** Crea un socio. */
-  crearSocio: (nombre: string) => post<Array<{ id: number; nombre: string; activo: boolean }>>("/utilidades/socios", { nombre }),
+  socios: () => get<SocioUtilidad[]>("/utilidades/socios"),
+  /** Crea un socio (de la empresa o externo). */
+  crearSocio: (d: DatosSocio) => post<SocioUtilidad[]>("/utilidades/socios", d),
+  /** Cambia los datos de un socio. */
+  actualizarSocio: (id: number, d: DatosSocio) => put<SocioUtilidad[]>(`/utilidades/socios/${id}/datos`, d),
   /** Activa o desactiva un socio. */
-  activarSocio: (id: number, activo: boolean) => put<Array<{ id: number; nombre: string; activo: boolean }>>(`/utilidades/socios/${id}`, { activo }),
+  activarSocio: (id: number, activo: boolean) => put<SocioUtilidad[]>(`/utilidades/socios/${id}`, { activo }),
+  /** Cuenta de cada socio: repartido en meses aprobados, pagos y saldo. */
+  cuentas: () => get<CuentaSocio[]>("/utilidades/cuentas"),
+  /** Registra un pago a un socio (negativo = lo que el socio devolvio). */
+  registrarPago: (socioId: number, d: { fecha: string; monto: number; nota: string | null; soporteUrl: string | null }) =>
+    post<CuentaSocio[]>(`/utilidades/socios/${socioId}/pagos`, d),
+  /** Borra un pago registrado por error. */
+  borrarPago: (id: number) => del<CuentaSocio[]>(`/utilidades/pagos/${id}`),
 };

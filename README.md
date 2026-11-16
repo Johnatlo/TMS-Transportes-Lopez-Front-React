@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_666 funciones, componentes, métodos y rutas en 98 archivos._
+_673 funciones, componentes, métodos y rutas en 99 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (214)
+- [`src/api/cliente.ts`](#srcapiclientets) (218)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -266,6 +266,7 @@ _666 funciones, componentes, métodos y rutas en 98 archivos._
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
 - [`src/paginas/utilidades/Participaciones.tsx`](#srcpaginasutilidadesparticipacionestsx) (2)
+- [`src/paginas/utilidades/Socios.tsx`](#srcpaginasutilidadessociostsx) (3)
 - [`src/paginas/utilidades/Utilidades.tsx`](#srcpaginasutilidadesutilidadestsx) (5)
 - [`src/paginas/utilidades/excelUtilidades.ts`](#srcpaginasutilidadesexcelutilidadests) (3)
 - [`src/paginas/utilidades/pasos.ts`](#srcpaginasutilidadespasosts) (2)
@@ -980,11 +981,23 @@ _666 funciones, componentes, métodos y rutas en 98 archivos._
   - **`apiUtilidades.socios()`** · _método_
     Socios.
 
-  - **`apiUtilidades.crearSocio(nombre)`** · _método_
-    Crea un socio.
+  - **`apiUtilidades.crearSocio(d)`** · _método_
+    Crea un socio (de la empresa o externo).
+
+  - **`apiUtilidades.actualizarSocio(id, d)`** · _método_
+    Cambia los datos de un socio.
 
   - **`apiUtilidades.activarSocio(id, activo)`** · _método_
     Activa o desactiva un socio.
+
+  - **`apiUtilidades.cuentas()`** · _método_
+    Cuenta de cada socio: repartido en meses aprobados, pagos y saldo.
+
+  - **`apiUtilidades.registrarPago(socioId, d)`** · _método_
+    Registra un pago a un socio (negativo = lo que el socio devolvio).
+
+  - **`apiUtilidades.borrarPago(id)`** · _método_
+    Borra un pago registrado por error.
 
 ### `src/componentes/AccesoGps.tsx`
 
@@ -3258,7 +3271,8 @@ _666 funciones, componentes, métodos y rutas en 98 archivos._
 > Participaciones: de quien es cada vehiculo de la flota propia y en que
 > porcentaje (100 % del dueno, o una sociedad), con vigencia. Una nueva
 > participacion empieza en una fecha y la anterior se cierra el dia antes;
-> los meses anteriores no cambian. Aqui tambien se crean los socios. Solo el
+> los meses anteriores no cambian. Los socios (tambien los externos) se crean
+> en la pestana Socios. Solo el
 > rol total cambia algo.
 
 - **`Participaciones({...})`** · _componente React_
@@ -3266,6 +3280,24 @@ _666 funciones, componentes, métodos y rutas en 98 archivos._
 
 - **`FormularioParticipacion({...})`** · _componente React_
   Nueva participacion de un vehiculo desde una fecha (por defecto, 50/50 si se agrega un segundo socio).
+
+### `src/paginas/utilidades/Socios.tsx`
+
+> Socios y su cuenta (solo rol total): los de la empresa y los externos (los
+> que solo estan en una sociedad de un vehiculo). Para cada uno: lo que se le
+> repartio en cada mes aprobado, los pagos que se le han hecho y el saldo por
+> pagar. Los pagos llevan fecha, valor, nota y el link del soporte (Drive);
+> el sistema no guarda datos bancarios. Un pago negativo es lo que el socio
+> le devolvio a la empresa.
+
+- **`Socios()`** · _componente React_
+  Lista de socios con su cuenta.
+
+- **`DetalleSocio({...})`** · _componente React_
+  Lo repartido por mes, los pagos y el formulario de pago de un socio.
+
+- **`FormularioSocio({...})`** · _componente React_
+  Formulario para crear o cambiar un socio.
 
 ### `src/paginas/utilidades/Utilidades.tsx`
 
@@ -3279,7 +3311,9 @@ _666 funciones, componentes, métodos y rutas en 98 archivos._
 > - Reparto: la utilidad de cada vehiculo segun su participacion, menos los
 >   gastos propios de cada socio; y la diferencia contra lo que ya se le
 >   liquido al dueno por los viajes.
-> - Participaciones: quien es dueno de cada vehiculo (sociedades) y socios.
+> - Participaciones: quien es dueno de cada vehiculo (sociedades).
+> - Socios (rol total): los de la empresa y los externos, con su cuenta:
+>   lo repartido en los meses aprobados, los pagos y el saldo.
 > - El rol total aprueba el reparto de un mes cerrado: queda la foto.
 
 - **`Utilidades()`** · _componente React_

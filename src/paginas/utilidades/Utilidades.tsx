@@ -9,7 +9,9 @@
  * - Reparto: la utilidad de cada vehiculo segun su participacion, menos los
  *   gastos propios de cada socio; y la diferencia contra lo que ya se le
  *   liquido al dueno por los viajes.
- * - Participaciones: quien es dueno de cada vehiculo (sociedades) y socios.
+ * - Participaciones: quien es dueno de cada vehiculo (sociedades).
+ * - Socios (rol total): los de la empresa y los externos, con su cuenta:
+ *   lo repartido en los meses aprobados, los pagos y el saldo.
  * - El rol total aprueba el reparto de un mes cerrado: queda la foto.
  */
 import { useState } from "react";
@@ -24,10 +26,11 @@ import type { Columna } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
 import Participaciones from "./Participaciones";
+import Socios from "./Socios";
 import { exportarCascada, exportarDetalle, exportarReparto } from "./excelUtilidades";
 import { DESCUENTOS, mesAnterior, nombreMes } from "./pasos";
 
-type Vista = "cascada" | "reparto" | "participaciones";
+type Vista = "cascada" | "reparto" | "participaciones" | "socios";
 type FilaVehiculo = UtilidadesMes["vehiculos"][number];
 type FilaSocio = UtilidadesMes["socios"][number];
 
@@ -37,7 +40,9 @@ export default function Utilidades() {
   const total = usuario?.rol === "TOTAL";
   const [mes, setMes] = useState(mesAnterior(hoyColombia().slice(0, 7)));
   const [vista, setVista] = useState<Vista>("cascada");
-  const carga = useDatos(() => apiUtilidades.mes(mes), [mes]);
+  // Al volver de Participaciones o Socios se recarga (pudo cambiar una participacion o aprobarse algo).
+  const enMes = vista === "cascada" || vista === "reparto";
+  const carga = useDatos(() => apiUtilidades.mes(mes), [mes, enMes]);
   const [error, setError] = useState<string | null>(null);
   // Meses para elegir: los 18 ultimos.
   const meses: string[] = [];
@@ -71,6 +76,7 @@ export default function Utilidades() {
               ["cascada", "Cascada por vehiculo"],
               ["reparto", "Reparto por socio"],
               ["participaciones", "Participaciones"],
+              ...(total ? [["socios", "Socios"] as [Vista, string]] : []),
             ] as Array<[Vista, string]>
           ).map(([id, etiqueta]) => (
             <button key={id} type="button" className={vista === id ? "activo" : ""} onClick={() => setVista(id)}>
@@ -80,7 +86,9 @@ export default function Utilidades() {
         </div>
       </div>
       {error && <div className="alert danger">{error}</div>}
-      {vista === "participaciones" ? (
+      {vista === "socios" ? (
+        <Socios />
+      ) : vista === "participaciones" ? (
         <Participaciones editable={total} />
       ) : carga.cargando && !u ? (
         <Cargando que="las utilidades" />
@@ -319,7 +327,15 @@ function Reparto({ u }: { u: UtilidadesMes }) {
       valor: (s) => s.porVehiculo.length,
       celda: (s) => (
         <span className="dato-sec">
-          {s.porVehiculo.map((v) => (v.porcentaje === 100 ? placa(v.vehiculoId) : `${placa(v.vehiculoId)} ${v.porcentaje} %`)).join(", ") || "-"}
+          {s.porVehiculo
+            .map((v) =>
+              v.porcentaje === 100
+                ? placa(v.vehiculoId)
+                : v.porcentaje === 0
+                  ? `${placa(v.vehiculoId)} (solo liquidacion)`
+                  : `${placa(v.vehiculoId)} ${v.porcentaje} %`,
+            )
+            .join(", ") || "-"}
         </span>
       ),
     },
@@ -361,7 +377,9 @@ function Reparto({ u }: { u: UtilidadesMes }) {
     <>
       <div className="section-desc" style={{ marginBottom: "0.5rem" }}>
         Utilidad del socio = su parte de la utilidad neta de cada vehiculo - sus gastos propios. Diferencia = utilidad del socio - lo que ya se le liquido por
-        los viajes: si es negativa, es lo que debe cubrir (nomina, gastos generales y directos que no se descontaron en los viajes).
+        los viajes (la liquidacion de los viajes se le cuenta completa al dueno del vehiculo en Flota): si es negativa, es lo que debe cubrir (nomina, gastos
+        generales y directos que no se descontaron en los viajes, o la parte de otro socio de la sociedad que recibio el); si es positiva, lo que falta por
+        darle.
       </div>
       <div className="panel">
         <TablaDatos
@@ -379,7 +397,7 @@ function Reparto({ u }: { u: UtilidadesMes }) {
                   {s.porVehiculo.map((v) => (
                     <div key={v.vehiculoId} className="concepto-nomina">
                       <span>
-                        {placa(v.vehiculoId)} ({v.porcentaje} %)
+                        {placa(v.vehiculoId)} ({v.porcentaje ? `${v.porcentaje} %` : "recibio la liquidacion de los viajes"})
                       </span>
                       <span>{moneda(v.utilidad)}</span>
                     </div>
