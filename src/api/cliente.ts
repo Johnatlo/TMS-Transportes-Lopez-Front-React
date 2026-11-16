@@ -2029,7 +2029,12 @@ export interface LineaNomina {
   vehiculoId: number | null;
   placa: string | null;
   dias: number;
+  /** El que entra al calculo: el del sistema o el escrito a mano. */
   producido: number;
+  producidoManual: boolean;
+  /** El que sale de los viajes del sistema, y cuanto en cada vehiculo. */
+  producidoSistema: number;
+  porVehiculo: Array<{ vehiculoId: number; placa: string; producido: number; viajes: number; sinTarifa: number }>;
   ajuste: number;
   notaAjuste: string | null;
   entrada: { riesgoArl: number; pctSalarial: number; pctViaticos: number };
@@ -2046,12 +2051,30 @@ export interface Nomina {
   hasta: string;
   estado: "BORRADOR" | "APROBADA";
   nota: string | null;
+  /** De donde sale el producido (por defecto el mes en que empieza la nomina). */
+  producidoDesde: string;
+  producidoHasta: string;
   anioParametros: number;
   creadoPor: string | null;
   aprobadaPor: string | null;
   aprobadaEn: string | null;
   lineas: LineaNomina[];
   totales: { devengado: number; neto: number; costoEmpleador: number; costoTotal: number };
+}
+
+/** Un viaje del cuadro que suma al producido de un conductor. */
+export interface ViajeProducidoNomina {
+  id: number;
+  fecha: string;
+  placa: string;
+  manifiesto: string | null;
+  cliente: string;
+  concepto: string | null;
+  pesoKg: number | null;
+  tipoFlete: string;
+  tarifaKilo: number | null;
+  /** null = sin tarifa (no suma). */
+  flete: number | null;
 }
 
 /** Empleados, parametros y nominas. */
@@ -2085,8 +2108,143 @@ export const apiNomina = {
   /** Agrega un empleado a la nomina. */
   agregarLinea: (id: number, empleadoId: number) => post<Nomina>(`/nomina/${id}/lineas`, { empleadoId }),
   /** Cambia dias, producido, vehiculo o ajuste de una linea. */
-  actualizarLinea: (id: number, linea: number, d: Partial<Pick<LineaNomina, "dias" | "producido" | "vehiculoId" | "ajuste" | "notaAjuste">>) =>
+  actualizarLinea: (id: number, linea: number, d: Partial<Pick<LineaNomina, "dias" | "producido" | "producidoManual" | "vehiculoId" | "ajuste" | "notaAjuste">>) =>
     put<Nomina>(`/nomina/${id}/lineas/${linea}`, d),
   /** Quita a un empleado de la nomina. */
   quitarLinea: (id: number, linea: number) => del<Nomina>(`/nomina/${id}/lineas/${linea}`),
+  /** Cambia de donde sale el producido. */
+  periodoProducido: (id: number, producidoDesde: string, producidoHasta: string) => put<Nomina>(`/nomina/${id}/producido`, { producidoDesde, producidoHasta }),
+  /** Los viajes del sistema que suman el producido de una linea. */
+  viajesLinea: (id: number, linea: number) => get<ViajeProducidoNomina[]>(`/nomina/${id}/lineas/${linea}/viajes`),
+};
+
+// ---------- Utilidades: cascada por vehiculo y reparto por socio (backend/src/utilidades.ts) ----------
+
+/** Lo que le toco a un vehiculo o socio de un gasto del libro en el mes. */
+export interface PartidaUtilidad {
+  gastoId: number;
+  descripcion: string;
+  categoria: string;
+  /** Positivo: gasto; negativo: ingreso. */
+  monto: number;
+  vehiculoId: number | null;
+  socioId: number | null;
+  paso: "DIRECTO" | "CONDUCTOR" | "GENERAL";
+}
+
+/** Un viaje en la cascada (de Rentabilidad). */
+export interface ViajeUtilidad {
+  id: number;
+  vehiculoId: number;
+  fecha: string;
+  manifiesto: string | null;
+  cliente: string;
+  flete: number;
+  retencion: number;
+  reteIca: number;
+  anticipoRenta: number;
+  bancaria: number;
+  supertransporte: number;
+  comision: number;
+  tLopez: number;
+  descargue: number;
+  poliza: number;
+  otrosDescuentos: number;
+  anticipo: number;
+  saldoBeneficiario: number;
+}
+
+/** Claves de los descuentos del viaje. */
+export type ClaveDescuentoUtilidad =
+  | "retencion"
+  | "reteIca"
+  | "anticipoRenta"
+  | "bancaria"
+  | "supertransporte"
+  | "comision"
+  | "tLopez"
+  | "descargue"
+  | "poliza"
+  | "otrosDescuentos";
+
+/** La cascada de un vehiculo en el mes. */
+export interface CascadaVehiculo {
+  vehiculoId: number;
+  viajes: number;
+  ingresos: number;
+  descuentos: Record<ClaveDescuentoUtilidad, number>;
+  totalDescuentos: number;
+  anticipos: number;
+  directos: PartidaUtilidad[];
+  totalDirectos: number;
+  conductor: PartidaUtilidad[];
+  totalConductor: number;
+  generales: PartidaUtilidad[];
+  totalGenerales: number;
+  utilidad: number;
+  saldoViajes: number;
+}
+
+/** Lo que le toca a un socio en el reparto. */
+export interface RepartoSocioUtilidad {
+  socioId: number;
+  nombre: string;
+  porVehiculo: Array<{ vehiculoId: number; porcentaje: number; utilidad: number; saldoViajes: number }>;
+  utilidadVehiculos: number;
+  gastosPropios: PartidaUtilidad[];
+  totalGastosPropios: number;
+  total: number;
+  saldoViajes: number;
+  diferencia: number;
+}
+
+/** Cascada y reparto de un mes. */
+export interface UtilidadesMes {
+  mes: string;
+  cerrado: boolean;
+  aprobado: { por: string | null; en: string } | null;
+  vehiculos: Array<{
+    vehiculoId: number;
+    placa: string;
+    empresa: EmpresaGasto;
+    dueno: string | null;
+    participaciones: Array<{ socioId: number; socio: string; porcentaje: number }>;
+    cascada: CascadaVehiculo;
+    detalleViajes: ViajeUtilidad[];
+  }>;
+  socios: RepartoSocioUtilidad[];
+  sinParticipacion: string[];
+}
+
+/** Un vehiculo con su participacion vigente y su historial. */
+export interface ParticipacionVehiculo {
+  vehiculoId: number;
+  placa: string;
+  empresa: EmpresaGasto;
+  dueno: string | null;
+  vigentes: Array<{ id: number; socioId: number; socio: string; porcentaje: number; desde: string; hasta: string | null }>;
+  historial: Array<{ id: number; socioId: number; socio: string; porcentaje: number; desde: string; hasta: string | null }>;
+}
+
+/** Cascada, reparto, participaciones y socios. */
+export const apiUtilidades = {
+  /** Cascada por vehiculo y reparto por socio del mes ("AAAA-MM"). */
+  mes: (mes: string) => get<UtilidadesMes>(`/utilidades/${mes}`),
+  /** Meses con reparto aprobado. */
+  aprobados: () => get<string[]>("/utilidades/aprobados"),
+  /** Aprueba el reparto del mes (debe estar cerrado en Gastos). */
+  aprobar: (mes: string) => post<UtilidadesMes>(`/utilidades/${mes}/aprobar`, {}),
+  /** Anula la aprobacion. */
+  anular: (mes: string) => del<UtilidadesMes>(`/utilidades/${mes}/aprobar`),
+  /** Vehiculos con su participacion. */
+  participaciones: () => get<ParticipacionVehiculo[]>("/utilidades/participaciones"),
+  /** Nueva participacion de un vehiculo desde una fecha (debe sumar 100 %). */
+  guardarParticipacion: (vehiculoId: number, desde: string, partes: Array<{ socioId: number; porcentaje: number }>) =>
+    put<ParticipacionVehiculo[]>(`/utilidades/participaciones/${vehiculoId}`, { desde, partes }),
+  /** Socios. */
+  socios: () => get<Array<{ id: number; nombre: string; activo: boolean }>>("/utilidades/socios"),
+  /** Crea un socio. */
+  crearSocio: (nombre: string) => post<Array<{ id: number; nombre: string; activo: boolean }>>("/utilidades/socios", { nombre }),
+  /** Activa o desactiva un socio. */
+  activarSocio: (id: number, activo: boolean) => put<Array<{ id: number; nombre: string; activo: boolean }>>(`/utilidades/socios/${id}`, { activo }),
 };

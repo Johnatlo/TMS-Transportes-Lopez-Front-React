@@ -3,8 +3,11 @@
  * empleados y parametros por ano.
  *
  * - Liquidacion: se crea con desde y hasta y trae a los empleados activos.
- *   En cada linea se escriben los dias, el producido (conductores), el
- *   vehiculo y un ajuste con nota. Se ve lo que se le paga al empleado y el
+ *   El producido de cada conductor sale de los viajes del sistema (flete de
+ *   los vehiculos que manejaba en el mes del producido; por defecto el mes en
+ *   que empieza la nomina) y se puede ver viaje por viaje. Si hace falta se
+ *   escribe a mano y se puede volver al del sistema. En cada linea tambien
+ *   van los dias, el vehiculo y un ajuste con nota. Se ve lo que se le paga al empleado y el
  *   costo del empleador (aportes redondeados a la centena + provisiones).
  * - Aprobar crea un gasto por empleado en el libro (categoria Nomina) por su
  *   costo total, causado por dias entre los meses del periodo: el del
@@ -13,7 +16,7 @@
  */
 import { useEffect, useState } from "react";
 import { apiGastos, apiNomina, hoyColombia, moneda } from "../../api/cliente";
-import type { Empleado, LineaNomina, Nomina as TipoNomina, OpcionesGastos } from "../../api/cliente";
+import type { Empleado, LineaNomina, Nomina as TipoNomina, OpcionesGastos, ViajeProducidoNomina } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { useSesion } from "../../ganchos/useSesion";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
@@ -87,6 +90,7 @@ function Liquidaciones({
   const [error, setError] = useState<string | null>(null);
   const [abierta, setAbierta] = useState<number | null>(null);
   const [agregar, setAgregar] = useState("");
+  const [viajes, setViajes] = useState<LineaNomina | null>(null);
   useEffect(() => {
     if (!nominas.some((n) => n.id === elegida)) setElegida(nominas[0]?.id ?? null);
   }, [nominas, elegida]);
@@ -148,6 +152,7 @@ function Liquidaciones({
               Parametros {n.anioParametros}
               {n.aprobadaPor && ` · aprobada por ${n.aprobadaPor}`}
             </span>
+            <PeriodoProducido n={n} editable={administra && borrador} alCambiar={(d, h) => accion(() => apiNomina.periodoProducido(n.id, d, h))} />
             {administra && borrador && (
               <>
                 <button
@@ -206,6 +211,7 @@ function Liquidaciones({
                     abierta={abierta === l.id}
                     alAbrir={() => setAbierta(abierta === l.id ? null : l.id)}
                     alCambiar={(d) => accion(() => apiNomina.actualizarLinea(n.id, l.id, d))}
+                    alVerViajes={() => setViajes(l)}
                     alQuitar={() => window.confirm(`¿Quitar a ${l.nombre} de esta nomina?`) && accion(() => apiNomina.quitarLinea(n.id, l.id))}
                   />
                 ))}
@@ -236,6 +242,7 @@ function Liquidaciones({
           </div>
         </>
       )}
+      {viajes && n && <VentanaViajes n={n} l={viajes} alCerrar={() => setViajes(null)} />}
       {nueva && (
         <NuevaNomina
           ultima={nominas[0] ?? null}
@@ -277,6 +284,7 @@ function FilaLinea({
   abierta,
   alAbrir,
   alCambiar,
+  alVerViajes,
   alQuitar,
 }: {
   l: LineaNomina;
@@ -284,7 +292,9 @@ function FilaLinea({
   opciones: OpcionesGastos;
   abierta: boolean;
   alAbrir: () => void;
-  alCambiar: (d: Partial<Pick<LineaNomina, "dias" | "producido" | "vehiculoId" | "ajuste" | "notaAjuste">>) => void;
+  alCambiar: (d: Partial<Pick<LineaNomina, "dias" | "producido" | "producidoManual" | "vehiculoId" | "ajuste" | "notaAjuste">>) => void;
+  /** Abre los viajes que suman el producido. */
+  alVerViajes: () => void;
   alQuitar: () => void;
 }) {
   const borrador = n.estado === "BORRADOR";
@@ -323,9 +333,49 @@ function FilaLinea({
           ) : (
             placaConGuion(l.placa ?? "-")
           )}
+          {conductor && l.porVehiculo.some((v) => v.producido > 0 && v.vehiculoId !== l.vehiculoId) && (
+            <span className="dato-sec producido-origen" style={{ maxWidth: "8.5rem" }}>
+              Produjo en{" "}
+              {l.porVehiculo
+                .filter((v) => v.producido > 0)
+                .map((v) => placaConGuion(v.placa))
+                .join(" + ")}
+              : su costo va ahi
+            </span>
+          )}
         </td>
         <td className="num">{borrador ? <CampoValor valor={l.dias} ancho="4rem" alGuardar={(v) => alCambiar({ dias: v })} /> : l.dias}</td>
-        <td className="num">{conductor ? <CampoValor valor={l.producido} disabled={!borrador} alGuardar={(v) => alCambiar({ producido: v })} /> : "-"}</td>
+        <td className="num">
+          {conductor ? (
+            <>
+              <CampoValor valor={l.producido} disabled={!borrador} alGuardar={(v) => alCambiar({ producido: v })} />
+              <span className="dato-sec producido-origen">
+                {l.producidoManual ? (
+                  <>
+                    A mano (sistema {moneda(l.producidoSistema)})
+                    {borrador && (
+                      <button className="btn-link" onClick={() => alCambiar({ producidoManual: false })}>
+                        Usar el del sistema
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>Del sistema</>
+                )}
+                {(l.porVehiculo.length > 0 || l.producidoSistema > 0) && (
+                  <button className="btn-link" onClick={alVerViajes}>
+                    {l.porVehiculo.reduce((s, v) => s + v.viajes, 0)} viajes
+                  </button>
+                )}
+              </span>
+              {l.porVehiculo.some((v) => v.sinTarifa > 0) && (
+                <span className="texto-vencido producido-origen">{l.porVehiculo.reduce((s, v) => s + v.sinTarifa, 0)} sin tarifa (no suman)</span>
+              )}
+            </>
+          ) : (
+            "-"
+          )}
+        </td>
         <td className="num">{moneda(c.salarial)}</td>
         <td className="num">{c.viaticos ? moneda(c.viaticos) : "-"}</td>
         <td className="num">
@@ -333,7 +383,7 @@ function FilaLinea({
         </td>
         <td className="num">{moneda(c.costoEmpleador)}</td>
         <td className="num">
-          <CampoValor valor={l.ajuste} disabled={!borrador} ancho="6rem" alGuardar={(v) => alCambiar({ ajuste: v })} />
+          <CampoValor valor={l.ajuste} disabled={!borrador} ancho="5rem" alGuardar={(v) => alCambiar({ ajuste: v })} />
           {borrador && l.ajuste !== 0 && (
             <input
               placeholder="Nota del ajuste"
@@ -394,6 +444,121 @@ function FilaLinea({
         </tr>
       )}
     </>
+  );
+}
+
+/** De donde sale el producido (por defecto el mes en que empieza la nomina); se puede cambiar en borrador. */
+function PeriodoProducido({ n, editable, alCambiar }: { n: TipoNomina; editable: boolean; alCambiar: (desde: string, hasta: string) => void }) {
+  const [editando, setEditando] = useState(false);
+  const [desde, setDesde] = useState(n.producidoDesde);
+  const [hasta, setHasta] = useState(n.producidoHasta);
+  useEffect(() => {
+    setDesde(n.producidoDesde);
+    setHasta(n.producidoHasta);
+  }, [n.producidoDesde, n.producidoHasta]);
+  if (!editando)
+    return (
+      <span className="dato-sec">
+        · Producido de los viajes del {fechaCorta(n.producidoDesde)} al {fechaCorta(n.producidoHasta)}{" "}
+        {editable && (
+          <button className="btn-link" onClick={() => setEditando(true)}>
+            Cambiar
+          </button>
+        )}
+      </span>
+    );
+  return (
+    <span className="estado-abono">
+      <span className="dato-sec">Producido del</span>
+      <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} aria-label="Producido desde" />
+      <span className="dato-sec">al</span>
+      <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} aria-label="Producido hasta" />
+      <button
+        className="btn-secondary"
+        disabled={!desde || !hasta || hasta < desde}
+        onClick={() => {
+          alCambiar(desde, hasta);
+          setEditando(false);
+        }}
+      >
+        Guardar
+      </button>
+      <button className="btn-link" onClick={() => setEditando(false)}>
+        Cancelar
+      </button>
+    </span>
+  );
+}
+
+/** Los viajes del sistema que suman el producido de un conductor, por vehiculo. */
+function VentanaViajes({ n, l, alCerrar }: { n: TipoNomina; l: LineaNomina; alCerrar: () => void }) {
+  const [viajes, setViajes] = useState<ViajeProducidoNomina[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    apiNomina
+      .viajesLinea(n.id, l.id)
+      .then(setViajes)
+      .catch((exc) => setError(exc instanceof Error ? exc.message : "No se pudieron cargar los viajes."));
+  }, [n.id, l.id]);
+  const placas = [...new Set((viajes ?? []).map((v) => v.placa))];
+  return (
+    <Modal
+      titulo={`Producido de ${l.nombre}`}
+      ancho="pantalla"
+      alCerrar={alCerrar}
+      pie={
+        <button className="btn-primary" onClick={alCerrar}>
+          Listo
+        </button>
+      }
+    >
+      <div className="section-desc" style={{ marginBottom: "0.5rem" }}>
+        Viajes del {fechaCorta(n.producidoDesde)} al {fechaCorta(n.producidoHasta)} de los vehiculos que manejaba (segun su asignacion en Empleados). El
+        producido es la suma del flete de cada viaje; los que no tienen tarifa no suman hasta que se les ponga en el Cuadro pagos.
+        {l.porVehiculo.length > 1 && " Al aprobar, su costo se reparte entre los vehiculos segun lo que produjo en cada uno."}
+      </div>
+      {error && <div className="alert danger">{error}</div>}
+      {!viajes && !error && <div className="dato-sec">Cargando...</div>}
+      {viajes && !viajes.length && <div className="dato-sec">No hay viajes en ese periodo.</div>}
+      {placas.map((placa) => {
+        const lista = viajes!.filter((v) => v.placa === placa);
+        const total = lista.reduce((s, v) => s + (v.flete ?? 0), 0);
+        return (
+          <div key={placa} style={{ marginBottom: "0.8rem", overflowX: "auto" }}>
+            <h4 style={{ margin: "0 0 0.3rem" }}>
+              {placaConGuion(placa)} · {moneda(total)}
+            </h4>
+            <table className="tabla tabla-compacta" style={{ minWidth: "100%" }}>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Manifiesto</th>
+                  <th>Cliente</th>
+                  <th className="num">Peso</th>
+                  <th className="num">Tarifa</th>
+                  <th className="num">Flete</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lista.map((v) => (
+                  <tr key={v.id}>
+                    <td>{fechaCorta(v.fecha)}</td>
+                    <td>{v.manifiesto ?? "-"}</td>
+                    <td>
+                      {v.cliente}
+                      {v.concepto && <span className="dato-sec">{v.concepto}</span>}
+                    </td>
+                    <td className="num">{v.pesoKg !== null ? v.pesoKg.toLocaleString("es-CO") : "-"}</td>
+                    <td className="num">{v.tipoFlete === "FIJO" ? "Fijo" : v.tarifaKilo !== null ? v.tarifaKilo.toLocaleString("es-CO") : "-"}</td>
+                    <td className="num">{v.flete !== null ? moneda(v.flete) : <span className="texto-vencido">Sin tarifa</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+    </Modal>
   );
 }
 
@@ -462,7 +627,8 @@ function NuevaNomina({ ultima, alCerrar, alCrear }: { ultima: TipoNomina | null;
         </div>
       </div>
       <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
-        Trae a los empleados activos en el periodo con sus dias. Despues escribes el producido de cada conductor.
+        Trae a los empleados activos en el periodo con sus dias. El producido de cada conductor sale de sus viajes del mes en que empieza la nomina (se puede
+        cambiar).
       </div>
     </Modal>
   );

@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_640 funciones, componentes, métodos y rutas en 94 archivos._
+_666 funciones, componentes, métodos y rutas en 98 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (202)
+- [`src/api/cliente.ts`](#srcapiclientets) (214)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -243,7 +243,7 @@ _640 funciones, componentes, métodos y rutas en 94 archivos._
 - [`src/paginas/gastos/SelectorDestinos.tsx`](#srcpaginasgastosselectordestinostsx) (1)
 - [`src/paginas/gastos/destinos.ts`](#srcpaginasgastosdestinosts) (4)
 - [`src/paginas/nomina/Empleados.tsx`](#srcpaginasnominaempleadostsx) (4)
-- [`src/paginas/nomina/Nomina.tsx`](#srcpaginasnominanominatsx) (7)
+- [`src/paginas/nomina/Nomina.tsx`](#srcpaginasnominanominatsx) (9)
 - [`src/paginas/nomina/Parametros.tsx`](#srcpaginasnominaparametrostsx) (2)
 - [`src/paginas/nomina/excelNomina.ts`](#srcpaginasnominaexcelnominats) (1)
 - [`src/paginas/preoperacional/FormularioPreoperacional.tsx`](#srcpaginaspreoperacionalformulariopreoperacionaltsx) (1)
@@ -265,6 +265,10 @@ _640 funciones, componentes, métodos y rutas en 94 archivos._
 - [`src/paginas/seguimiento/liquidacionDuenos.ts`](#srcpaginasseguimientoliquidacionduenosts) (7)
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
+- [`src/paginas/utilidades/Participaciones.tsx`](#srcpaginasutilidadesparticipacionestsx) (2)
+- [`src/paginas/utilidades/Utilidades.tsx`](#srcpaginasutilidadesutilidadestsx) (5)
+- [`src/paginas/utilidades/excelUtilidades.ts`](#srcpaginasutilidadesexcelutilidadests) (3)
+- [`src/paginas/utilidades/pasos.ts`](#srcpaginasutilidadespasosts) (2)
 - [`src/paginas/vehiculos/PerfilVehiculo.tsx`](#srcpaginasvehiculosperfilvehiculotsx) (1)
 - [`src/paginas/vehiculos/Vehiculos.tsx`](#srcpaginasvehiculosvehiculostsx) (4)
 - [`src/paginas/vehiculos/VisorCamion.tsx`](#srcpaginasvehiculosvisorcamiontsx) (2)
@@ -945,6 +949,42 @@ _640 funciones, componentes, métodos y rutas en 94 archivos._
 
   - **`apiNomina.quitarLinea(id, linea)`** · _método_
     Quita a un empleado de la nomina.
+
+  - **`apiNomina.periodoProducido(id, producidoDesde, producidoHasta)`** · _método_
+    Cambia de donde sale el producido.
+
+  - **`apiNomina.viajesLinea(id, linea)`** · _método_
+    Los viajes del sistema que suman el producido de una linea.
+
+- **`apiUtilidades`** · _módulo_
+  Cascada, reparto, participaciones y socios.
+
+  - **`apiUtilidades.mes(mes)`** · _método_
+    Cascada por vehiculo y reparto por socio del mes ("AAAA-MM").
+
+  - **`apiUtilidades.aprobados()`** · _método_
+    Meses con reparto aprobado.
+
+  - **`apiUtilidades.aprobar(mes)`** · _método_
+    Aprueba el reparto del mes (debe estar cerrado en Gastos).
+
+  - **`apiUtilidades.anular(mes)`** · _método_
+    Anula la aprobacion.
+
+  - **`apiUtilidades.participaciones()`** · _método_
+    Vehiculos con su participacion.
+
+  - **`apiUtilidades.guardarParticipacion(vehiculoId, desde, partes)`** · _método_
+    Nueva participacion de un vehiculo desde una fecha (debe sumar 100 %).
+
+  - **`apiUtilidades.socios()`** · _método_
+    Socios.
+
+  - **`apiUtilidades.crearSocio(nombre)`** · _método_
+    Crea un socio.
+
+  - **`apiUtilidades.activarSocio(id, activo)`** · _método_
+    Activa o desactiva un socio.
 
 ### `src/componentes/AccesoGps.tsx`
 
@@ -2616,8 +2656,11 @@ _640 funciones, componentes, métodos y rutas en 94 archivos._
 > empleados y parametros por ano.
 >
 > - Liquidacion: se crea con desde y hasta y trae a los empleados activos.
->   En cada linea se escriben los dias, el producido (conductores), el
->   vehiculo y un ajuste con nota. Se ve lo que se le paga al empleado y el
+>   El producido de cada conductor sale de los viajes del sistema (flete de
+>   los vehiculos que manejaba en el mes del producido; por defecto el mes en
+>   que empieza la nomina) y se puede ver viaje por viaje. Si hace falta se
+>   escribe a mano y se puede volver al del sistema. En cada linea tambien
+>   van los dias, el vehiculo y un ajuste con nota. Se ve lo que se le paga al empleado y el
 >   costo del empleador (aportes redondeados a la centena + provisiones).
 > - Aprobar crea un gasto por empleado en el libro (categoria Nomina) por su
 >   costo total, causado por dias entre los meses del periodo: el del
@@ -2638,6 +2681,12 @@ _640 funciones, componentes, métodos y rutas en 94 archivos._
 
 - **`FilaLinea({...})`** · _componente React_
   Una linea de la nomina y, al abrirla, el detalle de cada concepto.
+
+- **`PeriodoProducido({...})`** · _componente React_
+  De donde sale el producido (por defecto el mes en que empieza la nomina); se puede cambiar en borrador.
+
+- **`VentanaViajes({...})`** · _componente React_
+  Los viajes del sistema que suman el producido de un conductor, por vehiculo.
 
 - **`Concepto({...})`** · _componente React_
   Un concepto del detalle.
@@ -3203,6 +3252,77 @@ _640 funciones, componentes, métodos y rutas en 94 archivos._
 
 - **`numeroONulo(t)`** · _función_
   Texto del formulario a numero; vacio = null.
+
+### `src/paginas/utilidades/Participaciones.tsx`
+
+> Participaciones: de quien es cada vehiculo de la flota propia y en que
+> porcentaje (100 % del dueno, o una sociedad), con vigencia. Una nueva
+> participacion empieza en una fecha y la anterior se cierra el dia antes;
+> los meses anteriores no cambian. Aqui tambien se crean los socios. Solo el
+> rol total cambia algo.
+
+- **`Participaciones({...})`** · _componente React_
+  Lista de vehiculos con su participacion.
+
+- **`FormularioParticipacion({...})`** · _componente React_
+  Nueva participacion de un vehiculo desde una fecha (por defecto, 50/50 si se agrega un segundo socio).
+
+### `src/paginas/utilidades/Utilidades.tsx`
+
+> Pantalla Utilidades (fase 3 del modulo de gastos): cascada de rentabilidad
+> por vehiculo y reparto de la utilidad entre los socios, mes a mes.
+>
+> - Cascada: por vehiculo, 1. fletes, 2. descuentos del viaje, 3. costos
+>   directos (anticipos de los viajes y gastos que van completos al carro),
+>   4. nomina del conductor, 5. gastos generales prorrateados, 6. utilidad.
+>   Clic en un vehiculo muestra cada paso con su detalle (viajes y gastos).
+> - Reparto: la utilidad de cada vehiculo segun su participacion, menos los
+>   gastos propios de cada socio; y la diferencia contra lo que ya se le
+>   liquido al dueno por los viajes.
+> - Participaciones: quien es dueno de cada vehiculo (sociedades) y socios.
+> - El rol total aprueba el reparto de un mes cerrado: queda la foto.
+
+- **`Utilidades()`** · _componente React_
+  Pantalla de utilidades.
+
+- **`Resumen({...})`** · _componente React_
+  Totales del mes.
+
+- **`Cascada({...})`** · _componente React_
+  Cascada por vehiculo.
+
+- **`DetalleCascada({...})`** · _componente React_
+  Cada paso de la cascada de un vehiculo con su detalle.
+
+- **`Reparto({...})`** · _componente React_
+  Reparto por socio.
+
+### `src/paginas/utilidades/excelUtilidades.ts`
+
+> Excel de las utilidades de un mes: la cascada (un vehiculo por fila con
+> cada paso y cada descuento) y el detalle (cada viaje y cada partida del
+> libro con su paso), para cuadrarlo contra el Excel de la empresa; y el
+> reparto por socio.
+
+- **`exportarCascada(u)`** · _función_
+  Descarga la cascada por vehiculo del mes.
+
+- **`exportarDetalle(u)`** · _función_
+  Descarga el detalle del mes: cada viaje y cada partida del libro con su paso.
+
+- **`exportarReparto(u)`** · _función_
+  Descarga el reparto por socio del mes.
+
+### `src/paginas/utilidades/pasos.ts`
+
+> Nombres de los pasos de la cascada y de los descuentos del viaje (los
+> mismos de backend/src/calculoUtilidades.ts), para la pantalla y el Excel.
+
+- **`nombreMes(mes)`** · _función_
+  "2026-10" -> "Octubre 2026".
+
+- **`mesAnterior(mes)`** · _función_
+  El mes anterior a "AAAA-MM".
 
 ### `src/paginas/vehiculos/PerfilVehiculo.tsx`
 

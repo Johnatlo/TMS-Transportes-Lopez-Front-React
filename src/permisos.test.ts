@@ -7,6 +7,8 @@ describe("permisos por rol", () => {
     expect([puedeRuta("ADMINISTRATIVO", "/usuarios"), puede("ADMINISTRATIVO", "LIQUIDACION")]).toEqual([false, false]);
     // Los tres roles entran a Gastos (M&C solo ve los de su empresa: lo filtra el servidor).
     expect(["TOTAL", "ADMINISTRATIVO", "MYC"].every((r) => puedeRuta(r as never, "/gastos") && puedeRuta(r as never, "/nomina"))).toBe(true);
+    // Utilidades (cascada y reparto): total y M&C; las administrativas no.
+    expect(["TOTAL", "ADMINISTRATIVO", "MYC"].map((r) => puedeRuta(r as never, "/utilidades"))).toEqual([true, false, true]);
   });
 
   test("M&C: RNDC y sus cuentas, sin lo operativo de las dos empresas", () => {

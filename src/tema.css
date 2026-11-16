@@ -717,3 +717,8 @@ table.tabla tbody tr.fila-detalle > td {
 .detalle-nomina { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.8rem 1.4rem; padding: 0.4rem 0.2rem; }
 .detalle-nomina h5 { margin: 0 0 0.3rem; font-size: 0.8rem; color: var(--gris-500); }
 .concepto-nomina { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; padding: 0.1rem 0; }
+
+/* Nomina: de donde sale el producido (sistema o a mano) debajo del valor. */
+.producido-origen { display: block; font-size: 0.72rem; margin-top: 0.15rem; white-space: normal; }
+table.tabla-nomina td, table.tabla-nomina th { padding-left: 0.55rem; padding-right: 0.55rem; }
+.producido-origen .btn-link { font-size: 0.72rem; margin-left: 0.3rem; }

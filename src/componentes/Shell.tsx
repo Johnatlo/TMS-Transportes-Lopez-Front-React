@@ -49,6 +49,7 @@ const SECCIONES: Array<{ ruta: string; etiqueta: string; icono: ReactNode }> = [
   { ruta: "/rentabilidad", etiqueta: "Rentabilidad", icono: <IconoGrafica /> },
   { ruta: "/gastos", etiqueta: "Gastos", icono: <IconoCartera /> },
   { ruta: "/nomina", etiqueta: "Nomina", icono: <IconoUsuarios /> },
+  { ruta: "/utilidades", etiqueta: "Utilidades", icono: <IconoGrafica /> },
   { ruta: "/preoperacional", etiqueta: "Preoperacional", icono: <IconoCheck /> },
   { ruta: "/vehiculos", etiqueta: "Vehiculos", icono: <IconoCamion /> },
   { ruta: "/plantillas", etiqueta: "Plantillas", icono: <IconoPlantillas /> },
