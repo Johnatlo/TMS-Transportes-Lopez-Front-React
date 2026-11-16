@@ -696,3 +696,18 @@ table.tabla tbody tr.fila-detalle > td {
 .selector-tramo.es-ida { background: #eef2ff; color: #3730a3; }
 .selector-tramo.es-vuelta { background: #ecfeff; color: #155e75; }
 .sugerencias-tramo { display: flex; flex-direction: column; gap: 0.2rem; }
+
+/* Gastos: a quien se reparte (vehiculos marcados y socios), el reparto ya calculado y la tabla de amortizacion. */
+.selector-destinos { border: 1px solid var(--color-border); border-radius: 12px; padding: 0.7rem; }
+.destinos-empresa { margin-bottom: 0.5rem; }
+.destinos-vehiculos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.35rem; margin-top: 0.2rem; }
+.casilla-vehiculo { display: flex; align-items: center; gap: 0.4rem; border: 1px solid var(--color-border); border-radius: 10px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 0.85rem; }
+.casilla-vehiculo.marcada { border-color: #2563eb; background: #eff6ff; }
+.casilla-vehiculo input { width: auto; margin: 0; }
+.destinos-socios { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; margin-top: 0.4rem; }
+.destinos-socios .linea-abono { width: 100%; }
+.reparto-gasto { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.4rem; }
+.reparto-gasto-parte { display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: 10px; padding: 0.3rem 0.55rem; background: var(--color-surface); }
+.tabla-amortizacion { max-height: 420px; overflow: auto; border: 1px solid var(--color-border); border-radius: 10px; }
+.tabla-amortizacion thead th { position: sticky; top: 0; background: var(--color-surface); z-index: 1; }
+.texto-ok { color: #047857; }

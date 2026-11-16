@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_578 funciones, componentes, métodos y rutas en 86 archivos._
+_609 funciones, componentes, métodos y rutas en 90 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (170)
+- [`src/api/cliente.ts`](#srcapiclientets) (185)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -238,6 +238,10 @@ _578 funciones, componentes, métodos y rutas en 86 archivos._
 - [`src/paginas/cuadro/relacionBomba.ts`](#srcpaginascuadrorelacionbombats) (8)
 - [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (9)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
+- [`src/paginas/gastos/Creditos.tsx`](#srcpaginasgastoscreditostsx) (4)
+- [`src/paginas/gastos/Gastos.tsx`](#srcpaginasgastosgastostsx) (7)
+- [`src/paginas/gastos/SelectorDestinos.tsx`](#srcpaginasgastosselectordestinostsx) (1)
+- [`src/paginas/gastos/destinos.ts`](#srcpaginasgastosdestinosts) (4)
 - [`src/paginas/preoperacional/FormularioPreoperacional.tsx`](#srcpaginaspreoperacionalformulariopreoperacionaltsx) (1)
 - [`src/paginas/preoperacional/Preoperacional.tsx`](#srcpaginaspreoperacionalpreoperacionaltsx) (2)
 - [`src/paginas/preoperacional/excelPreoperacional.ts`](#srcpaginaspreoperacionalexcelpreoperacionalts) (6)
@@ -841,6 +845,51 @@ _578 funciones, componentes, métodos y rutas en 86 archivos._
 
   - **`apiVehiculos.perfil(placa)`** · _método_
     El perfil de un vehiculo (con sus ultimos 10 viajes).
+
+- **`apiGastos`** · _módulo_
+  Libro de gastos, cierres de mes y creditos.
+
+  - **`apiGastos.opciones()`** · _método_
+    Vehiculos, socios, categorias, fecha de inicio y meses cerrados.
+
+  - **`apiGastos.listar()`** · _método_
+    El libro de gastos (M&C: solo los de su empresa).
+
+  - **`apiGastos.crear(d)`** · _método_
+    Registra un gasto y calcula su reparto.
+
+  - **`apiGastos.actualizar(id, d)`** · _método_
+    Cambia el gasto y recalcula su reparto (solo en meses abiertos).
+
+  - **`apiGastos.pago(id, d)`** · _método_
+    Fecha de pago y link del soporte (no tocan el reparto).
+
+  - **`apiGastos.anular(id)`** · _método_
+    Anula el gasto: queda en el libro pero deja de contar.
+
+  - **`apiGastos.cerrarMes(mes, cerrado)`** · _método_
+    Cierra o abre un mes; devuelve los meses cerrados.
+
+  - **`apiGastos.fijarCorte(corte)`** · _método_
+    Cambia la fecha desde la que se registran gastos (solo rol total).
+
+  - **`apiGastos.creditos()`** · _método_
+    Creditos con su tabla de amortizacion y saldo.
+
+  - **`apiGastos.crearCredito(d)`** · _método_
+    Crea un credito y su tabla de amortizacion.
+
+  - **`apiGastos.actualizarCredito(id, d)`** · _método_
+    Cambia el credito (rehace la tabla si aun no tiene cuotas pagadas).
+
+  - **`apiGastos.borrarCredito(id)`** · _método_
+    Borra un credito sin cuotas pagadas.
+
+  - **`apiGastos.pagarCuota(id, numero, d)`** · _método_
+    Registra el pago de una cuota (crea su gasto con el reparto del credito).
+
+  - **`apiGastos.quitarPagoCuota(id, numero)`** · _método_
+    Quita el pago de una cuota y borra su gasto.
 
 ### `src/componentes/AccesoGps.tsx`
 
@@ -2401,6 +2450,92 @@ _578 funciones, componentes, métodos y rutas en 86 archivos._
 - **`tonoEstado(estado)`** · _función_
   Color de la pastilla de un estado de viaje: verde cumplido, azul expedido,
   gris anulado, amarillo mientras se envia, rojo los errores.
+
+### `src/paginas/gastos/Creditos.tsx`
+
+> Creditos de las dos empresas: monto, tasa, plazo y a quien se reparte cada
+> cuota. Clic en un credito muestra su tabla de amortizacion (capital,
+> interes y saldo) y deja registrar el pago de cada cuota: al pagarla se crea
+> su gasto en el libro con el reparto del credito. Las cuotas anteriores a la
+> fecha de inicio de los gastos solo se marcan pagadas (para que el saldo
+> cuadre). La tabla se exporta a Excel.
+
+- **`exportarTabla(c)`** · _función_
+  Descarga la tabla de amortizacion del credito.
+
+- **`Creditos({...})`** · _componente React_
+  Lista de creditos con su tabla de amortizacion.
+
+- **`TablaAmortizacion({...})`** · _componente React_
+  Tabla de amortizacion de un credito con el pago de cada cuota.
+
+- **`FormularioCredito({...})`** · _componente React_
+  Formulario para crear o cambiar un credito.
+
+### `src/paginas/gastos/Gastos.tsx`
+
+> Pantalla Gastos: el libro unico de gastos de Transportes Lopez y
+> Transportes M&C (fase 1 del modulo de gastos, prorrateo y reparto).
+>
+> - Libro: cada gasto con su empresa, categoria, causacion (a que mes
+>   corresponde), pago y a quien se reparte. Clic en un gasto muestra cuanto
+>   le toco a cada vehiculo o socio. Exportar saca lo que esta en pantalla.
+> - Por vehiculo: lo que le toco a cada vehiculo y socio en un mes.
+> - Creditos: tabla de amortizacion y pago de cuotas (ver Creditos.tsx).
+> - El rol total cierra meses (sus gastos ya no cambian) y fija la fecha
+>   desde la que se registran. Transportes M&C solo ve lo de su empresa.
+
+- **`nombreMes(mes)`** · _función_
+  "2026-11" -> "Noviembre 2026".
+
+- **`resumenDestino(g)`** · _función_
+  A quien va el gasto, en pocas palabras ("CELSO + 13 vehiculos").
+
+- **`Gastos()`** · _componente React_
+  Pantalla de gastos.
+
+- **`DetalleGasto({...})`** · _componente React_
+  Lo que le toco a cada vehiculo o socio, las causaciones y las acciones del gasto.
+
+- **`FormularioGasto({...})`** · _componente React_
+  Formulario para crear, editar o duplicar un gasto.
+
+- **`PorVehiculo({...})`** · _componente React_
+  Lo que le toco a cada vehiculo y socio en un mes (por fecha de causacion).
+
+- **`VentanaCierres({...})`** · _componente React_
+  Cierre de meses y fecha desde la que se registran gastos (solo el rol total).
+
+### `src/paginas/gastos/SelectorDestinos.tsx`
+
+> A quien va un gasto (o la cuota de un credito): se marcan los vehiculos uno
+> por uno, con los atajos "Lopez", "M&C" y "Todos", y se agregan partes
+> directas a socios (valor fijo, porcentaje, o una parte igual a la de un
+> carro). Debajo, la vista previa de cuanto le toca a cada uno.
+
+- **`SelectorDestinos({...})`** · _componente React_
+  Selector de vehiculos y socios de un gasto.
+
+### `src/paginas/gastos/destinos.ts`
+
+> Destinos de un gasto en el formulario: los vehiculos marcados (una parte
+> cada uno) y las partes directas a socios. Sin React: se prueba aparte
+> (destinos.test.ts). El reparto de verdad lo hace el backend al guardar;
+> aqui solo se arma lo que se envia y una vista previa.
+
+- **`vehiculosDe(opciones, empresa)`** · _función_
+  Ids de los vehiculos activos de una empresa (o de las dos): los atajos "Lopez", "M&C" y "Todos".
+
+- **`aDestinos(s)`** · _función_
+  La seleccion del formulario como destinos para enviar (se omiten las partes de socio incompletas).
+
+- **`aSeleccion(destinos)`** · _función_
+  Los destinos guardados de vuelta a la seleccion del formulario (para editar o duplicar).
+
+- **`vistaPrevia(monto, s)`** · _función_
+  Vista previa: cuanto va directo a socios, cuanto queda para repartir y
+  cuanto le toca a cada parte (vehiculo marcado o socio "por partes").
+  `problema` dice por que no se puede guardar todavia.
 
 ### `src/paginas/preoperacional/FormularioPreoperacional.tsx`
 

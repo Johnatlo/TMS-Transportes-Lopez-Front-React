@@ -13,12 +13,12 @@
 import type { Rol } from "./api/tipos";
 
 /** Areas del aplicativo. */
-export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "ADMINISTRACION" | "USUARIOS";
+export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "GASTOS" | "ADMINISTRACION" | "USUARIOS";
 
 const AREAS: Record<Rol, Area[]> = {
-  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "ADMINISTRACION", "USUARIOS"],
-  ADMINISTRATIVO: ["RNDC", "OPERACION", "CUENTAS", "ADMINISTRACION"],
-  MYC: ["RNDC", "CUENTAS", "LIQUIDACION"],
+  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "GASTOS", "ADMINISTRACION", "USUARIOS"],
+  ADMINISTRATIVO: ["RNDC", "OPERACION", "CUENTAS", "GASTOS", "ADMINISTRACION"],
+  MYC: ["RNDC", "CUENTAS", "LIQUIDACION", "GASTOS"],
 };
 
 /** Nombre del rol para mostrarlo. */
@@ -42,6 +42,7 @@ const AREA_RUTA: Array<[string, Area]> = [
   ["/cartera", "OPERACION"],
   ["/terceros", "OPERACION"],
   ["/rentabilidad", "CUENTAS"],
+  ["/gastos", "GASTOS"],
   ["/preoperacional", "RNDC"],
   ["/vehiculos", "RNDC"],
   ["/plantillas", "RNDC"],

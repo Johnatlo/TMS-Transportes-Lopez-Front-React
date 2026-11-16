@@ -1799,3 +1799,143 @@ export const apiVehiculos = {
   /** El perfil de un vehiculo (con sus ultimos 10 viajes). */
   perfil: (placa: string) => get<PerfilVehiculo>(`/catalogo/perfiles-vehiculos/${encodeURIComponent(placa)}`),
 };
+
+// ---------- Gastos, prorrateo y creditos (backend/src/gastos.ts) ----------
+
+/** Empresa del gasto o del vehiculo. */
+export type EmpresaGasto = "LOPEZ" | "MYC";
+
+/** A quien va una parte del gasto: un vehiculo o un socio; valor fijo, porcentaje o partes de lo que quede. */
+export interface DestinoGasto {
+  tipo: "VEHICULO" | "SOCIO";
+  id: number;
+  modo: "FIJO" | "PORCENTAJE" | "PARTE";
+  valor: number;
+}
+
+/** Lo que le toco a un vehiculo o socio en una causacion. */
+export interface RepartoGasto {
+  fecha: string;
+  vehiculoId: number | null;
+  placa: string | null;
+  socioId: number | null;
+  socio: string | null;
+  monto: number;
+}
+
+/** Un gasto (o ingreso) del libro. */
+export interface Gasto {
+  id: number;
+  empresa: EmpresaGasto;
+  tipo: "GASTO" | "INGRESO";
+  categoria: string;
+  descripcion: string;
+  monto: number;
+  fechaPago: string | null;
+  /** Link al soporte (Drive). */
+  soporteUrl: string | null;
+  causaDesde: string;
+  causaCuotas: number;
+  destinos: DestinoGasto[];
+  /** MANUAL o CREDITO. */
+  origen: string;
+  creditoId: number | null;
+  anulado: boolean;
+  creadoPor: string | null;
+  creadoEn: string;
+  causaciones: Array<{ fecha: string; monto: number }>;
+  reparto: RepartoGasto[];
+}
+
+/** Lo que se manda al crear o cambiar un gasto. */
+export interface DatosGasto {
+  empresa: EmpresaGasto;
+  tipo: "GASTO" | "INGRESO";
+  categoria: string;
+  descripcion: string;
+  monto: number;
+  fechaPago: string | null;
+  soporteUrl: string | null;
+  causaDesde: string;
+  causaCuotas: number;
+  destinos: DestinoGasto[];
+}
+
+/** Lo que necesita el formulario de gastos. */
+export interface OpcionesGastos {
+  vehiculos: Array<{ id: number; placa: string; empresa: EmpresaGasto; dueno: string | null; activo: boolean }>;
+  socios: Array<{ id: number; nombre: string }>;
+  categorias: string[];
+  /** Fecha desde la que se registran gastos. */
+  corte: string;
+  /** Meses cerrados ("AAAA-MM"). */
+  cerrados: string[];
+}
+
+/** Una cuota de la tabla de amortizacion. */
+export interface CuotaCredito {
+  numero: number;
+  fecha: string;
+  cuota: number;
+  capital: number;
+  interes: number;
+  saldo: number;
+  fechaPago: string | null;
+  gastoId: number | null;
+}
+
+/** Un credito con su tabla y su saldo. */
+export interface Credito {
+  id: number;
+  empresa: EmpresaGasto;
+  nombre: string;
+  entidad: string | null;
+  obligacion: string | null;
+  monto: number;
+  /** Tasa mensual en porcentaje. */
+  tasaMensual: number;
+  plazo: number;
+  primeraCuota: string;
+  cuotaFija: number | null;
+  prorratea: "CAPITAL_E_INTERES" | "INTERES";
+  destinos: DestinoGasto[];
+  nota: string | null;
+  cuotas: CuotaCredito[];
+  saldoPendiente: number;
+  cuotasPagadas: number;
+}
+
+/** Lo que se manda al crear o cambiar un credito. */
+export type DatosCredito = Omit<Credito, "id" | "cuotas" | "saldoPendiente" | "cuotasPagadas">;
+
+/** Libro de gastos, cierres de mes y creditos. */
+export const apiGastos = {
+  /** Vehiculos, socios, categorias, fecha de inicio y meses cerrados. */
+  opciones: () => get<OpcionesGastos>("/gastos/opciones"),
+  /** El libro de gastos (M&C: solo los de su empresa). */
+  listar: () => get<Gasto[]>("/gastos"),
+  /** Registra un gasto y calcula su reparto. */
+  crear: (d: DatosGasto) => post<Gasto>("/gastos", d),
+  /** Cambia el gasto y recalcula su reparto (solo en meses abiertos). */
+  actualizar: (id: number, d: DatosGasto) => put<Gasto>(`/gastos/${id}`, d),
+  /** Fecha de pago y link del soporte (no tocan el reparto). */
+  pago: (id: number, d: { fechaPago?: string | null; soporteUrl?: string | null }) => put<Gasto>(`/gastos/${id}/pago`, d),
+  /** Anula el gasto: queda en el libro pero deja de contar. */
+  anular: (id: number) => del<Gasto>(`/gastos/${id}`),
+  /** Cierra o abre un mes; devuelve los meses cerrados. */
+  cerrarMes: (mes: string, cerrado: boolean) => post<string[]>("/gastos/cierres", { mes, cerrado }),
+  /** Cambia la fecha desde la que se registran gastos (solo rol total). */
+  fijarCorte: (corte: string) => put<{ corte: string }>("/gastos/corte", { corte }),
+  /** Creditos con su tabla de amortizacion y saldo. */
+  creditos: () => get<Credito[]>("/gastos/creditos"),
+  /** Crea un credito y su tabla de amortizacion. */
+  crearCredito: (d: DatosCredito) => post<Credito>("/gastos/creditos", d),
+  /** Cambia el credito (rehace la tabla si aun no tiene cuotas pagadas). */
+  actualizarCredito: (id: number, d: DatosCredito) => put<Credito>(`/gastos/creditos/${id}`, d),
+  /** Borra un credito sin cuotas pagadas. */
+  borrarCredito: (id: number) => del<{ ok: boolean }>(`/gastos/creditos/${id}`),
+  /** Registra el pago de una cuota (crea su gasto con el reparto del credito). */
+  pagarCuota: (id: number, numero: number, d: { fechaPago: string; soporteUrl?: string | null }) => post<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`, d),
+  /** Quita el pago de una cuota y borra su gasto. */
+  quitarPagoCuota: (id: number, numero: number) => del<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`),
+};
