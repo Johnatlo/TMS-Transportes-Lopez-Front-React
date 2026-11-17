@@ -53,7 +53,8 @@ function resumenDestino(g: Gasto): string {
   const vehiculos = g.destinos.filter((d) => d.tipo === "VEHICULO").length;
   const socios = [...new Set(g.reparto.filter((r) => r.socio).map((r) => r.socio as string))];
   const unico = vehiculos === 1 ? g.reparto.find((r) => r.placa)?.placa : null;
-  return [...socios, unico ? placaConGuion(unico) : vehiculos ? `${vehiculos} vehiculos` : ""].filter(Boolean).join(" + ") || "-";
+  const empresa = g.destinos.some((d) => d.tipo === "EMPRESA") ? "Empresa" : "";
+  return [...socios, unico ? placaConGuion(unico) : vehiculos ? `${vehiculos} vehiculos` : "", empresa].filter(Boolean).join(" + ") || "-";
 }
 
 type Vista = "libro" | "vehiculos" | "creditos";
@@ -213,6 +214,7 @@ export default function Gastos() {
             detalle={(g) => (
               <DetalleGasto
                 g={g}
+                soloLectura={usuario?.rol === "MYC" && g.empresa !== "MYC"}
                 cerrados={opciones.cerrados}
                 alEditar={() => setFormulario({ gasto: g, base: null })}
                 alDuplicar={() => setFormulario({ gasto: null, base: g })}
@@ -247,6 +249,7 @@ export default function Gastos() {
 /** Lo que le toco a cada vehiculo o socio, las causaciones y las acciones del gasto. */
 function DetalleGasto({
   g,
+  soloLectura,
   cerrados,
   alEditar,
   alDuplicar,
@@ -254,6 +257,8 @@ function DetalleGasto({
   alPagar,
 }: {
   g: Gasto;
+  /** M&C ve los gastos de Lopez pero no los cambia. */
+  soloLectura: boolean;
   cerrados: string[];
   alEditar: () => void;
   alDuplicar: () => void;
@@ -263,8 +268,8 @@ function DetalleGasto({
   // Suma por vehiculo o socio de todas las causaciones.
   const porDestino = new Map<string, { nombre: string; monto: number }>();
   for (const r of g.reparto) {
-    const clave = r.vehiculoId ? `v${r.vehiculoId}` : `s${r.socioId}`;
-    const previo = porDestino.get(clave) ?? { nombre: r.placa ? placaConGuion(r.placa) : `Socio ${r.socio ?? ""}`, monto: 0 };
+    const clave = r.vehiculoId ? `v${r.vehiculoId}` : r.socioId ? `s${r.socioId}` : "empresa";
+    const previo = porDestino.get(clave) ?? { nombre: r.placa ? placaConGuion(r.placa) : r.socioId ? `Socio ${r.socio ?? ""}` : "Empresa", monto: 0 };
     previo.monto += r.monto;
     porDestino.set(clave, previo);
   }
@@ -285,7 +290,12 @@ function DetalleGasto({
           Causaciones: {g.causaciones.map((c) => `${fechaCorta(c.fecha)} ${moneda(c.monto)}`).join(" · ")}
         </div>
       )}
-      {!g.anulado && (
+      {soloLectura && (
+        <div className="dato-sec" style={{ marginTop: "0.4rem" }}>
+          Gasto de Transportes Lopez: solo se consulta.
+        </div>
+      )}
+      {!g.anulado && !soloLectura && (
         <div className="detalle-tanqueo-pie">
           <label>
             <span className="dato-sec">Fecha de pago</span>
@@ -490,10 +500,10 @@ function PorVehiculo({ gastos, opciones }: { gastos: Gasto[]; opciones: Opciones
     for (const g of gastos) {
       for (const r of g.reparto.filter((x) => x.fecha.startsWith(mes))) {
         const v = opciones.vehiculos.find((x) => x.id === r.vehiculoId);
-        const clave = r.vehiculoId ? `v${r.vehiculoId}` : `s${r.socioId}`;
+        const clave = r.vehiculoId ? `v${r.vehiculoId}` : r.socioId ? `s${r.socioId}` : "empresa";
         const fila = mapa.get(clave) ?? {
           clave,
-          nombre: r.placa ? placaConGuion(r.placa) : `Socio ${r.socio ?? ""}`,
+          nombre: r.placa ? placaConGuion(r.placa) : r.socioId ? `Socio ${r.socio ?? ""}` : "Empresa",
           empresa: v ? NOMBRE_EMPRESA[v.empresa] : "-",
           dueno: v?.dueno ?? (r.socio ? r.socio : "-"),
           gastos: 0,

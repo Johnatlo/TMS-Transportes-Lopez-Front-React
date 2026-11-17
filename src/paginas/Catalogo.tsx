@@ -1235,7 +1235,7 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[], administra: boolean): S
     {
       titulo: "Flota",
       descripcion:
-        "Transportes Lopez y Transportes MYC son la flota propia. Los demas son terceros: se les paga aparte, a los 15 dias de entregar el viaje.",
+        "Transportes Lopez y Transportes MYC son la flota propia. Los demas son terceros: se les paga aparte, a los 15 dias de entregar el viaje. De quien es cada carro y en que porcentaje (sociedades) se registra en Utilidades > Participaciones; aqui el dueno es a quien se le paga la liquidacion de los viajes.",
       campos: [
         {
           key: "flota",
@@ -1250,7 +1250,7 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[], administra: boolean): S
         {
           // Para separar la cartera por socio (filtro de Cartera).
           key: "dueno",
-          label: "Dueno (para la cartera)",
+          label: "Recibe la liquidacion de los viajes (dueno para la cartera)",
           tipo: "select",
           opciones: [
             { value: "", label: "Tercero" },

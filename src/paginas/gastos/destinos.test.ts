@@ -34,7 +34,7 @@ describe("destinos del gasto", () => {
       { tipo: "VEHICULO", id: 2, modo: "PARTE", valor: 1 },
       { tipo: "VEHICULO", id: 3, modo: "PARTE", valor: 1 },
     ]);
-    expect(aSeleccion(destinos)).toEqual({ vehiculos: [2, 3], socios: [{ socioId: 2, modo: "FIJO", valor: "536264" }] });
+    expect(aSeleccion(destinos)).toEqual({ vehiculos: [2, 3], socios: [{ socioId: 2, modo: "FIJO", valor: "536264" }], empresa: false });
   });
 
   test("vista previa del credito Chelo: 536.264 directo y 322.510 por carro entre 13", () => {
@@ -44,6 +44,10 @@ describe("destinos del gasto", () => {
 
   test("avisa lo que falta", () => {
     expect(vistaPrevia(1000, { vehiculos: [], socios: [] }).problema).toMatch(/Marca los vehiculos/);
+    // Lo asume la empresa: una parte, como un carro.
+    expect(vistaPrevia(1000, { vehiculos: [1], socios: [], empresa: true })).toMatchObject({ partes: 2, porParte: 500, problema: null });
+    expect(aDestinos({ vehiculos: [], socios: [], empresa: true })).toEqual([{ tipo: "EMPRESA", id: 0, modo: "PARTE", valor: 1 }]);
+    expect(aSeleccion([{ tipo: "EMPRESA", id: 0, modo: "PARTE", valor: 1 }]).empresa).toBe(true);
     expect(vistaPrevia(1000, { vehiculos: [], socios: [{ socioId: 2, modo: "FIJO", valor: "400" }] }).problema).toMatch(/Falta repartir/);
     expect(vistaPrevia(1000, { vehiculos: [1], socios: [{ socioId: 2, modo: "FIJO", valor: "1400" }] }).problema).toMatch(/suman mas/);
     expect(vistaPrevia(1000, { vehiculos: [], socios: [{ socioId: 2, modo: "PORCENTAJE", valor: "100" }] }).problema).toBeNull();

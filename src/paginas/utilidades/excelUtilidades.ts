@@ -1,8 +1,8 @@
 /**
  * Excel de las utilidades de un mes: la cascada (un vehiculo por fila con
  * cada paso y cada descuento) y el detalle (cada viaje y cada partida del
- * libro con su paso), para cuadrarlo contra el Excel de la empresa; y el
- * reparto por socio.
+ * libro con su paso), para cuadrarlo contra el Excel de la empresa; los
+ * fondos de los vehiculos y el reparto por socio.
  */
 import type { UtilidadesMes } from "../../api/cliente";
 import { DESCUENTOS, NOMBRE_PASO } from "./pasos";
@@ -159,6 +159,37 @@ export async function exportarDetalle(u: UtilidadesMes): Promise<void> {
   );
 }
 
+/** Descarga los fondos del mes: por vehiculo, saldo anterior, utilidad, lo pagado al dueno, base, disponible, lo repartido y el saldo final. */
+export async function exportarFondos(u: UtilidadesMes): Promise<void> {
+  const { descargarTabla } = await import("../../componentes/excelTabla");
+  const v = u.vehiculos.filter((x) => x.fondo);
+  const col = (titulo: string, valores: Array<string | number | null>, derecha = false) => ({ titulo, valores, derecha });
+  const f = (k: "saldoAnterior" | "utilidad" | "liquidado" | "antesDeRepartir" | "base" | "disponible" | "repartimos" | "saldoFinal") =>
+    v.map((x) => x.fondo![k]);
+  await descargarTabla(
+    [
+      col(
+        "Vehiculo",
+        v.map((x) => x.placa),
+      ),
+      col(
+        "Participacion",
+        v.map((x) => x.participaciones.map((p) => `${p.socio} ${p.porcentaje} %`).join(" + ") || "Sin participacion"),
+      ),
+      col("Saldo anterior (mes anterior)", f("saldoAnterior"), true),
+      col("Utilidad del mes", f("utilidad"), true),
+      col("Pagado al dueno por los viajes", f("liquidado"), true),
+      col("Antes de repartir", f("antesDeRepartir"), true),
+      col("Base", f("base"), true),
+      col("Disponible", f("disponible"), true),
+      col("Repartimos", f("repartimos"), true),
+      col("Saldo final (pasa al mes siguiente)", f("saldoFinal"), true),
+    ],
+    `Fondos ${u.mes}`,
+    `utilidades-fondos-${u.mes}`,
+  );
+}
+
 /** Descarga el reparto por socio del mes. */
 export async function exportarReparto(u: UtilidadesMes): Promise<void> {
   const { descargarTabla } = await import("../../componentes/excelTabla");
@@ -172,12 +203,31 @@ export async function exportarReparto(u: UtilidadesMes): Promise<void> {
         s.map((x) => x.nombre),
       ),
       col(
+        "Tipo",
+        s.map((x) => (x.externo ? "Externo" : "De la empresa")),
+      ),
+      col(
         "Vehiculos",
         s.map((x) => x.porVehiculo.map((v) => `${placa(v.vehiculoId)} ${v.porcentaje} %`).join(", ")),
       ),
       col(
-        "Utilidad de sus vehiculos",
-        s.map((x) => x.utilidadVehiculos),
+        "Su parte de lo repartido",
+        s.map((x) => x.repartido),
+        true,
+      ),
+      col(
+        `${u.gmfPorMil} x 1000`,
+        s.map((x) => x.gmf),
+        true,
+      ),
+      col(
+        "Su parte de lo pagado por viajes",
+        s.map((x) => x.liquidado),
+        true,
+      ),
+      col(
+        "Lo que el recibio de los viajes",
+        s.map((x) => x.recibido),
         true,
       ),
       col(
@@ -190,18 +240,8 @@ export async function exportarReparto(u: UtilidadesMes): Promise<void> {
         s.map((x) => x.gastosPropios.map((g) => g.descripcion).join("; ")),
       ),
       col(
-        "Utilidad del socio",
-        s.map((x) => x.total),
-        true,
-      ),
-      col(
-        "Ya liquidado en los viajes",
-        s.map((x) => x.saldoViajes),
-        true,
-      ),
-      col(
-        "Diferencia (+ por darle, - debe)",
-        s.map((x) => x.diferencia),
+        "Neto del mes (+ se le debe, - debe)",
+        s.map((x) => x.neto),
         true,
       ),
     ],

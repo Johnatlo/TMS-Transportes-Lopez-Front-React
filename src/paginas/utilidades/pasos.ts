@@ -23,6 +23,7 @@ export const NOMBRE_PASO: Record<PartidaUtilidad["paso"], string> = {
   DIRECTO: "3. Gasto directo",
   CONDUCTOR: "4. Nomina del conductor",
   GENERAL: "5. Gasto general",
+  EMPRESA: "Gasto de la empresa",
 };
 
 /** "2026-10" -> "Octubre 2026". */

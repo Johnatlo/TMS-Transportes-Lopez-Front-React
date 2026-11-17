@@ -1807,7 +1807,8 @@ export type EmpresaGasto = "LOPEZ" | "MYC";
 
 /** A quien va una parte del gasto: un vehiculo o un socio; valor fijo, porcentaje o partes de lo que quede. */
 export interface DestinoGasto {
-  tipo: "VEHICULO" | "SOCIO";
+  /** EMPRESA: lo asume la empresa (id 0). */
+  tipo: "VEHICULO" | "SOCIO" | "EMPRESA";
   id: number;
   modo: "FIJO" | "PORCENTAJE" | "PARTE";
   valor: number;
@@ -2118,9 +2119,9 @@ export const apiNomina = {
   viajesLinea: (id: number, linea: number) => get<ViajeProducidoNomina[]>(`/nomina/${id}/lineas/${linea}/viajes`),
 };
 
-// ---------- Utilidades: cascada por vehiculo y reparto por socio (backend/src/utilidades.ts) ----------
+// ---------- Utilidades: cascada, fondos, reparto, empresa y socios (backend/src/utilidades.ts) ----------
 
-/** Lo que le toco a un vehiculo o socio de un gasto del libro en el mes. */
+/** Lo que le toco a un vehiculo, socio o a la empresa de un gasto del libro en el mes. */
 export interface PartidaUtilidad {
   gastoId: number;
   descripcion: string;
@@ -2129,7 +2130,8 @@ export interface PartidaUtilidad {
   monto: number;
   vehiculoId: number | null;
   socioId: number | null;
-  paso: "DIRECTO" | "CONDUCTOR" | "GENERAL";
+  paso: "DIRECTO" | "CONDUCTOR" | "GENERAL" | "EMPRESA";
+  empresa: string;
 }
 
 /** Un viaje en la cascada (de Rentabilidad). */
@@ -2185,24 +2187,64 @@ export interface CascadaVehiculo {
   saldoViajes: number;
 }
 
-/** Lo que le toca a un socio en el reparto. */
+/** El fondo de un vehiculo en el mes. */
+export interface FondoVehiculo {
+  vehiculoId: number;
+  base: number;
+  saldoAnterior: number;
+  utilidad: number;
+  /** Pagado al dueno por los viajes en el mes (sale del fondo). */
+  liquidado: number;
+  antesDeRepartir: number;
+  disponible: number;
+  sugerido: number;
+  repartimos: number;
+  saldoFinal: number;
+}
+
+/** Lo que le toca a un socio en el mes. */
 export interface RepartoSocioUtilidad {
   socioId: number;
   nombre: string;
-  porVehiculo: Array<{ vehiculoId: number; porcentaje: number; utilidad: number; saldoViajes: number }>;
-  utilidadVehiculos: number;
+  externo: boolean;
+  porVehiculo: Array<{ vehiculoId: number; porcentaje: number; repartido: number; liquidado: number; recibido: number }>;
+  repartido: number;
+  /** 4 x 1000 de lo repartido. */
+  gmf: number;
+  liquidado: number;
+  recibido: number;
   gastosPropios: PartidaUtilidad[];
   totalGastosPropios: number;
-  total: number;
-  saldoViajes: number;
-  diferencia: number;
+  /** Lo que se le debe del mes (negativo = lo que debe el). */
+  neto: number;
 }
 
-/** Cascada y reparto de un mes. */
+/** Un viaje de terceros en la rentabilidad de la empresa. */
+export interface ViajeTerceroUtilidad {
+  id: number;
+  fecha: string;
+  placa: string;
+  tercero: string | null;
+  cliente: string;
+  manifiesto: string | null;
+  flete: number;
+  saldoEmpresa: number;
+  saldoTercero: number;
+  rentabilidad: number;
+  anticipoRenta: number;
+  ganancia: number;
+}
+
+/** Cascada, fondos, reparto y empresa de un mes. */
 export interface UtilidadesMes {
   mes: string;
+  /** Mes en que arrancan los fondos. */
+  inicio: string;
   cerrado: boolean;
   aprobado: { por: string | null; en: string } | null;
+  /** Meses anteriores sin aprobar. */
+  pendientes: string[];
+  gmfPorMil: number;
   vehiculos: Array<{
     vehiculoId: number;
     placa: string;
@@ -2211,9 +2253,19 @@ export interface UtilidadesMes {
     participaciones: Array<{ socioId: number; socio: string; porcentaje: number }>;
     cascada: CascadaVehiculo;
     detalleViajes: ViajeUtilidad[];
+    /** null: antes del inicio, o el rol no ve el reparto. */
+    fondo: FondoVehiculo | null;
   }>;
   socios: RepartoSocioUtilidad[];
   sinParticipacion: string[];
+  empresa: {
+    viajesTerceros: number;
+    gananciaTerceros: number;
+    detalleTerceros: ViajeTerceroUtilidad[];
+    gastos: PartidaUtilidad[];
+    totalGastos: number;
+    utilidad: number;
+  };
 }
 
 /** Un vehiculo con su participacion vigente y su historial. */
@@ -2222,8 +2274,18 @@ export interface ParticipacionVehiculo {
   placa: string;
   empresa: EmpresaGasto;
   dueno: string | null;
-  vigentes: Array<{ id: number; socioId: number; socio: string; porcentaje: number; desde: string; hasta: string | null }>;
-  historial: Array<{ id: number; socioId: number; socio: string; porcentaje: number; desde: string; hasta: string | null }>;
+  vigentes: Array<{ id: number; socioId: number; socio: string; externo: boolean; porcentaje: number; desde: string; hasta: string | null }>;
+  historial: Array<{ id: number; socioId: number; socio: string; externo: boolean; porcentaje: number; desde: string; hasta: string | null }>;
+}
+
+/** Configuracion del fondo de un vehiculo. */
+export interface ConfigFondo {
+  vehiculoId: number;
+  placa: string;
+  empresa: EmpresaGasto;
+  base: number;
+  saldoInicial: number;
+  nota: string | null;
 }
 
 /** Un socio: de la empresa o externo (solo esta en una sociedad). */
@@ -2234,31 +2296,46 @@ export interface SocioUtilidad {
   externo: boolean;
   documento: string | null;
   nota: string | null;
+  /** Lo que se le debia (o el debia, negativo) antes del sistema. */
+  saldoInicial: number;
 }
 
 /** Lo que se manda al crear o cambiar un socio. */
-export type DatosSocio = Pick<SocioUtilidad, "nombre" | "externo" | "documento" | "nota">;
+export type DatosSocio = Pick<SocioUtilidad, "nombre" | "externo" | "documento" | "nota" | "saldoInicial">;
 
-/** La cuenta de un socio: lo repartido por mes, sus pagos y el saldo. */
+/** La cuenta de un socio mes a mes. */
 export interface CuentaSocio extends SocioUtilidad {
-  meses: Array<{ mes: string; utilidadVehiculos: number; gastosPropios: number; total: number; vehiculos: number }>;
+  meses: Array<{
+    mes: string;
+    saldoAnterior: number;
+    neto: number;
+    pagos: number;
+    saldo: number;
+    detalle: { repartido: number; gmf: number; liquidado: number; recibido: number; totalGastosPropios: number } | null;
+  }>;
   pagos: Array<{ id: number; fecha: string; monto: number; nota: string | null; soporteUrl: string | null; registradoPor: string | null }>;
-  repartido: number;
-  pagado: number;
-  /** repartido - pagado (negativo = lo que el socio debe). */
+  /** Lo que se le debe hoy (negativo = lo que debe el). */
   saldo: number;
 }
 
-/** Cascada, reparto, participaciones y socios. */
+/** Utilidades: cascada, fondos, reparto, participaciones y socios. */
 export const apiUtilidades = {
-  /** Cascada por vehiculo y reparto por socio del mes ("AAAA-MM"). */
+  /** Cascada, fondos y reparto del mes ("AAAA-MM"). */
   mes: (mes: string) => get<UtilidadesMes>(`/utilidades/${mes}`),
+  /** El mes con lo que se reparte de cada vehiculo (sin guardar). */
+  simular: (mes: string, repartimos: Record<number, number>) => post<UtilidadesMes>(`/utilidades/${mes}/simular`, { repartimos }),
   /** Meses con reparto aprobado. */
   aprobados: () => get<string[]>("/utilidades/aprobados"),
-  /** Aprueba el reparto del mes (debe estar cerrado en Gastos). */
-  aprobar: (mes: string) => post<UtilidadesMes>(`/utilidades/${mes}/aprobar`, {}),
-  /** Anula la aprobacion. */
+  /** Aprueba el mes con lo que se reparte (debe estar cerrado en Gastos y el anterior aprobado). */
+  aprobar: (mes: string, repartimos: Record<number, number>) => post<UtilidadesMes>(`/utilidades/${mes}/aprobar`, { repartimos }),
+  /** Anula la aprobacion (solo el ultimo mes aprobado). */
   anular: (mes: string) => del<UtilidadesMes>(`/utilidades/${mes}/aprobar`),
+  /** Base y saldo inicial del fondo de cada vehiculo. */
+  fondos: () => get<ConfigFondo[]>("/utilidades/fondos"),
+  /** Cambia la base y el saldo inicial del fondo de un vehiculo. */
+  guardarFondo: (vehiculoId: number, d: { base: number; saldoInicial: number; nota: string | null }) => put<ConfigFondo[]>(`/utilidades/fondos/${vehiculoId}`, d),
+  /** Cambia el 4 x 1000 que se descuenta al repartir. */
+  guardarGmf: (gmfPorMil: number) => put<{ ok: boolean }>("/utilidades/gmf", { gmfPorMil }),
   /** Vehiculos con su participacion. */
   participaciones: () => get<ParticipacionVehiculo[]>("/utilidades/participaciones"),
   /** Nueva participacion de un vehiculo desde una fecha (debe sumar 100 %). */
@@ -2272,7 +2349,7 @@ export const apiUtilidades = {
   actualizarSocio: (id: number, d: DatosSocio) => put<SocioUtilidad[]>(`/utilidades/socios/${id}/datos`, d),
   /** Activa o desactiva un socio. */
   activarSocio: (id: number, activo: boolean) => put<SocioUtilidad[]>(`/utilidades/socios/${id}`, { activo }),
-  /** Cuenta de cada socio: repartido en meses aprobados, pagos y saldo. */
+  /** Cuenta de cada socio mes a mes. */
   cuentas: () => get<CuentaSocio[]>("/utilidades/cuentas"),
   /** Registra un pago a un socio (negativo = lo que el socio devolvio). */
   registrarPago: (socioId: number, d: { fecha: string; monto: number; nota: string | null; soporteUrl: string | null }) =>

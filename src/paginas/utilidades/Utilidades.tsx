@@ -1,18 +1,17 @@
 /**
- * Pantalla Utilidades (fase 3 del modulo de gastos): cascada de rentabilidad
- * por vehiculo y reparto de la utilidad entre los socios, mes a mes.
+ * Pantalla Utilidades: cascada de rentabilidad por vehiculo, fondos y reparto
+ * entre socios, rentabilidad de la empresa, participaciones y socios, mes a mes.
  *
  * - Cascada: por vehiculo, 1. fletes, 2. descuentos del viaje, 3. costos
  *   directos (anticipos de los viajes y gastos que van completos al carro),
  *   4. nomina del conductor, 5. gastos generales prorrateados, 6. utilidad.
  *   Clic en un vehiculo muestra cada paso con su detalle (viajes y gastos).
- * - Reparto: la utilidad de cada vehiculo segun su participacion, menos los
- *   gastos propios de cada socio; y la diferencia contra lo que ya se le
- *   liquido al dueno por los viajes.
+ * - Fondos y reparto (no lo ven las administrativas): ver FondosReparto.tsx.
+ * - Empresa: ganancia de terceros (no la ve M&C) menos los gastos de la
+ *   empresa. No se reparte.
  * - Participaciones: quien es dueno de cada vehiculo (sociedades).
- * - Socios (rol total): los de la empresa y los externos, con su cuenta:
- *   lo repartido en los meses aprobados, los pagos y el saldo.
- * - El rol total aprueba el reparto de un mes cerrado: queda la foto.
+ * - Socios (no lo ven las administrativas): la cuenta de cada socio.
+ * Aprobar el reparto y cambiar fondos, participaciones y socios: rol total.
  */
 import { useState } from "react";
 import { apiUtilidades, hoyColombia, moneda } from "../../api/cliente";
@@ -21,43 +20,35 @@ import { useDatos } from "../../ganchos/useDatos";
 import { useSesion } from "../../ganchos/useSesion";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Indicador from "../../componentes/Indicador";
-import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
+import TablaDatos from "../../componentes/TablaDatos";
 import type { Columna } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
+import { puede } from "../../permisos";
+import Empresa from "./Empresa";
+import FondosReparto from "./FondosReparto";
 import Participaciones from "./Participaciones";
 import Socios from "./Socios";
-import { exportarCascada, exportarDetalle, exportarReparto } from "./excelUtilidades";
+import { exportarCascada, exportarDetalle } from "./excelUtilidades";
 import { DESCUENTOS, mesAnterior, nombreMes } from "./pasos";
 
-type Vista = "cascada" | "reparto" | "participaciones" | "socios";
+type Vista = "cascada" | "reparto" | "empresa" | "participaciones" | "socios";
 type FilaVehiculo = UtilidadesMes["vehiculos"][number];
-type FilaSocio = UtilidadesMes["socios"][number];
 
 /** Pantalla de utilidades. */
 export default function Utilidades() {
   const { usuario } = useSesion();
   const total = usuario?.rol === "TOTAL";
+  const veReparto = puede(usuario?.rol, "REPARTO");
+  const verTerceros = usuario?.rol !== "MYC";
   const [mes, setMes] = useState(mesAnterior(hoyColombia().slice(0, 7)));
   const [vista, setVista] = useState<Vista>("cascada");
   // Al volver de Participaciones o Socios se recarga (pudo cambiar una participacion o aprobarse algo).
-  const enMes = vista === "cascada" || vista === "reparto";
+  const enMes = vista === "cascada" || vista === "reparto" || vista === "empresa";
   const carga = useDatos(() => apiUtilidades.mes(mes), [mes, enMes]);
-  const [error, setError] = useState<string | null>(null);
   // Meses para elegir: los 18 ultimos.
   const meses: string[] = [];
   for (let m = hoyColombia().slice(0, 7), i = 0; i < 18; i++, m = mesAnterior(m)) meses.push(m);
-
-  /** Ejecuta una accion y recarga. */
-  async function accion(fn: () => Promise<unknown>) {
-    setError(null);
-    try {
-      await fn();
-      carga.recargar();
-    } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "No se pudo guardar.");
-    }
-  }
 
   const u = carga.datos;
   return (
@@ -74,9 +65,10 @@ export default function Utilidades() {
           {(
             [
               ["cascada", "Cascada por vehiculo"],
-              ["reparto", "Reparto por socio"],
+              ...(veReparto ? [["reparto", "Fondos y reparto"] as [Vista, string]] : []),
+              ["empresa", "Empresa"],
               ["participaciones", "Participaciones"],
-              ...(total ? [["socios", "Socios"] as [Vista, string]] : []),
+              ...(veReparto ? [["socios", "Socios"] as [Vista, string]] : []),
             ] as Array<[Vista, string]>
           ).map(([id, etiqueta]) => (
             <button key={id} type="button" className={vista === id ? "activo" : ""} onClick={() => setVista(id)}>
@@ -85,9 +77,8 @@ export default function Utilidades() {
           ))}
         </div>
       </div>
-      {error && <div className="alert danger">{error}</div>}
       {vista === "socios" ? (
-        <Socios />
+        <Socios editable={total} />
       ) : vista === "participaciones" ? (
         <Participaciones editable={total} />
       ) : carga.cargando && !u ? (
@@ -96,52 +87,10 @@ export default function Utilidades() {
         <ErrorCarga mensaje={carga.error ?? "Sin datos"} alReintentar={carga.recargar} />
       ) : (
         <>
-          <Resumen u={u} />
-          <div className="barra-envio" style={{ marginBottom: "0.5rem" }}>
-            {u.aprobado ? (
-              <Pastilla tono="ok">Reparto aprobado</Pastilla>
-            ) : u.cerrado ? (
-              <Pastilla tono="info">Mes cerrado</Pastilla>
-            ) : (
-              <Pastilla tono="aviso">Mes abierto: los valores pueden cambiar</Pastilla>
-            )}
-            {u.aprobado && (
-              <span className="dato-sec">
-                Aprobado por {u.aprobado.por ?? "-"} el {fechaCorta(u.aprobado.en.slice(0, 10))}: los valores son la foto de ese dia.
-              </span>
-            )}
-            {total && !u.aprobado && (
-              <button
-                className="btn-primary"
-                style={{ marginLeft: "auto" }}
-                disabled={!u.cerrado}
-                title={u.cerrado ? undefined : "Primero cierra el mes en Gastos"}
-                onClick={() =>
-                  window.confirm(`¿Aprobar el reparto de ${nombreMes(u.mes)}? Queda guardado tal como esta.`) && accion(() => apiUtilidades.aprobar(u.mes))
-                }
-              >
-                Aprobar reparto
-              </button>
-            )}
-            {total && u.aprobado && (
-              <button
-                className="btn-secondary"
-                style={{ marginLeft: "auto" }}
-                onClick={() =>
-                  window.confirm("¿Anular la aprobacion? El reparto se vuelve a calcular con los datos actuales.") && accion(() => apiUtilidades.anular(u.mes))
-                }
-              >
-                Anular aprobacion
-              </button>
-            )}
-          </div>
-          {u.sinParticipacion.length > 0 && (
-            <div className="alert warning">
-              {u.sinParticipacion.map(placaConGuion).join(", ")} no tiene(n) participacion que sume 100 %: su utilidad no se reparte. Registrala en
-              Participaciones.
-            </div>
-          )}
-          {vista === "cascada" ? <Cascada u={u} /> : <Reparto u={u} />}
+          {vista !== "empresa" && <Resumen u={u} />}
+          {vista === "cascada" && <Cascada u={u} />}
+          {vista === "reparto" && <FondosReparto datos={u} total={total} alCambiar={carga.recargar} />}
+          {vista === "empresa" && <Empresa u={u} verTerceros={verTerceros} />}
         </>
       )}
     </>
@@ -313,114 +262,5 @@ function DetalleCascada({ v }: { v: FilaVehiculo }) {
         </>
       )}
     </div>
-  );
-}
-
-/** Reparto por socio. */
-function Reparto({ u }: { u: UtilidadesMes }) {
-  const placa = (id: number) => placaConGuion(u.vehiculos.find((v) => v.vehiculoId === id)?.placa ?? "?");
-  const columnas: Columna<FilaSocio>[] = [
-    { id: "socio", titulo: "Socio", valor: (s) => s.nombre, celda: (s) => <span className="principal">{s.nombre}</span> },
-    {
-      id: "vehiculos",
-      titulo: "Vehiculos",
-      valor: (s) => s.porVehiculo.length,
-      celda: (s) => (
-        <span className="dato-sec">
-          {s.porVehiculo
-            .map((v) =>
-              v.porcentaje === 100
-                ? placa(v.vehiculoId)
-                : v.porcentaje === 0
-                  ? `${placa(v.vehiculoId)} (solo liquidacion)`
-                  : `${placa(v.vehiculoId)} ${v.porcentaje} %`,
-            )
-            .join(", ") || "-"}
-        </span>
-      ),
-    },
-    {
-      id: "utilidad",
-      titulo: "Utilidad de sus vehiculos",
-      alinear: "derecha",
-      valor: (s) => Math.round(s.utilidadVehiculos),
-      celda: (s) => moneda(s.utilidadVehiculos),
-    },
-    {
-      id: "propios",
-      titulo: "Gastos propios",
-      alinear: "derecha",
-      valor: (s) => Math.round(s.totalGastosPropios),
-      celda: (s) => (s.totalGastosPropios ? `- ${moneda(s.totalGastosPropios)}` : "-"),
-    },
-    {
-      id: "total",
-      titulo: "Utilidad del socio",
-      alinear: "derecha",
-      valor: (s) => Math.round(s.total),
-      celda: (s) => <strong className={s.total < 0 ? "texto-vencido" : undefined}>{moneda(s.total)}</strong>,
-    },
-    { id: "liquidado", titulo: "Ya liquidado (viajes)", alinear: "derecha", valor: (s) => Math.round(s.saldoViajes), celda: (s) => moneda(s.saldoViajes) },
-    {
-      id: "diferencia",
-      titulo: "Diferencia",
-      alinear: "derecha",
-      valor: (s) => Math.round(s.diferencia),
-      celda: (s) => (
-        <span className={s.diferencia < 0 ? "texto-vencido" : undefined} title={s.diferencia < 0 ? "Lo que el socio debe devolver" : "Lo que falta por darle"}>
-          {moneda(s.diferencia)}
-        </span>
-      ),
-    },
-  ];
-  return (
-    <>
-      <div className="section-desc" style={{ marginBottom: "0.5rem" }}>
-        Utilidad del socio = su parte de la utilidad neta de cada vehiculo - sus gastos propios. Diferencia = utilidad del socio - lo que ya se le liquido por
-        los viajes (la liquidacion de los viajes se le cuenta completa al dueno del vehiculo en Flota): si es negativa, es lo que debe cubrir (nomina, gastos
-        generales y directos que no se descontaron en los viajes, o la parte de otro socio de la sociedad que recibio el); si es positiva, lo que falta por
-        darle.
-      </div>
-      <div className="panel">
-        <TablaDatos
-          filas={u.socios}
-          columnas={columnas}
-          clave={(s) => s.socioId}
-          nombreArchivo={`reparto-${u.mes}`}
-          alExportar={() => exportarReparto(u)}
-          vacio="No hay utilidad que repartir en el mes."
-          detalle={(s) => (
-            <div className="detalle-tanqueo" onClick={(e) => e.stopPropagation()}>
-              <div className="detalle-nomina">
-                <div>
-                  <h5>Por vehiculo</h5>
-                  {s.porVehiculo.map((v) => (
-                    <div key={v.vehiculoId} className="concepto-nomina">
-                      <span>
-                        {placa(v.vehiculoId)} ({v.porcentaje ? `${v.porcentaje} %` : "recibio la liquidacion de los viajes"})
-                      </span>
-                      <span>{moneda(v.utilidad)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <h5>Gastos propios</h5>
-                  {s.gastosPropios.length ? (
-                    s.gastosPropios.map((g, i) => (
-                      <div key={i} className="concepto-nomina">
-                        <span>{g.descripcion}</span>
-                        <span>{g.monto < 0 ? `+ ${moneda(-g.monto)}` : `- ${moneda(g.monto)}`}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <span className="dato-sec">Ninguno en el mes.</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        />
-      </div>
-    </>
   );
 }

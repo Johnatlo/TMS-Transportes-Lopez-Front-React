@@ -2,23 +2,20 @@
  * Que puede ver cada rol en el navegador (igual que backend/src/roles.ts; el
  * backend es el que de verdad lo hace cumplir).
  *
- * - TOTAL: todo.
- * - ADMINISTRATIVO: lo operativo del TMS y Rentabilidad, sin liquidar a los
- *   duenos, repartir ganancias ni Usuarios.
- * - MYC: Transportes M&C. Lo del RNDC (despachar, RNDC, plantillas, clientes,
- *   flota, conductores, preoperacional, vehiculos) y las cuentas de sus
- *   vehiculos (Rentabilidad), sin Cuadro pagos, Anticipos, Cartera ni Pago a
- *   terceros.
+ * - TOTAL: todo (aprobar el reparto y cambiar fondos, participaciones y socios).
+ * - ADMINISTRATIVO: todo menos el reparto de los socios y el cambio de roles.
+ * - MYC: Transportes M&C. Todo menos la rentabilidad de los terceros (la
+ *   filtra el servidor) y el cambio de roles.
  */
 import type { Rol } from "./api/tipos";
 
 /** Areas del aplicativo. */
-export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "GASTOS" | "ADMINISTRACION" | "USUARIOS";
+export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "REPARTO" | "GASTOS" | "ADMINISTRACION" | "USUARIOS";
 
 const AREAS: Record<Rol, Area[]> = {
-  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "GASTOS", "ADMINISTRACION", "USUARIOS"],
-  ADMINISTRATIVO: ["RNDC", "OPERACION", "CUENTAS", "GASTOS", "ADMINISTRACION"],
-  MYC: ["RNDC", "CUENTAS", "LIQUIDACION", "GASTOS"],
+  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "GASTOS", "ADMINISTRACION", "USUARIOS"],
+  ADMINISTRATIVO: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "GASTOS", "ADMINISTRACION"],
+  MYC: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "GASTOS", "ADMINISTRACION"],
 };
 
 /** Nombre del rol para mostrarlo. */

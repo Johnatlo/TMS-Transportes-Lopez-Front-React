@@ -2,7 +2,9 @@
  * A quien va un gasto (o la cuota de un credito): se marcan los vehiculos uno
  * por uno, con los atajos "Lopez", "M&C" y "Todos", y se agregan partes
  * directas a socios (valor fijo, porcentaje, o una parte igual a la de un
- * carro). Debajo, la vista previa de cuanto le toca a cada uno.
+ * carro). "La empresa" toma una parte de lo que la empresa asume (no se le
+ * carga a ningun carro: baja la rentabilidad de la empresa). Debajo, la vista
+ * previa de cuanto le toca a cada uno.
  */
 import { moneda } from "../../api/cliente";
 import type { OpcionesGastos } from "../../api/cliente";
@@ -48,6 +50,10 @@ export default function SelectorDestinos({
         <button type="button" className="btn-link" onClick={() => alCambiar({ ...valor, vehiculos: [] })}>
           Ninguno
         </button>
+        <label className={`casilla-vehiculo${valor.empresa ? " marcada" : ""}`} title="Lo asume la empresa: no se le carga a ningun carro">
+          <input type="checkbox" checked={!!valor.empresa} onChange={() => alCambiar({ ...valor, empresa: !valor.empresa })} />
+          <strong>La empresa</strong>
+        </label>
         <span className="dato-sec" style={{ marginLeft: "auto" }}>
           {valor.vehiculos.length} vehiculo(s) marcado(s)
         </span>

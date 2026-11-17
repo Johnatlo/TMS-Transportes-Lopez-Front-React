@@ -1,10 +1,12 @@
 /**
- * Socios y su cuenta (solo rol total): los de la empresa y los externos (los
- * que solo estan en una sociedad de un vehiculo). Para cada uno: lo que se le
- * repartio en cada mes aprobado, los pagos que se le han hecho y el saldo por
- * pagar. Los pagos llevan fecha, valor, nota y el link del soporte (Drive);
- * el sistema no guarda datos bancarios. Un pago negativo es lo que el socio
- * le devolvio a la empresa.
+ * Socios y su cuenta: los de la empresa y los externos (los que solo estan en
+ * una sociedad de un vehiculo). La cuenta va mes a mes: saldo anterior + el
+ * neto del reparto aprobado del mes - los pagos = saldo, que pasa al mes
+ * siguiente. Asi, si un mes al socio no le alcanza para sus gastos, queda
+ * debiendo y se le descuenta despues. Los pagos llevan fecha, valor, nota y el
+ * link del soporte (Drive); el sistema no guarda datos bancarios. Un pago
+ * negativo es lo que el socio le devolvio a la empresa. Solo el rol total
+ * crea socios y registra pagos.
  */
 import { useState } from "react";
 import { apiUtilidades, hoyColombia, moneda } from "../../api/cliente";
@@ -18,7 +20,7 @@ import { fechaCorta } from "../cuadro/estadosCuadro";
 import { nombreMes } from "./pasos";
 
 /** Lista de socios con su cuenta. */
-export default function Socios() {
+export default function Socios({ editable }: { editable: boolean }) {
   const carga = useDatos(() => apiUtilidades.cuentas(), []);
   const [formulario, setFormulario] = useState<{ socio: CuentaSocio | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,9 +57,27 @@ export default function Socios() {
       valor: (s) => (s.externo ? "Externo" : "De la empresa"),
       celda: (s) => (s.externo ? <Pastilla tono="morado">Externo</Pastilla> : <Pastilla tono="azul">De la empresa</Pastilla>),
     },
-    { id: "meses", titulo: "Meses repartidos", alinear: "derecha", valor: (s) => s.meses.length, celda: (s) => s.meses.length || "-" },
-    { id: "repartido", titulo: "Repartido", alinear: "derecha", valor: (s) => Math.round(s.repartido), celda: (s) => moneda(s.repartido) },
-    { id: "pagado", titulo: "Pagado", alinear: "derecha", valor: (s) => Math.round(s.pagado), celda: (s) => moneda(s.pagado) },
+    {
+      id: "inicial",
+      titulo: "Saldo inicial",
+      alinear: "derecha",
+      valor: (s) => Math.round(s.saldoInicial),
+      celda: (s) => (s.saldoInicial ? moneda(s.saldoInicial) : "-"),
+    },
+    {
+      id: "neto",
+      titulo: "Neto de los repartos",
+      alinear: "derecha",
+      valor: (s) => Math.round(s.meses.reduce((t, m) => t + m.neto, 0)),
+      celda: (s) => moneda(s.meses.reduce((t, m) => t + m.neto, 0)),
+    },
+    {
+      id: "pagado",
+      titulo: "Pagado",
+      alinear: "derecha",
+      valor: (s) => Math.round(s.pagos.reduce((t, p) => t + p.monto, 0)),
+      celda: (s) => moneda(s.pagos.reduce((t, p) => t + p.monto, 0)),
+    },
     {
       id: "saldo",
       titulo: "Saldo",
@@ -81,8 +101,8 @@ export default function Socios() {
   return (
     <>
       <div className="section-desc" style={{ marginBottom: "0.5rem" }}>
-        Repartido = la utilidad del socio en los meses con reparto aprobado (despues de sus gastos propios). Saldo = repartido - pagado: lo que falta por
-        pagarle (en rojo, lo que el debe). Los socios externos no hacen parte de la empresa: solo tienen participacion en una sociedad.
+        Saldo = saldo inicial + el neto de cada reparto aprobado - los pagos: lo que falta por pagarle (en rojo, lo que el debe; se le descuenta de los repartos
+        siguientes). Los socios externos no hacen parte de la empresa: solo tienen participacion en una sociedad.
       </div>
       {error && <div className="alert danger">{error}</div>}
       <div className="panel">
@@ -94,13 +114,16 @@ export default function Socios() {
           nombreArchivo={`socios-${hoyColombia()}`}
           placeholderBusqueda="Buscar socio..."
           acciones={
-            <button className="btn-primary boton-con-texto" onClick={() => setFormulario({ socio: null })}>
-              Nuevo socio
-            </button>
+            editable ? (
+              <button className="btn-primary boton-con-texto" onClick={() => setFormulario({ socio: null })}>
+                Nuevo socio
+              </button>
+            ) : undefined
           }
           detalle={(s) => (
             <DetalleSocio
               s={s}
+              editable={editable}
               alEditar={() => setFormulario({ socio: s })}
               alActivar={() => accion(() => apiUtilidades.activarSocio(s.id, !s.activo))}
               alPagar={(d) => accion(() => apiUtilidades.registrarPago(s.id, d))}
@@ -126,12 +149,14 @@ export default function Socios() {
 /** Lo repartido por mes, los pagos y el formulario de pago de un socio. */
 function DetalleSocio({
   s,
+  editable,
   alEditar,
   alActivar,
   alPagar,
   alBorrarPago,
 }: {
   s: CuentaSocio;
+  editable: boolean;
   alEditar: () => void;
   alActivar: () => void;
   alPagar: (d: { fecha: string; monto: number; nota: string | null; soporteUrl: string | null }) => void;
@@ -145,23 +170,32 @@ function DetalleSocio({
     <div className="detalle-tanqueo" onClick={(e) => e.stopPropagation()}>
       <div className="detalle-nomina">
         <div>
-          <h5>Repartido por mes (aprobados)</h5>
+          <h5>Cuenta mes a mes</h5>
+          <div className="concepto-nomina">
+            <span>Saldo inicial</span>
+            <span>{moneda(s.saldoInicial)}</span>
+          </div>
           {s.meses.length ? (
             s.meses.map((m) => (
-              <div key={m.mes} className="concepto-nomina">
-                <span>
-                  {nombreMes(m.mes)}
-                  {m.gastosPropios ? <span className="dato-sec"> (gastos propios {moneda(m.gastosPropios)})</span> : null}
+              <div key={m.mes} className="cuenta-mes">
+                <div className="concepto-nomina">
+                  <strong>{nombreMes(m.mes)}</strong>
+                  <strong className={m.saldo < 0 ? "texto-vencido" : undefined}>{moneda(m.saldo)}</strong>
+                </div>
+                <span className="dato-sec">
+                  Venia {moneda(m.saldoAnterior)} · reparto {moneda(m.neto)}
+                  {m.detalle &&
+                    ` (repartido ${moneda(m.detalle.repartido)}, 4x1000 ${moneda(m.detalle.gmf)}, viajes ${moneda(m.detalle.liquidado - m.detalle.recibido)}, gastos propios ${moneda(m.detalle.totalGastosPropios)})`}
+                  {m.pagos ? ` · pagos ${moneda(m.pagos)}` : ""}
                 </span>
-                <span className={m.total < 0 ? "texto-vencido" : undefined}>{moneda(m.total)}</span>
               </div>
             ))
           ) : (
-            <span className="dato-sec">Aun no hay meses aprobados con participacion de este socio.</span>
+            <span className="dato-sec">Aun no hay meses aprobados ni pagos de este socio.</span>
           )}
           <div className="concepto-nomina">
-            <strong>Total repartido</strong>
-            <strong>{moneda(s.repartido)}</strong>
+            <strong>Saldo hoy</strong>
+            <strong className={s.saldo < 0 ? "texto-vencido" : undefined}>{moneda(s.saldo)}</strong>
           </div>
         </div>
         <div>
@@ -179,9 +213,11 @@ function DetalleSocio({
                 </span>
                 <span>
                   {moneda(p.monto)}{" "}
-                  <button className="btn-link" onClick={() => alBorrarPago(p.id)}>
-                    Borrar
-                  </button>
+                  {editable && (
+                    <button className="btn-link" onClick={() => alBorrarPago(p.id)}>
+                      Borrar
+                    </button>
+                  )}
                 </span>
               </div>
             ))
@@ -190,56 +226,56 @@ function DetalleSocio({
           )}
           <div className="concepto-nomina">
             <strong>Total pagado</strong>
-            <strong>{moneda(s.pagado)}</strong>
-          </div>
-          <div className="concepto-nomina">
-            <strong>Saldo</strong>
-            <strong className={s.saldo < 0 ? "texto-vencido" : undefined}>{moneda(s.saldo)}</strong>
+            <strong>{moneda(s.pagos.reduce((t, p) => t + p.monto, 0))}</strong>
           </div>
         </div>
-        <div>
-          <h5>Registrar un pago</h5>
-          <div className="campos-cuadro" style={{ gridTemplateColumns: "1fr 1fr" }}>
-            <div>
-              <label>Fecha</label>
-              <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        {editable && (
+          <div>
+            <h5>Registrar un pago</h5>
+            <div className="campos-cuadro" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <div>
+                <label>Fecha</label>
+                <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+              </div>
+              <div>
+                <label>Valor (negativo si el devolvio)</label>
+                <input type="number" step="any" value={monto} onChange={(e) => setMonto(e.target.value)} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Nota (opcional)</label>
+                <input value={nota} maxLength={300} onChange={(e) => setNota(e.target.value)} placeholder="Reparto de octubre" />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Link del soporte (opcional)</label>
+                <input type="url" value={soporte} maxLength={500} onChange={(e) => setSoporte(e.target.value)} placeholder="https://drive.google.com/..." />
+              </div>
             </div>
-            <div>
-              <label>Valor (negativo si el devolvio)</label>
-              <input type="number" step="any" value={monto} onChange={(e) => setMonto(e.target.value)} />
-            </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label>Nota (opcional)</label>
-              <input value={nota} maxLength={300} onChange={(e) => setNota(e.target.value)} placeholder="Reparto de octubre" />
-            </div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label>Link del soporte (opcional)</label>
-              <input type="url" value={soporte} maxLength={500} onChange={(e) => setSoporte(e.target.value)} placeholder="https://drive.google.com/..." />
-            </div>
+            <button
+              className="btn-secondary"
+              style={{ marginTop: "0.4rem" }}
+              disabled={!fecha || !Number(monto)}
+              onClick={() => {
+                alPagar({ fecha, monto: Number(monto), nota: nota.trim() || null, soporteUrl: soporte.trim() || null });
+                setMonto("");
+                setNota("");
+                setSoporte("");
+              }}
+            >
+              Registrar pago
+            </button>
           </div>
-          <button
-            className="btn-secondary"
-            style={{ marginTop: "0.4rem" }}
-            disabled={!fecha || !Number(monto)}
-            onClick={() => {
-              alPagar({ fecha, monto: Number(monto), nota: nota.trim() || null, soporteUrl: soporte.trim() || null });
-              setMonto("");
-              setNota("");
-              setSoporte("");
-            }}
-          >
-            Registrar pago
+        )}
+      </div>
+      {editable && (
+        <div className="detalle-tanqueo-pie">
+          <button className="btn-secondary" onClick={alEditar}>
+            Editar datos
+          </button>
+          <button className="btn-link" onClick={alActivar}>
+            {s.activo ? "Desactivar" : "Activar"}
           </button>
         </div>
-      </div>
-      <div className="detalle-tanqueo-pie">
-        <button className="btn-secondary" onClick={alEditar}>
-          Editar datos
-        </button>
-        <button className="btn-link" onClick={alActivar}>
-          {s.activo ? "Desactivar" : "Activar"}
-        </button>
-      </div>
+      )}
     </div>
   );
 }
@@ -251,6 +287,7 @@ function FormularioSocio({ socio, alCerrar, alGuardar }: { socio: CuentaSocio | 
     externo: socio?.externo ?? true,
     documento: socio?.documento ?? "",
     nota: socio?.nota ?? "",
+    saldoInicial: socio?.saldoInicial ?? 0,
   });
   const [error, setError] = useState<string | null>(null);
   async function guardar() {
@@ -295,6 +332,10 @@ function FormularioSocio({ socio, alCerrar, alGuardar }: { socio: CuentaSocio | 
         <div>
           <label>Documento (opcional)</label>
           <input value={d.documento ?? ""} maxLength={20} onChange={(e) => setD({ ...d, documento: e.target.value })} />
+        </div>
+        <div>
+          <label>Saldo inicial (lo que se le debia; negativo si el debia)</label>
+          <input type="number" step="any" value={d.saldoInicial} onChange={(e) => setD({ ...d, saldoInicial: Number(e.target.value) || 0 })} />
         </div>
         <div style={{ gridColumn: "1 / -1" }}>
           <label>Nota (opcional)</label>

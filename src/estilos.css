@@ -828,3 +828,20 @@ button.avatar-usuario { border: none; cursor: pointer; font: inherit; font-size:
 .bloque-remesa.bloqueada { opacity: 0.75; }
 .viaje-en-curso ul { margin: 0.4rem 0 0; padding-left: 1.1rem; }
 .viaje-en-curso li { margin: 0.2rem 0; }
+
+/* Menu lateral por grupos: titulo pequeno que pliega el grupo; contraido, una linea entre grupos. */
+.sidebar nav { overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+.menu-grupo { display: flex; flex-direction: column; gap: 0.15rem; }
+.menu-grupo + .menu-grupo { margin-top: 0.35rem; }
+.menu-grupo-titulo {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: none; border: none; cursor: pointer; font: inherit;
+  padding: 0.5rem 0.8rem 0.25rem; color: #9ca3af; font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.menu-grupo-titulo:hover { color: #4b5563; }
+.sidebar .menu-grupo a { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+@media (min-width: 821px) {
+  .menu-contraido .menu-grupo-titulo { display: none; }
+  .menu-contraido .menu-grupo + .menu-grupo { border-top: 1px solid var(--color-border); padding-top: 0.35rem; }
+}

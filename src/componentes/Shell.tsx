@@ -33,32 +33,95 @@ import {
   IconoPlantillas,
   IconoViajes,
   IconoUsuarios,
+  IconoChevron,
+  IconoNomina,
+  IconoRecibo,
+  IconoTorta,
+  IconoTransferencia,
+  IconoVolante,
 } from "./Iconos";
 import type { ResumenAlertas } from "../api/tipos";
 import type { TipoAlerta } from "../api/cliente";
 import logoPequeno from "../assets/logo-pequeno.png";
 
-const SECCIONES: Array<{ ruta: string; etiqueta: string; icono: ReactNode }> = [
-  { ruta: "/dashboard", etiqueta: "Inicio", icono: <IconoInicio /> },
-  { ruta: "/despacho", etiqueta: "Despachar", icono: <IconoCamion /> },
-  { ruta: "/historial", etiqueta: "RNDC", icono: <IconoViajes /> },
-  { ruta: "/cuadro", etiqueta: "Cuadro pagos", icono: <IconoDocumento /> },
-  { ruta: "/anticipos", etiqueta: "Anticipos", icono: <IconoBomba /> },
-  { ruta: "/cartera", etiqueta: "Cartera", icono: <IconoCartera /> },
-  { ruta: "/terceros", etiqueta: "Pago a terceros", icono: <IconoConductores /> },
-  { ruta: "/rentabilidad", etiqueta: "Rentabilidad", icono: <IconoGrafica /> },
-  { ruta: "/gastos", etiqueta: "Gastos", icono: <IconoCartera /> },
-  { ruta: "/nomina", etiqueta: "Nomina", icono: <IconoUsuarios /> },
-  { ruta: "/utilidades", etiqueta: "Utilidades", icono: <IconoGrafica /> },
-  { ruta: "/preoperacional", etiqueta: "Preoperacional", icono: <IconoCheck /> },
-  { ruta: "/vehiculos", etiqueta: "Vehiculos", icono: <IconoCamion /> },
-  { ruta: "/plantillas", etiqueta: "Plantillas", icono: <IconoPlantillas /> },
-  { ruta: "/clientes", etiqueta: "Clientes", icono: <IconoClientes /> },
-  { ruta: "/flota", etiqueta: "Flota", icono: <IconoFlota /> },
-  { ruta: "/conductores", etiqueta: "Conductores", icono: <IconoConductores /> },
-  { ruta: "/configuracion", etiqueta: "Configuracion", icono: <IconoConfiguracion /> },
-  { ruta: "/usuarios", etiqueta: "Usuarios y roles", icono: <IconoUsuarios /> },
+/** Una opcion del menu. */
+interface Seccion {
+  ruta: string;
+  etiqueta: string;
+  icono: ReactNode;
+}
+
+/**
+ * Menu lateral por grupos (cada opcion con su propio icono). Inicio va solo,
+ * arriba; los demas grupos se pliegan y el de la pantalla actual se abre solo.
+ */
+const GRUPOS: Array<{ id: string; titulo: string | null; secciones: Seccion[] }> = [
+  { id: "inicio", titulo: null, secciones: [{ ruta: "/dashboard", etiqueta: "Inicio", icono: <IconoInicio /> }] },
+  {
+    id: "operacion",
+    titulo: "Operacion",
+    secciones: [
+      { ruta: "/despacho", etiqueta: "Despachar", icono: <IconoCamion /> },
+      { ruta: "/historial", etiqueta: "RNDC", icono: <IconoViajes /> },
+      { ruta: "/plantillas", etiqueta: "Plantillas", icono: <IconoPlantillas /> },
+    ],
+  },
+  {
+    id: "flotaPropia",
+    titulo: "Flota propia",
+    secciones: [
+      { ruta: "/vehiculos", etiqueta: "Vehiculos", icono: <IconoVolante /> },
+      { ruta: "/preoperacional", etiqueta: "Preoperacional", icono: <IconoCheck /> },
+    ],
+  },
+  {
+    id: "cobros",
+    titulo: "Cobros y pagos",
+    secciones: [
+      { ruta: "/cuadro", etiqueta: "Cuadro pagos", icono: <IconoDocumento /> },
+      { ruta: "/anticipos", etiqueta: "Anticipos", icono: <IconoBomba /> },
+      { ruta: "/cartera", etiqueta: "Cartera", icono: <IconoCartera /> },
+      { ruta: "/terceros", etiqueta: "Pago a terceros", icono: <IconoTransferencia /> },
+    ],
+  },
+  {
+    id: "finanzas",
+    titulo: "Finanzas",
+    secciones: [
+      { ruta: "/rentabilidad", etiqueta: "Rentabilidad", icono: <IconoGrafica /> },
+      { ruta: "/gastos", etiqueta: "Gastos", icono: <IconoRecibo /> },
+      { ruta: "/nomina", etiqueta: "Nomina", icono: <IconoNomina /> },
+      { ruta: "/utilidades", etiqueta: "Utilidades", icono: <IconoTorta /> },
+    ],
+  },
+  {
+    id: "catalogos",
+    titulo: "Catalogos",
+    secciones: [
+      { ruta: "/clientes", etiqueta: "Clientes", icono: <IconoClientes /> },
+      { ruta: "/flota", etiqueta: "Flota", icono: <IconoFlota /> },
+      { ruta: "/conductores", etiqueta: "Conductores", icono: <IconoConductores /> },
+    ],
+  },
+  {
+    id: "administracion",
+    titulo: "Administracion",
+    secciones: [
+      { ruta: "/configuracion", etiqueta: "Configuracion", icono: <IconoConfiguracion /> },
+      { ruta: "/usuarios", etiqueta: "Usuarios y roles", icono: <IconoUsuarios /> },
+    ],
+  },
 ];
+const SECCIONES: Seccion[] = GRUPOS.flatMap((g) => g.secciones);
+
+/** Grupos del menu que el usuario dejo plegados. Solo es comodidad: si falla, se ignora. */
+function leerPlegados(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem("menuGruposPlegados") ?? "[]");
+  } catch {
+    return [];
+  }
+}
 
 /** Lo que el marco comparte con las paginas (ver usarShell). */
 export interface ContextoShell {
@@ -120,6 +183,17 @@ export default function Shell() {
   }, [recargarSeguimiento]);
   const [versionDocumentos, setVersionDocumentos] = useState(0);
   const [contraido, setContraido] = useState(leerContraido);
+  const [plegados, setPlegados] = useState<string[]>(leerPlegados);
+  /** Pliega o despliega un grupo del menu (y lo recuerda en este navegador). */
+  const alternarGrupo = (id: string) => {
+    const nuevos = plegados.includes(id) ? plegados.filter((x) => x !== id) : [...plegados, id];
+    setPlegados(nuevos);
+    try {
+      localStorage.setItem("menuGruposPlegados", JSON.stringify(nuevos));
+    } catch {
+      // Sin almacenamiento: el menu igual funciona.
+    }
+  };
   /**
    * En el celular el menu no ocupa espacio: se abre encima del contenido con
    * el boton de tres rayas. En el computador esto no se usa (ver estilos.css,
@@ -170,17 +244,37 @@ export default function Shell() {
           <span className="solo-expandido">Transportes Lopez</span>
         </div>
         <nav>
-          {SECCIONES.filter((s) => puedeRuta(usuario?.rol, s.ruta)).map((s) => (
-            <NavLink
-              key={s.ruta}
-              to={s.ruta}
-              title={s.etiqueta}
-              className={({ isActive }) => (isActive ? "active" : undefined)}
-            >
-              <span className="icon">{s.icono}</span>
-              <span className="solo-expandido">{s.etiqueta}</span>
-            </NavLink>
-          ))}
+          {GRUPOS.map((g) => {
+            const visibles = g.secciones.filter((s) => puedeRuta(usuario?.rol, s.ruta));
+            if (!visibles.length) return null;
+            // El grupo de la pantalla actual siempre abierto.
+            const tieneActual = visibles.some((s) => ubicacion.pathname.startsWith(s.ruta));
+            const abierto = !g.titulo || tieneActual || !plegados.includes(g.id);
+            return (
+              <div key={g.id} className="menu-grupo">
+                {g.titulo && (
+                  <button type="button" className="menu-grupo-titulo" onClick={() => alternarGrupo(g.id)} aria-expanded={abierto}>
+                    <span className="solo-expandido">{g.titulo}</span>
+                    <span className="solo-expandido">
+                      <IconoChevron abierto={abierto} />
+                    </span>
+                  </button>
+                )}
+                {(abierto || contraido) &&
+                  visibles.map((s) => (
+                    <NavLink
+                      key={s.ruta}
+                      to={s.ruta}
+                      title={s.etiqueta}
+                      className={({ isActive }) => (isActive ? "active" : undefined)}
+                    >
+                      <span className="icon">{s.icono}</span>
+                      <span className="solo-expandido">{s.etiqueta}</span>
+                    </NavLink>
+                  ))}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="sidebar-pie">

@@ -131,6 +131,7 @@ export default function Empleados({
           detalle={(e) => (
             <DetalleEmpleado
               e={e}
+              soloLectura={soloMyc && e.empresa !== "MYC"}
               opciones={opciones}
               alEditar={() => setFormulario({ empleado: e })}
               alBorrar={() => window.confirm(`¿Borrar a ${e.nombre}?`) && accion(() => apiNomina.borrarEmpleado(e.id))}
@@ -159,6 +160,7 @@ export default function Empleados({
 /** Historial de vehiculos (conductor) o reparto (oficina) y acciones. */
 function DetalleEmpleado({
   e,
+  soloLectura,
   opciones,
   alEditar,
   alBorrar,
@@ -166,6 +168,8 @@ function DetalleEmpleado({
   alQuitar,
 }: {
   e: Empleado;
+  /** M&C ve los empleados de Lopez pero no los cambia. */
+  soloLectura: boolean;
   opciones: OpcionesGastos;
   alEditar: () => void;
   alBorrar: () => void;
@@ -202,24 +206,26 @@ function DetalleEmpleado({
           ) : (
             <div className="dato-sec">Sin vehiculo asignado.</div>
           )}
-          <div className="detalle-tanqueo-pie">
-            <select value={vehiculo} onChange={(ev) => setVehiculo(ev.target.value)} aria-label="Vehiculo">
-              <option value="">Pasa al vehiculo...</option>
-              {opciones.vehiculos
-                .filter((v) => v.activo)
-                .map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {placaConGuion(v.placa)}
-                  </option>
-                ))}
-            </select>
-            <label>
-              <span className="dato-sec">desde</span> <input type="date" value={desde} onChange={(ev) => setDesde(ev.target.value)} />
-            </label>
-            <button className="btn-secondary" disabled={!vehiculo || !desde} onClick={() => alAsignar(Number(vehiculo), desde)}>
-              Asignar
-            </button>
-          </div>
+          {!soloLectura && (
+            <div className="detalle-tanqueo-pie">
+              <select value={vehiculo} onChange={(ev) => setVehiculo(ev.target.value)} aria-label="Vehiculo">
+                <option value="">Pasa al vehiculo...</option>
+                {opciones.vehiculos
+                  .filter((v) => v.activo)
+                  .map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {placaConGuion(v.placa)}
+                    </option>
+                  ))}
+              </select>
+              <label>
+                <span className="dato-sec">desde</span> <input type="date" value={desde} onChange={(ev) => setDesde(ev.target.value)} />
+              </label>
+              <button className="btn-secondary" disabled={!vehiculo || !desde} onClick={() => alAsignar(Number(vehiculo), desde)}>
+                Asignar
+              </button>
+            </div>
+          )}
         </>
       ) : (
         <div className="reparto-gasto">
@@ -238,14 +244,16 @@ function DetalleEmpleado({
         </div>
       )}
       {e.nota && <div className="dato-sec">{e.nota}</div>}
-      <div className="detalle-tanqueo-pie">
-        <button className="btn-secondary" onClick={alEditar}>
-          Editar
-        </button>
-        <button className="btn-link" onClick={alBorrar}>
-          Borrar
-        </button>
-      </div>
+      {!soloLectura && (
+        <div className="detalle-tanqueo-pie">
+          <button className="btn-secondary" onClick={alEditar}>
+            Editar
+          </button>
+          <button className="btn-link" onClick={alBorrar}>
+            Borrar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

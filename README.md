@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_673 funciones, componentes, métodos y rutas en 99 archivos._
+_687 funciones, componentes, métodos y rutas en 101 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (218)
+- [`src/api/cliente.ts`](#srcapiclientets) (222)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -193,7 +193,7 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 - [`src/componentes/EstadoSincronizacion.tsx`](#srccomponentesestadosincronizaciontsx) (3)
 - [`src/componentes/FiltrosTabla.tsx`](#srccomponentesfiltrostablatsx) (2)
 - [`src/componentes/FormularioGenerico.tsx`](#srccomponentesformulariogenericotsx) (2)
-- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (24)
+- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (30)
 - [`src/componentes/Indicador.tsx`](#srccomponentesindicadortsx) (1)
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
 - [`src/componentes/MapaSeguimiento.tsx`](#srccomponentesmapaseguimientotsx) (2)
@@ -202,7 +202,7 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 - [`src/componentes/PantallaAcceso.tsx`](#srccomponentespantallaaccesotsx) (1)
 - [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (3)
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
-- [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (3)
+- [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (4)
 - [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (12)
 - [`src/componentes/excelConsecutivos.ts`](#srccomponentesexcelconsecutivosts) (9)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
@@ -265,10 +265,12 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 - [`src/paginas/seguimiento/liquidacionDuenos.ts`](#srcpaginasseguimientoliquidacionduenosts) (7)
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
+- [`src/paginas/utilidades/Empresa.tsx`](#srcpaginasutilidadesempresatsx) (1)
+- [`src/paginas/utilidades/FondosReparto.tsx`](#srcpaginasutilidadesfondosrepartotsx) (2)
 - [`src/paginas/utilidades/Participaciones.tsx`](#srcpaginasutilidadesparticipacionestsx) (2)
 - [`src/paginas/utilidades/Socios.tsx`](#srcpaginasutilidadessociostsx) (3)
-- [`src/paginas/utilidades/Utilidades.tsx`](#srcpaginasutilidadesutilidadestsx) (5)
-- [`src/paginas/utilidades/excelUtilidades.ts`](#srcpaginasutilidadesexcelutilidadests) (3)
+- [`src/paginas/utilidades/Utilidades.tsx`](#srcpaginasutilidadesutilidadestsx) (4)
+- [`src/paginas/utilidades/excelUtilidades.ts`](#srcpaginasutilidadesexcelutilidadests) (4)
 - [`src/paginas/utilidades/pasos.ts`](#srcpaginasutilidadespasosts) (2)
 - [`src/paginas/vehiculos/PerfilVehiculo.tsx`](#srcpaginasvehiculosperfilvehiculotsx) (1)
 - [`src/paginas/vehiculos/Vehiculos.tsx`](#srcpaginasvehiculosvehiculostsx) (4)
@@ -958,19 +960,31 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
     Los viajes del sistema que suman el producido de una linea.
 
 - **`apiUtilidades`** · _módulo_
-  Cascada, reparto, participaciones y socios.
+  Utilidades: cascada, fondos, reparto, participaciones y socios.
 
   - **`apiUtilidades.mes(mes)`** · _método_
-    Cascada por vehiculo y reparto por socio del mes ("AAAA-MM").
+    Cascada, fondos y reparto del mes ("AAAA-MM").
+
+  - **`apiUtilidades.simular(mes, repartimos)`** · _método_
+    El mes con lo que se reparte de cada vehiculo (sin guardar).
 
   - **`apiUtilidades.aprobados()`** · _método_
     Meses con reparto aprobado.
 
-  - **`apiUtilidades.aprobar(mes)`** · _método_
-    Aprueba el reparto del mes (debe estar cerrado en Gastos).
+  - **`apiUtilidades.aprobar(mes, repartimos)`** · _método_
+    Aprueba el mes con lo que se reparte (debe estar cerrado en Gastos y el anterior aprobado).
 
   - **`apiUtilidades.anular(mes)`** · _método_
-    Anula la aprobacion.
+    Anula la aprobacion (solo el ultimo mes aprobado).
+
+  - **`apiUtilidades.fondos()`** · _método_
+    Base y saldo inicial del fondo de cada vehiculo.
+
+  - **`apiUtilidades.guardarFondo(vehiculoId, d)`** · _método_
+    Cambia la base y el saldo inicial del fondo de un vehiculo.
+
+  - **`apiUtilidades.guardarGmf(gmfPorMil)`** · _método_
+    Cambia el 4 x 1000 que se descuenta al repartir.
 
   - **`apiUtilidades.participaciones()`** · _método_
     Vehiculos con su participacion.
@@ -991,7 +1005,7 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
     Activa o desactiva un socio.
 
   - **`apiUtilidades.cuentas()`** · _método_
-    Cuenta de cada socio: repartido en meses aprobados, pagos y saldo.
+    Cuenta de cada socio mes a mes.
 
   - **`apiUtilidades.registrarPago(socioId, d)`** · _método_
     Registra un pago a un socio (negativo = lo que el socio devolvio).
@@ -1361,6 +1375,24 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 - **`IconoBomba()`** · _componente React_
   Icono del menu Anticipos (surtidor de combustible).
 
+- **`IconoTransferencia()`** · _componente React_
+  Icono del menu Pago a terceros (transferencia: flechas de ida y vuelta).
+
+- **`IconoRecibo()`** · _componente React_
+  Icono del menu Gastos (bolsa de compras).
+
+- **`IconoNomina()`** · _componente React_
+  Icono del menu Nomina (persona con una moneda: el pago de los empleados).
+
+- **`IconoTorta()`** · _componente React_
+  Icono del menu Utilidades (torta: reparto entre socios).
+
+- **`IconoVolante()`** · _componente React_
+  Icono del menu Vehiculos (volante).
+
+- **`IconoChevron({...})`** · _componente React_
+  Flecha pequena de los grupos del menu (abierto: hacia abajo).
+
 ### `src/componentes/Indicador.tsx`
 
 - **`Indicador({...})`** · _componente React_
@@ -1486,6 +1518,9 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 
 > Marco de la aplicacion con sesion: menu lateral, barra superior (alertas,
 > usuario) y el contenido de la pantalla actual.
+
+- **`leerPlegados()`** · _función_
+  Grupos del menu que el usuario dejo plegados. Solo es comodidad: si falla, se ignora.
 
 - **`usarShell()`** · _función_
   Las paginas leen el contexto del marco con este gancho. Es el mecanismo de
@@ -2619,7 +2654,9 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 > A quien va un gasto (o la cuota de un credito): se marcan los vehiculos uno
 > por uno, con los atajos "Lopez", "M&C" y "Todos", y se agregan partes
 > directas a socios (valor fijo, porcentaje, o una parte igual a la de un
-> carro). Debajo, la vista previa de cuanto le toca a cada uno.
+> carro). "La empresa" toma una parte de lo que la empresa asume (no se le
+> carga a ningun carro: baja la rentabilidad de la empresa). Debajo, la vista
+> previa de cuanto le toca a cada uno.
 
 - **`SelectorDestinos({...})`** · _componente React_
   Selector de vehiculos y socios de un gasto.
@@ -2642,7 +2679,7 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 
 - **`vistaPrevia(monto, s)`** · _función_
   Vista previa: cuanto va directo a socios, cuanto queda para repartir y
-  cuanto le toca a cada parte (vehiculo marcado o socio "por partes").
+  cuanto le toca a cada parte (vehiculo marcado, la empresa o socio "por partes").
   `problema` dice por que no se puede guardar todavia.
 
 ### `src/paginas/nomina/Empleados.tsx`
@@ -3266,6 +3303,33 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 - **`numeroONulo(t)`** · _función_
   Texto del formulario a numero; vacio = null.
 
+### `src/paginas/utilidades/Empresa.tsx`
+
+> Rentabilidad de la empresa en el mes: la ganancia de los viajes de terceros
+> (de Rentabilidad) menos los gastos que asume la empresa (los que en el libro
+> van a "Empresa", no a un carro ni a un socio). No se reparte entre socios.
+> Transportes M&C no ve la de los terceros (se la quita el servidor).
+
+- **`Empresa({...})`** · _componente React_
+  Rentabilidad de la empresa del mes.
+
+### `src/paginas/utilidades/FondosReparto.tsx`
+
+> Fondos y reparto del mes (como la hoja de la SWK-973): por vehiculo, el
+> saldo del mes anterior + la utilidad - lo que se le pago al dueno por los
+> viajes = lo que hay antes de repartir; menos la base (lo que se deja por si
+> el carro se accidenta o necesita un arreglo mayor) = disponible. El rol
+> total escribe cuanto se reparte de cada carro ("Repartimos"; se sugiere el
+> disponible), recalcula y aprueba. Debajo, lo que le toca a cada socio:
+> su parte de lo repartido menos el 4 x 1000, su parte de lo liquidado menos
+> lo que el recibio, menos sus gastos propios = neto del mes.
+
+- **`FondosReparto({...})`** · _componente React_
+  Fondos, "Repartimos", aprobacion y reparto por socio del mes.
+
+- **`VentanaFondos({...})`** · _componente React_
+  Base y saldo inicial del fondo de cada vehiculo, y el 4 x 1000 (rol total).
+
 ### `src/paginas/utilidades/Participaciones.tsx`
 
 > Participaciones: de quien es cada vehiculo de la flota propia y en que
@@ -3283,14 +3347,16 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 
 ### `src/paginas/utilidades/Socios.tsx`
 
-> Socios y su cuenta (solo rol total): los de la empresa y los externos (los
-> que solo estan en una sociedad de un vehiculo). Para cada uno: lo que se le
-> repartio en cada mes aprobado, los pagos que se le han hecho y el saldo por
-> pagar. Los pagos llevan fecha, valor, nota y el link del soporte (Drive);
-> el sistema no guarda datos bancarios. Un pago negativo es lo que el socio
-> le devolvio a la empresa.
+> Socios y su cuenta: los de la empresa y los externos (los que solo estan en
+> una sociedad de un vehiculo). La cuenta va mes a mes: saldo anterior + el
+> neto del reparto aprobado del mes - los pagos = saldo, que pasa al mes
+> siguiente. Asi, si un mes al socio no le alcanza para sus gastos, queda
+> debiendo y se le descuenta despues. Los pagos llevan fecha, valor, nota y el
+> link del soporte (Drive); el sistema no guarda datos bancarios. Un pago
+> negativo es lo que el socio le devolvio a la empresa. Solo el rol total
+> crea socios y registra pagos.
 
-- **`Socios()`** · _componente React_
+- **`Socios({...})`** · _componente React_
   Lista de socios con su cuenta.
 
 - **`DetalleSocio({...})`** · _componente React_
@@ -3301,20 +3367,19 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 
 ### `src/paginas/utilidades/Utilidades.tsx`
 
-> Pantalla Utilidades (fase 3 del modulo de gastos): cascada de rentabilidad
-> por vehiculo y reparto de la utilidad entre los socios, mes a mes.
+> Pantalla Utilidades: cascada de rentabilidad por vehiculo, fondos y reparto
+> entre socios, rentabilidad de la empresa, participaciones y socios, mes a mes.
 >
 > - Cascada: por vehiculo, 1. fletes, 2. descuentos del viaje, 3. costos
 >   directos (anticipos de los viajes y gastos que van completos al carro),
 >   4. nomina del conductor, 5. gastos generales prorrateados, 6. utilidad.
 >   Clic en un vehiculo muestra cada paso con su detalle (viajes y gastos).
-> - Reparto: la utilidad de cada vehiculo segun su participacion, menos los
->   gastos propios de cada socio; y la diferencia contra lo que ya se le
->   liquido al dueno por los viajes.
+> - Fondos y reparto (no lo ven las administrativas): ver FondosReparto.tsx.
+> - Empresa: ganancia de terceros (no la ve M&C) menos los gastos de la
+>   empresa. No se reparte.
 > - Participaciones: quien es dueno de cada vehiculo (sociedades).
-> - Socios (rol total): los de la empresa y los externos, con su cuenta:
->   lo repartido en los meses aprobados, los pagos y el saldo.
-> - El rol total aprueba el reparto de un mes cerrado: queda la foto.
+> - Socios (no lo ven las administrativas): la cuenta de cada socio.
+> Aprobar el reparto y cambiar fondos, participaciones y socios: rol total.
 
 - **`Utilidades()`** · _componente React_
   Pantalla de utilidades.
@@ -3328,21 +3393,21 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 - **`DetalleCascada({...})`** · _componente React_
   Cada paso de la cascada de un vehiculo con su detalle.
 
-- **`Reparto({...})`** · _componente React_
-  Reparto por socio.
-
 ### `src/paginas/utilidades/excelUtilidades.ts`
 
 > Excel de las utilidades de un mes: la cascada (un vehiculo por fila con
 > cada paso y cada descuento) y el detalle (cada viaje y cada partida del
-> libro con su paso), para cuadrarlo contra el Excel de la empresa; y el
-> reparto por socio.
+> libro con su paso), para cuadrarlo contra el Excel de la empresa; los
+> fondos de los vehiculos y el reparto por socio.
 
 - **`exportarCascada(u)`** · _función_
   Descarga la cascada por vehiculo del mes.
 
 - **`exportarDetalle(u)`** · _función_
   Descarga el detalle del mes: cada viaje y cada partida del libro con su paso.
+
+- **`exportarFondos(u)`** · _función_
+  Descarga los fondos del mes: por vehiculo, saldo anterior, utilidad, lo pagado al dueno, base, disponible, lo repartido y el saldo final.
 
 - **`exportarReparto(u)`** · _función_
   Descarga el reparto por socio del mes.
@@ -3473,13 +3538,10 @@ _673 funciones, componentes, métodos y rutas en 99 archivos._
 > Que puede ver cada rol en el navegador (igual que backend/src/roles.ts; el
 > backend es el que de verdad lo hace cumplir).
 >
-> - TOTAL: todo.
-> - ADMINISTRATIVO: lo operativo del TMS y Rentabilidad, sin liquidar a los
->   duenos, repartir ganancias ni Usuarios.
-> - MYC: Transportes M&C. Lo del RNDC (despachar, RNDC, plantillas, clientes,
->   flota, conductores, preoperacional, vehiculos) y las cuentas de sus
->   vehiculos (Rentabilidad), sin Cuadro pagos, Anticipos, Cartera ni Pago a
->   terceros.
+> - TOTAL: todo (aprobar el reparto y cambiar fondos, participaciones y socios).
+> - ADMINISTRATIVO: todo menos el reparto de los socios y el cambio de roles.
+> - MYC: Transportes M&C. Todo menos la rentabilidad de los terceros (la
+>   filtra el servidor) y el cambio de roles.
 
 - **`puede(rol, area)`** · _función_
   El rol (o un rol desconocido, como administrativo) tiene esa area.

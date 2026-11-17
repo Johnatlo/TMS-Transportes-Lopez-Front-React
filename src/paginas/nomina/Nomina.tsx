@@ -207,6 +207,7 @@ function Liquidaciones({
                     key={l.id}
                     l={l}
                     n={n}
+                    editable={administra || l.empresa === "MYC"}
                     opciones={opciones}
                     abierta={abierta === l.id}
                     alAbrir={() => setAbierta(abierta === l.id ? null : l.id)}
@@ -280,6 +281,7 @@ function CampoValor({ valor, alGuardar, disabled, ancho = "7rem" }: { valor: num
 function FilaLinea({
   l,
   n,
+  editable,
   opciones,
   abierta,
   alAbrir,
@@ -289,6 +291,8 @@ function FilaLinea({
 }: {
   l: LineaNomina;
   n: TipoNomina;
+  /** M&C solo cambia las lineas de sus empleados. */
+  editable: boolean;
   opciones: OpcionesGastos;
   abierta: boolean;
   alAbrir: () => void;
@@ -297,7 +301,7 @@ function FilaLinea({
   alVerViajes: () => void;
   alQuitar: () => void;
 }) {
-  const borrador = n.estado === "BORRADOR";
+  const borrador = n.estado === "BORRADOR" && editable;
   const c = l.calculo;
   const [nota, setNota] = useState(l.notaAjuste ?? "");
   useEffect(() => setNota(l.notaAjuste ?? ""), [l.notaAjuste]);

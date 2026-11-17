@@ -212,3 +212,54 @@ export const IconoBomba = () => (
     <path d="M14 8h2l3 3v6a1.5 1.5 0 0 1-3 0v-3h-2" />
   </Icono>
 );
+
+/** Icono del menu Pago a terceros (transferencia: flechas de ida y vuelta). */
+export const IconoTransferencia = () => (
+  <Icono>
+    <path d="M4 8h14M14 4l4 4-4 4" />
+    <path d="M20 16H6M10 12l-4 4 4 4" />
+  </Icono>
+);
+
+/** Icono del menu Gastos (bolsa de compras). */
+export const IconoRecibo = () => (
+  <Icono>
+    <path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8L5 8z" />
+    <path d="M9 10V6.5a3 3 0 0 1 6 0V10" />
+  </Icono>
+);
+
+/** Icono del menu Nomina (persona con una moneda: el pago de los empleados). */
+export const IconoNomina = () => (
+  <Icono>
+    <circle cx="9" cy="7.5" r="3.5" />
+    <path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5 1.3 0 2.5.3 3.5 1" />
+    <circle cx="17.5" cy="16.5" r="4" />
+    <path d="M17.5 14.5v4M16.3 15.5h1.9a.8.8 0 0 1 0 1.6h-1.4a.8.8 0 0 0 0 1.6h1.9" />
+  </Icono>
+);
+
+/** Icono del menu Utilidades (torta: reparto entre socios). */
+export const IconoTorta = () => (
+  <Icono>
+    <path d="M12 3v9h9" />
+    <path d="M20.5 15.5A9 9 0 1 1 8.5 3.7" />
+    <path d="M12 3a9 9 0 0 1 9 9" />
+  </Icono>
+);
+
+/** Icono del menu Vehiculos (volante). */
+export const IconoVolante = () => (
+  <Icono>
+    <circle cx="12" cy="12" r="8.5" />
+    <circle cx="12" cy="12" r="2" />
+    <path d="M3.8 10.5 10 12M20.2 10.5 14 12M12 14v6.5" />
+  </Icono>
+);
+
+/** Flecha pequena de los grupos del menu (abierto: hacia abajo). */
+export const IconoChevron = ({ abierto }: { abierto: boolean }) => (
+  <Icono tamano={14}>
+    <path d={abierto ? "M6 9l6 6 6-6" : "M9 6l6 6-6 6"} />
+  </Icono>
+);
