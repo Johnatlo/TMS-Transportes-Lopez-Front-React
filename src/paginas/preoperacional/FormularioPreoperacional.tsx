@@ -10,7 +10,7 @@ import { apiPreoperacional } from "../../api/cliente";
 import type { Preoperacional } from "../../api/cliente";
 import Modal from "../../componentes/Modal";
 import { Cargando } from "../../componentes/Estado";
-import { faltantes, PREGUNTAS, respuestasIniciales, SECCIONES } from "./preguntasPreoperacional";
+import { faltantes, PREGUNTAS, respuestasIniciales, respuestasNuevas, SECCIONES } from "./preguntasPreoperacional";
 import type { Pregunta } from "./preguntasPreoperacional";
 
 /** Ventana del formulario. Con `existente` corrige esa inspeccion. */
@@ -33,17 +33,17 @@ export default function FormularioPreoperacional({
   const [enviando, setEnviando] = useState(false);
   const [intento, setIntento] = useState(false);
 
-  // Las respuestas sugeridas para el viaje.
+  // Las respuestas sugeridas para el viaje (todo en positivo y sin novedades: ver respuestasNuevas).
   useEffect(() => {
     if (existente) return;
     let vivo = true;
     apiPreoperacional
       .sugerido({ viajeId })
-      .then((s) => vivo && setR(respuestasIniciales(s)))
+      .then((s) => vivo && setR(respuestasNuevas(s)))
       .catch((exc) => {
         if (!vivo) return;
         setError(exc instanceof Error ? exc.message : "No se pudieron traer las respuestas sugeridas.");
-        setR(respuestasIniciales({}));
+        setR(respuestasNuevas({}));
       });
     return () => {
       vivo = false;

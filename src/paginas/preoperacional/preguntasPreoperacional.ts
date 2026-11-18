@@ -234,6 +234,24 @@ export function respuestasIniciales(sugeridas: Record<string, string>): Record<s
   return r;
 }
 
+/**
+ * Respuestas de un preoperacional nuevo: las sugeridas (placa, conductor,
+ * EPS, ARL, tipo de vehiculo, fechas...), pero toda pregunta de opcion con
+ * respuesta positiva arranca en ella ("Si", "Cumple", "MAS DE 7 HORAS",
+ * aprobo "Si") y sin novedades, aunque la inspeccion anterior tuviera alguna:
+ * asi el conductor solo cambia lo que de verdad tiene novedad (agiliza la
+ * operacion). Al editar uno guardado se usa respuestasIniciales.
+ */
+export function respuestasNuevas(sugeridas: Record<string, string>): Record<string, string> {
+  const r = respuestasIniciales(sugeridas);
+  for (const p of PREGUNTAS) {
+    if (p.tipo === "opcion" && p.defecto) r[p.clave] = p.defecto;
+    if (p.novedad) r[p.novedad] = "";
+  }
+  r.otrasNovedades = "";
+  return r;
+}
+
 /** Preguntas obligatorias sin contestar. */
 export function faltantes(r: Record<string, string>): Pregunta[] {
   return PREGUNTAS.filter((p) => p.requerida && !(r[p.clave] ?? "").trim());

@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_687 funciones, componentes, métodos y rutas en 101 archivos._
+_688 funciones, componentes, métodos y rutas en 101 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (222)
@@ -249,7 +249,7 @@ _687 funciones, componentes, métodos y rutas en 101 archivos._
 - [`src/paginas/preoperacional/FormularioPreoperacional.tsx`](#srcpaginaspreoperacionalformulariopreoperacionaltsx) (1)
 - [`src/paginas/preoperacional/Preoperacional.tsx`](#srcpaginaspreoperacionalpreoperacionaltsx) (2)
 - [`src/paginas/preoperacional/excelPreoperacional.ts`](#srcpaginaspreoperacionalexcelpreoperacionalts) (6)
-- [`src/paginas/preoperacional/preguntasPreoperacional.ts`](#srcpaginaspreoperacionalpreguntaspreoperacionalts) (7)
+- [`src/paginas/preoperacional/preguntasPreoperacional.ts`](#srcpaginaspreoperacionalpreguntaspreoperacionalts) (8)
 - [`src/paginas/seguimiento/AnticiposEmpresas.tsx`](#srcpaginasseguimientoanticiposempresastsx) (4)
 - [`src/paginas/seguimiento/Cartera.tsx`](#srcpaginasseguimientocarteratsx) (5)
 - [`src/paginas/seguimiento/ImportarCartera.tsx`](#srcpaginasseguimientoimportarcarteratsx) (3)
@@ -2851,6 +2851,14 @@ _687 funciones, componentes, métodos y rutas en 101 archivos._
   Respuestas para el formulario: las de por defecto (todo en Si / Cumple), y
   encima las sugeridas por el servidor (ultima inspeccion de la placa o la
   matriz importada, y lo del viaje).
+
+- **`respuestasNuevas(sugeridas)`** · _función_
+  Respuestas de un preoperacional nuevo: las sugeridas (placa, conductor,
+  EPS, ARL, tipo de vehiculo, fechas...), pero toda pregunta de opcion con
+  respuesta positiva arranca en ella ("Si", "Cumple", "MAS DE 7 HORAS",
+  aprobo "Si") y sin novedades, aunque la inspeccion anterior tuviera alguna:
+  asi el conductor solo cambia lo que de verdad tiene novedad (agiliza la
+  operacion). Al editar uno guardado se usa respuestasIniciales.
 
 - **`faltantes(r)`** · _función_
   Preguntas obligatorias sin contestar.

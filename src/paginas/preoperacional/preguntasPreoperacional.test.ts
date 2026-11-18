@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ciudadDeOrigen, faltantes, PREGUNTAS, respuestasDeEnlace, respuestasIniciales } from "./preguntasPreoperacional";
+import { ciudadDeOrigen, faltantes, PREGUNTAS, respuestasDeEnlace, respuestasIniciales, respuestasNuevas } from "./preguntasPreoperacional";
 
 const ENLACE =
   "https://docs.google.com/forms/d/e/x/viewform?usp=pp_url&entry.2100619182=JTY-219&entry.955491889=MAURICIO+LOPEZ+CUENCA+&entry.1093538174=S%C3%AD" +
@@ -34,5 +34,27 @@ describe("preguntas del preoperacional", () => {
 
   it("38 preguntas como el formulario", () => {
     expect(PREGUNTAS).toHaveLength(38);
+  });
+});
+
+describe("preoperacional nuevo: todo en positivo y sin novedades", () => {
+  it("aunque la inspeccion anterior tuviera un No, No cumple o novedades, arranca en Si / Cumple; los datos si se sugieren", () => {
+    const r = respuestasNuevas({
+      gps: "No",
+      frenos: "No cumple",
+      frenosNovedad: "Pastillas gastadas",
+      saludOptima: "No",
+      descanso: "DE 1 A 3 HORAS",
+      aprobo: "No",
+      otrasNovedades: "Llanta pinchada",
+      placa: "SZX826",
+      eps: "SANITAS",
+      tipoVehiculo: "DOBLE TROQUE",
+    });
+    expect([r.gps, r.frenos, r.frenosNovedad, r.saludOptima, r.descanso, r.aprobo, r.otrasNovedades]).toEqual(["Sí", "Cumple", "", "Sí", "MAS DE 7 HORAS", "Sí", ""]);
+    expect([r.placa, r.eps, r.tipoVehiculo]).toEqual(["SZX826", "SANITAS", "DOBLE TROQUE"]);
+  });
+  it("al editar uno guardado se conserva lo que tenia", () => {
+    expect(respuestasIniciales({ frenos: "No cumple", frenosNovedad: "Pastillas" }).frenos).toBe("No cumple");
   });
 });
