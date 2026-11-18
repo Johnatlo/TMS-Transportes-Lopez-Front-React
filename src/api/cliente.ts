@@ -1885,6 +1885,8 @@ export interface CuotaCredito {
   interes: number;
   saldo: number;
   fechaPago: string | null;
+  /** Lo que de verdad se pago (si fue distinto de la cuota de la tabla). */
+  valorPagado: number | null;
   gastoId: number | null;
 }
 
@@ -1896,8 +1898,10 @@ export interface Credito {
   entidad: string | null;
   obligacion: string | null;
   monto: number;
-  /** Tasa mensual en porcentaje. */
+  /** Tasa mensual en porcentaje, deducida de la cuota del banco. */
   tasaMensual: number;
+  /** 4 x 1000 que se descuenta a cada cuota (por mil). */
+  gmfPorMil: number;
   plazo: number;
   primeraCuota: string;
   cuotaFija: number | null;
@@ -1910,7 +1914,8 @@ export interface Credito {
 }
 
 /** Lo que se manda al crear o cambiar un credito. */
-export type DatosCredito = Omit<Credito, "id" | "cuotas" | "saldoPendiente" | "cuotasPagadas">;
+/** Lo que se manda al crear o cambiar un credito (la tasa no: se deduce de la cuota del banco). */
+export type DatosCredito = Omit<Credito, "id" | "cuotas" | "saldoPendiente" | "cuotasPagadas" | "tasaMensual" | "cuotaFija"> & { cuotaFija: number };
 
 /** Libro de gastos, cierres de mes y creditos. */
 export const apiGastos = {
@@ -1939,7 +1944,7 @@ export const apiGastos = {
   /** Borra un credito sin cuotas pagadas. */
   borrarCredito: (id: number) => del<{ ok: boolean }>(`/gastos/creditos/${id}`),
   /** Registra el pago de una cuota (crea su gasto con el reparto del credito). */
-  pagarCuota: (id: number, numero: number, d: { fechaPago: string; soporteUrl?: string | null }) => post<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`, d),
+  pagarCuota: (id: number, numero: number, d: { fechaPago: string; valor?: number | null; soporteUrl?: string | null }) => post<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`, d),
   /** Quita el pago de una cuota y borra su gasto. */
   quitarPagoCuota: (id: number, numero: number) => del<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`),
 };

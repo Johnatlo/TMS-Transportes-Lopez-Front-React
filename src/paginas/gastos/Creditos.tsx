@@ -1,5 +1,6 @@
 /**
- * Creditos de las dos empresas: monto, tasa, plazo y a quien se reparte cada
+ * Creditos de las dos empresas: monto, plazo, la cuota que cobra el banco, el
+ * 4 x 1000 que se le descuenta a cada cuota y a quien se reparte cada
  * cuota. Clic en un credito muestra su tabla de amortizacion (capital,
  * interes y saldo) y deja registrar el pago de cada cuota: al pagarla se crea
  * su gasto en el libro con el reparto del credito. Las cuotas anteriores a la
@@ -22,6 +23,25 @@ import type { SeleccionDestinos } from "./destinos";
 
 const EMPRESA: Record<EmpresaGasto, string> = { LOPEZ: "T. Lopez", MYC: "T. M&C" };
 
+/**
+ * Tasa mensual (en fraccion) que da la cuota del banco, como la calcula el
+ * servidor (prorrateo.ts, tasaImplicita), solo para mostrarla; null si la
+ * cuota no alcanza a pagar el monto.
+ */
+function tasaSegunCuota(monto: number, plazo: number, cuota: number): number | null {
+  if (!(monto > 0) || !(plazo > 0) || !(cuota > 0)) return 0;
+  if (cuota * plazo < monto - 1) return null;
+  if (cuota * plazo <= monto + 1) return 0;
+  let bajo = 0;
+  let alto = 1;
+  for (let i = 0; i < 100; i++) {
+    const medio = (bajo + alto) / 2;
+    if ((monto * medio) / (1 - Math.pow(1 + medio, -plazo)) > cuota) alto = medio;
+    else bajo = medio;
+  }
+  return Math.round(((bajo + alto) / 2) * 1e6) / 1e6;
+}
+
 /** Descarga la tabla de amortizacion del credito. */
 async function exportarTabla(c: Credito) {
   const { descargarTabla } = await import("../../componentes/excelTabla");
@@ -39,6 +59,8 @@ async function exportarTabla(c: Credito) {
       col("INTERES", (q) => Math.round(q.interes), true),
       col("SALDO", (q) => Math.round(q.saldo), true),
       col("FECHA DE PAGO", (q) => q.fechaPago),
+      col("VALOR PAGADO", (q) => (q.fechaPago ? Math.round(q.valorPagado ?? q.cuota) : null), true),
+      col(`${c.gmfPorMil} X 1000`, (q) => (q.fechaPago ? Math.round(((q.valorPagado ?? q.cuota) * c.gmfPorMil) / 1000) : null), true),
     ],
     c.nombre,
     `credito-${c.nombre.replace(/[^\w]+/g, "-").toLowerCase()}`,
@@ -89,7 +111,7 @@ export default function Creditos({ opciones, alCambiar }: { opciones: OpcionesGa
     { id: "monto", titulo: "Monto", alinear: "derecha", valor: (c) => Math.round(c.monto), celda: (c) => moneda(c.monto) },
     {
       id: "tasa",
-      titulo: "Tasa mensual",
+      titulo: "Tasa (segun la cuota)",
       alinear: "derecha",
       valor: (c) => c.tasaMensual,
       celda: (c) => `${c.tasaMensual.toLocaleString("es-CO", { maximumFractionDigits: 4 })} %`,
@@ -134,7 +156,7 @@ export default function Creditos({ opciones, alCambiar }: { opciones: OpcionesGa
               corte={opciones.corte}
               alEditar={() => setFormulario({ credito: c })}
               alBorrar={() => window.confirm(`¿Borrar el credito "${c.nombre}"?`) && accion(() => apiGastos.borrarCredito(c.id))}
-              alPagar={(numero, fecha) => accion(() => apiGastos.pagarCuota(c.id, numero, { fechaPago: fecha }))}
+              alPagar={(numero, fecha, valor) => accion(() => apiGastos.pagarCuota(c.id, numero, { fechaPago: fecha, valor }))}
               alQuitarPago={(numero) =>
                 window.confirm(`¿Quitar el pago de la cuota ${numero}? Se borra su gasto del libro.`) && accion(() => apiGastos.quitarPagoCuota(c.id, numero))
               }
@@ -171,10 +193,11 @@ function TablaAmortizacion({
   corte: string;
   alEditar: () => void;
   alBorrar: () => void;
-  alPagar: (numero: number, fecha: string) => void;
+  alPagar: (numero: number, fecha: string, valor: number | null) => void;
   alQuitarPago: (numero: number) => void;
 }) {
   const [fechas, setFechas] = useState<Record<number, string>>({});
+  const [valores, setValores] = useState<Record<number, string>>({});
   const siguiente = c.cuotas.find((q) => !q.fechaPago)?.numero;
   return (
     <div className="detalle-tanqueo" onClick={(e) => e.stopPropagation()}>
@@ -183,7 +206,7 @@ function TablaAmortizacion({
           Saldo pendiente: <strong>{moneda(c.saldoPendiente)}</strong>
         </span>
         <span className="dato-sec">
-          {c.cuotasPagadas} de {c.plazo} cuotas pagadas
+          {c.cuotasPagadas} de {c.plazo} cuotas pagadas · a cada cuota se le suma su {c.gmfPorMil} x 1000
         </span>
         <button className="btn-secondary" onClick={alEditar}>
           Editar credito
@@ -225,7 +248,9 @@ function TablaAmortizacion({
                 <td>
                   {q.fechaPago ? (
                     <>
-                      Pagada {fechaCorta(q.fechaPago)} {!q.gastoId && <span className="dato-sec">(antes del inicio: sin gasto)</span>}{" "}
+                      Pagada {fechaCorta(q.fechaPago)}
+                      {q.valorPagado !== null && <span className="dato-sec"> por {moneda(q.valorPagado)}</span>}{" "}
+                      {!q.gastoId && <span className="dato-sec">(antes del inicio: sin gasto)</span>}{" "}
                       <button className="btn-link" onClick={() => alQuitarPago(q.numero)}>
                         Quitar
                       </button>
@@ -238,10 +263,21 @@ function TablaAmortizacion({
                         onChange={(e) => setFechas({ ...fechas, [q.numero]: e.target.value })}
                         aria-label={`Fecha de pago de la cuota ${q.numero}`}
                       />
+                      <input
+                        type="number"
+                        min={0}
+                        step="any"
+                        style={{ width: "8rem", textAlign: "right" }}
+                        placeholder={String(Math.round(q.cuota))}
+                        title="Lo que de verdad se pago (si la tasa cambio); vacio = la cuota de la tabla"
+                        value={valores[q.numero] ?? ""}
+                        onChange={(e) => setValores({ ...valores, [q.numero]: e.target.value })}
+                        aria-label={`Valor pagado de la cuota ${q.numero}`}
+                      />
                       <button
                         className="btn-link"
                         disabled={!(fechas[q.numero] ?? (q.numero === siguiente ? hoyColombia() : ""))}
-                        onClick={() => alPagar(q.numero, fechas[q.numero] ?? hoyColombia())}
+                        onClick={() => alPagar(q.numero, fechas[q.numero] ?? hoyColombia(), valores[q.numero] ? Number(valores[q.numero]) : null)}
                       >
                         Registrar pago
                       </button>
@@ -278,10 +314,10 @@ function FormularioCredito({
     entidad: credito?.entidad ?? "",
     obligacion: credito?.obligacion ?? "",
     monto: credito ? String(credito.monto) : "",
-    tasaMensual: credito ? String(credito.tasaMensual) : "",
+    gmfPorMil: credito ? String(credito.gmfPorMil) : "4",
     plazo: credito ? String(credito.plazo) : "",
     primeraCuota: credito?.primeraCuota ?? "",
-    cuotaFija: credito?.cuotaFija ? String(credito.cuotaFija) : "",
+    cuotaFija: credito ? String(credito.cuotaFija ?? credito.cuotas[0]?.cuota ?? "") : "",
     prorratea: credito?.prorratea ?? ("CAPITAL_E_INTERES" as Credito["prorratea"]),
     nota: credito?.nota ?? "",
   });
@@ -291,10 +327,11 @@ function FormularioCredito({
   const conPagos = (credito?.cuotasPagadas ?? 0) > 0;
   // Cuota estimada para la vista previa del reparto.
   const monto = Number(f.monto) || 0;
-  const tasa = (Number(f.tasaMensual) || 0) / 100;
   const plazo = Number(f.plazo) || 0;
-  const cuota = Number(f.cuotaFija) || (monto && plazo ? (tasa ? (monto * tasa) / (1 - Math.pow(1 + tasa, -plazo)) : monto / plazo) : 0);
-  const listo = !!f.nombre.trim() && monto > 0 && plazo > 0 && f.tasaMensual !== "" && !!f.primeraCuota && !vistaPrevia(cuota || 1, destinos).problema;
+  const cuota = Number(f.cuotaFija) || 0;
+  const gmf = Math.round((cuota * (Number(f.gmfPorMil) || 0)) / 1000);
+  const tasa = tasaSegunCuota(monto, plazo, cuota);
+  const listo = !!f.nombre.trim() && monto > 0 && plazo > 0 && cuota > 0 && tasa !== null && !!f.primeraCuota && !vistaPrevia(cuota + gmf, destinos).problema;
 
   async function guardar() {
     setGuardando(true);
@@ -305,10 +342,10 @@ function FormularioCredito({
       entidad: f.entidad || null,
       obligacion: f.obligacion || null,
       monto,
-      tasaMensual: Number(f.tasaMensual),
+      gmfPorMil: f.gmfPorMil === "" ? 4 : Number(f.gmfPorMil),
       plazo,
       primeraCuota: f.primeraCuota,
-      cuotaFija: f.cuotaFija ? Number(f.cuotaFija) : null,
+      cuotaFija: cuota,
       prorratea: f.prorratea,
       destinos: aDestinos(destinos),
       nota: f.nota || null,
@@ -342,8 +379,8 @@ function FormularioCredito({
       {error && <div className="alert danger">{error}</div>}
       {conPagos && (
         <div className="alert info">
-          Este credito ya tiene cuotas pagadas: el monto, la tasa, el plazo y las fechas no se cambian (solo el nombre, la nota y el reparto de las cuotas que
-          faltan).
+          Este credito ya tiene cuotas pagadas: el monto, la cuota, el plazo y las fechas no se cambian (solo el nombre, la nota, el 4 x 1000 y el reparto de
+          las cuotas que faltan).
         </div>
       )}
       <div className="campos-cuadro">
@@ -371,16 +408,8 @@ function FormularioCredito({
           <input type="number" min={0} step="any" disabled={conPagos} value={f.monto} onChange={(e) => setF({ ...f, monto: e.target.value })} />
         </div>
         <div>
-          <label>Tasa mensual (%)</label>
-          <input
-            type="number"
-            min={0}
-            step="any"
-            disabled={conPagos}
-            value={f.tasaMensual}
-            onChange={(e) => setF({ ...f, tasaMensual: e.target.value })}
-            placeholder="1,6725"
-          />
+          <label>4 x 1000 que se descuenta a cada cuota (por mil)</label>
+          <input type="number" min={0} step="any" value={f.gmfPorMil} onChange={(e) => setF({ ...f, gmfPorMil: e.target.value })} placeholder="4" />
         </div>
         <div>
           <label>Plazo (cuotas)</label>
@@ -391,7 +420,7 @@ function FormularioCredito({
           <input type="date" disabled={conPagos} value={f.primeraCuota} onChange={(e) => setF({ ...f, primeraCuota: e.target.value })} />
         </div>
         <div>
-          <label>Cuota que cobra el banco (opcional)</label>
+          <label>Cuota que cobra el banco</label>
           <input
             type="number"
             min={0}
@@ -399,7 +428,7 @@ function FormularioCredito({
             disabled={conPagos}
             value={f.cuotaFija}
             onChange={(e) => setF({ ...f, cuotaFija: e.target.value })}
-            placeholder={cuota ? String(Math.round(cuota)) : ""}
+            placeholder="2122647"
           />
         </div>
         <div>
@@ -416,11 +445,14 @@ function FormularioCredito({
       </div>
       {cuota > 0 && (
         <div className="dato-sec" style={{ marginTop: "0.3rem" }}>
-          Cuota {f.cuotaFija ? "del banco" : "calculada"}: <strong>{moneda(cuota)}</strong>. Si no escribes la del banco se usa la calculada con la tasa.
+          Cada cuota: <strong>{moneda(cuota)}</strong> + {f.gmfPorMil || 0} x 1000 (<strong>{moneda(gmf)}</strong>) = <strong>{moneda(cuota + gmf)}</strong>.{" "}
+          {tasa === null
+            ? "Con esa cuota y ese plazo no se alcanza a pagar el monto."
+            : `La tasa no se escribe (cambia mes a mes): con esta cuota da ${(tasa * 100).toLocaleString("es-CO", { maximumFractionDigits: 4 })} % mensual, para separar capital e interes. Al pagar cada cuota se puede escribir lo que de verdad se pago.`}
         </div>
       )}
       <h4 style={{ margin: "1rem 0 0.4rem" }}>A quien se le descuenta cada cuota</h4>
-      <SelectorDestinos opciones={opciones} monto={Math.round(cuota)} valor={destinos} alCambiar={setDestinos} />
+      <SelectorDestinos opciones={opciones} monto={Math.round(cuota + gmf)} valor={destinos} alCambiar={setDestinos} />
     </Modal>
   );
 }

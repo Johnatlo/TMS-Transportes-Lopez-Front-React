@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_688 funciones, componentes, métodos y rutas en 101 archivos._
+_689 funciones, componentes, métodos y rutas en 101 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (222)
@@ -238,7 +238,7 @@ _688 funciones, componentes, métodos y rutas en 101 archivos._
 - [`src/paginas/cuadro/relacionBomba.ts`](#srcpaginascuadrorelacionbombats) (8)
 - [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (9)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
-- [`src/paginas/gastos/Creditos.tsx`](#srcpaginasgastoscreditostsx) (4)
+- [`src/paginas/gastos/Creditos.tsx`](#srcpaginasgastoscreditostsx) (5)
 - [`src/paginas/gastos/Gastos.tsx`](#srcpaginasgastosgastostsx) (7)
 - [`src/paginas/gastos/SelectorDestinos.tsx`](#srcpaginasgastosselectordestinostsx) (1)
 - [`src/paginas/gastos/destinos.ts`](#srcpaginasgastosdestinosts) (4)
@@ -2596,12 +2596,18 @@ _688 funciones, componentes, métodos y rutas en 101 archivos._
 
 ### `src/paginas/gastos/Creditos.tsx`
 
-> Creditos de las dos empresas: monto, tasa, plazo y a quien se reparte cada
+> Creditos de las dos empresas: monto, plazo, la cuota que cobra el banco, el
+> 4 x 1000 que se le descuenta a cada cuota y a quien se reparte cada
 > cuota. Clic en un credito muestra su tabla de amortizacion (capital,
 > interes y saldo) y deja registrar el pago de cada cuota: al pagarla se crea
 > su gasto en el libro con el reparto del credito. Las cuotas anteriores a la
 > fecha de inicio de los gastos solo se marcan pagadas (para que el saldo
 > cuadre). La tabla se exporta a Excel.
+
+- **`tasaSegunCuota(monto, plazo, cuota)`** · _función_
+  Tasa mensual (en fraccion) que da la cuota del banco, como la calcula el
+  servidor (prorrateo.ts, tasaImplicita), solo para mostrarla; null si la
+  cuota no alcanza a pagar el monto.
 
 - **`exportarTabla(c)`** · _función_
   Descarga la tabla de amortizacion del credito.
