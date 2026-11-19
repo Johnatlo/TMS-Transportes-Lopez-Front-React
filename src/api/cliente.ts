@@ -1898,7 +1898,7 @@ export interface Credito {
   entidad: string | null;
   obligacion: string | null;
   monto: number;
-  /** Tasa mensual en porcentaje, deducida de la cuota del banco. */
+  /** Tasa mensual en porcentaje: la escrita o la deducida de la cuota del banco. */
   tasaMensual: number;
   /** 4 x 1000 que se descuenta a cada cuota (por mil). */
   gmfPorMil: number;
@@ -1914,8 +1914,11 @@ export interface Credito {
 }
 
 /** Lo que se manda al crear o cambiar un credito. */
-/** Lo que se manda al crear o cambiar un credito (la tasa no: se deduce de la cuota del banco). */
-export type DatosCredito = Omit<Credito, "id" | "cuotas" | "saldoPendiente" | "cuotasPagadas" | "tasaMensual" | "cuotaFija"> & { cuotaFija: number };
+/** Lo que se manda al crear o cambiar un credito (la tasa es opcional: sin ella se deduce de la cuota del banco). */
+export type DatosCredito = Omit<Credito, "id" | "cuotas" | "saldoPendiente" | "cuotasPagadas" | "tasaMensual" | "cuotaFija"> & {
+  cuotaFija: number;
+  tasaMensual: number | null;
+};
 
 /** Libro de gastos, cierres de mes y creditos. */
 export const apiGastos = {

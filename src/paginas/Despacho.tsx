@@ -47,12 +47,46 @@ interface FilaRemesa {
   ordenServicioGenerador: string;
   valorFleteRemesa: number | null;
   /**
+   * Tiempos pactados de cargue y descargue: salen de la plantilla al elegirla
+   * y se pueden cambiar (cuando cargan o descargan mas rapido).
+   */
+  horasPactoCargue: number | null;
+  minutosPactoCargue: number | null;
+  horasPactoDescargue: number | null;
+  minutosPactoDescargue: number | null;
+  /**
    * Si el usuario ya toco el descargue, deja de seguir al cargue. Sin esto,
    * corregir la hora del cargue le borraria un descargue puesto a mano.
    */
   descargueEditado: boolean;
 }
 
+
+/** Tiempos pactados de una plantilla, para precargarlos en la carga (vacios si no hay plantilla). */
+function tiemposDePlantilla(
+  p: Pick<PlantillaViaje, "horasPactoCargue" | "minutosPactoCargue" | "horasPactoDescargue" | "minutosPactoDescargue"> | undefined,
+): Pick<FilaRemesa, "horasPactoCargue" | "minutosPactoCargue" | "horasPactoDescargue" | "minutosPactoDescargue"> {
+  return {
+    horasPactoCargue: p?.horasPactoCargue ?? null,
+    minutosPactoCargue: p?.minutosPactoCargue ?? null,
+    horasPactoDescargue: p?.horasPactoDescargue ?? null,
+    minutosPactoDescargue: p?.minutosPactoDescargue ?? null,
+  };
+}
+
+/**
+ * Los tiempos que se mandan: solo los que se cambiaron frente a la plantilla
+ * (los demas van vacios y el servidor usa los de la plantilla).
+ */
+function tiemposCambiados(
+  r: FilaRemesa,
+  p: Pick<PlantillaViaje, "horasPactoCargue" | "minutosPactoCargue" | "horasPactoDescargue" | "minutosPactoDescargue"> | undefined,
+): Partial<Record<"horasPactoCargue" | "minutosPactoCargue" | "horasPactoDescargue" | "minutosPactoDescargue", number>> {
+  const claves = ["horasPactoCargue", "minutosPactoCargue", "horasPactoDescargue", "minutosPactoDescargue"] as const;
+  if (!p || claves.every((k) => r[k] === null || r[k] === p[k])) return {};
+  // Si se cambio alguno, van los cuatro (los vacios toman el de la plantilla).
+  return Object.fromEntries(claves.map((k) => [k, r[k] ?? p[k]]));
+}
 
 /** Hoy, a la siguiente hora en punto. Es la cita de cargue mas frecuente. */
 function proximaHoraEnPunto(): Date {
@@ -75,6 +109,10 @@ function filaVacia(): FilaRemesa {
     cantidadReal: null,
     ordenServicioGenerador: "",
     valorFleteRemesa: null,
+    horasPactoCargue: null,
+    minutosPactoCargue: null,
+    horasPactoDescargue: null,
+    minutosPactoDescargue: null,
     descargueEditado: false,
   };
 }
@@ -256,12 +294,13 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
    */
   const llevaRemolque = !configuracion || /S/i.test(configuracion);
 
-  /** Horas pactadas de cargue y descargue, que entran en el piso de SICETAC. */
+  /** Horas pactadas de cargue y descargue (las de la primera carga), que entran en el piso de SICETAC. */
+  const primera = remesas[0];
   const horasPactadas = plantillaPrincipal
-    ? plantillaPrincipal.horasPactoCargue +
-      plantillaPrincipal.minutosPactoCargue / 60 +
-      plantillaPrincipal.horasPactoDescargue +
-      plantillaPrincipal.minutosPactoDescargue / 60
+    ? (primera?.horasPactoCargue ?? plantillaPrincipal.horasPactoCargue) +
+      (primera?.minutosPactoCargue ?? plantillaPrincipal.minutosPactoCargue) / 60 +
+      (primera?.horasPactoDescargue ?? plantillaPrincipal.horasPactoDescargue) +
+      (primera?.minutosPactoDescargue ?? plantillaPrincipal.minutosPactoDescargue) / 60
     : 0;
 
   // -------------------------------------------------------------------------
@@ -575,6 +614,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       cantidadReal: r.cantidadReal ?? undefined,
       ordenServicioGenerador: r.ordenServicioGenerador || undefined,
       valorFleteRemesa: r.valorFleteRemesa ?? undefined,
+      ...tiemposCambiados(r, listaPlantillas.find((p) => p.id === r.plantillaId)),
     }));
 
     try {
@@ -604,15 +644,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         conductor2Id: conductor2Id ?? undefined,
         plantillaId: remesas[0].plantillaId!,
         consecutivoBase: consecutivoBase.trim(),
-        remesas: remesas.map((r) => ({
-          plantillaId: r.plantillaId!,
-          fechaHoraCargue: r.fechaHoraCargue,
-          fechaHoraDescargue: r.fechaHoraDescargue,
-          pesoReal: r.pesoReal ?? undefined,
-          cantidadReal: r.cantidadReal ?? undefined,
-          ordenServicioGenerador: r.ordenServicioGenerador || undefined,
-          valorFleteRemesa: r.valorFleteRemesa ?? undefined,
-        })),
+        remesas: cargas,
         valorFleteReal: fleteEfectivo,
         valorAnticipoManifiesto: valorAnticipo ?? undefined,
         retencionFopat: retencionFopat ?? undefined,
@@ -687,6 +719,12 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         cantidadReal: r.cantidadReal,
         ordenServicioGenerador: r.ordenServicioGenerador ?? "",
         valorFleteRemesa: r.valorFleteRemesa,
+        ...tiemposDePlantilla(listaPlantillas.find((p) => p.id === r.plantillaId)),
+        ...Object.fromEntries(
+          (["horasPactoCargue", "minutosPactoCargue", "horasPactoDescargue", "minutosPactoDescargue"] as const)
+            .filter((k) => r[k] !== null && r[k] !== undefined)
+            .map((k) => [k, r[k]]),
+        ),
         descargueEditado: true,
       }))
     );
@@ -1052,11 +1090,70 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
                 <ComboBuscable
                   opciones={listaPlantillas}
                   valor={r.plantillaId}
-                  alCambiar={(id) => actualizarFila(i, { plantillaId: id })}
+                  alCambiar={(id) => actualizarFila(i, { plantillaId: id, ...tiemposDePlantilla(listaPlantillas.find((p) => p.id === id)) })}
                   obtenerId={(p) => p.id}
                   obtenerEtiqueta={(p) => p.nombre}
                   placeholder="Busca por nombre de la plantilla..."
                 />
+
+                {r.plantillaId && (
+                  <div className="tiempos-pacto">
+                    <div>
+                      <label>Tiempo pactado de cargue</label>
+                      <span className="estado-abono">
+                        <input
+                          type="number"
+                          min={0}
+                          max={99}
+                          aria-label="Horas de cargue"
+                          value={r.horasPactoCargue ?? ""}
+                          onChange={(e) => actualizarFila(i, { horasPactoCargue: e.target.value === "" ? null : Number(e.target.value) })}
+                        />
+                        <span className="dato-sec">h</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={59}
+                          aria-label="Minutos de cargue"
+                          value={r.minutosPactoCargue ?? ""}
+                          onChange={(e) => actualizarFila(i, { minutosPactoCargue: e.target.value === "" ? null : Number(e.target.value) })}
+                        />
+                        <span className="dato-sec">min</span>
+                      </span>
+                    </div>
+                    <div>
+                      <label>Tiempo pactado de descargue</label>
+                      <span className="estado-abono">
+                        <input
+                          type="number"
+                          min={0}
+                          max={99}
+                          aria-label="Horas de descargue"
+                          value={r.horasPactoDescargue ?? ""}
+                          onChange={(e) => actualizarFila(i, { horasPactoDescargue: e.target.value === "" ? null : Number(e.target.value) })}
+                        />
+                        <span className="dato-sec">h</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={59}
+                          aria-label="Minutos de descargue"
+                          value={r.minutosPactoDescargue ?? ""}
+                          onChange={(e) => actualizarFila(i, { minutosPactoDescargue: e.target.value === "" ? null : Number(e.target.value) })}
+                        />
+                        <span className="dato-sec">min</span>
+                      </span>
+                    </div>
+                    <p className="section-desc" style={{ gridColumn: "1 / -1", margin: 0 }}>
+                      {(() => {
+                        const p = listaPlantillas.find((x) => x.id === r.plantillaId);
+                        return p
+                          ? `Los de la plantilla: cargue ${p.horasPactoCargue} h ${p.minutosPactoCargue} min, descargue ${p.horasPactoDescargue} h ${p.minutosPactoDescargue} min. Cambialos si esta vez cargan o descargan mas rapido.`
+                          : "";
+                      })()}
+                    </p>
+                  </div>
+                )}
 
                 <label>Cita de cargue</label>
                 <input

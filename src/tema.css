@@ -722,3 +722,7 @@ table.tabla tbody tr.fila-detalle > td {
 .producido-origen { display: block; font-size: 0.72rem; margin-top: 0.15rem; white-space: normal; }
 table.tabla-nomina td, table.tabla-nomina th { padding-left: 0.55rem; padding-right: 0.55rem; }
 .producido-origen .btn-link { font-size: 0.72rem; margin-left: 0.3rem; }
+
+/* Despacho: tiempos pactados de cargue y descargue de la carga (de la plantilla, editables). */
+.tiempos-pacto { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.4rem 1rem; margin: 0.4rem 0 0.6rem; }
+.tiempos-pacto input { width: 4.5rem; }

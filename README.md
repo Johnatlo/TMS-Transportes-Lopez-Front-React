@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_689 funciones, componentes, métodos y rutas en 101 archivos._
+_691 funciones, componentes, métodos y rutas en 101 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (222)
@@ -214,7 +214,7 @@ _689 funciones, componentes, métodos y rutas en 101 archivos._
 - [`src/ganchos/useSesion.tsx`](#srcganchosusesesiontsx) (2)
 - [`src/paginas/Catalogo.tsx`](#srcpaginascatalogotsx) (21)
 - [`src/paginas/Dashboard.tsx`](#srcpaginasdashboardtsx) (14)
-- [`src/paginas/Despacho.tsx`](#srcpaginasdespachotsx) (5)
+- [`src/paginas/Despacho.tsx`](#srcpaginasdespachotsx) (7)
 - [`src/paginas/FormularioPlantilla.tsx`](#srcpaginasformularioplantillatsx) (4)
 - [`src/paginas/Historial.tsx`](#srcpaginashistorialtsx) (2)
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
@@ -1912,6 +1912,13 @@ _689 funciones, componentes, métodos y rutas en 101 archivos._
   mismo del manifiesto) y las siguientes agregan una letra. Es la misma regla
   que aplica el backend; aqui esta solo para mostrar la vista previa.
 
+- **`tiemposDePlantilla(p)`** · _función_
+  Tiempos pactados de una plantilla, para precargarlos en la carga (vacios si no hay plantilla).
+
+- **`tiemposCambiados(r, p)`** · _función_
+  Los tiempos que se mandan: solo los que se cambiaron frente a la plantilla
+  (los demas van vacios y el servidor usa los de la plantilla).
+
 - **`proximaHoraEnPunto()`** · _función_
   Hoy, a la siguiente hora en punto. Es la cita de cargue mas frecuente.
 
@@ -2596,7 +2603,8 @@ _689 funciones, componentes, métodos y rutas en 101 archivos._
 
 ### `src/paginas/gastos/Creditos.tsx`
 
-> Creditos de las dos empresas: monto, plazo, la cuota que cobra el banco, el
+> Creditos de las dos empresas: monto, plazo, la cuota que cobra el banco, la
+> tasa mensual (opcional: si no se escribe se deduce de la cuota), el
 > 4 x 1000 que se le descuenta a cada cuota y a quien se reparte cada
 > cuota. Clic en un credito muestra su tabla de amortizacion (capital,
 > interes y saldo) y deja registrar el pago de cada cuota: al pagarla se crea

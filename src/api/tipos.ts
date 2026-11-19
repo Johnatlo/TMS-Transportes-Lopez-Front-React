@@ -308,6 +308,11 @@ export interface ViajeRemesa {
   fechaHoraDescargue: string;
   ordenServicioGenerador: string | null;
   valorFleteRemesa: number | null;
+  /** Tiempos pactados si se cambiaron al despachar (null = los de la plantilla). */
+  horasPactoCargue?: number | null;
+  minutosPactoCargue?: number | null;
+  horasPactoDescargue?: number | null;
+  minutosPactoDescargue?: number | null;
   estado: string;
   mensajeError: string | null;
   /** Radicados de anulacion del cumplido inicial (54) y de la remesa (9). */

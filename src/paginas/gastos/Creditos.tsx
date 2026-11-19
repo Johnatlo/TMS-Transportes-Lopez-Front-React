@@ -1,5 +1,6 @@
 /**
- * Creditos de las dos empresas: monto, plazo, la cuota que cobra el banco, el
+ * Creditos de las dos empresas: monto, plazo, la cuota que cobra el banco, la
+ * tasa mensual (opcional: si no se escribe se deduce de la cuota), el
  * 4 x 1000 que se le descuenta a cada cuota y a quien se reparte cada
  * cuota. Clic en un credito muestra su tabla de amortizacion (capital,
  * interes y saldo) y deja registrar el pago de cada cuota: al pagarla se crea
@@ -315,6 +316,7 @@ function FormularioCredito({
     obligacion: credito?.obligacion ?? "",
     monto: credito ? String(credito.monto) : "",
     gmfPorMil: credito ? String(credito.gmfPorMil) : "4",
+    tasaMensual: credito ? String(credito.tasaMensual) : "",
     plazo: credito ? String(credito.plazo) : "",
     primeraCuota: credito?.primeraCuota ?? "",
     cuotaFija: credito ? String(credito.cuotaFija ?? credito.cuotas[0]?.cuota ?? "") : "",
@@ -330,7 +332,9 @@ function FormularioCredito({
   const plazo = Number(f.plazo) || 0;
   const cuota = Number(f.cuotaFija) || 0;
   const gmf = Math.round((cuota * (Number(f.gmfPorMil) || 0)) / 1000);
-  const tasa = tasaSegunCuota(monto, plazo, cuota);
+  // La tasa es opcional: si se escribe se usa esa; si no, la que da la cuota del banco.
+  const tasaEscrita = f.tasaMensual.trim() === "" ? null : Number(f.tasaMensual) / 100;
+  const tasa = tasaEscrita ?? tasaSegunCuota(monto, plazo, cuota);
   const listo = !!f.nombre.trim() && monto > 0 && plazo > 0 && cuota > 0 && tasa !== null && !!f.primeraCuota && !vistaPrevia(cuota + gmf, destinos).problema;
 
   async function guardar() {
@@ -343,6 +347,7 @@ function FormularioCredito({
       obligacion: f.obligacion || null,
       monto,
       gmfPorMil: f.gmfPorMil === "" ? 4 : Number(f.gmfPorMil),
+      tasaMensual: f.tasaMensual.trim() === "" ? null : Number(f.tasaMensual),
       plazo,
       primeraCuota: f.primeraCuota,
       cuotaFija: cuota,
@@ -412,6 +417,18 @@ function FormularioCredito({
           <input type="number" min={0} step="any" value={f.gmfPorMil} onChange={(e) => setF({ ...f, gmfPorMil: e.target.value })} placeholder="4" />
         </div>
         <div>
+          <label>Tasa de interes mensual % (opcional)</label>
+          <input
+            type="number"
+            min={0}
+            step="any"
+            disabled={conPagos}
+            value={f.tasaMensual}
+            onChange={(e) => setF({ ...f, tasaMensual: e.target.value })}
+            placeholder={tasaSegunCuota(monto, plazo, cuota) ? String(Math.round(tasaSegunCuota(monto, plazo, cuota)! * 1_000_000) / 10_000) : "1,6725"}
+          />
+        </div>
+        <div>
           <label>Plazo (cuotas)</label>
           <input type="number" min={1} max={480} disabled={conPagos} value={f.plazo} onChange={(e) => setF({ ...f, plazo: e.target.value })} />
         </div>
@@ -448,7 +465,9 @@ function FormularioCredito({
           Cada cuota: <strong>{moneda(cuota)}</strong> + {f.gmfPorMil || 0} x 1000 (<strong>{moneda(gmf)}</strong>) = <strong>{moneda(cuota + gmf)}</strong>.{" "}
           {tasa === null
             ? "Con esa cuota y ese plazo no se alcanza a pagar el monto."
-            : `La tasa no se escribe (cambia mes a mes): con esta cuota da ${(tasa * 100).toLocaleString("es-CO", { maximumFractionDigits: 4 })} % mensual, para separar capital e interes. Al pagar cada cuota se puede escribir lo que de verdad se pago.`}
+            : tasaEscrita !== null
+              ? `Capital e interes con la tasa escrita: ${(tasa * 100).toLocaleString("es-CO", { maximumFractionDigits: 4 })} % mensual. Al pagar cada cuota se puede escribir lo que de verdad se pago.`
+              : `Sin tasa escrita (cambia mes a mes), con esta cuota da ${(tasa * 100).toLocaleString("es-CO", { maximumFractionDigits: 4 })} % mensual, para separar capital e interes. Al pagar cada cuota se puede escribir lo que de verdad se pago.`}
         </div>
       )}
       <h4 style={{ margin: "1rem 0 0.4rem" }}>A quien se le descuenta cada cuota</h4>
