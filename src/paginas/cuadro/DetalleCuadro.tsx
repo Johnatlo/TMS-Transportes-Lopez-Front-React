@@ -2,7 +2,7 @@
  * Ventana de un viaje del cuadro pagos: papeles, datos, flete, factura, pago
  * al dueno, revisiones, anticipos (efectivo y combustible) y notas.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiCuadro, fechaHora, moneda } from "../../api/cliente";
 import type { DetalleCuadro as Detalle, EstadoPapeles } from "../../api/cliente";
@@ -21,6 +21,8 @@ import {
   saldoVencido,
 } from "./estadosCuadro";
 import PastillasEstado from "./PastillasEstado";
+import { combustibleDelTramo } from "./tanqueos";
+import type { TramoCombustible } from "./tanqueos";
 
 /** Campos del formulario: todo como texto, igual que los inputs. */
 const CAMPOS = [
@@ -40,7 +42,18 @@ const aFormulario = (d: Detalle): Formulario =>
  * revisiones, anticipos y notas. Papeles, revisiones, anticipos y
  * notas se guardan al instante; los demas datos con "Guardar cambios".
  */
-export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number; alCerrar: () => void; alCambiar: () => void }) {
+export default function DetalleCuadro({
+  id,
+  alCerrar,
+  alCambiar,
+  enAnticipos = false,
+}: {
+  id: number;
+  alCerrar: () => void;
+  alCambiar: () => void;
+  /** Abre el viaje directo en sus anticipos (desde el cuadro de anticipos). */
+  enAnticipos?: boolean;
+}) {
   const carga = useDatos(() => apiCuadro.obtener(id), [id]);
   const [d, setD] = useState<Detalle | null>(null);
   const [f, setF] = useState<Formulario | null>(null);
@@ -369,7 +382,7 @@ export default function DetalleCuadro({ id, alCerrar, alCambiar }: { id: number;
             </div>
           </Seccion>
 
-          <Anticipos d={d} aplicar={aplicar} />
+          <Anticipos d={d} aplicar={aplicar} enfocar={enAnticipos} />
           <Notas d={d} aplicar={aplicar} />
         </div>
       )}
@@ -385,12 +398,19 @@ const anticipoVacio = () => ({
   fecha: hoyColombia(),
   efectivo: "",
   combustible: "",
+  galones: "",
+  precioGalon: "",
+  descuento: "",
   idaYVuelta: false,
   efectivoVuelta: "",
   combustibleVuelta: "",
+  galonesVuelta: "",
+  precioGalonVuelta: "",
+  descuentoVuelta: "",
   facturaBomba: "",
   nota: "",
 });
+type FormularioAnticipo = ReturnType<typeof anticipoVacio>;
 
 /** Numero de un campo de pesos ("" -> 0). */
 const pesos = (v: string) => (v.trim() === "" ? 0 : Number(v) || 0);
@@ -400,18 +420,92 @@ const pesos = (v: string) => (v.trim() === "" ? 0 : Number(v) || 0);
  * efectivo y su combustible (bomba / EDS). Si el anticipo es de ida y vuelta,
  * el de vuelta queda guardado y se suma solo al proximo viaje de la placa.
  */
-function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
+function Anticipos({ d, aplicar, enfocar }: { d: Detalle; aplicar: Aplicar; enfocar?: boolean }) {
   const bombas = useDatos(() => apiCuadro.bombas(), []);
   const [nuevo, setNuevo] = useState(anticipoVacio);
+  // Precio por galon de la bomba y descuento por galon de cada bomba en la fecha del anticipo.
+  const precios = useDatos(() => apiCuadro.resumenBomba(), []);
+  const descuentos = useDatos(() => apiCuadro.descuentosGalon(nuevo.fecha || undefined), [nuevo.fecha]);
+  const seccion = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (enfocar) seccion.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [enfocar]);
   const activas = (bombas.datos ?? []).filter((b) => b.activa);
-  const fijar = (c: Partial<ReturnType<typeof anticipoVacio>>) => setNuevo({ ...nuevo, ...c });
-  const totalIda = pesos(nuevo.efectivo) + pesos(nuevo.combustible);
-  const totalVuelta = pesos(nuevo.efectivoVuelta) + pesos(nuevo.combustibleVuelta);
-  const hayCombustible = pesos(nuevo.combustible) + (nuevo.idaYVuelta ? pesos(nuevo.combustibleVuelta) : 0) > 0;
+  const fijar = (c: Partial<FormularioAnticipo>) => setNuevo({ ...nuevo, ...c });
+  const precioSugerido = precios.datos?.precioGalonBomba ?? 0;
+  const descuentoGalon = descuentos.datos?.find((x) => String(x.bombaId) === nuevo.bombaId)?.descuentoGalon ?? 0;
+  const ida = combustibleDelTramo(nuevo, precioSugerido, descuentoGalon);
+  const vuelta = combustibleDelTramo(
+    { combustible: nuevo.combustibleVuelta, galones: nuevo.galonesVuelta, precioGalon: nuevo.precioGalonVuelta, descuento: nuevo.descuentoVuelta },
+    precioSugerido,
+    descuentoGalon,
+  );
+  const totalIda = pesos(nuevo.efectivo) + ida.combustible;
+  const totalVuelta = pesos(nuevo.efectivoVuelta) + vuelta.combustible;
+  const hayCombustible = ida.combustible + (nuevo.idaYVuelta ? vuelta.combustible : 0) > 0;
+  /** Lo que se envia: el combustible ya calculado y, si hay galones, el precio y el descuento con que se calculo. */
+  const datosAnticipo = () => ({
+    ...nuevo,
+    combustible: ida.combustible,
+    galones: ida.galones ?? "",
+    precioGalon: ida.galones ? ida.precio : "",
+    descuento: ida.galones ? ida.descuento : "",
+    combustibleVuelta: vuelta.combustible,
+    galonesVuelta: vuelta.galones ?? "",
+    precioGalonVuelta: vuelta.galones ? vuelta.precio : "",
+    descuentoVuelta: vuelta.galones ? vuelta.descuento : "",
+  });
+  /** Galones, precio, descuento y combustible de un tramo (sufijo "" la ida, "Vuelta" la vuelta). */
+  const camposCombustible = (sufijo: "" | "Vuelta", c: TramoCombustible) => {
+    const k = (campo: "galones" | "precioGalon" | "descuento" | "combustible") => `${campo}${sufijo}` as keyof FormularioAnticipo;
+    const de = sufijo ? " de vuelta" : "";
+    const texto = (campo: "galones" | "precioGalon" | "descuento" | "combustible") => String(nuevo[k(campo)]);
+    const cambiar = (campo: "galones" | "precioGalon" | "descuento" | "combustible", v: string) => fijar({ [k(campo)]: v });
+    return (
+      <>
+        <div>
+          <label>Galones{de}</label>
+          <input type="number" min="0" step="0.001" value={texto("galones")} onChange={(e) => cambiar("galones", e.target.value)} />
+        </div>
+        <div>
+          <label>Precio por galon{de}</label>
+          <input
+            type="number"
+            min="0"
+            value={texto("precioGalon")}
+            placeholder={precioSugerido ? String(precioSugerido) : ""}
+            onChange={(e) => cambiar("precioGalon", e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Descuento ($){de}</label>
+          <input
+            type="number"
+            min="0"
+            value={texto("descuento")}
+            placeholder={c.galones ? String(c.descuento) : descuentoGalon ? `${descuentoGalon} por galon` : "0"}
+            onChange={(e) => cambiar("descuento", e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Combustible{de}</label>
+          <input
+            type="number"
+            min="0"
+            value={texto("combustible")}
+            placeholder={c.calculado ? String(c.combustible) : ""}
+            onChange={(e) => cambiar("combustible", e.target.value)}
+          />
+          {c.calculado && <span className="dato-sec">{moneda(c.combustible)} con los galones</span>}
+        </div>
+      </>
+    );
+  };
   const listo =
     !!nuevo.fecha && totalIda > 0 && (!nuevo.idaYVuelta || totalVuelta > 0) && (!hayCombustible || !!nuevo.bombaId);
 
   return (
+    <div ref={seccion}>
     <Seccion titulo="Anticipos" extra={d.totalAnticipos ? <span className="dato-sec"> · total {moneda(d.totalAnticipos)}</span> : null}>
       {d.anticipos.length > 0 && (
         <table className="tabla tabla-compacta">
@@ -437,7 +531,10 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
                 </td>
                 <td>{fechaCorta(a.fecha)}</td>
                 <td className="num">{moneda(a.efectivo)}</td>
-                <td className="num">{moneda(a.combustible)}</td>
+                <td className="num">
+                  {moneda(a.combustible)}
+                  {a.galones != null && <span className="dato-sec">{a.galones} gal</span>}
+                </td>
                 <td className="num">{moneda(a.valor)}</td>
                 <td>
                   {a.bomba ?? "Solo efectivo"}
@@ -472,10 +569,6 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
           <input type="number" min="0" value={nuevo.efectivo} onChange={(e) => fijar({ efectivo: e.target.value })} />
         </div>
         <div>
-          <label>Combustible (bomba)</label>
-          <input type="number" min="0" value={nuevo.combustible} onChange={(e) => fijar({ combustible: e.target.value })} />
-        </div>
-        <div>
           <label>Bomba</label>
           <select value={nuevo.bombaId} onChange={(e) => fijar({ bombaId: e.target.value })}>
             <option value="">{hayCombustible ? "Elige la bomba..." : "Ninguna (solo efectivo)"}</option>
@@ -492,6 +585,7 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
           <label>Fecha</label>
           <input type="date" value={nuevo.fecha} onChange={(e) => fijar({ fecha: e.target.value })} />
         </div>
+        {camposCombustible("", ida)}
         <div>
           <label>N° factura de la bomba (opcional)</label>
           <input value={nuevo.facturaBomba} maxLength={40} onChange={(e) => fijar({ facturaBomba: e.target.value })} />
@@ -500,6 +594,10 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
           <label>Nota (opcional)</label>
           <input value={nuevo.nota} maxLength={200} onChange={(e) => fijar({ nota: e.target.value })} />
         </div>
+      </div>
+      <div className="dato-sec">
+        Combustible = galones x precio por galon - descuento (el descuento por galon es el de la bomba elegida). Si escribes el combustible, manda ese
+        valor.
       </div>
 
       <div className="pregunta-recorrido">
@@ -520,15 +618,7 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
               <label>Efectivo de vuelta</label>
               <input type="number" min="0" value={nuevo.efectivoVuelta} onChange={(e) => fijar({ efectivoVuelta: e.target.value })} />
             </div>
-            <div>
-              <label>Combustible de vuelta</label>
-              <input
-                type="number"
-                min="0"
-                value={nuevo.combustibleVuelta}
-                onChange={(e) => fijar({ combustibleVuelta: e.target.value })}
-              />
-            </div>
+            {camposCombustible("Vuelta", vuelta)}
           </div>
           <div className="dato-sec">
             El anticipo de vuelta ({moneda(totalVuelta)}) se guarda con la misma bomba y fecha y se suma solo al
@@ -543,15 +633,17 @@ function Anticipos({ d, aplicar }: { d: Detalle; aplicar: Aplicar }) {
         disabled={!listo}
         onClick={async () => {
           // Antes de guardar: avisa si se repite con otro anticipo de la placa ese dia.
-          const { avisos } = await apiCuadro.revisarAnticipo(d.id, nuevo).catch(() => ({ avisos: [] as string[] }));
+          const datos = datosAnticipo();
+          const { avisos } = await apiCuadro.revisarAnticipo(d.id, datos).catch(() => ({ avisos: [] as string[] }));
           if (avisos.length && !window.confirm(`Revisa antes de guardar:\n\n- ${avisos.join("\n- ")}\n\n¿Guardar el anticipo de todas formas?`)) return;
-          await aplicar(() => apiCuadro.agregarAnticipo(d.id, nuevo), "Anticipo agregado.");
+          await aplicar(() => apiCuadro.agregarAnticipo(d.id, datos), "Anticipo agregado.");
           setNuevo(anticipoVacio());
         }}
       >
         Agregar anticipo{totalIda ? ` (${moneda(totalIda + (nuevo.idaYVuelta ? totalVuelta : 0))})` : ""}
       </button>
     </Seccion>
+    </div>
   );
 }
 

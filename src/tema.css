@@ -239,6 +239,12 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 .desglose-dueno { --tono: #6b3fa0; --tono-fondo: #f1eafb; }
 .desglose-resultado { --tono: #1e7b3a; --tono-fondo: #e6f4ea; }
 .desglose-anticipo { --tono: #0f766e; --tono-fondo: #e0f5f3; }
+/* Utilidades: los gastos generales prorrateados (paso 5). */
+.desglose-generales { --tono: #9f1239; --tono-fondo: #fdecef; }
+/* Desglose de la cascada de un vehiculo: dos columnas (pasos 1 a 3 y 4 a 6). */
+.desglose-cascada { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 0.8rem; align-items: start; }
+.desglose-cascada table.desglose { width: 100%; }
+.desglose-cascada .pastilla { margin-right: 0.3rem; }
 
 /* Tabla que se esta actualizando despues de guardar: se atenua y se avisa. */
 .panel.actualizando { opacity: 0.55; transition: opacity 0.15s; pointer-events: none; }

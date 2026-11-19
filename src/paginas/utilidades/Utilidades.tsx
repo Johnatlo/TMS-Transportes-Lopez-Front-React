@@ -22,15 +22,15 @@ import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Indicador from "../../componentes/Indicador";
 import TablaDatos from "../../componentes/TablaDatos";
 import type { Columna } from "../../componentes/TablaDatos";
-import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
 import { puede } from "../../permisos";
+import DesgloseVehiculo from "./DesgloseVehiculo";
 import Empresa from "./Empresa";
 import FondosReparto from "./FondosReparto";
 import Participaciones from "./Participaciones";
 import Socios from "./Socios";
 import { exportarCascada, exportarDetalle } from "./excelUtilidades";
-import { DESCUENTOS, mesAnterior, nombreMes } from "./pasos";
+import { mesAnterior, nombreMes } from "./pasos";
 
 type Vista = "cascada" | "reparto" | "empresa" | "participaciones" | "socios";
 type FilaVehiculo = UtilidadesMes["vehiculos"][number];
@@ -166,101 +166,9 @@ function Cascada({ u }: { u: UtilidadesMes }) {
             Exportar detalle
           </button>
         }
-        detalle={(v) => <DetalleCascada v={v} />}
+        detalle={(v) => <DesgloseVehiculo v={v} />}
       />
     </div>
   );
 }
 
-/** Cada paso de la cascada de un vehiculo con su detalle. */
-function DetalleCascada({ v }: { v: FilaVehiculo }) {
-  const c = v.cascada;
-  const [viajes, setViajes] = useState(false);
-  /** Un concepto: los que restan con "-" y los ingresos repartidos (negativos) con "+". */
-  const linea = (t: string, x: number, fuerte = false) => (
-    <div className="concepto-nomina">
-      <span>{t}</span>
-      {fuerte ? <strong>{moneda(x)}</strong> : <span>{x < 0 ? `+ ${moneda(-x)}` : x > 0 ? `- ${moneda(x)}` : moneda(0)}</span>}
-    </div>
-  );
-  return (
-    <div className="detalle-tanqueo" onClick={(e) => e.stopPropagation()}>
-      <div className="detalle-nomina">
-        <div>
-          <h5>1. Ingresos por fletes ({c.viajes} viajes)</h5>
-          {linea("Fletes", c.ingresos, true)}
-          <h5 style={{ marginTop: "0.6rem" }}>2. Descuentos del viaje</h5>
-          {DESCUENTOS.filter(([k]) => c.descuentos[k]).map(([k, t]) => (
-            <div key={k}>{linea(t, c.descuentos[k])}</div>
-          ))}
-          {linea("Total descuentos", c.totalDescuentos, true)}
-        </div>
-        <div>
-          <h5>3. Costos directos</h5>
-          {linea("Anticipos de los viajes", c.anticipos)}
-          {c.directos.map((p) => (
-            <div key={p.gastoId}>{linea(p.descripcion, p.monto)}</div>
-          ))}
-          {linea("Total directos", c.totalDirectos, true)}
-          <h5 style={{ marginTop: "0.6rem" }}>4. Nomina del conductor</h5>
-          {c.conductor.length ? (
-            c.conductor.map((p) => <div key={p.gastoId}>{linea(p.descripcion, p.monto)}</div>)
-          ) : (
-            <span className="dato-sec">Sin nomina aprobada en el mes.</span>
-          )}
-        </div>
-        <div>
-          <h5>5. Gastos generales prorrateados</h5>
-          {c.generales.length ? (
-            c.generales.map((p) => <div key={p.gastoId}>{linea(p.descripcion, p.monto)}</div>)
-          ) : (
-            <span className="dato-sec">Sin gastos generales en el mes.</span>
-          )}
-          {linea("Total generales", c.totalGenerales, true)}
-          <h5 style={{ marginTop: "0.6rem" }}>6. Utilidad neta</h5>
-          {linea("Utilidad", c.utilidad, true)}
-          <div className="dato-sec" style={{ marginTop: "0.3rem" }}>
-            Ya liquidado al dueno por los viajes: {moneda(c.saldoViajes)}
-          </div>
-        </div>
-      </div>
-      {v.detalleViajes.length > 0 && (
-        <>
-          <button className="btn-link" onClick={() => setViajes(!viajes)}>
-            {viajes ? "Ocultar viajes" : `Ver los ${v.detalleViajes.length} viajes`}
-          </button>
-          {viajes && (
-            <div style={{ overflowX: "auto" }}>
-              <table className="tabla tabla-compacta">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Manifiesto</th>
-                    <th>Cliente</th>
-                    <th className="num">Flete</th>
-                    <th className="num">Descuentos</th>
-                    <th className="num">Anticipo</th>
-                    <th className="num">Saldo al dueno</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {v.detalleViajes.map((t) => (
-                    <tr key={t.id}>
-                      <td>{fechaCorta(t.fecha)}</td>
-                      <td>{t.manifiesto ?? "-"}</td>
-                      <td>{t.cliente}</td>
-                      <td className="num">{moneda(t.flete)}</td>
-                      <td className="num">{moneda(DESCUENTOS.reduce((s, [k]) => s + t[k], 0))}</td>
-                      <td className="num">{moneda(t.anticipo)}</td>
-                      <td className="num">{moneda(t.saldoBeneficiario)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}

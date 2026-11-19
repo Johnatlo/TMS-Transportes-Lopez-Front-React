@@ -269,6 +269,8 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
 export default function CuadroCentral() {
   const { datos, cargando, error, recargar } = useDatos(() => apiCuadro.listar(), []);
   const [abierto, setAbierto] = useState<number | null>(null);
+  /** El viaje se abrio desde el cuadro de anticipos: va directo a sus anticipos. */
+  const [enAnticipos, setEnAnticipos] = useState(false);
   const [nuevo, setNuevo] = useState(false);
   const [facturando, setFacturando] = useState(false);
   const [verBombas, setVerBombas] = useState(false);
@@ -276,11 +278,18 @@ export default function CuadroCentral() {
   /** Ventana de seguimiento de papeles: null cerrada; 0 abierta; id = abierta en ese viaje. */
   const [papeles, setPapeles] = useState<number | null>(null);
   const [parametros, setParametros] = useSearchParams();
-  // Las alertas de la campana llegan con ?papeles=<id del cuadro>.
+  // Las alertas de la campana llegan con ?papeles=<id del cuadro>; el cuadro de anticipos, con ?viaje=<id>&anticipos=1.
   useEffect(() => {
     const id = parametros.get("papeles");
     if (id !== null) {
       setPapeles(Number(id) || 0);
+      setParametros({}, { replace: true });
+      return;
+    }
+    const viaje = Number(parametros.get("viaje"));
+    if (viaje) {
+      setAbierto(viaje);
+      setEnAnticipos(parametros.get("anticipos") === "1");
       setParametros({}, { replace: true });
     }
   }, [parametros, setParametros]);
@@ -302,7 +311,10 @@ export default function CuadroCentral() {
           nombreArchivo="cuadro-central"
           placeholderBusqueda="Buscar placa, empresa, remision, factura, nota..."
           vacio="No hay viajes con estos criterios."
-          alClicFila={(f) => setAbierto(f.id)}
+          alClicFila={(f) => {
+            setEnAnticipos(false);
+            setAbierto(f.id);
+          }}
           claseFila={(f) => (f.todoPagado ? "fila-todo-pagado" : undefined)}
           acciones={
             <>
@@ -324,7 +336,7 @@ export default function CuadroCentral() {
         />
       </div>
 
-      {abierto !== null && <DetalleCuadro id={abierto} alCerrar={() => setAbierto(null)} alCambiar={recargar} />}
+      {abierto !== null && <DetalleCuadro id={abierto} enAnticipos={enAnticipos} alCerrar={() => setAbierto(null)} alCambiar={recargar} />}
       {nuevo && (
         <NuevoViajeCuadro
           empresas={[...new Set(filas.map((f) => f.empresa))].sort()}

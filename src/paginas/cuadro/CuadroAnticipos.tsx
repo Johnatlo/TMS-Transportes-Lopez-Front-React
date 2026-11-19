@@ -16,7 +16,7 @@
  *   Excel o a mano), abonos del socio y anticipos de empresas.
  */
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { apiCuadro, moneda } from "../../api/cliente";
 import type { AbonoSocio, AnticipoBomba, ResumenBomba } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
@@ -378,6 +378,36 @@ function DetalleTanqueo({
       void guardar(() => apiCuadro.borrarTramo(t.id));
   }
 
+  /**
+   * Efectivo o combustible del tramo, editable (se guarda al salir del campo).
+   * No se edita si ya esta cruzado con el vale de la bomba; el combustible
+   * tampoco si tiene galones (sale de galones x precio - descuento: se cambian esos).
+   */
+  const campoValor = (t: AnticipoBomba, campo: "efectivo" | "combustible") => {
+    const cruzado = campo === "efectivo" ? t.cruzadoEfectivo : t.cruzadoCombustible;
+    const conGalones = campo === "combustible" && t.galones !== null;
+    if (cruzado || conGalones)
+      return (
+        <span title={cruzado ? "Ya cruzado con el vale de la bomba" : "Sale de los galones: cambia galones, precio o descuento"}>
+          {campo === "combustible" ? <strong>{moneda(t[campo])}</strong> : moneda(t[campo])}
+        </span>
+      );
+    return (
+      <input
+        key={`${t.id}-${campo}-${t[campo]}`}
+        type="number"
+        min={0}
+        style={{ width: "7.5rem", textAlign: "right" }}
+        defaultValue={t[campo]}
+        aria-label={campo === "efectivo" ? "Efectivo" : "Combustible"}
+        onBlur={(e) => {
+          const valor = Number(e.target.value) || 0;
+          if (valor !== t[campo]) void guardar(() => apiCuadro.actualizarTramo(t.id, { [campo]: valor }));
+        }}
+      />
+    );
+  };
+
   // Cruce por galones (sin vale): combustible = galones x precio - descuento.
   const campoCruce = (t: AnticipoBomba, campo: "galones" | "precioGalon" | "descuento", sugerido?: number) => (
     <input
@@ -436,11 +466,14 @@ function DetalleTanqueo({
                 </td>
                 <td>
                   <Viaje t={t} />
+                  {t.cuadroViajeId && (
+                    <Link className="btn-link" style={{ display: "block" }} to={`/cuadro?viaje=${t.cuadroViajeId}&anticipos=1`}>
+                      Ir al viaje en Cuadro pagos
+                    </Link>
+                  )}
                 </td>
-                <td className="num">{moneda(t.efectivo)}</td>
-                <td className="num">
-                  <strong>{moneda(t.combustible)}</strong>
-                </td>
+                <td className="num">{campoValor(t, "efectivo")}</td>
+                <td className="num">{campoValor(t, "combustible")}</td>
                 <td>
                   {/* Un vale para el combustible y otro para el efectivo (la bomba da los dos). */}
                   {/* Los vales armados a mano no traen numero: salen como "cruzado a mano". */}

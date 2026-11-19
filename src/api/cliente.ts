@@ -2244,6 +2244,10 @@ export interface ViajeUtilidad {
   poliza: number;
   otrosDescuentos: number;
   anticipo: number;
+  /** El anticipo por partes. */
+  combustible?: number;
+  efectivo?: number;
+  transferencia?: number;
   saldoBeneficiario: number;
 }
 

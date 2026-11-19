@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_703 funciones, componentes, métodos y rutas en 106 archivos._
+_709 funciones, componentes, métodos y rutas en 107 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (229)
@@ -236,7 +236,7 @@ _703 funciones, componentes, métodos y rutas en 106 archivos._
 - [`src/paginas/cuadro/excelVales.ts`](#srcpaginascuadroexcelvalests) (7)
 - [`src/paginas/cuadro/facturacion.ts`](#srcpaginascuadrofacturacionts) (20)
 - [`src/paginas/cuadro/relacionBomba.ts`](#srcpaginascuadrorelacionbombats) (8)
-- [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (9)
+- [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (10)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
 - [`src/paginas/gastos/Creditos.tsx`](#srcpaginasgastoscreditostsx) (5)
 - [`src/paginas/gastos/FormularioGasto.tsx`](#srcpaginasgastosformulariogastotsx) (1)
@@ -270,13 +270,14 @@ _703 funciones, componentes, métodos y rutas en 106 archivos._
 - [`src/paginas/seguimiento/liquidacionDuenos.ts`](#srcpaginasseguimientoliquidacionduenosts) (7)
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
+- [`src/paginas/utilidades/DesgloseVehiculo.tsx`](#srcpaginasutilidadesdesglosevehiculotsx) (5)
 - [`src/paginas/utilidades/Empresa.tsx`](#srcpaginasutilidadesempresatsx) (1)
 - [`src/paginas/utilidades/FondosReparto.tsx`](#srcpaginasutilidadesfondosrepartotsx) (2)
 - [`src/paginas/utilidades/Participaciones.tsx`](#srcpaginasutilidadesparticipacionestsx) (2)
 - [`src/paginas/utilidades/Socios.tsx`](#srcpaginasutilidadessociostsx) (3)
-- [`src/paginas/utilidades/Utilidades.tsx`](#srcpaginasutilidadesutilidadestsx) (4)
+- [`src/paginas/utilidades/Utilidades.tsx`](#srcpaginasutilidadesutilidadestsx) (3)
 - [`src/paginas/utilidades/excelUtilidades.ts`](#srcpaginasutilidadesexcelutilidadests) (4)
-- [`src/paginas/utilidades/pasos.ts`](#srcpaginasutilidadespasosts) (2)
+- [`src/paginas/utilidades/pasos.ts`](#srcpaginasutilidadespasosts) (3)
 - [`src/paginas/vehiculos/PerfilVehiculo.tsx`](#srcpaginasvehiculosperfilvehiculotsx) (1)
 - [`src/paginas/vehiculos/Vehiculos.tsx`](#srcpaginasvehiculosvehiculostsx) (4)
 - [`src/paginas/vehiculos/VisorCamion.tsx`](#srcpaginasvehiculosvisorcamiontsx) (2)
@@ -2619,6 +2620,12 @@ _703 funciones, componentes, métodos y rutas en 106 archivos._
   tramos sueltos de la misma placa el mismo dia que estan en otro tanqueo de
   un solo tramo, para juntarlos con un clic.
 
+- **`combustibleDelTramo(t, precioSugerido, descuentoGalon)`** · _función_
+  Combustible de un tramo segun lo escrito: si se escribio el valor, ese; si
+  no, con los galones y la formula de la bomba (galones x precio - descuento,
+  redondeado). Precio vacio = el de la bomba; descuento vacio = galones x el
+  descuento por galon de la bomba elegida en esa fecha.
+
 ### `src/paginas/estadosViaje.ts`
 
 > Estados del viaje para mostrar: nombre para la gente y tono de color.
@@ -3412,6 +3419,29 @@ _703 funciones, componentes, métodos y rutas en 106 archivos._
 - **`numeroONulo(t)`** · _función_
   Texto del formulario a numero; vacio = null.
 
+### `src/paginas/utilidades/DesgloseVehiculo.tsx`
+
+> Desglose de la cascada de un vehiculo en el mes, con los colores del
+> desglose de Rentabilidad: un bloque por paso (fletes, descuentos del viaje,
+> costos directos, nomina del conductor, gastos generales y utilidad) y, en
+> los gastos, uno por tipo de gasto (vehiculo, seguros, impuestos...) con su
+> subtotal, para no perderse al hacer las cuentas.
+
+- **`Renglon({...})`** · _componente React_
+  Un renglon: los que restan con "-", los ingresos repartidos (negativos) con "+"; "=" es un total.
+
+- **`Titulo({...})`** · _componente React_
+  Titulo de un bloque.
+
+- **`GastosPorTipo({...})`** · _componente React_
+  Los gastos del libro de un paso, por tipo de gasto: la categoria con su subtotal y debajo cada gasto.
+
+- **`FilasCategoria({...})`** · _componente React_
+  Una categoria: su pastilla de color y subtotal; sus gastos debajo (si son varios).
+
+- **`DesgloseVehiculo({...})`** · _componente React_
+  Cada paso de la cascada de un vehiculo con su detalle, por colores.
+
 ### `src/paginas/utilidades/Empresa.tsx`
 
 > Rentabilidad de la empresa en el mes: la ganancia de los viajes de terceros
@@ -3499,9 +3529,6 @@ _703 funciones, componentes, métodos y rutas en 106 archivos._
 - **`Cascada({...})`** · _componente React_
   Cascada por vehiculo.
 
-- **`DetalleCascada({...})`** · _componente React_
-  Cada paso de la cascada de un vehiculo con su detalle.
-
 ### `src/paginas/utilidades/excelUtilidades.ts`
 
 > Excel de las utilidades de un mes: la cascada (un vehiculo por fila con
@@ -3531,6 +3558,11 @@ _703 funciones, componentes, métodos y rutas en 106 archivos._
 
 - **`mesAnterior(mes)`** · _función_
   El mes anterior a "AAAA-MM".
+
+- **`porCategoria(partidas, orden)`** · _función_
+  Agrupa los gastos de un paso por categoria (vehiculo, seguros, impuestos...)
+  para el desglose: las categorias en el orden del libro de gastos y, dentro
+  de cada una, los gastos de mayor a menor.
 
 ### `src/paginas/vehiculos/PerfilVehiculo.tsx`
 

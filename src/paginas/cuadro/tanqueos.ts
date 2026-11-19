@@ -88,9 +88,7 @@ export function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
     const aMano = ts.every((t) => !!t.cruzadoManual);
     const cruzado =
       conCombustible.length > 0 &&
-      (aMano ||
-        (!!ida.facturaBomba && pagado) ||
-        (conVales ? ts.every((t) => !faltaCruzar(t).combustible && !faltaCruzar(t).efectivo) : !!ida.facturaBomba));
+      (aMano || (!!ida.facturaBomba && pagado) || (conVales ? ts.every((t) => !faltaCruzar(t).combustible && !faltaCruzar(t).efectivo) : !!ida.facturaBomba));
     return {
       clave,
       tanqueoId: ida.tanqueoId,
@@ -116,10 +114,10 @@ export function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
           : aMano
             ? "CRUZADO"
             : Math.abs(diferencia) >= DIFERENCIA_MINIMA
-            ? "DIFERENCIA"
-            : cruzado
-              ? "CRUZADO"
-              : "SIN_CRUZAR",
+              ? "DIFERENCIA"
+              : cruzado
+                ? "CRUZADO"
+                : "SIN_CRUZAR",
       diferencia,
       pagado,
       fechaPago: ida.fechaPago,
@@ -184,8 +182,44 @@ export function sugerenciasTramo(t: AnticipoBomba, todos: AnticipoBomba[]): Suge
   const pareja = t.tanqueoId ? todos.find((o) => o.tanqueoId === t.tanqueoId && o.id !== t.id) : undefined;
   if (pareja) return [{ tipo: "PAREJA", otro: pareja }];
   if (!t.tanqueoId) return [];
-  const placa = (p: string | null) => String(p ?? "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  const placa = (p: string | null) =>
+    String(p ?? "")
+      .replace(/[^A-Z0-9]/gi, "")
+      .toUpperCase();
   return todos
-    .filter((o) => o.id !== t.id && !!o.tanqueoId && o.tanqueoId !== t.tanqueoId && placa(o.placa) === placa(t.placa) && o.fecha === t.fecha && delTanqueo(o).length === 1)
+    .filter(
+      (o) =>
+        o.id !== t.id && !!o.tanqueoId && o.tanqueoId !== t.tanqueoId && placa(o.placa) === placa(t.placa) && o.fecha === t.fecha && delTanqueo(o).length === 1,
+    )
     .map((otro) => ({ tipo: "POSIBLE" as const, otro }));
+}
+
+/** El combustible de un tramo del formulario de anticipo y con que se calculo. */
+export interface TramoCombustible {
+  combustible: number;
+  galones: number | null;
+  precio: number;
+  descuento: number;
+  /** true: salio de los galones (no se escribio el valor). */
+  calculado: boolean;
+}
+
+/**
+ * Combustible de un tramo segun lo escrito: si se escribio el valor, ese; si
+ * no, con los galones y la formula de la bomba (galones x precio - descuento,
+ * redondeado). Precio vacio = el de la bomba; descuento vacio = galones x el
+ * descuento por galon de la bomba elegida en esa fecha.
+ */
+export function combustibleDelTramo(
+  t: { combustible: string; galones: string; precioGalon: string; descuento: string },
+  precioSugerido: number,
+  descuentoGalon: number,
+): TramoCombustible {
+  const numero = (v: string) => (v.trim() === "" ? 0 : Number(v) || 0);
+  const galones = numero(t.galones) > 0 ? Number(t.galones) : null;
+  const precio = t.precioGalon.trim() ? numero(t.precioGalon) : precioSugerido;
+  const descuento = t.descuento.trim() ? numero(t.descuento) : galones ? Math.round(galones * descuentoGalon) : 0;
+  const formula = galones ? Math.round(galones * precio - descuento) : 0;
+  const escrito = numero(t.combustible);
+  return { combustible: escrito || formula, galones, precio, descuento, calculado: !escrito && !!galones };
 }

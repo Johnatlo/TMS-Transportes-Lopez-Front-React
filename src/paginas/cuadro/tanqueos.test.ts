@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { AnticipoBomba } from "../../api/cliente";
-import { agruparPorTanqueo, coloresBombas, estadoTramo, faltaCruzar, posiblesVueltas, sugerenciasTramo } from "./tanqueos";
+import { agruparPorTanqueo, coloresBombas, combustibleDelTramo, estadoTramo, faltaCruzar, posiblesVueltas, sugerenciasTramo } from "./tanqueos";
 
 /** Tramo de anticipo; cada prueba cambia lo que necesita. */
 const tramo = (cambios: Partial<AnticipoBomba>): AnticipoBomba => ({
@@ -151,5 +151,20 @@ describe("vista por tramo", () => {
     expect(sugerenciasTramo(suelto, todos)).toEqual([]);
     const otroSuelto = tramo({ id: 5, tanqueoId: 4, tramo: "VUELTA", placa: "SWO-594" });
     expect(sugerenciasTramo(suelto, [...todos, otroSuelto])).toEqual([{ tipo: "POSIBLE", otro: otroSuelto }]);
+  });
+});
+
+describe("combustible del formulario de anticipo con galones", () => {
+  test("galones x precio - descuento (el ejemplo del Excel), con el descuento de la bomba sugerido", () => {
+    const vacio = { combustible: "", galones: "", precioGalon: "", descuento: "" };
+    expect(combustibleDelTramo({ ...vacio, galones: "100.182", precioGalon: "11230", descuento: "25044" }, 11390, 250)).toMatchObject({
+      combustible: 1100000,
+      calculado: true,
+    });
+    // Precio y descuento vacios: el precio de la bomba y galones x descuento por galon.
+    expect(combustibleDelTramo({ ...vacio, galones: "100" }, 11390, 250)).toMatchObject({ precio: 11390, descuento: 25000, combustible: 1114000 });
+    // Si se escribio el combustible, manda ese; sin galones, nada que calcular.
+    expect(combustibleDelTramo({ ...vacio, galones: "100", combustible: "1000000" }, 11390, 250)).toMatchObject({ combustible: 1000000, calculado: false });
+    expect(combustibleDelTramo(vacio, 11390, 250)).toMatchObject({ combustible: 0, galones: null });
   });
 });
