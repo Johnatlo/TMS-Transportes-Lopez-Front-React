@@ -21,6 +21,7 @@ import {
   saldoVencido,
 } from "./estadosCuadro";
 import PastillasEstado from "./PastillasEstado";
+import CampoValorAnticipo from "./CampoValorAnticipo";
 import { combustibleDelTramo } from "./tanqueos";
 import type { TramoCombustible } from "./tanqueos";
 
@@ -455,6 +456,12 @@ function Anticipos({ d, aplicar, enfocar }: { d: Detalle; aplicar: Aplicar; enfo
     precioGalonVuelta: vuelta.galones ? vuelta.precio : "",
     descuentoVuelta: vuelta.galones ? vuelta.descuento : "",
   });
+  /** Reemplaza el efectivo o el combustible de un anticipo ya guardado y recarga el viaje. */
+  const reemplazar = (anticipoId: number, datos: Record<string, unknown>) =>
+    aplicar(async () => {
+      await apiCuadro.actualizarTramo(anticipoId, datos);
+      return apiCuadro.obtener(d.id);
+    });
   /** Galones, precio, descuento y combustible de un tramo (sufijo "" la ida, "Vuelta" la vuelta). */
   const camposCombustible = (sufijo: "" | "Vuelta", c: TramoCombustible) => {
     const k = (campo: "galones" | "precioGalon" | "descuento" | "combustible") => `${campo}${sufijo}` as keyof FormularioAnticipo;
@@ -530,9 +537,12 @@ function Anticipos({ d, aplicar, enfocar }: { d: Detalle; aplicar: Aplicar; enfo
                   {a.nota && <span className="dato-sec">{a.nota}</span>}
                 </td>
                 <td>{fechaCorta(a.fecha)}</td>
-                <td className="num">{moneda(a.efectivo)}</td>
+                {/* Se reemplazan ahi mismo (el vale llego con otro valor): cambia tambien en el cuadro de anticipos. */}
                 <td className="num">
-                  {moneda(a.combustible)}
+                  <CampoValorAnticipo t={a} campo="efectivo" alGuardar={(datos) => void reemplazar(a.id, datos)} />
+                </td>
+                <td className="num">
+                  <CampoValorAnticipo t={a} campo="combustible" alGuardar={(datos) => void reemplazar(a.id, datos)} />
                   {a.galones != null && <span className="dato-sec">{a.galones} gal</span>}
                 </td>
                 <td className="num">{moneda(a.valor)}</td>

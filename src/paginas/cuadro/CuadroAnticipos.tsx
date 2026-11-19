@@ -38,6 +38,7 @@ import ReporteBomba from "./ReporteBomba";
 import { descargarAnticipos } from "./excelAnticipos";
 import AnticiposEmpresas from "../seguimiento/AnticiposEmpresas";
 import VistaTramos from "./VistaTramos";
+import CampoValorAnticipo from "./CampoValorAnticipo";
 
 /** Como se ven los anticipos: un tramo por fila (como el cuadro de la empresa) o un tanqueo por fila. */
 type Vista = "tramos" | "tanqueos";
@@ -383,30 +384,9 @@ function DetalleTanqueo({
    * No se edita si ya esta cruzado con el vale de la bomba; el combustible
    * tampoco si tiene galones (sale de galones x precio - descuento: se cambian esos).
    */
-  const campoValor = (t: AnticipoBomba, campo: "efectivo" | "combustible") => {
-    const cruzado = campo === "efectivo" ? t.cruzadoEfectivo : t.cruzadoCombustible;
-    const conGalones = campo === "combustible" && t.galones !== null;
-    if (cruzado || conGalones)
-      return (
-        <span title={cruzado ? "Ya cruzado con el vale de la bomba" : "Sale de los galones: cambia galones, precio o descuento"}>
-          {campo === "combustible" ? <strong>{moneda(t[campo])}</strong> : moneda(t[campo])}
-        </span>
-      );
-    return (
-      <input
-        key={`${t.id}-${campo}-${t[campo]}`}
-        type="number"
-        min={0}
-        style={{ width: "7.5rem", textAlign: "right" }}
-        defaultValue={t[campo]}
-        aria-label={campo === "efectivo" ? "Efectivo" : "Combustible"}
-        onBlur={(e) => {
-          const valor = Number(e.target.value) || 0;
-          if (valor !== t[campo]) void guardar(() => apiCuadro.actualizarTramo(t.id, { [campo]: valor }));
-        }}
-      />
-    );
-  };
+  const campoValor = (t: AnticipoBomba, campo: "efectivo" | "combustible") => (
+    <CampoValorAnticipo t={t} campo={campo} alGuardar={(datos) => void guardar(() => apiCuadro.actualizarTramo(t.id, datos))} />
+  );
 
   // Cruce por galones (sin vale): combustible = galones x precio - descuento.
   const campoCruce = (t: AnticipoBomba, campo: "galones" | "precioGalon" | "descuento", sugerido?: number) => (

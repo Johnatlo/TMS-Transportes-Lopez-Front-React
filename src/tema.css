@@ -245,6 +245,8 @@ table.modern th, .tabla-tablero th { font-size: var(--texto-xs); }
 .desglose-cascada { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 0.8rem; align-items: start; }
 .desglose-cascada table.desglose { width: 100%; }
 .desglose-cascada .pastilla { margin-right: 0.3rem; }
+/* Efectivo y combustible de un anticipo, editables en la fila (Cuadro pagos y cuadro de anticipos). */
+.campo-valor-anticipo input { width: 7.5rem; text-align: right; }
 
 /* Tabla que se esta actualizando despues de guardar: se atenua y se avisa. */
 .panel.actualizando { opacity: 0.55; transition: opacity 0.15s; pointer-events: none; }

@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_709 funciones, componentes, métodos y rutas en 107 archivos._
+_710 funciones, componentes, métodos y rutas en 108 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (229)
@@ -220,6 +220,7 @@ _709 funciones, componentes, métodos y rutas en 107 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
+- [`src/paginas/cuadro/CampoValorAnticipo.tsx`](#srcpaginascuadrocampovaloranticipotsx) (1)
 - [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (10)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (4)
 - [`src/paginas/cuadro/DetalleCuadro.tsx`](#srcpaginascuadrodetallecuadrotsx) (6)
@@ -2067,6 +2068,18 @@ _709 funciones, componentes, métodos y rutas en 107 archivos._
 - **`ClaveTemporal({...})`** · _componente React_
   Muestra UNA vez la clave temporal cuando no se envio por correo (con el
   motivo, si lo hay), para dictarla o copiarla.
+
+### `src/paginas/cuadro/CampoValorAnticipo.tsx`
+
+> Efectivo o combustible de un tramo de anticipo, editable ahi mismo (en el
+> Cuadro pagos y en el cuadro de anticipos). Sirve para reemplazar el valor
+> autorizado cuando el vale de la bomba llega con otro: se guarda al salir
+> del campo (o con Enter) como el valor registrado, sin borrar el anticipo.
+> Los dos cuadros leen el mismo tramo, asi que el cambio se ve en ambos (y en
+> Rentabilidad y Utilidades).
+
+- **`CampoValorAnticipo({...})`** · _componente React_
+  Campo de efectivo o combustible de un tramo. `alGuardar` recibe el valor nuevo con reemplazar: true.
 
 ### `src/paginas/cuadro/CuadroAnticipos.tsx`
 
