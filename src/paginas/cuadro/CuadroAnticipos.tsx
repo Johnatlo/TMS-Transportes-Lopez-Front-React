@@ -364,6 +364,20 @@ function DetalleTanqueo({
   const [corrigiendo, setCorrigiendo] = useState<number | null>(null);
   const abonosDeEstos = abonos.flatMap((a) => a.viajes.filter((v) => viajes.has(v.cuadroViajeId)).map((v) => ({ ...v, socio: a.socio, fecha: a.fecha })));
 
+  /**
+   * Borra un tramo mal creado. Sale del cuadro de anticipos, del viaje en el
+   * Cuadro pagos y de la Rentabilidad (todos suman de la misma tabla).
+   */
+  function borrar(t: AnticipoBomba) {
+    const viaje = t.cuadroViajeId ? (t.manifiesto ? `del manifiesto ${t.manifiesto}` : `del viaje de ${t.empresa ?? "-"}`) : "pendiente (sin viaje)";
+    const vuelta =
+      t.tramo === "IDA" && g.tramos.some((x) => x.tramo === "VUELTA" && !x.cuadroViajeId) ? "\nTambien se borra su vuelta, que aun no tiene viaje." : "";
+    const vales = t.cruzadoCombustible || t.cruzadoEfectivo ? "\nOjo: ya esta cruzado con vales de la bomba; los vales quedan sin anticipo." : "";
+    const pregunta = `¿Borrar el anticipo de ${t.tramo === "IDA" ? "ida" : "vuelta"} ${placaConGuion(t.placa ?? "")} ${viaje} por ${moneda(t.efectivo + t.combustible)}?`;
+    if (window.confirm(`${pregunta}\nSe quita tambien del Cuadro pagos y de Rentabilidad. No se puede deshacer.${vuelta}${vales}`))
+      void guardar(() => apiCuadro.borrarTramo(t.id));
+  }
+
   // Cruce por galones (sin vale): combustible = galones x precio - descuento.
   const campoCruce = (t: AnticipoBomba, campo: "galones" | "precioGalon" | "descuento", sugerido?: number) => (
     <input
@@ -416,6 +430,9 @@ function DetalleTanqueo({
                     <option value="IDA">Ida</option>
                     <option value="VUELTA">Vuelta</option>
                   </select>
+                  <button className="btn-link texto-vencido" style={{ display: "block", marginTop: "0.2rem" }} onClick={() => borrar(t)}>
+                    Borrar
+                  </button>
                 </td>
                 <td>
                   <Viaje t={t} />

@@ -6,13 +6,17 @@
  *   corresponde), pago y a quien se reparte. Clic en un gasto muestra cuanto
  *   le toco a cada vehiculo o socio. Exportar saca lo que esta en pantalla.
  * - Por vehiculo: lo que le toco a cada vehiculo y socio en un mes.
+ * - Recurrentes: los gastos que se repiten cada mes o quincena, con el
+ *   historial de su valor (ver Recurrentes.tsx).
+ * - Facturas credito: el reporte de la contadora por mes o quincena.
  * - Creditos: tabla de amortizacion y pago de cuotas (ver Creditos.tsx).
+ * - El formulario cambia segun como es el gasto (ver FormularioGasto.tsx).
  * - El rol total cierra meses (sus gastos ya no cambian) y fija la fecha
  *   desde la que se registran. Transportes M&C solo ve lo de su empresa.
  */
 import { useMemo, useState } from "react";
 import { apiGastos, hoyColombia, moneda } from "../../api/cliente";
-import type { DatosGasto, EmpresaGasto, Gasto, OpcionesGastos } from "../../api/cliente";
+import type { Gasto, OpcionesGastos } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { useSesion } from "../../ganchos/useSesion";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
@@ -25,28 +29,10 @@ import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
 import Creditos from "./Creditos";
-import SelectorDestinos from "./SelectorDestinos";
-import { aDestinos, aSeleccion, SELECCION_VACIA, vistaPrevia } from "./destinos";
-import type { SeleccionDestinos } from "./destinos";
-
-export const NOMBRE_EMPRESA: Record<EmpresaGasto, string> = { LOPEZ: "T. Lopez", MYC: "T. M&C" };
-export const NOMBRE_CATEGORIA: Record<string, string> = {
-  NOMINA: "Nomina",
-  OFICINA: "Oficina",
-  SERVICIOS: "Servicios",
-  CREDITO: "Credito",
-  VEHICULO: "Vehiculo",
-  SEGUROS: "Seguros",
-  IMPUESTOS: "Impuestos",
-  SOCIO: "Gasto adicional del socio",
-  OTROS: "Otros",
-};
-
-/** "2026-11" -> "Noviembre 2026". */
-const nombreMes = (mes: string) => {
-  const t = new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)) - 1, 1).toLocaleDateString("es-CO", { month: "long", year: "numeric" });
-  return t[0].toUpperCase() + t.slice(1);
-};
+import FormularioGasto from "./FormularioGasto";
+import Recurrentes from "./Recurrentes";
+import ReporteFacturas from "./ReporteFacturas";
+import { NOMBRE_CATEGORIA, NOMBRE_EMPRESA, NOMBRE_TIPO_FACTURA, nombreMes } from "./nombres";
 
 /** A quien va el gasto, en pocas palabras ("CELSO + 13 vehiculos"). */
 function resumenDestino(g: Gasto): string {
@@ -57,7 +43,7 @@ function resumenDestino(g: Gasto): string {
   return [...socios, unico ? placaConGuion(unico) : vehiculos ? `${vehiculos} vehiculos` : "", empresa].filter(Boolean).join(" + ") || "-";
 }
 
-type Vista = "libro" | "vehiculos" | "creditos";
+type Vista = "libro" | "vehiculos" | "recurrentes" | "facturas" | "creditos";
 
 /** Pantalla de gastos. */
 export default function Gastos() {
@@ -113,8 +99,17 @@ export default function Gastos() {
           <span className="principal">{g.descripcion}</span>
           {g.causaHasta ? (
             <span className="dato-sec">Causado por dias hasta {fechaCorta(g.causaHasta)}</span>
+          ) : g.origen === "RECURRENTE" ? (
+            <span className="dato-sec">Recurrente {g.periodicidad === "QUINCENAL" ? "quincenal" : "mensual"}</span>
           ) : (
-            g.causaCuotas > 1 && <span className="dato-sec">Se causa en {g.causaCuotas} cuotas mensuales</span>
+            g.causaCuotas > 1 && (
+              <span className="dato-sec">
+                Se causa en {g.causaCuotas} cuotas {g.periodicidad === "QUINCENAL" ? "quincenales" : "mensuales"}
+              </span>
+            )
+          )}
+          {(g.proveedor || g.numeroFactura) && (
+            <span className="dato-sec">{[g.proveedor, g.numeroFactura && `Fact. ${g.numeroFactura}`].filter(Boolean).join(" · ")}</span>
           )}
         </>
       ),
@@ -129,6 +124,18 @@ export default function Gastos() {
       ),
     },
     { id: "destino", titulo: "Se reparte a", valor: resumenDestino, celda: resumenDestino },
+    {
+      id: "factura",
+      titulo: "Factura",
+      filtrable: true,
+      valor: (g) => (g.tipoFactura ? NOMBRE_TIPO_FACTURA[g.tipoFactura] : "Sin factura"),
+      celda: (g) =>
+        g.tipoFactura ? (
+          <Pastilla tono={g.tipoFactura === "CREDITO" ? "amarillo" : "neutro"}>{NOMBRE_TIPO_FACTURA[g.tipoFactura]}</Pastilla>
+        ) : (
+          <span className="dato-sec">-</span>
+        ),
+    },
     {
       id: "pago",
       titulo: "Pago",
@@ -158,6 +165,7 @@ export default function Gastos() {
     { id: "porPagar", etiqueta: "Por pagar", incluye: (g) => !g.anulado && g.tipo === "GASTO" && !g.fechaPago },
     { id: "ingresos", etiqueta: "Ingresos", incluye: (g) => !g.anulado && g.tipo === "INGRESO" },
     { id: "creditos", etiqueta: "Cuotas de creditos", incluye: (g) => !g.anulado && g.origen === "CREDITO" },
+    { id: "recurrentes", etiqueta: "Recurrentes", incluye: (g) => !g.anulado && g.origen === "RECURRENTE" },
     { id: "anulados", etiqueta: "Anulados", incluye: (g) => g.anulado },
   ];
 
@@ -188,6 +196,8 @@ export default function Gastos() {
             [
               ["libro", "Libro de gastos"],
               ["vehiculos", "Por vehiculo"],
+              ["recurrentes", "Recurrentes"],
+              ["facturas", "Facturas credito"],
               ["creditos", "Creditos"],
             ] as Array<[Vista, string]>
           ).map(([id, etiqueta]) => (
@@ -226,6 +236,8 @@ export default function Gastos() {
         </div>
       )}
       {vista === "vehiculos" && <PorVehiculo gastos={vigentes} opciones={opciones} />}
+      {vista === "recurrentes" && <Recurrentes opciones={opciones} soloMyc={usuario?.rol === "MYC"} alCambiar={carga.recargar} />}
+      {vista === "facturas" && <ReporteFacturas gastos={lista} soloMyc={usuario?.rol === "MYC"} />}
       {vista === "creditos" && <Creditos opciones={opciones} alCambiar={carga.recargar} />}
 
       {formulario && (
@@ -285,7 +297,7 @@ function DetalleGasto({
         ))}
         {g.anulado && <span className="dato-sec">Anulado: no se reparte.</span>}
       </div>
-      {g.causaCuotas > 1 && (
+      {g.causaciones.length > 1 && (
         <div className="dato-sec" style={{ marginTop: "0.4rem" }}>
           Causaciones: {g.causaciones.map((c) => `${fechaCorta(c.fecha)} ${moneda(c.monto)}`).join(" · ")}
         </div>
@@ -312,170 +324,17 @@ function DetalleGasto({
               Duplicar (otro mes)
             </button>
           )}
-          {g.origen === "MANUAL" && !cerrado && (
+          {(g.origen === "MANUAL" || g.origen === "RECURRENTE") && !cerrado && (
             <button className="btn-link" onClick={alAnular}>
               Anular
             </button>
           )}
           {g.origen === "CREDITO" && <span className="dato-sec">Cuota de un credito: se cambia en Creditos.</span>}
           {g.origen === "NOMINA" && <span className="dato-sec">Sale de la nomina: para cambiarlo, reabre la nomina en Nomina.</span>}
+          {g.origen === "RECURRENTE" && <span className="dato-sec">Sale de un gasto recurrente: su valor se cambia en Recurrentes, desde una fecha.</span>}
         </div>
       )}
     </div>
-  );
-}
-
-/** Formulario para crear, editar o duplicar un gasto. */
-function FormularioGasto({
-  opciones,
-  gasto,
-  base,
-  soloMyc,
-  alCerrar,
-  alGuardar,
-}: {
-  opciones: OpcionesGastos;
-  /** Gasto que se edita (null = nuevo). */
-  gasto: Gasto | null;
-  /** Gasto del que se copia todo menos las fechas (duplicar). */
-  base: Gasto | null;
-  /** Transportes M&C solo registra en su empresa. */
-  soloMyc: boolean;
-  alCerrar: () => void;
-  alGuardar: () => void;
-}) {
-  const origen = gasto ?? base;
-  const [f, setF] = useState({
-    empresa: (origen?.empresa ?? (soloMyc ? "MYC" : "LOPEZ")) as EmpresaGasto,
-    tipo: origen?.tipo ?? ("GASTO" as Gasto["tipo"]),
-    categoria: origen?.categoria ?? "OFICINA",
-    descripcion: origen?.descripcion ?? "",
-    monto: origen ? String(origen.monto) : "",
-    causaDesde: gasto?.causaDesde ?? hoyColombia(),
-    causaCuotas: String(gasto?.causaCuotas ?? base?.causaCuotas ?? 1),
-    fechaPago: gasto?.fechaPago ?? "",
-    soporteUrl: gasto?.soporteUrl ?? "",
-  });
-  const [destinos, setDestinos] = useState<SeleccionDestinos>(origen ? aSeleccion(origen.destinos) : SELECCION_VACIA);
-  const [error, setError] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState(false);
-  const monto = Number(f.monto) || 0;
-  const previa = vistaPrevia(monto, destinos);
-  const listo = !!f.descripcion.trim() && !!f.causaDesde && !previa.problema;
-
-  async function guardar() {
-    setGuardando(true);
-    setError(null);
-    const datos: DatosGasto = {
-      empresa: f.empresa,
-      tipo: f.tipo,
-      categoria: f.categoria,
-      descripcion: f.descripcion,
-      monto,
-      causaDesde: f.causaDesde,
-      causaCuotas: Number(f.causaCuotas) || 1,
-      fechaPago: f.fechaPago || null,
-      soporteUrl: f.soporteUrl.trim() || null,
-      destinos: aDestinos(destinos),
-    };
-    try {
-      if (gasto) await apiGastos.actualizar(gasto.id, datos);
-      else await apiGastos.crear(datos);
-      alGuardar();
-    } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "No se pudo guardar.");
-      setGuardando(false);
-    }
-  }
-
-  return (
-    <Modal
-      titulo={gasto ? "Editar gasto" : base ? "Duplicar gasto" : "Nuevo gasto"}
-      ancho="wide"
-      alCerrar={alCerrar}
-      pie={
-        <>
-          <button className="btn-secondary" onClick={alCerrar}>
-            Cancelar
-          </button>
-          <button className="btn-primary" onClick={guardar} disabled={!listo || guardando}>
-            {guardando ? "Guardando..." : "Guardar"}
-          </button>
-        </>
-      }
-    >
-      {error && <div className="alert danger">{error}</div>}
-      <div className="campos-cuadro">
-        <div>
-          <label>Empresa</label>
-          <select value={f.empresa} disabled={soloMyc} onChange={(e) => setF({ ...f, empresa: e.target.value as EmpresaGasto })}>
-            <option value="LOPEZ">Transportes Lopez C SAS</option>
-            <option value="MYC">Transportes M&C SAS</option>
-          </select>
-        </div>
-        <div>
-          <label>Tipo</label>
-          <select value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value as Gasto["tipo"] })}>
-            <option value="GASTO">Gasto</option>
-            <option value="INGRESO">Ingreso (por ejemplo, lo que paga la otra empresa)</option>
-          </select>
-        </div>
-        <div>
-          <label>Categoria</label>
-          <select value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })}>
-            {opciones.categorias.map((c) => (
-              <option key={c} value={c}>
-                {NOMBRE_CATEGORIA[c] ?? c}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label>Valor</label>
-          <input type="number" min={0} step="any" value={f.monto} onChange={(e) => setF({ ...f, monto: e.target.value })} />
-        </div>
-      </div>
-      <div className="campos-cuadro" style={{ marginTop: "0.6rem" }}>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <label>Descripcion</label>
-          <input
-            value={f.descripcion}
-            maxLength={300}
-            onChange={(e) => setF({ ...f, descripcion: e.target.value })}
-            placeholder="Honorarios contadora, luz oficina, poliza colectiva..."
-          />
-        </div>
-        <div>
-          <label>Fecha de causacion (a que periodo corresponde)</label>
-          <input type="date" min={opciones.corte} value={f.causaDesde} onChange={(e) => setF({ ...f, causaDesde: e.target.value })} />
-        </div>
-        <div>
-          <label>Se causa en (cuotas mensuales)</label>
-          <input type="number" min={1} max={120} value={f.causaCuotas} onChange={(e) => setF({ ...f, causaCuotas: e.target.value })} />
-        </div>
-        <div>
-          <label>Fecha de pago (vacia = por pagar)</label>
-          <input type="date" value={f.fechaPago} onChange={(e) => setF({ ...f, fechaPago: e.target.value })} />
-        </div>
-        <div>
-          <label>Link del soporte (Drive, opcional)</label>
-          <input
-            type="url"
-            value={f.soporteUrl}
-            maxLength={500}
-            onChange={(e) => setF({ ...f, soporteUrl: e.target.value })}
-            placeholder="https://drive.google.com/..."
-          />
-        </div>
-      </div>
-      {Number(f.causaCuotas) > 1 && monto > 0 && (
-        <div className="dato-sec" style={{ marginTop: "0.3rem" }}>
-          Se paga una vez y se causa en {f.causaCuotas} meses: {moneda(monto / Number(f.causaCuotas))} por mes desde {fechaCorta(f.causaDesde)}.
-        </div>
-      )}
-      <h4 style={{ margin: "1rem 0 0.4rem" }}>A quien se le descuenta</h4>
-      <SelectorDestinos opciones={opciones} monto={monto} valor={destinos} alCambiar={setDestinos} />
-    </Modal>
   );
 }
 

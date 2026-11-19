@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_691 funciones, componentes, métodos y rutas en 101 archivos._
+_703 funciones, componentes, métodos y rutas en 106 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (222)
+- [`src/api/cliente.ts`](#srcapiclientets) (229)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -239,9 +239,14 @@ _691 funciones, componentes, métodos y rutas en 101 archivos._
 - [`src/paginas/cuadro/tanqueos.ts`](#srcpaginascuadrotanqueosts) (9)
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
 - [`src/paginas/gastos/Creditos.tsx`](#srcpaginasgastoscreditostsx) (5)
-- [`src/paginas/gastos/Gastos.tsx`](#srcpaginasgastosgastostsx) (7)
+- [`src/paginas/gastos/FormularioGasto.tsx`](#srcpaginasgastosformulariogastotsx) (1)
+- [`src/paginas/gastos/Gastos.tsx`](#srcpaginasgastosgastostsx) (5)
+- [`src/paginas/gastos/Recurrentes.tsx`](#srcpaginasgastosrecurrentestsx) (2)
+- [`src/paginas/gastos/ReporteFacturas.tsx`](#srcpaginasgastosreportefacturastsx) (1)
 - [`src/paginas/gastos/SelectorDestinos.tsx`](#srcpaginasgastosselectordestinostsx) (1)
 - [`src/paginas/gastos/destinos.ts`](#srcpaginasgastosdestinosts) (4)
+- [`src/paginas/gastos/facturasCredito.ts`](#srcpaginasgastosfacturascreditots) (2)
+- [`src/paginas/gastos/nombres.ts`](#srcpaginasgastosnombrests) (1)
 - [`src/paginas/nomina/Empleados.tsx`](#srcpaginasnominaempleadostsx) (4)
 - [`src/paginas/nomina/Nomina.tsx`](#srcpaginasnominanominatsx) (9)
 - [`src/paginas/nomina/Parametros.tsx`](#srcpaginasnominaparametrostsx) (2)
@@ -656,6 +661,9 @@ _691 funciones, componentes, métodos y rutas en 101 archivos._
   - **`apiCuadro.actualizarTramo(anticipoId, datos)`** · _método_
     Cambia fecha de pago, nota o viaje de un tramo; devuelve el cuadro de anticipos.
 
+  - **`apiCuadro.borrarTramo(anticipoId)`** · _método_
+    Borra un tramo de anticipo (sale tambien del Cuadro pagos y de Rentabilidad); devuelve el cuadro de anticipos.
+
   - **`apiCuadro.resumenBomba()`** · _método_
     Cuentas con la bomba: deuda, pagado, abonado por el socio, pendiente y cupo disponible.
 
@@ -901,6 +909,24 @@ _691 funciones, componentes, métodos y rutas en 101 archivos._
 
   - **`apiGastos.quitarPagoCuota(id, numero)`** · _método_
     Quita el pago de una cuota y borra su gasto.
+
+  - **`apiGastos.duplicados(d)`** · _método_
+    Gastos ya guardados que pueden ser el mismo (misma factura, o mismo valor y fecha con descripcion parecida).
+
+  - **`apiGastos.recurrentes()`** · _método_
+    Gastos recurrentes.
+
+  - **`apiGastos.crearRecurrente(d)`** · _método_
+    Crea un recurrente (genera los periodos que ya tocaron).
+
+  - **`apiGastos.actualizarRecurrente(id, d)`** · _método_
+    Cambia los datos de un recurrente (el valor se cambia aparte).
+
+  - **`apiGastos.cambiarValorRecurrente(id, desde, monto)`** · _método_
+    El valor cambia desde una fecha (el historico queda).
+
+  - **`apiGastos.estadoRecurrente(id, activo, hasta)`** · _método_
+    Termina o reactiva un recurrente.
 
 - **`apiNomina`** · _módulo_
   Empleados, parametros y nominas.
@@ -2629,6 +2655,27 @@ _691 funciones, componentes, métodos y rutas en 101 archivos._
 - **`FormularioCredito({...})`** · _componente React_
   Formulario para crear o cambiar un credito.
 
+### `src/paginas/gastos/FormularioGasto.tsx`
+
+> Formulario de un gasto. Arriba se elige como es el gasto y los campos
+> cambian:
+> - Pago unico (lo normal): solo la fecha de pago (o, si aun no se paga, la
+>   fecha del gasto). Sin causacion ni cuotas.
+> - Recurrente (arriendo, honorarios, servicios): el valor, cada cuanto se
+>   repite (mes o quincena), desde cuando y hasta cuando. El sistema genera
+>   el gasto de cada periodo por pagar; si el valor cambia, se cambia en
+>   Recurrentes desde una fecha y el historico queda.
+> - Diferido (se paga una vez y se causa en cuotas, como un seguro anual):
+>   fecha de pago, desde cuando se causa y en cuantas cuotas (mensuales o
+>   quincenales).
+> Siempre: proveedor, numero y tipo de factura (credito o debito, para el
+> reporte de la contadora) y el link del soporte. Antes de guardar se buscan
+> gastos repetidos (la factura que llega por correo y en fisico): si hay uno
+> parecido se pregunta si es el mismo, y si lo es no se guarda otra vez.
+
+- **`FormularioGasto({...})`** · _componente React_
+  Formulario para crear, editar o duplicar un gasto, o crear o cambiar un recurrente.
+
 ### `src/paginas/gastos/Gastos.tsx`
 
 > Pantalla Gastos: el libro unico de gastos de Transportes Lopez y
@@ -2638,12 +2685,13 @@ _691 funciones, componentes, métodos y rutas en 101 archivos._
 >   corresponde), pago y a quien se reparte. Clic en un gasto muestra cuanto
 >   le toco a cada vehiculo o socio. Exportar saca lo que esta en pantalla.
 > - Por vehiculo: lo que le toco a cada vehiculo y socio en un mes.
+> - Recurrentes: los gastos que se repiten cada mes o quincena, con el
+>   historial de su valor (ver Recurrentes.tsx).
+> - Facturas credito: el reporte de la contadora por mes o quincena.
 > - Creditos: tabla de amortizacion y pago de cuotas (ver Creditos.tsx).
+> - El formulario cambia segun como es el gasto (ver FormularioGasto.tsx).
 > - El rol total cierra meses (sus gastos ya no cambian) y fija la fecha
 >   desde la que se registran. Transportes M&C solo ve lo de su empresa.
-
-- **`nombreMes(mes)`** · _función_
-  "2026-11" -> "Noviembre 2026".
 
 - **`resumenDestino(g)`** · _función_
   A quien va el gasto, en pocas palabras ("CELSO + 13 vehiculos").
@@ -2654,14 +2702,34 @@ _691 funciones, componentes, métodos y rutas en 101 archivos._
 - **`DetalleGasto({...})`** · _componente React_
   Lo que le toco a cada vehiculo o socio, las causaciones y las acciones del gasto.
 
-- **`FormularioGasto({...})`** · _componente React_
-  Formulario para crear, editar o duplicar un gasto.
-
 - **`PorVehiculo({...})`** · _componente React_
   Lo que le toco a cada vehiculo y socio en un mes (por fecha de causacion).
 
 - **`VentanaCierres({...})`** · _componente React_
   Cierre de meses y fecha desde la que se registran gastos (solo el rol total).
+
+### `src/paginas/gastos/Recurrentes.tsx`
+
+> Vista Recurrentes del libro de gastos: los gastos que se repiten cada mes o
+> quincena (arriendo, honorarios, servicios). El sistema crea el gasto de
+> cada periodo por pagar con el valor vigente. Cuando el valor cambia se
+> registra desde una fecha: los periodos anteriores conservan el suyo y el
+> historial queda a la vista.
+
+- **`Recurrentes({...})`** · _componente React_
+  Lista de recurrentes con su historial de valores.
+
+- **`VentanaNuevoValor({...})`** · _componente React_
+  El valor de un recurrente cambia desde una fecha (el historial queda).
+
+### `src/paginas/gastos/ReporteFacturas.tsx`
+
+> Vista "Facturas credito" del libro de gastos: el reporte que pide la
+> contadora cada mes o quincena, con las facturas marcadas como credito.
+> Se ve en pantalla y se descarga en Excel.
+
+- **`ReporteFacturas({...})`** · _componente React_
+  Reporte de facturas credito de un mes o una quincena.
 
 ### `src/paginas/gastos/SelectorDestinos.tsx`
 
@@ -2695,6 +2763,25 @@ _691 funciones, componentes, métodos y rutas en 101 archivos._
   Vista previa: cuanto va directo a socios, cuanto queda para repartir y
   cuanto le toca a cada parte (vehiculo marcado, la empresa o socio "por partes").
   `problema` dice por que no se puede guardar todavia.
+
+### `src/paginas/gastos/facturasCredito.ts`
+
+> Reporte de facturas credito para la contadora: las facturas marcadas como
+> credito de un mes o de una quincena (del 1 al 15, o del 16 a fin de mes),
+> por la fecha del gasto (la de la factura).
+
+- **`rangoDe(periodo)`** · _función_
+  Primer y ultimo dia de un periodo del reporte.
+
+- **`facturasCredito(gastos, periodo, empresa)`** · _función_
+  Las facturas credito (no anuladas) de una empresa (o de las dos) en el periodo, por fecha.
+
+### `src/paginas/gastos/nombres.ts`
+
+> Nombres para mostrar del libro de gastos (empresas, categorias, formas, periodicidad y tipo de factura).
+
+- **`nombreMes(mes)`** · _función_
+  "2026-11" -> "Noviembre 2026".
 
 ### `src/paginas/nomina/Empleados.tsx`
 

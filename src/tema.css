@@ -707,6 +707,17 @@ table.tabla tbody tr.fila-detalle > td {
 .destinos-socios { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; margin-top: 0.4rem; }
 .destinos-socios .linea-abono { width: 100%; }
 .reparto-gasto { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.4rem; }
+/* Como es el gasto: pago unico, recurrente o diferido (cambia los campos del formulario). */
+.formas-gasto { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; margin-bottom: 0.9rem; }
+.forma-gasto { position: relative; display: flex; flex-direction: column; gap: 0.15rem; padding: 0.55rem 0.7rem; border: 1px solid var(--color-border); border-radius: 8px; cursor: pointer; }
+.forma-gasto input { position: absolute; opacity: 0; pointer-events: none; }
+.forma-gasto:focus-within { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.forma-gasto.marcada { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+.casilla-linea { display: flex; align-items: center; gap: 0.4rem; margin-top: 1.6rem; font-weight: normal; cursor: pointer; }
+.casilla-linea input { width: auto; margin: 0; }
+/* Periodo, empresa y descarga del reporte de facturas credito, en una fila. */
+.filtros-facturas { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.filtros-facturas input, .filtros-facturas select { width: auto; }
 .reparto-gasto-parte { display: flex; flex-direction: column; border: 1px solid var(--color-border); border-radius: 10px; padding: 0.3rem 0.55rem; background: var(--color-surface); }
 .tabla-amortizacion { max-height: 420px; overflow: auto; border: 1px solid var(--color-border); border-radius: 10px; }
 .tabla-amortizacion thead th { position: sticky; top: 0; background: var(--color-surface); z-index: 1; }

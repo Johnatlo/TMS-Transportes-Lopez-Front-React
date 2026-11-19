@@ -1122,6 +1122,8 @@ export const apiCuadro = {
   /** Cambia fecha de pago, nota o viaje de un tramo; devuelve el cuadro de anticipos. */
   actualizarTramo: (anticipoId: number, datos: Record<string, unknown>) =>
     put<AnticipoBomba[]>(`/cuadro/anticipos/${anticipoId}`, datos),
+  /** Borra un tramo de anticipo (sale tambien del Cuadro pagos y de Rentabilidad); devuelve el cuadro de anticipos. */
+  borrarTramo: (anticipoId: number) => del<AnticipoBomba[]>(`/cuadro/anticipos/${anticipoId}`),
   /** Cuentas con la bomba: deuda, pagado, abonado por el socio, pendiente y cupo disponible. */
   resumenBomba: () => get<ResumenBomba>("/cuadro/anticipos/resumen"),
   /** Junta dos tanqueos de la misma placa como ida y vuelta (ids de tanqueo). */
@@ -1849,7 +1851,23 @@ export interface Gasto {
   creadoEn: string;
   causaciones: Array<{ fecha: string; monto: number }>;
   reparto: RepartoGasto[];
+  /** UNICO (lo normal), DIFERIDO (se causa en cuotas) o RECURRENTE (lo genero un recurrente). */
+  forma: FormaGasto;
+  periodicidad: Periodicidad;
+  proveedor: string | null;
+  numeroFactura: string | null;
+  /** CREDITO (va al reporte de la contadora) o DEBITO. */
+  tipoFactura: TipoFactura | null;
+  recurrenteId: number | null;
+  periodo: string | null;
 }
+
+/** Forma de un gasto. */
+export type FormaGasto = "UNICO" | "DIFERIDO" | "RECURRENTE";
+/** Cada cuanto se repite o se causa. */
+export type Periodicidad = "MENSUAL" | "QUINCENAL";
+/** Tipo de factura. */
+export type TipoFactura = "CREDITO" | "DEBITO";
 
 /** Lo que se manda al crear o cambiar un gasto. */
 export interface DatosGasto {
@@ -1863,6 +1881,59 @@ export interface DatosGasto {
   causaDesde: string;
   causaCuotas: number;
   destinos: DestinoGasto[];
+  forma: FormaGasto;
+  periodicidad: Periodicidad;
+  proveedor: string | null;
+  numeroFactura: string | null;
+  tipoFactura: TipoFactura | null;
+  /** Guardarlo aunque parezca repetido (el usuario dijo que es otro). */
+  confirmarDuplicado?: boolean;
+}
+
+/** Un gasto ya guardado que puede ser el mismo. */
+export interface PosibleDuplicado {
+  id: number;
+  descripcion: string;
+  fecha: string;
+  monto: number;
+  numeroFactura: string | null;
+  motivo: string;
+}
+
+/** Un gasto recurrente (arriendo, honorarios, servicios) con el historial de su valor. */
+export interface GastoRecurrente {
+  id: number;
+  empresa: EmpresaGasto;
+  tipo: "GASTO" | "INGRESO";
+  categoria: string;
+  descripcion: string;
+  proveedor: string | null;
+  tipoFactura: TipoFactura | null;
+  destinos: DestinoGasto[];
+  periodicidad: Periodicidad;
+  desde: string;
+  hasta: string | null;
+  activo: boolean;
+  valores: Array<{ desde: string; monto: number }>;
+  valorActual: number | null;
+  generados: number;
+  porPagar: number;
+}
+
+/** Lo que se manda al crear o cambiar un recurrente. */
+export interface DatosRecurrente {
+  empresa: EmpresaGasto;
+  tipo: "GASTO" | "INGRESO";
+  categoria: string;
+  descripcion: string;
+  proveedor: string | null;
+  tipoFactura: TipoFactura | null;
+  destinos: DestinoGasto[];
+  periodicidad: Periodicidad;
+  desde: string;
+  hasta: string | null;
+  /** Solo al crearlo: el valor desde el primer pago. */
+  monto?: number;
 }
 
 /** Lo que necesita el formulario de gastos. */
@@ -1950,6 +2021,18 @@ export const apiGastos = {
   pagarCuota: (id: number, numero: number, d: { fechaPago: string; valor?: number | null; soporteUrl?: string | null }) => post<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`, d),
   /** Quita el pago de una cuota y borra su gasto. */
   quitarPagoCuota: (id: number, numero: number) => del<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`),
+  /** Gastos ya guardados que pueden ser el mismo (misma factura, o mismo valor y fecha con descripcion parecida). */
+  duplicados: (d: DatosGasto & { id?: number }) => post<PosibleDuplicado[]>("/gastos/duplicados", d),
+  /** Gastos recurrentes. */
+  recurrentes: () => get<GastoRecurrente[]>("/gastos/recurrentes"),
+  /** Crea un recurrente (genera los periodos que ya tocaron). */
+  crearRecurrente: (d: DatosRecurrente) => post<GastoRecurrente>("/gastos/recurrentes", d),
+  /** Cambia los datos de un recurrente (el valor se cambia aparte). */
+  actualizarRecurrente: (id: number, d: DatosRecurrente) => put<GastoRecurrente>(`/gastos/recurrentes/${id}`, d),
+  /** El valor cambia desde una fecha (el historico queda). */
+  cambiarValorRecurrente: (id: number, desde: string, monto: number) => post<GastoRecurrente>(`/gastos/recurrentes/${id}/valores`, { desde, monto }),
+  /** Termina o reactiva un recurrente. */
+  estadoRecurrente: (id: number, activo: boolean, hasta: string | null) => put<GastoRecurrente>(`/gastos/recurrentes/${id}/estado`, { activo, hasta }),
 };
 
 // ---------- Empleados y nomina (backend/src/nomina.ts) ----------
