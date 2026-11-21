@@ -32,6 +32,8 @@ import { Pastilla } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
 import Empleados from "./Empleados";
+import GastoLinea from "./GastoLinea";
+import type { CambioGasto } from "./GastoLinea";
 import Parametros from "./Parametros";
 import { exportarNomina } from "./excelNomina";
 
@@ -204,7 +206,9 @@ function Liquidaciones({
                   <th className="num">Total a pagar</th>
                   <th className="num">Costo empleador</th>
                   <th className="num">Ajuste</th>
-                  <th className="num">Costo total</th>
+                  <th className="num" title="Lo que se carga a los vehiculos (o al reparto): los conceptos marcados">
+                    Gasto
+                  </th>
                   <th />
                 </tr>
               </thead>
@@ -305,7 +309,7 @@ function FilaLinea({
   opciones: OpcionesGastos;
   abierta: boolean;
   alAbrir: () => void;
-  alCambiar: (d: Partial<Pick<LineaNomina, "dias" | "producido" | "producidoManual" | "vehiculoId" | "ajuste" | "notaAjuste">>) => void;
+  alCambiar: (d: Partial<Pick<LineaNomina, "dias" | "producido" | "producidoManual" | "vehiculoId" | "ajuste" | "notaAjuste">> & CambioGasto) => void;
   /** Abre los viajes que suman el producido. */
   alVerViajes: () => void;
   /** Lo que se descuenta de un prestamo en el mes del producido (null = no se descuenta). */
@@ -429,7 +433,11 @@ function FilaLinea({
           {!borrador && l.notaAjuste && <span className="dato-sec">{l.notaAjuste}</span>}
         </td>
         <td className="num">
-          <strong>{moneda(c.costoTotal)}</strong>
+          <strong>{moneda(l.gasto.total)}</strong>
+          {l.gasto.total !== c.costoTotal && <span className="dato-sec">costo {moneda(c.costoTotal)}</span>}
+          {conductor && l.reparto.length > 1 && (
+            <span className="dato-sec">{l.reparto.map((r) => `${placaConGuion(r.placa)} ${r.porcentaje} %`).join(" · ")}</span>
+          )}
         </td>
         <td className="num">
           {borrador && (
@@ -442,73 +450,106 @@ function FilaLinea({
       {abierta && (
         <tr>
           <td colSpan={12}>
-            <div className="detalle-nomina">
-              <div>
-                <h5>Empleado</h5>
-                <Concepto t="Salario basico" v={c.basico} />
-                {c.auxilio > 0 && <Concepto t="Auxilio de transporte" v={c.auxilio} />}
-                {c.variable > 0 && <Concepto t={`Sueldo variable (${l.entrada.pctSalarial} %)`} v={c.variable} />}
-                {c.viaticos > 0 && <Concepto t={`Viaticos (${l.entrada.pctViaticos} %, no salarial)`} v={c.viaticos} />}
-                <Concepto t="Devengado" v={c.devengado} fuerte />
-                <Concepto t="Salud" v={-c.saludEmpleado} />
-                <Concepto t="Pension" v={-c.pensionEmpleado} />
-                <Concepto t="Neto a pagar" v={c.neto} fuerte />
-              </div>
-              <div>
-                <h5>Aportes del empleador (PILA)</h5>
-                <Concepto t="Pension" v={c.pensionEmpleador} />
-                <Concepto t="Salud" v={c.saludEmpleador} />
-                <Concepto t={`ARL riesgo ${["", "I", "II", "III", "IV", "V"][l.entrada.riesgoArl]}`} v={c.arl} />
-                <Concepto t="Caja" v={c.caja} />
-                {c.ibc !== c.salarial && <Concepto t="IBC (con exceso no salarial)" v={c.ibc} />}
-              </div>
-              <div>
-                <h5>Provisiones</h5>
-                <Concepto t="Prima" v={c.prima} />
-                <Concepto t="Cesantias" v={c.cesantias} />
-                <Concepto t="Intereses de cesantias" v={c.interesesCesantias} />
-                <Concepto t="Vacaciones" v={c.vacaciones} />
-                {c.ajuste !== 0 && <Concepto t="Ajuste" v={c.ajuste} />}
-                <Concepto t="Costo del empleador" v={c.costoEmpleador} fuerte />
-                <Concepto t="Costo total" v={c.costoTotal} fuerte />
-              </div>
+            {/* Por colores, como en Rentabilidad: lo del empleado, los aportes, las provisiones y lo que se le paga. */}
+            <div className="detalle-nomina-desglose">
+              <table className="tabla tabla-compacta desglose">
+                <tbody className="desglose-empresa">
+                  <Titulo t="Empleado" />
+                  <Renglon t="Salario basico" v={c.basico} />
+                  <Renglon t="Auxilio de transporte" v={c.auxilio} />
+                  {conductor && <Renglon t={`Sueldo variable (${l.entrada.pctSalarial} % del producido)`} v={c.variable} />}
+                  {conductor && <Renglon t={`Viaticos (${l.entrada.pctViaticos} %, no salarial)`} v={c.viaticos} />}
+                  <Renglon t="Devengado" v={c.devengado} total />
+                  <Renglon t="Salud" v={c.saludEmpleado} signo="- " />
+                  <Renglon t="Pension" v={c.pensionEmpleado} signo="- " />
+                  <Renglon t="Neto de la nomina" v={c.neto} total />
+                </tbody>
+              </table>
+              <table className="tabla tabla-compacta desglose">
+                <tbody className="desglose-tercero">
+                  <Titulo t="Aportes del empleador (PILA)" />
+                  <Renglon t="Salud" v={c.saludEmpleador} />
+                  <Renglon t="UPC adicional" v={c.upcAdicional ?? 0} />
+                  <Renglon t="Pension" v={c.pensionEmpleador} />
+                  <Renglon t={`ARL riesgo ${["", "I", "II", "III", "IV", "V"][l.entrada.riesgoArl]}`} v={c.arl} />
+                  <Renglon t="Caja de compensacion" v={c.caja} />
+                  {c.ibc !== c.salarial && <Renglon t="IBC (con exceso no salarial)" v={c.ibc} />}
+                </tbody>
+                <tbody className="desglose-dueno">
+                  <Titulo t="Provisiones" />
+                  <Renglon t="Prima" v={c.prima} />
+                  <Renglon t="Cesantias" v={c.cesantias} />
+                  <Renglon t="Intereses de cesantias" v={c.interesesCesantias} />
+                  <Renglon t="Vacaciones" v={c.vacaciones} />
+                  {c.ajuste !== 0 && <Renglon t="Ajuste" v={c.ajuste} />}
+                  <Renglon t="Costo del empleador" v={c.costoEmpleador} total />
+                  <Renglon t="Costo total" v={c.costoTotal} total />
+                </tbody>
+              </table>
               {(conductor || (l.prestamos ?? []).length > 0) && (
-                <div>
-                  <h5>Lo que se le paga</h5>
-                  <Concepto t="Neto de la nomina" v={c.neto} />
-                  {l.cuentasViaje && <Concepto t={l.cuentasViaje.saldo >= 0 ? "Cuentas de viaje (se le debe)" : "Cuentas de viaje (debe)"} v={l.cuentasViaje.saldo} />}
-                  {(l.prestamos ?? []).map((p) => (
-                    <div key={p.prestamoId} className="concepto-nomina">
-                      <span>
-                        Prestamo {fechaCorta(p.fecha)} (saldo {moneda(p.saldo)})
-                      </span>
-                      <input
-                        key={`${p.prestamoId}-${p.descuento}`}
-                        type="number"
-                        min={0}
-                        disabled={!editable}
-                        style={{ width: "7rem", textAlign: "right" }}
-                        defaultValue={p.descuento ?? ""}
-                        placeholder={p.cuota ? `Cuota ${p.cuota}` : "No se descuenta"}
-                        aria-label="Descontar este mes"
-                        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim() === "" ? null : Number(e.target.value);
-                          if (v !== p.descuento) alDescontar(p.prestamoId, v);
-                        }}
+                <table className="tabla tabla-compacta desglose">
+                  <tbody className="desglose-resultado">
+                    <Titulo t="Lo que se le paga" />
+                    <Renglon t="Neto de la nomina" v={c.neto} />
+                    {l.cuentasViaje && (
+                      <Renglon
+                        t={l.cuentasViaje.saldo >= 0 ? "Cuentas de viaje (se le debe)" : "Cuentas de viaje (debe)"}
+                        v={Math.abs(l.cuentasViaje.saldo)}
+                        signo={l.cuentasViaje.saldo >= 0 ? "+ " : "- "}
                       />
-                    </div>
-                  ))}
-                  <Concepto t="Total a pagar" v={l.totalAPagar ?? c.neto} fuerte />
-                </div>
+                    )}
+                    {(l.prestamos ?? []).map((p) => (
+                      <tr key={p.prestamoId}>
+                        <td>
+                          Prestamo {fechaCorta(p.fecha)}
+                          <span className="dato-sec">saldo {moneda(p.saldo)}</span>
+                        </td>
+                        <td className="num">
+                          <input
+                            key={`${p.prestamoId}-${p.descuento}`}
+                            type="number"
+                            min={0}
+                            disabled={!editable}
+                            style={{ width: "7.5rem", textAlign: "right" }}
+                            defaultValue={p.descuento ?? ""}
+                            placeholder={p.cuota ? `Cuota ${p.cuota}` : "No se descuenta"}
+                            aria-label="Descontar este mes"
+                            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim() === "" ? null : Number(e.target.value);
+                              if (v !== p.descuento) alDescontar(p.prestamoId, v);
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                    <Renglon t="Total a pagar" v={l.totalAPagar ?? c.neto} total />
+                  </tbody>
+                </table>
               )}
             </div>
+            <GastoLinea l={l} editable={borrador} opciones={opciones} alCambiar={alCambiar} />
           </td>
         </tr>
       )}
     </>
   );
 }
+
+/** Titulo de un bloque del detalle. */
+const Titulo = ({ t }: { t: string }) => (
+  <tr className="desglose-titulo">
+    <th colSpan={2}>{t}</th>
+  </tr>
+);
+
+/** Un renglon del detalle: en cero sale apagado; el total, resaltado. */
+const Renglon = ({ t, v, signo = "", total = false }: { t: string; v: number; signo?: string; total?: boolean }) => (
+  <tr className={total ? "desglose-total" : v ? "" : "desglose-cero"}>
+    <td>{t}</td>
+    <td className="num">{v ? `${signo}${moneda(v)}` : "-"}</td>
+  </tr>
+);
 
 /** De donde sale el producido (por defecto el mes en que empieza la nomina); se puede cambiar en borrador. */
 function PeriodoProducido({ n, editable, alCambiar }: { n: TipoNomina; editable: boolean; alCambiar: (desde: string, hasta: string) => void }) {
@@ -577,8 +618,8 @@ function VentanaViajes({ n, l, alCerrar }: { n: TipoNomina; l: LineaNomina; alCe
     >
       <div className="section-desc" style={{ marginBottom: "0.5rem" }}>
         Viajes del {fechaCorta(n.producidoDesde)} al {fechaCorta(n.producidoHasta)} de los vehiculos que manejaba (segun su asignacion en Empleados). El
-        producido es la suma del producido conductor de cada viaje (matriz de fletes conductor, o el escrito en su cuenta de viaje en Liquidacion
-        conductores); los que no tienen valor no suman hasta que se les ponga.
+        producido es la suma del producido conductor de cada viaje (matriz de fletes conductor, o el escrito en su cuenta de viaje en Liquidacion conductores);
+        los que no tienen valor no suman hasta que se les ponga.
         {l.porVehiculo.length > 1 && " Al aprobar, su costo se reparte entre los vehiculos segun lo que produjo en cada uno."}
       </div>
       {error && <div className="alert danger">{error}</div>}
@@ -627,16 +668,6 @@ function VentanaViajes({ n, l, alCerrar }: { n: TipoNomina; l: LineaNomina; alCe
         );
       })}
     </Modal>
-  );
-}
-
-/** Un concepto del detalle. */
-function Concepto({ t, v, fuerte }: { t: string; v: number; fuerte?: boolean }) {
-  return (
-    <div className="concepto-nomina">
-      <span>{t}</span>
-      {fuerte ? <strong>{moneda(v)}</strong> : <span>{moneda(v)}</span>}
-    </div>
   );
 }
 

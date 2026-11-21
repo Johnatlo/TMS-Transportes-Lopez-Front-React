@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_757 funciones, componentes, métodos y rutas en 118 archivos._
+_759 funciones, componentes, métodos y rutas en 119 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (246)
@@ -259,7 +259,8 @@ _757 funciones, componentes, métodos y rutas en 118 archivos._
 - [`src/paginas/gastos/facturasCredito.ts`](#srcpaginasgastosfacturascreditots) (2)
 - [`src/paginas/gastos/nombres.ts`](#srcpaginasgastosnombrests) (1)
 - [`src/paginas/nomina/Empleados.tsx`](#srcpaginasnominaempleadostsx) (4)
-- [`src/paginas/nomina/Nomina.tsx`](#srcpaginasnominanominatsx) (9)
+- [`src/paginas/nomina/GastoLinea.tsx`](#srcpaginasnominagastolineatsx) (1)
+- [`src/paginas/nomina/Nomina.tsx`](#srcpaginasnominanominatsx) (10)
 - [`src/paginas/nomina/Parametros.tsx`](#srcpaginasnominaparametrostsx) (2)
 - [`src/paginas/nomina/excelNomina.ts`](#srcpaginasnominaexcelnominats) (1)
 - [`src/paginas/preoperacional/FormularioPreoperacional.tsx`](#srcpaginaspreoperacionalformulariopreoperacionaltsx) (1)
@@ -3074,6 +3075,25 @@ _757 funciones, componentes, métodos y rutas en 118 archivos._
 - **`FormularioEmpleado({...})`** · _componente React_
   Formulario de un empleado.
 
+### `src/paginas/nomina/GastoLinea.tsx`
+
+> Lo que una linea de nomina carga al gasto (los vehiculos o el reparto del
+> empleado de oficina):
+> - Un checkbox por concepto (sueldo, auxilio, % y viaticos, cada aporte y
+>   cada provision): marcado va al gasto, desmarcado no (por ejemplo, de un
+>   empleado solo cesantias e intereses). Lo que se le paga no cambia. Se
+>   recuerda para la nomina siguiente.
+> - UPC adicional: lo que se paga por cada beneficiario adicional en salud
+>   (puede no ser empleado, por ejemplo un familiar del conductor): su cedula,
+>   su nombre, el valor y el vehiculo al que se carga. El cotizante es el
+>   empleado de la linea. Va con la salud en la planilla y la paga la empresa.
+> - Conductor: el porcentaje de su costo que va a cada vehiculo que manejo
+>   (lo que produjo en cada uno y los dias que tuvo cada uno, aunque en
+>   alguno no haya hecho viajes). Se puede corregir y queda guardado.
+
+- **`GastoLinea({...})`** · _componente React_
+  El bloque del gasto de una linea.
+
 ### `src/paginas/nomina/Nomina.tsx`
 
 > Pantalla Nomina (fase 2 del modulo de gastos): liquidaciones por periodo,
@@ -3111,14 +3131,17 @@ _757 funciones, componentes, métodos y rutas en 118 archivos._
 - **`FilaLinea({...})`** · _componente React_
   Una linea de la nomina y, al abrirla, el detalle de cada concepto.
 
+- **`Titulo({...})`** · _componente React_
+  Titulo de un bloque del detalle.
+
+- **`Renglon({...})`** · _componente React_
+  Un renglon del detalle: en cero sale apagado; el total, resaltado.
+
 - **`PeriodoProducido({...})`** · _componente React_
   De donde sale el producido (por defecto el mes en que empieza la nomina); se puede cambiar en borrador.
 
 - **`VentanaViajes({...})`** · _componente React_
   Los viajes del sistema que suman el producido de un conductor, por vehiculo.
-
-- **`Concepto({...})`** · _componente React_
-  Un concepto del detalle.
 
 - **`NuevaNomina({...})`** · _componente React_
   Crear una nomina: por defecto el periodo que sigue a la ultima.
@@ -3141,6 +3164,8 @@ _757 funciones, componentes, métodos y rutas en 118 archivos._
 > llevaba a mano (empleado y empleador), pero con los aportes ya redondeados
 > una sola vez y el costo del empleador sin contar dos veces pension, ARL y
 > caja. Una fila por empleado y la fila de totales que agrega descargarTabla.
+> Trae tambien la UPC adicional y la salud total con UPC (para la planilla),
+> el gasto que va a los vehiculos y el reparto de cada conductor.
 
 - **`exportarNomina(n)`** · _función_
   Descarga el Excel de la nomina.

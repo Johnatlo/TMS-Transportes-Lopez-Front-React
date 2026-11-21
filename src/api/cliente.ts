@@ -2141,6 +2141,8 @@ export interface CalculoNomina {
   cesantias: number;
   interesesCesantias: number;
   vacaciones: number;
+  /** UPC adicional (va con la salud; la paga la empresa). Las nominas viejas no la traen. */
+  upcAdicional?: number;
   ajuste: number;
   costoEmpleador: number;
   costoTotal: number;
@@ -2176,6 +2178,20 @@ export interface LineaNomina {
   prestamos?: PrestamoLinea[];
   /** Neto + saldo de las cuentas de viaje - prestamos descontados. */
   totalAPagar?: number;
+  /** Conceptos que NO van al gasto. */
+  excluidos: string[];
+  /** UPC adicional del mes y el vehiculo al que se carga. */
+  upcAdicional: number;
+  /** Beneficiarios de UPC adicional (pueden no ser empleados): cedula, nombre, valor y vehiculo al que se carga. */
+  upcs: Array<{ cedula: string; nombre: string; valor: number; vehiculoId: number; placa: string }>;
+  /** El cotizante (el empleado de la linea), para la planilla. */
+  cotizante: { cedula: string | null; nombre: string };
+  /** Conductor: porcentaje de su costo que va a cada vehiculo. */
+  reparto: Array<{ vehiculoId: number; placa: string; porcentaje: number }>;
+  /** true = el reparto se escribio a mano. */
+  repartoManual: boolean;
+  /** Lo que va al gasto: al reparto del empleado (general) y al vehiculo de la UPC. */
+  gasto: { general: number; upc: number; total: number };
 }
 
 /** Un prestamo de un empleado visto desde su nomina o su liquidacion: saldo y lo que se descuenta el mes. */
@@ -2260,7 +2276,14 @@ export const apiNomina = {
   /** Agrega un empleado a la nomina. */
   agregarLinea: (id: number, empleadoId: number) => post<Nomina>(`/nomina/${id}/lineas`, { empleadoId }),
   /** Cambia dias, producido, vehiculo o ajuste de una linea. */
-  actualizarLinea: (id: number, linea: number, d: Partial<Pick<LineaNomina, "dias" | "producido" | "producidoManual" | "vehiculoId" | "ajuste" | "notaAjuste">>) =>
+  actualizarLinea: (
+    id: number,
+    linea: number,
+    d: Partial<Pick<LineaNomina, "dias" | "producido" | "producidoManual" | "vehiculoId" | "ajuste" | "notaAjuste" | "excluidos">> & {
+      reparto?: Array<{ vehiculoId: number; porcentaje: number }> | null;
+      upcs?: Array<{ cedula: string; nombre: string; valor: number; vehiculoId: number }>;
+    },
+  ) =>
     put<Nomina>(`/nomina/${id}/lineas/${linea}`, d),
   /** Quita a un empleado de la nomina. */
   quitarLinea: (id: number, linea: number) => del<Nomina>(`/nomina/${id}/lineas/${linea}`),

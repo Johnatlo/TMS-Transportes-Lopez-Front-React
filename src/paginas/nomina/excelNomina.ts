@@ -3,6 +3,8 @@
  * llevaba a mano (empleado y empleador), pero con los aportes ya redondeados
  * una sola vez y el costo del empleador sin contar dos veces pension, ARL y
  * caja. Una fila por empleado y la fila de totales que agrega descargarTabla.
+ * Trae tambien la UPC adicional y la salud total con UPC (para la planilla),
+ * el gasto que va a los vehiculos y el reparto de cada conductor.
  */
 import type { LineaNomina, Nomina } from "../../api/cliente";
 
@@ -29,6 +31,8 @@ export const COLUMNAS_EXCEL: Array<[string, (l: LineaNomina) => string | number 
   ["Total a pagar", (l) => l.calculo.neto, true],
   ["Pension empleador", (l) => l.calculo.pensionEmpleador, true],
   ["Salud empleador", (l) => l.calculo.saludEmpleador, true],
+  ["UPC adicional", (l) => l.calculo.upcAdicional ?? 0, true],
+  ["Beneficiarios UPC", (l) => (l.upcs ?? []).map((u) => `${u.nombre} (CC ${u.cedula})`).join(", ") || null],
   ["ARL", (l) => l.calculo.arl, true],
   ["Caja", (l) => l.calculo.caja, true],
   ["Prima", (l) => l.calculo.prima, true],
@@ -40,6 +44,10 @@ export const COLUMNAS_EXCEL: Array<[string, (l: LineaNomina) => string | number 
   ["Costo empleador", (l) => l.calculo.costoEmpleador, true],
   ["Costo total", (l) => l.calculo.costoTotal, true],
   ["Pension total (PILA)", (l) => l.calculo.pensionEmpleado + l.calculo.pensionEmpleador, true],
+  ["Salud total con UPC (PILA)", (l) => l.calculo.saludEmpleado + l.calculo.saludEmpleador + (l.calculo.upcAdicional ?? 0), true],
+  ["Gasto (a vehiculos)", (l) => l.gasto?.total ?? l.calculo.costoTotal, true],
+  ["No va al gasto", (l) => (l.excluidos ?? []).join(", ") || null],
+  ["Reparto por vehiculo", (l) => (l.reparto ?? []).map((r) => `${r.placa} ${r.porcentaje} %`).join(" + ") || null],
 ];
 
 /** Descarga el Excel de la nomina. */

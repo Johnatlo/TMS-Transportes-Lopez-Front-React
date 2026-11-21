@@ -804,3 +804,40 @@ ul.lista-motivos.error li::before { background: var(--color-danger-text); }
 .vehiculo-cuenta:hover { border-color: var(--color-accent); }
 .vehiculo-cuenta.activo { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); background: var(--color-info-bg, #eef4ff); }
 .vehiculo-cuenta-valores { display: flex; justify-content: space-between; gap: 0.5rem; width: 100%; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+
+/* Nomina: lo que va al gasto (un checkbox por concepto), la UPC adicional y el reparto del conductor entre vehiculos. */
+.gasto-linea { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 1.4fr) minmax(280px, 1fr); gap: 0.8rem 1.4rem; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--color-border); }
+.gasto-linea, .gasto-linea .dato-sec { white-space: normal; }
+.gasto-linea h5 { margin: 0 0 0.3rem; font-size: 0.8rem; color: var(--gris-500); }
+.conceptos-gasto { display: grid; gap: 0.1rem; }
+.concepto-gasto { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.45rem; font-size: 0.85rem; padding: 0.12rem 0; cursor: pointer; }
+.concepto-gasto input { width: auto; margin: 0; }
+.concepto-gasto.fuera span { color: var(--color-text-muted); text-decoration: line-through; }
+.concepto-gasto .num { font-variant-numeric: tabular-nums; }
+/* Un beneficiario de UPC adicional por fila: cedula, nombre, valor y vehiculo. */
+.fila-upc { display: grid; grid-template-columns: 6.5rem minmax(6rem, 1fr) 5.5rem 6.5rem auto; gap: 0.3rem; align-items: center; margin-bottom: 0.3rem; }
+.fila-upc input, .fila-upc select { width: 100%; min-width: 0; }
+.fila-upc input[type=number] { text-align: right; }
+.fila-reparto { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem; flex-wrap: wrap; }
+.fila-reparto input { width: 5.5rem; text-align: right; }
+.fila-reparto select { width: auto; min-width: 8.5rem; }
+@media (max-width: 1100px) { .gasto-linea { grid-template-columns: 1fr; } }
+
+/* Detalle del empleado en la nomina: bloques de colores con espacio (como el desglose de Rentabilidad). */
+.detalle-nomina-desglose { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.1rem 1.4rem; align-items: start; padding: 0.6rem 0.4rem; }
+.detalle-nomina-desglose table.desglose, .gasto-linea table.desglose { width: 100%; }
+.detalle-nomina-desglose table.desglose td, .gasto-linea table.desglose td { padding: 0.45rem 0.7rem; white-space: normal; }
+.detalle-nomina-desglose .dato-sec { display: block; }
+.gasto-linea { gap: 1.1rem 1.4rem; padding: 1rem 0.4rem 0.4rem; margin-top: 0.6rem; }
+.bloque-nomina { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; padding: 0.8rem 0.9rem; }
+.bloque-nomina.desglose-anticipo, .bloque-nomina.desglose-generales { border-left: 4px solid var(--tono); }
+.bloque-nomina h5 { margin: 0 0 0.6rem; color: var(--gris-500); }
+.bloque-nomina.desglose-anticipo h5, .bloque-nomina.desglose-generales h5 { color: var(--tono); }
+.tabla-gasto .concepto-gasto { display: flex; grid-template-columns: none; padding: 0; gap: 0.5rem; }
+.tabla-gasto tr.fuera-gasto td span, .tabla-gasto tr.fuera-gasto td.num { text-decoration: line-through; }
+.fila-upc, .fila-reparto { margin-bottom: 0.5rem; }
+/* La tabla de la nomina es mas ancha que la pantalla: el detalle se queda en lo visible (no se corta a la derecha). */
+.detalle-nomina-desglose, .gasto-linea { position: sticky; left: 0; max-width: calc(100vw - 236px - 90px); box-sizing: border-box; }
+.menu-contraido .detalle-nomina-desglose, .menu-contraido .gasto-linea { max-width: calc(100vw - 72px - 90px); }
+@media (max-width: 820px) { .detalle-nomina-desglose, .gasto-linea { max-width: calc(100vw - 32px); } }
+.tabla-gasto .concepto-gasto span { white-space: nowrap; }
