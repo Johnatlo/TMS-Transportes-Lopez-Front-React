@@ -26,6 +26,7 @@ import {
   textoEstados,
 } from "./estadosCuadro";
 import PastillasEstado from "./PastillasEstado";
+import LinksViaje from "../../componentes/LinksViaje";
 
 /** Ya paso la fecha pago cliente y la factura no se ha pagado. */
 const cobroVencido = (f: FilaCuadro) =>
@@ -121,7 +122,17 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
         <span className="dato-sec">Sin manifiesto</span>
       ),
   },
-  { id: "remision", titulo: "Remision", valor: (f) => f.remision, celda: (f) => <span className="codigo">{f.remision ?? "-"}</span> },
+  {
+    id: "remision",
+    titulo: "Remision",
+    valor: (f) => f.remision,
+    celda: (f) => (
+      <>
+        <span className="codigo">{f.remision ?? "-"}</span>
+        <LinksViaje remisionUrl={f.remisionUrl} facturaUrl={f.facturaUrl} />
+      </>
+    ),
+  },
   // Estado entre la remision y el peso.
   {
     id: "estado",

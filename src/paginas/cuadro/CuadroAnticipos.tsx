@@ -39,6 +39,8 @@ import { descargarAnticipos } from "./excelAnticipos";
 import AnticiposEmpresas from "../seguimiento/AnticiposEmpresas";
 import VistaTramos from "./VistaTramos";
 import CampoValorAnticipo from "./CampoValorAnticipo";
+import LinksViaje from "../../componentes/LinksViaje";
+import MiniTabla from "../../componentes/MiniTabla";
 
 /** Como se ven los anticipos: un tramo por fila (como el cuadro de la empresa) o un tanqueo por fila. */
 type Vista = "tramos" | "tanqueos";
@@ -74,6 +76,7 @@ function Viaje({ t }: { t: AnticipoBomba | null }) {
         {[t.remision && `Rem. ${t.remision}`, t.manifiesto ? `Manifiesto ${t.manifiesto}` : "Sin manifiesto"].filter(Boolean).join(" · ")}
         {t.fechaViaje ? ` · ${fechaCorta(t.fechaViaje)}` : ""}
       </span>
+      <LinksViaje remisionUrl={t.remisionUrl} facturaUrl={t.facturaUrl} />
     </>
   );
 }
@@ -458,17 +461,24 @@ function DetalleTanqueo({
                 <td>
                   {/* Un vale para el combustible y otro para el efectivo (la bomba da los dos). */}
                   {/* Los vales armados a mano no traen numero: salen como "cruzado a mano". */}
-                  {t.cruzadoCombustible ? (
-                    <span className="codigo">Comb. {t.vale ?? "cruzado a mano"}</span>
+                  {t.cruzadoCombustible || t.cruzadoEfectivo || falta.combustible || falta.efectivo ? (
+                    <span className="partes-valor izq">
+                      {(t.cruzadoCombustible || falta.combustible) && (
+                        <>
+                          <span>Combustible</span>
+                          {t.cruzadoCombustible ? <span>{t.vale ? `Vale ${t.vale}` : "Cruzado a mano"}</span> : <span className="texto-aviso">Sin vale</span>}
+                        </>
+                      )}
+                      {(t.cruzadoEfectivo || falta.efectivo) && (
+                        <>
+                          <span>Efectivo</span>
+                          {t.cruzadoEfectivo ? <span>{t.valeEfectivo ? `Vale ${t.valeEfectivo}` : "Cruzado a mano"}</span> : <span className="texto-aviso">Sin vale</span>}
+                        </>
+                      )}
+                    </span>
                   ) : (
-                    falta.combustible && <span className="dato-sec">Combustible sin vale</span>
+                    "-"
                   )}
-                  {t.cruzadoEfectivo ? (
-                    <span className="dato-sec codigo">Efect. {t.valeEfectivo ?? "cruzado a mano"}</span>
-                  ) : (
-                    falta.efectivo && <span className="dato-sec">Efectivo sin vale</span>
-                  )}
-                  {!t.cruzadoCombustible && !t.cruzadoEfectivo && !falta.combustible && !falta.efectivo && "-"}
                 </td>
                 <td>{campoCruce(t, "galones")}</td>
                 <td>{campoCruce(t, "precioGalon", resumen?.precioGalonBomba)}</td>
@@ -600,14 +610,18 @@ function DetalleTanqueo({
       )}
 
       {abonosDeEstos.length > 0 && (
-        <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
-          Abonos a la bomba en estos viajes:{" "}
-          {abonosDeEstos.map((a, i) => (
-            <span key={i}>
-              {i > 0 && " · "}
-              {a.socio} {fechaCorta(a.fecha)} {moneda(a.valor)}
-            </span>
-          ))}
+        <div style={{ marginTop: "0.6rem", maxWidth: 420 }}>
+          <h5 style={{ margin: "0 0 0.3rem" }}>Abonos a la bomba en estos viajes</h5>
+          <MiniTabla
+            filas={abonosDeEstos}
+            clave={(_a, i) => i}
+            nombre="abonos"
+            columnas={[
+              { titulo: "Socio", celda: (a) => a.socio },
+              { titulo: "Fecha", celda: (a) => fechaCorta(a.fecha) },
+              { titulo: "Valor", num: true, celda: (a) => moneda(a.valor) },
+            ]}
+          />
         </div>
       )}
     </div>
@@ -717,12 +731,20 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
                   <strong>{moneda(a.valor)}</strong>
                 </td>
                 <td>
-                  {a.viajes.map((v) => (
-                    <span key={v.cuadroViajeId} className="dato-sec">
-                      {v.remesa ? `Remesa ${v.remesa} · ` : ""}
-                      {placaConGuion(v.placa ?? "")} · {v.empresa ?? "-"} {v.fecha ? `(${fechaCorta(v.fecha)})` : ""} · {moneda(v.valor)}
-                    </span>
-                  ))}
+                  <MiniTabla
+                    filas={a.viajes}
+                    clave={(v, i) => `${v.cuadroViajeId}-${i}`}
+                    nombre="viajes"
+                    columnas={[
+                      { titulo: "Remision / remesa", celda: (v) => <span className="codigo">{v.remision ?? v.remesa ?? v.manifiesto ?? "-"}</span> },
+                      { titulo: "Placa", celda: (v) => <strong>{placaConGuion(v.placa ?? "")}</strong> },
+                      { titulo: "Empresa", celda: (v) => v.empresa ?? "-" },
+                      { titulo: "Fecha", celda: (v) => (v.fecha ? fechaCorta(v.fecha) : "-") },
+                      { titulo: "Valor", num: true, celda: (v) => moneda(v.valor) },
+                      { titulo: "Soportes", celda: (v) => <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} /> },
+                    ]}
+                    total={["", "", `${a.viajes.length} viajes`, "", moneda(a.viajes.reduce((s, v) => s + v.valor, 0)), ""]}
+                  />
                 </td>
                 <td>{a.nota ?? "-"}</td>
                 <td>

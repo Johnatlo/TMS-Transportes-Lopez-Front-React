@@ -16,6 +16,7 @@
  */
 import { useEffect, useState } from "react";
 import { apiGastos, apiNomina, hoyColombia, moneda } from "../../api/cliente";
+import LinksViaje from "../../componentes/LinksViaje";
 import type { Empleado, LineaNomina, Nomina as TipoNomina, OpcionesGastos, ViajeProducidoNomina } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { useSesion } from "../../ganchos/useSesion";
@@ -547,7 +548,9 @@ function VentanaViajes({ n, l, alCerrar }: { n: TipoNomina; l: LineaNomina; alCe
                 {lista.map((v) => (
                   <tr key={v.id}>
                     <td>{fechaCorta(v.fecha)}</td>
-                    <td>{v.manifiesto ?? "-"}</td>
+                    <td>
+                      {v.manifiesto ?? v.remision ?? "-"} <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} />
+                    </td>
                     <td>
                       {v.cliente}
                       {v.concepto && <span className="dato-sec">{v.concepto}</span>}

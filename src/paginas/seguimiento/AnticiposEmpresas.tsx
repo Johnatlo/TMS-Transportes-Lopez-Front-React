@@ -18,6 +18,7 @@ import Modal from "../../componentes/Modal";
 import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna, PestanaTabla, TonoPastilla } from "../../componentes/TablaDatos";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
+import LinksViaje from "../../componentes/LinksViaje";
 
 const ESTADO: Record<EstadoAnticipoEmpresa, { etiqueta: string; tono: TonoPastilla }> = {
   FALTA_REGISTRAR: { etiqueta: "Falta registrar", tono: "error" },
@@ -71,7 +72,12 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
     titulo: "Manifiesto / remision",
     valor: (f) => f.manifiesto ?? f.remision ?? "",
     buscar: (f) => f.remision,
-    celda: (f) => <span className="codigo">{f.manifiesto ?? f.remision ?? "-"}</span>,
+    celda: (f) => (
+      <>
+        <span className="codigo">{f.manifiesto ?? f.remision ?? "-"}</span>
+        <LinksViaje remisionUrl={f.remisionUrl} facturaUrl={f.facturaUrl} />
+      </>
+    ),
   },
   {
     id: "anticipo",

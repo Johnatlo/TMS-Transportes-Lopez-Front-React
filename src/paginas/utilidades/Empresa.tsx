@@ -12,6 +12,7 @@ import type { Columna } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
 import { nombreMes } from "./pasos";
+import LinksViaje from "../../componentes/LinksViaje";
 
 type ViajeTercero = UtilidadesMes["empresa"]["detalleTerceros"][number];
 
@@ -31,7 +32,19 @@ export default function Empresa({ u, verTerceros }: { u: UtilidadesMes; verTerce
         </>
       ),
     },
-    { id: "cliente", titulo: "Cliente", filtrable: true, valor: (v) => v.cliente, buscar: (v) => `${v.remision ?? ""} ${v.manifiesto ?? ""}`, celda: (v) => v.cliente },
+    {
+      id: "cliente",
+      titulo: "Cliente",
+      filtrable: true,
+      valor: (v) => v.cliente,
+      buscar: (v) => `${v.remision ?? ""} ${v.manifiesto ?? ""}`,
+      celda: (v) => (
+        <>
+          <span>{v.cliente}</span>
+          <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} />
+        </>
+      ),
+    },
     { id: "flete", titulo: "Flete", alinear: "derecha", valor: (v) => Math.round(v.flete), celda: (v) => moneda(v.flete) },
     { id: "saldoEmpresa", titulo: "Saldo empresa", alinear: "derecha", valor: (v) => Math.round(v.saldoEmpresa), celda: (v) => moneda(v.saldoEmpresa) },
     { id: "saldoTercero", titulo: "Saldo tercero", alinear: "derecha", valor: (v) => Math.round(v.saldoTercero), celda: (v) => moneda(v.saldoTercero) },

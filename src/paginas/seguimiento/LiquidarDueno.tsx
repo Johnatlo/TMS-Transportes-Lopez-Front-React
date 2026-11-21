@@ -18,6 +18,7 @@ import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import { numeroONulo } from "./liquidacionTerceros";
 import { armarLiquidacionDueno, conceptosAutomaticos, evaluarExpresion, tituloCuenta } from "./liquidacionDuenos";
 import { descargarLiquidacionDueno } from "./excelLiquidacionDueno";
+import LinksViaje from "../../componentes/LinksViaje";
 
 /** Un concepto escrito a mano: la cuenta va en texto y "suma" dice si se le suma o descuenta. */
 interface ConceptoEscrito {
@@ -220,7 +221,9 @@ export default function LiquidarDueno({
                 <td>{fechaCorta(v.fecha)}</td>
                 <td>{v.placa}</td>
                 <td>{v.empresa}</td>
-                <td>{v.remision ?? v.manifiesto ?? "-"}</td>
+                <td>
+                  {v.remision ?? v.manifiesto ?? "-"} <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} />
+                </td>
                 <td>{v.facturaNumero ?? "-"}</td>
                 <td className="num">{moneda(v.valorEmpresa)}</td>
                 <td className="num">{moneda(v.anticipo)}</td>

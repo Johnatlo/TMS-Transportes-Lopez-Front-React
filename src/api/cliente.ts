@@ -126,6 +126,10 @@ export interface FilaConsecutivo {
   remesaId: number;
   /** Remision de la remesa en el Cuadro pagos. */
   remision?: string | null;
+  /** Link (Drive) de la remision escaneada. */
+  remisionUrl?: string | null;
+  /** Link (Drive) de la factura. */
+  facturaUrl?: string | null;
   orden: number;
   fechaPlanillada: string;
   placa: string | null;
@@ -708,6 +712,10 @@ export interface FilaCuadro {
   manifiesto: string | null;
   remesa: string | null;
   remision: string | null;
+  /** Link (Drive) de la remision escaneada. */
+  remisionUrl?: string | null;
+  /** Link (Drive) de la factura. */
+  facturaUrl?: string | null;
   pesoKg: number | null;
   tipoFlete: "KILO" | "FIJO";
   tarifaKilo: number | null;
@@ -818,6 +826,10 @@ export interface AnticipoBomba {
   manifiesto: string | null;
   /** Remision del viaje en el Cuadro pagos. */
   remision?: string | null;
+  /** Link (Drive) de la remision escaneada. */
+  remisionUrl?: string | null;
+  /** Link (Drive) de la factura. */
+  facturaUrl?: string | null;
   efectivo: number;
   combustible: number;
   valor: number;
@@ -1015,6 +1027,9 @@ export interface AbonoSocio {
     empresa: string | null;
     manifiesto: string | null;
     remesa: string | null;
+    remision?: string | null;
+    remisionUrl?: string | null;
+    facturaUrl?: string | null;
     fecha: string | null;
   }>;
 }
@@ -1106,8 +1121,8 @@ export const apiCuadro = {
   revisar: (id: number, quien: "CONTABILIDAD" | "GERENCIA" | "RENTABILIDAD", revisado: boolean) =>
     post<DetalleCuadro>(`/cuadro/${id}/revision`, { quien, revisado }),
   /** Asigna una factura (numero y fecha) a varios viajes. */
-  facturar: (ids: number[], facturaNumero: string, facturaFecha: string, facturaVence = "") =>
-    post<{ actualizados: number }>("/cuadro/facturar", { ids, facturaNumero, facturaFecha, facturaVence }),
+  facturar: (ids: number[], facturaNumero: string, facturaFecha: string, facturaVence = "", facturaUrl = "") =>
+    post<{ actualizados: number }>("/cuadro/facturar", { ids, facturaNumero, facturaFecha, facturaVence, facturaUrl }),
   /** Agrega una nota al viaje. */
   agregarNota: (id: number, texto: string) => post<DetalleCuadro>(`/cuadro/${id}/notas`, { texto }),
   /** Borra una nota. */
@@ -1313,7 +1328,7 @@ export interface RetencionCliente {
 /** Un viaje en la liquidacion a un dueno (la foto que guarda el backend). */
 export type FilaLiquidacionDueno = Pick<
   FilaRentabilidad,
-  | "id" | "fecha" | "placa" | "empresa" | "remision" | "manifiesto" | "facturaNumero" | "facturaFecha" | "valorEmpresa"
+  | "id" | "fecha" | "placa" | "empresa" | "remision" | "remisionUrl" | "facturaUrl" | "manifiesto" | "facturaNumero" | "facturaFecha" | "valorEmpresa"
   | "retencion" | "reteIca" | "anticipoRenta" | "bancaria" | "supertransporte" | "comision" | "tLopez" | "descargue"
   | "poliza" | "anticipo" | "fechaPagoEmpresa"
 > & {
@@ -1352,6 +1367,10 @@ export interface FilaRentabilidad {
   tercero: string | null;
   empresa: string;
   remision: string | null;
+  /** Link (Drive) de la remision escaneada. */
+  remisionUrl?: string | null;
+  /** Link (Drive) de la factura. */
+  facturaUrl?: string | null;
   manifiesto: string | null;
   facturaNumero: string | null;
   facturaFecha: string | null;
@@ -1497,6 +1516,10 @@ export interface FacturaCartera {
     placa: string;
     manifiesto: string | null;
     remision: string | null;
+  /** Link (Drive) de la remision escaneada. */
+  remisionUrl?: string | null;
+  /** Link (Drive) de la factura. */
+  facturaUrl?: string | null;
     valorFlete: number | null;
     dueno: GrupoDueno;
   }[];
@@ -1776,6 +1799,11 @@ export interface ViajePerfil {
   fecha: string;
   empresa: string;
   manifiesto: string | null;
+  remision?: string | null;
+  /** Link (Drive) de la remision escaneada. */
+  remisionUrl?: string | null;
+  /** Link (Drive) de la factura. */
+  facturaUrl?: string | null;
   conductor: string | null;
   ruta: string | null;
 }
@@ -2168,6 +2196,10 @@ export interface ViajeProducidoNomina {
   fecha: string;
   placa: string;
   manifiesto: string | null;
+  remision?: string | null;
+  /** Links (Drive) de la remision y de la factura. */
+  remisionUrl?: string | null;
+  facturaUrl?: string | null;
   cliente: string;
   concepto: string | null;
   pesoKg: number | null;
@@ -2239,6 +2271,10 @@ export interface ViajeUtilidad {
   vehiculoId: number;
   fecha: string;
   manifiesto: string | null;
+  /** Link (Drive) de la remision escaneada. */
+  remisionUrl?: string | null;
+  /** Link (Drive) de la factura. */
+  facturaUrl?: string | null;
   cliente: string;
   flete: number;
   retencion: number;
@@ -2330,6 +2366,10 @@ export interface ViajeTerceroUtilidad {
   tercero: string | null;
   cliente: string;
   manifiesto: string | null;
+  /** Link (Drive) de la remision escaneada. */
+  remisionUrl?: string | null;
+  /** Link (Drive) de la factura. */
+  facturaUrl?: string | null;
   /** Remision del viaje en el Cuadro pagos. */
   remision?: string | null;
   flete: number;

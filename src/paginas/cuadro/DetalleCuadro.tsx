@@ -27,9 +27,9 @@ import type { TramoCombustible } from "./tanqueos";
 
 /** Campos del formulario: todo como texto, igual que los inputs. */
 const CAMPOS = [
-  "fecha", "placa", "empresa", "conductor", "rutaManual", "manifiesto", "remision", "pesoKg", "fechaDescargue",
+  "fecha", "placa", "empresa", "conductor", "rutaManual", "manifiesto", "remision", "remisionUrl", "pesoKg", "fechaDescargue",
   "pesoFacturadoKg", "notaFactura",
-  "tipoFlete", "tarifaKilo", "valorFijo", "fleteAdicional", "anticipoEmpresa", "anticipoEmpresaFechaPago", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "fechaPagoSaldo",
+  "tipoFlete", "tarifaKilo", "valorFijo", "fleteAdicional", "anticipoEmpresa", "anticipoEmpresaFechaPago", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "facturaUrl", "fechaPagoSaldo",
 ] as const;
 type Campo = (typeof CAMPOS)[number];
 type Formulario = Record<Campo, string>;
@@ -101,11 +101,27 @@ export default function DetalleCuadro({
     alCerrar();
   };
 
-  const campo = (c: Campo, etiqueta: string, tipo: "text" | "number" | "date" = "text", props: Record<string, unknown> = {}) =>
+  const campo = (c: Campo, etiqueta: string, tipo: "text" | "number" | "date" | "url" = "text", props: Record<string, unknown> = {}) =>
     f && (
       <div>
         <label>{etiqueta}</label>
         <input type={tipo} value={f[c]} onChange={(e) => setF({ ...f, [c]: e.target.value })} {...props} />
+      </div>
+    );
+
+  /** Link (Drive) de la remision o de la factura, con un boton para abrir el que ya esta guardado. */
+  const campoLink = (c: "remisionUrl" | "facturaUrl", nombre: string) =>
+    f && (
+      <div>
+        <label>
+          Link de la {nombre} (Drive){" "}
+          {d?.[c] && (
+            <a href={d[c]!} target="_blank" rel="noreferrer">
+              Abrir
+            </a>
+          )}
+        </label>
+        <input type="url" value={f[c]} maxLength={500} placeholder="https://drive.google.com/..." onChange={(e) => setF({ ...f, [c]: e.target.value })} />
       </div>
     );
 
@@ -217,6 +233,7 @@ export default function DetalleCuadro({
               )}
               {campo("manifiesto", "Manifiesto", "text", { disabled: !!d.viajeId })}
               {campo("remision", "Remision")}
+              {campoLink("remisionUrl", "remision")}
               {campo("pesoKg", "Peso real (kg)", "number", { min: 0 })}
               {campo("fechaDescargue", "Fecha de descargue", "date")}
             </div>
@@ -298,6 +315,7 @@ export default function DetalleCuadro({
               {campo("facturaFecha", "Fecha de factura", "date")}
               {campo("facturaVence", "Fecha pago cliente (vence)", "date")}
               {campo("facturaFechaPago", "Fecha pago factura", "date")}
+              {campoLink("facturaUrl", "factura")}
             </div>
             <div className="dato-sec">
               Queda "Facturado" con consecutivo y fecha de factura. La fecha pago cliente es cuando vence: si pasa sin

@@ -22,6 +22,8 @@ import DetalleCuadro from "../cuadro/DetalleCuadro";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import ImportarCartera from "./ImportarCartera";
 import AnticiposEmpresas from "./AnticiposEmpresas";
+import LinksViaje from "../../componentes/LinksViaje";
+import ListaMotivos from "../../componentes/ListaMotivos";
 
 /** Duenos del filtro (los socios y los terceros), con su nombre en pantalla. */
 const NOMBRE_DUENO: Record<GrupoDueno, string> = {
@@ -113,11 +115,7 @@ const COLUMNAS: Columna<FacturaCartera>[] = [
       f.alerta ? (
         <>
           <Pastilla tono={f.alerta.nivel === "urgente" ? "error" : "aviso"}>{f.alerta.nivel === "urgente" ? "Cobrar" : "Atencion"}</Pastilla>
-          {f.alerta.motivos.map((m) => (
-            <span key={m} className="dato-sec">
-              {m}
-            </span>
-          ))}
+          <ListaMotivos motivos={f.alerta.motivos} tono={f.alerta.nivel === "urgente" ? "error" : "aviso"} />
         </>
       ) : (
         <Pastilla tono="ok">Al dia</Pastilla>
@@ -355,7 +353,9 @@ export default function Cartera() {
                     <td>{fechaCorta(f.fecha)}</td>
                     <td>{f.placa}</td>
                     <td>{f.empresa}</td>
-                    <td className="codigo">{f.manifiesto ?? f.remision ?? "-"}</td>
+                    <td className="codigo">
+                      {f.manifiesto ?? f.remision ?? "-"} <LinksViaje remisionUrl={f.remisionUrl} facturaUrl={f.facturaUrl} />
+                    </td>
                     <td>{f.facturaNumero ? `${f.facturaNumero} (sin fecha)` : "Sin numero"}</td>
                   </tr>
                 ))}
@@ -561,7 +561,9 @@ function DetalleFactura({
                     <td>{v.placa}</td>
                     <td>{NOMBRE_DUENO[v.dueno]}</td>
                     <td className="codigo">{v.manifiesto ?? "-"}</td>
-                    <td className="codigo">{v.remision ?? "-"}</td>
+                    <td className="codigo">
+                      {v.remision ?? "-"} <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} />
+                    </td>
                     <td style={{ textAlign: "right" }}>{v.valorFlete === null ? <span className="texto-vencido">Sin flete</span> : moneda(v.valorFlete)}</td>
                   </tr>
                 ))}

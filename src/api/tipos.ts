@@ -274,6 +274,9 @@ export interface Viaje {
   cumplidoPorNombre?: string | null;
   /** Remisiones del viaje en el Cuadro pagos, separadas por coma (para buscar por ellas). */
   remisiones?: string | null;
+  /** Links (Drive) de las remisiones y facturas del viaje en el Cuadro pagos, separados por espacio. */
+  remisionUrls?: string | null;
+  facturaUrls?: string | null;
   /** Solo en el historial, para manifiestos vigentes sin cumplir. */
   plazoCumplido?: PlazoCumplido;
 }

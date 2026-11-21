@@ -164,6 +164,8 @@ export function FacturarVarios({ filas, alCerrar, alTerminar }: { filas: FilaCua
   const [numero, setNumero] = useState("");
   const [fecha, setFecha] = useState(hoyColombia());
   const [vence, setVence] = useState("");
+  /** Link (Drive) de la factura: queda en todos los viajes marcados. */
+  const [link, setLink] = useState("");
   const [marcados, setMarcados] = useState<Set<number>>(new Set());
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +184,7 @@ export function FacturarVarios({ filas, alCerrar, alTerminar }: { filas: FilaCua
     setEnviando(true);
     setError(null);
     try {
-      await apiCuadro.facturar([...marcados], numero, fecha, vence);
+      await apiCuadro.facturar([...marcados], numero, fecha, vence, link.trim());
       alTerminar();
       alCerrar();
     } catch (exc) {
@@ -235,6 +237,10 @@ export function FacturarVarios({ filas, alCerrar, alTerminar }: { filas: FilaCua
         <div>
           <label>Fecha pago cliente (vence)</label>
           <input type="date" value={vence} onChange={(e) => setVence(e.target.value)} />
+        </div>
+        <div>
+          <label>Link de la factura (Drive, opcional)</label>
+          <input type="url" value={link} maxLength={500} placeholder="https://drive.google.com/..." onChange={(e) => setLink(e.target.value)} />
         </div>
       </div>
       <div className="lista-facturar">

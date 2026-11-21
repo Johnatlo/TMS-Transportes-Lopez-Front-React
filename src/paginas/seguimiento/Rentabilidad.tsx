@@ -27,6 +27,7 @@ import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import { numeroONulo } from "./liquidacionTerceros";
 import { descargarRentabilidad, leerMatrices } from "./excelRentabilidad";
 import LiquidarDueno from "./LiquidarDueno";
+import LinksViaje from "../../componentes/LinksViaje";
 
 /** Orden de las pestanas (los grupos que no esten aqui van al final). */
 const ORDEN_GRUPOS = ["TERCEROS", "CELSO", "MAURICIO", "MILLER", "SOCIEDAD", "JTY-221", "SWK-973", "XGJ-197"];
@@ -130,6 +131,7 @@ const columnasInicio = (terceros: boolean): Columna<FilaRentabilidad>[] => [
       <>
         <span>{f.remision ?? f.manifiesto ?? "-"}</span>
         {f.facturaNumero && <span className="dato-sec">Fact. {f.facturaNumero}</span>}
+        <LinksViaje remisionUrl={f.remisionUrl} facturaUrl={f.facturaUrl} />
       </>
     ),
   },

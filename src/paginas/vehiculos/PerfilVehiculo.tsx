@@ -17,6 +17,7 @@ import { CamionFrente, VisorMantenimiento } from "./VisorCamion";
 import { esquemaCamion, estadoParte, GRUPOS, nombreCorto, tipoDe } from "./esquemaCamion";
 import type { GrupoParte, Parte } from "./esquemaCamion";
 import { estadoVencimiento } from "./Vehiculos";
+import LinksViaje from "../../componentes/LinksViaje";
 
 const TEXTO_ESTADO = {
   ok: "Sin novedad en el ultimo preoperacional",
@@ -275,7 +276,9 @@ export default function PerfilVehiculo() {
               <tr key={x.id}>
                 <td>{fechaCorta(x.fecha)}</td>
                 <td>{x.empresa}</td>
-                <td className="codigo">{x.manifiesto ?? "-"}</td>
+                <td className="codigo">
+                  {x.manifiesto ?? x.remision ?? "-"} <LinksViaje remisionUrl={x.remisionUrl} facturaUrl={x.facturaUrl} />
+                </td>
                 <td>{x.conductor ?? "-"}</td>
               </tr>
             ))}

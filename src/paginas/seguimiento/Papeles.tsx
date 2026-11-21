@@ -15,6 +15,8 @@ import type { Columna, PestanaTabla } from "../../componentes/TablaDatos";
 import { usarShell } from "../../componentes/Shell";
 import DetalleCuadro from "../cuadro/DetalleCuadro";
 import { ETIQUETA_PAPELES, fechaCorta, hoyColombia, pasosPapeles } from "../cuadro/estadosCuadro";
+import LinksViaje from "../../componentes/LinksViaje";
+import ListaMotivos from "../../componentes/ListaMotivos";
 
 /** Dias desde el descargue (null si no hay fecha o aun no llega). */
 const diasDescargue = (f: FilaSeguimiento) => {
@@ -65,13 +67,7 @@ const COLUMNAS: Columna<FilaSeguimiento>[] = [
           <Pastilla tono={a.nivel === "urgente" ? "error" : "aviso"}>
             {f.alertaPapeles?.comunicarse ? "Comunicarse con el conductor" : a.nivel === "urgente" ? "Urgente" : "Atencion"}
           </Pastilla>
-          {motivosDe(f)
-            .filter((m) => !m.startsWith("Comunicarse"))
-            .map((m) => (
-              <span key={m} className="dato-sec">
-                {m}
-              </span>
-            ))}
+          <ListaMotivos motivos={motivosDe(f).filter((m) => !m.startsWith("Comunicarse"))} tono={a.nivel === "urgente" ? "error" : "aviso"} />
         </>
       );
     },
@@ -88,6 +84,7 @@ const COLUMNAS: Columna<FilaSeguimiento>[] = [
         ) : (
           f.remision && <span className="dato-sec codigo">Remision {f.remision}</span>
         )}
+        <LinksViaje remisionUrl={f.remisionUrl} facturaUrl={f.facturaUrl} />
       </>
     ),
   },

@@ -13,6 +13,7 @@ import type { TonoPastilla } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
 import { NOMBRE_CATEGORIA } from "../gastos/nombres";
 import { DESCUENTOS, porCategoria } from "./pasos";
+import LinksViaje from "../../componentes/LinksViaje";
 
 type FilaVehiculo = UtilidadesMes["vehiculos"][number];
 
@@ -180,7 +181,9 @@ export default function DesgloseVehiculo({ v }: { v: FilaVehiculo }) {
                   {v.detalleViajes.map((t) => (
                     <tr key={t.id}>
                       <td>{fechaCorta(t.fecha)}</td>
-                      <td>{t.manifiesto ?? "-"}</td>
+                      <td>
+                        {t.manifiesto ?? "-"} <LinksViaje remisionUrl={t.remisionUrl} facturaUrl={t.facturaUrl} />
+                      </td>
                       <td>{t.cliente}</td>
                       <td className="num">{moneda(t.flete)}</td>
                       <td className="num">{moneda(DESCUENTOS.reduce((s, [k]) => s + t[k], 0))}</td>

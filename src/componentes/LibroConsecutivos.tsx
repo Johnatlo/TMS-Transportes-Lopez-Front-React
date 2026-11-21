@@ -10,6 +10,7 @@ import TablaDatos, { Pastilla } from "./TablaDatos";
 import type { Columna, PestanaTabla } from "./TablaDatos";
 import { ERRORES, ETIQUETA_ESTADO, tonoEstado } from "../paginas/estadosViaje";
 import { descargarConsecutivos } from "./excelConsecutivos";
+import LinksViaje from "./LinksViaje";
 
 /** Estado de la fila: el del viaje, salvo que la remesa ya este cumplida. */
 function estadoFila(f: FilaConsecutivo): string {
@@ -97,6 +98,7 @@ const COLUMNAS: Columna<FilaConsecutivo>[] = [
       <>
         <span className="codigo">{f.consecutivoRemesa ?? "-"}</span>
         {f.remision && <span className="dato-sec">Rem. {f.remision}</span>}
+        <LinksViaje remisionUrl={f.remisionUrl} facturaUrl={f.facturaUrl} />
       </>
     ),
   },

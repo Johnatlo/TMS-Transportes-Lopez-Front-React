@@ -33,6 +33,7 @@ import FormularioGasto from "./FormularioGasto";
 import Recurrentes from "./Recurrentes";
 import ReporteFacturas from "./ReporteFacturas";
 import { NOMBRE_CATEGORIA, NOMBRE_EMPRESA, NOMBRE_TIPO_FACTURA, nombreMes } from "./nombres";
+import MiniTabla from "../../componentes/MiniTabla";
 
 /** A quien va el gasto, en pocas palabras ("CELSO + 13 vehiculos"). */
 function resumenDestino(g: Gasto): string {
@@ -298,8 +299,18 @@ function DetalleGasto({
         {g.anulado && <span className="dato-sec">Anulado: no se reparte.</span>}
       </div>
       {g.causaciones.length > 1 && (
-        <div className="dato-sec" style={{ marginTop: "0.4rem" }}>
-          Causaciones: {g.causaciones.map((c) => `${fechaCorta(c.fecha)} ${moneda(c.monto)}`).join(" · ")}
+        <div style={{ marginTop: "0.5rem", maxWidth: 360 }}>
+          <MiniTabla
+            filas={g.causaciones}
+            clave={(c, i) => `${c.fecha}-${i}`}
+            nombre="causaciones"
+            visibles={4}
+            columnas={[
+              { titulo: "Se causa", celda: (c) => fechaCorta(c.fecha) },
+              { titulo: "Valor", num: true, celda: (c) => moneda(c.monto) },
+            ]}
+            total={[`${g.causaciones.length} cuotas`, moneda(g.causaciones.reduce((s, c) => s + c.monto, 0))]}
+          />
         </div>
       )}
       {soloLectura && (

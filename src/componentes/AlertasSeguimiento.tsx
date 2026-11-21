@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import type { AlertaSeguimiento, ResumenAlertasSeguimiento, TipoAlerta } from "../api/cliente";
 import Modal from "./Modal";
 import { Pastilla } from "./TablaDatos";
+import ListaMotivos from "./ListaMotivos";
 
 const GRUPOS: Array<{ tipo: TipoAlerta; etiqueta: string; vacio: string }> = [
   { tipo: "CONTINGENCIA", etiqueta: "Manifiestos de contingencia", vacio: "Ningun manifiesto de contingencia pendiente." },
@@ -89,11 +90,7 @@ export default function AlertasSeguimiento({
             >
               <Pastilla tono={a.nivel === "urgente" ? "error" : "aviso"}>{a.nivel === "urgente" ? "Urgente" : "Atencion"}</Pastilla>{" "}
               <strong>{a.titulo}</strong>
-              {a.motivos.map((m) => (
-                <span key={m} className="dato-sec" style={{ display: "block" }}>
-                  {m}
-                </span>
-              ))}
+              <ListaMotivos motivos={a.motivos} tono={a.nivel === "urgente" ? "error" : "aviso"} />
             </li>
           ))}
         </ul>

@@ -20,6 +20,7 @@ import { placaConGuion } from "./facturacion";
 import { estadoTramo, sugerenciasTramo } from "./tanqueos";
 import type { EstadoCruce, Tanqueo } from "./tanqueos";
 import { descargarAnticipos } from "./excelAnticipos";
+import LinksViaje from "../../componentes/LinksViaje";
 
 /** Lo que la vista necesita de la pantalla de anticipos. */
 interface PropsVistaTramos {
@@ -116,6 +117,7 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
           <>
             <span>{t.empresa ?? "-"}</span>
             <span className="dato-sec">{[t.remision && `Rem. ${t.remision}`, t.manifiesto ? `Manif. ${t.manifiesto}` : "Sin manifiesto"].filter(Boolean).join(" · ")}</span>
+            <LinksViaje remisionUrl={t.remisionUrl} facturaUrl={t.facturaUrl} />
           </>
         ) : (
           <span className="texto-vencido">Sin viaje (vuelta pendiente)</span>

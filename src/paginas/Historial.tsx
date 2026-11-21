@@ -18,6 +18,7 @@ import TablaDatos, { Pastilla } from "../componentes/TablaDatos";
 import type { Columna, PestanaTabla } from "../componentes/TablaDatos";
 import type { Viaje } from "../api/tipos";
 import { ERRORES, ETIQUETA_ESTADO, tonoEstado } from "./estadosViaje";
+import LinksViaje from "../componentes/LinksViaje";
 
 /**
  * Pantalla RNDC. Dos vistas: "Consecutivos manifiestos y remesas" (la de
@@ -120,6 +121,7 @@ export default function Historial() {
             <span className="dato-sec">Radicado {v.numeroManifiestoRndc}</span>
           )}
           {v.remisiones && <span className="dato-sec">Rem. {v.remisiones}</span>}
+          <LinksViaje remisionUrl={v.remisionUrls} facturaUrl={v.facturaUrls} />
           {v.radicadoAnulacion && (
             <span className="dato-sec">
               Anulado: radicado {v.radicadoAnulacion}

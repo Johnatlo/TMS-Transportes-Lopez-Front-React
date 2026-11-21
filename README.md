@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_711 funciones, componentes, métodos y rutas en 109 archivos._
+_716 funciones, componentes, métodos y rutas en 112 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (229)
@@ -196,8 +196,11 @@ _711 funciones, componentes, métodos y rutas en 109 archivos._
 - [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (30)
 - [`src/componentes/Indicador.tsx`](#srccomponentesindicadortsx) (1)
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
+- [`src/componentes/LinksViaje.tsx`](#srccomponenteslinksviajetsx) (3)
+- [`src/componentes/ListaMotivos.tsx`](#srccomponenteslistamotivostsx) (1)
 - [`src/componentes/MapaSeguimiento.tsx`](#srccomponentesmapaseguimientotsx) (2)
 - [`src/componentes/MenuMas.tsx`](#srccomponentesmenumastsx) (1)
+- [`src/componentes/MiniTabla.tsx`](#srccomponentesminitablatsx) (1)
 - [`src/componentes/Modal.tsx`](#srccomponentesmodaltsx) (1)
 - [`src/componentes/PantallaAcceso.tsx`](#srccomponentespantallaaccesotsx) (1)
 - [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (3)
@@ -637,7 +640,7 @@ _711 funciones, componentes, métodos y rutas en 109 archivos._
   - **`apiCuadro.revisar(id, quien, revisado)`** · _método_
     Marca o quita la revision de contabilidad, de gerencia o de Rentabilidad.
 
-  - **`apiCuadro.facturar(ids, facturaNumero, facturaFecha, facturaVence)`** · _método_
+  - **`apiCuadro.facturar(ids, facturaNumero, facturaFecha, facturaVence, facturaUrl)`** · _método_
     Asigna una factura (numero y fecha) a varios viajes.
 
   - **`apiCuadro.agregarNota(id, texto)`** · _método_
@@ -1466,6 +1469,31 @@ _711 funciones, componentes, métodos y rutas en 109 archivos._
   manifiesto y el FOPAT van solo en la primera. Clic en una fila abre todo lo
   que se registro al despachar.
 
+### `src/componentes/LinksViaje.tsx`
+
+> Botones para abrir la remision y la factura de un viaje (links al Drive
+> dedicado que se llena a diario; se escriben en el viaje del Cuadro pagos).
+> Van en todas las listas de viajes. Sin link, el boton se ve apagado y dice
+> que aun no se ha subido. El sistema no guarda los archivos: solo el link.
+
+- **`lista(l)`** · _función_
+  Separa los links (vienen uno o varios separados por espacio).
+
+- **`Boton({...})`** · _componente React_
+  Un boton por link (o uno apagado si no hay).
+
+- **`LinksViaje({...})`** · _componente React_
+  Botones "Remision" y "Factura" de un viaje.
+
+### `src/componentes/ListaMotivos.tsx`
+
+> Motivos de una alerta (por que un viaje o una factura pide atencion), uno
+> por renglon con su vineta y aire entre ellos, en el color del texto (no en
+> gris pequeno), para que se lean de un vistazo.
+
+- **`ListaMotivos({...})`** · _componente React_
+  Lista de motivos; `tono` colorea la vineta como la pastilla de la alerta.
+
 ### `src/componentes/MapaSeguimiento.tsx`
 
 > Mapa (Leaflet) con la posicion ESTIMADA de los vehiculos en camino: en
@@ -1494,6 +1522,18 @@ _711 funciones, componentes, métodos y rutas en 109 archivos._
 
 - **`MenuMas({...})`** · _componente React_
   Boton con su lista desplegable.
+
+### `src/componentes/MiniTabla.tsx`
+
+> Lista de varios registros dentro de una celda o un detalle (los viajes de
+> un abono, las causaciones de un gasto...) como una tabla pequena: con
+> encabezado, una linea por registro separada de la siguiente, letra legible
+> y los valores alineados a la derecha. Reemplaza los renglones grises pegados
+> ("Remesa 123 · SZP-339 · CLIENTE (16/10/2026) · 2.200.000") que eran dificiles
+> de leer. Con muchos registros muestra los primeros y un boton para ver todos.
+
+- **`MiniTabla({...})`** · _componente React_
+  Tabla pequena; con mas de `visibles` filas muestra esas y "Ver los N ..." para desplegar el resto.
 
 ### `src/componentes/Modal.tsx`
 

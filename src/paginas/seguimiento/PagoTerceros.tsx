@@ -26,6 +26,7 @@ import { liquidarTercero, numeroONulo } from "./liquidacionTerceros";
 import ImportarNombresTerceros from "./ImportarNombresTerceros";
 import { armarLiquidacion } from "./liquidacionPago";
 import { descargarLiquidacion } from "./excelLiquidacion";
+import LinksViaje from "../../componentes/LinksViaje";
 
 const ESTADO: Record<EstadoPagoTercero, { etiqueta: string; tono: TonoPastilla }> = {
   FALTA_PACTAR: { etiqueta: "Falta pactar", tono: "error" },
@@ -75,6 +76,7 @@ const COLUMNAS: Columna<ViajeTercero>[] = [
       <>
         <span className="codigo">{v.manifiesto ?? "-"}</span>
         {v.remision && <span className="dato-sec">Rem. {v.remision}</span>}
+        <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} />
       </>
     ),
   },
@@ -101,11 +103,21 @@ const COLUMNAS: Columna<ViajeTercero>[] = [
     valor: (v) => v.efectivo + v.combustible + v.transferencia,
     celda: (v) => (
       <>
-        {moneda(v.efectivo + v.combustible + v.transferencia)}
-        <span className="dato-sec">
-          Efect. {moneda(v.efectivo)} · Comb. {moneda(v.combustible)}
-          {v.transferencia > 0 && ` · Transf. ${moneda(v.transferencia)}`}
+        <strong>{v.efectivo + v.combustible + v.transferencia ? moneda(v.efectivo + v.combustible + v.transferencia) : "-"}</strong>
+        {v.efectivo + v.combustible + v.transferencia > 0 && (
+        <span className="partes-valor">
+          <span>Efectivo</span>
+          <span>{moneda(v.efectivo)}</span>
+          <span>Combustible</span>
+          <span>{moneda(v.combustible)}</span>
+          {v.transferencia > 0 && (
+            <>
+              <span>Transferencia</span>
+              <span>{moneda(v.transferencia)}</span>
+            </>
+          )}
         </span>
+        )}
       </>
     ),
   },
@@ -353,10 +365,15 @@ function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCer
     }
   }
 
-  const fila = (etiqueta: string, valor: number, resta = true) => (
-    <tr>
+  const fila = (etiqueta: string, valor: number, resta = true, clase = "") => (
+    <tr className={clase || (valor ? "" : "desglose-cero")}>
       <td>{etiqueta}</td>
-      <td style={{ textAlign: "right" }}>{valor ? `${resta ? "- " : ""}${moneda(valor)}` : "-"}</td>
+      <td className="num">{valor ? `${resta ? "- " : ""}${moneda(valor)}` : "-"}</td>
+    </tr>
+  );
+  const titulo = (texto: string) => (
+    <tr className="desglose-titulo">
+      <th colSpan={2}>{texto}</th>
     </tr>
   );
 
@@ -460,29 +477,35 @@ function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCer
         Descontarle las retenciones al pagarle (retefuente, ICA, FOPAT y poliza)
       </label>
 
-      <table className="tabla" style={{ maxWidth: 460, marginTop: "0.6rem" }}>
-        <tbody>
+      {/* Desglose por colores, como en Rentabilidad: lo pactado, los anticipos, las retenciones (cada una en su renglon) y lo que se paga. */}
+      <table className="tabla tabla-compacta desglose" style={{ maxWidth: 520, marginTop: "0.6rem" }}>
+        <tbody className="desglose-tercero">
+          {titulo("Lo pactado con el tercero")}
           <tr>
             <td>Valor del viaje del tercero</td>
-            <td style={{ textAlign: "right" }}>{l.valorTercero === null ? "Sin pactar" : moneda(l.valorTercero)}</td>
+            <td className="num">{l.valorTercero === null ? "Sin pactar" : moneda(l.valorTercero)}</td>
           </tr>
+        </tbody>
+        <tbody className="desglose-anticipo">
+          {titulo("Anticipos (se descuentan)")}
           {fila("Efectivo (bomba)", viaje.efectivo)}
           {fila("Combustible (bomba)", viaje.combustible)}
           {fila("Transferencia", numeroONulo(f.anticipoTransferencia) ?? 0)}
-          <tr className={f.aplicaDescuentosTercero ? "" : "dato-sec"}>
-            <td>
-              Retenciones{f.aplicaDescuentosTercero ? "" : " (no se descuentan)"}
-              <div className="dato-sec">
-                Retef. 1 % {moneda(l.retefuente)} · ICA {icaPorMil} por mil {moneda(l.ica)} · FOPAT 0,1 % {moneda(l.fopat)} · poliza {moneda(l.poliza)}
-              </div>
-            </td>
-            <td style={{ textAlign: "right" }}>{l.totalDescuentos ? `${f.aplicaDescuentosTercero ? "- " : ""}${moneda(l.totalDescuentos)}` : "-"}</td>
-          </tr>
-          <tr>
+        </tbody>
+        <tbody className="desglose-empresa">
+          {titulo(f.aplicaDescuentosTercero ? "Retenciones (se descuentan)" : "Retenciones (no se descuentan)")}
+          {fila("Retefuente 1 %", l.retefuente, f.aplicaDescuentosTercero)}
+          {fila(`ICA ${icaPorMil} por mil`, l.ica, f.aplicaDescuentosTercero)}
+          {fila("FOPAT 0,1 %", l.fopat, f.aplicaDescuentosTercero)}
+          {fila("Poliza", l.poliza, f.aplicaDescuentosTercero)}
+          {fila("Total retenciones", l.totalDescuentos, f.aplicaDescuentosTercero, "desglose-total")}
+        </tbody>
+        <tbody className="desglose-resultado">
+          <tr className="desglose-total">
             <td>
               <strong>Valor a pagar</strong>
             </td>
-            <td style={{ textAlign: "right" }}>
+            <td className="num">
               <strong className={l.valorAPagar !== null && l.valorAPagar < 0 ? "texto-vencido" : ""}>
                 {l.valorAPagar === null ? "-" : moneda(l.valorAPagar)}
               </strong>
@@ -644,7 +667,9 @@ function LiquidarTercero({
                 <td>{fechaCorta(v.fecha)}</td>
                 <td>{v.placa}</td>
                 <td>{v.empresa}</td>
-                <td>{v.remision ?? v.manifiesto ?? "-"}</td>
+                <td>
+                  {v.remision ?? v.manifiesto ?? "-"} <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} />
+                </td>
                 <td>{v.cuentaCobroTercero ?? "-"}</td>
                 <td className="num">{toneladas(v.pesoKg)}</td>
                 <td className="num">{v.valorTercero === null ? "Sin pactar" : moneda(v.valorTercero)}</td>
