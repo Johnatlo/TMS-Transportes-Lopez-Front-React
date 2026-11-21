@@ -6,16 +6,18 @@
  * - ADMINISTRATIVO: todo menos el reparto de los socios y el cambio de roles.
  * - MYC: Transportes M&C. Todo menos la rentabilidad de los terceros (la
  *   filtra el servidor) y el cambio de roles.
+ * - Conductores (cuentas de viaje y liquidacion): solo TOTAL y MYC (M&C solo
+ *   los vehiculos de su flota).
  */
 import type { Rol } from "./api/tipos";
 
 /** Areas del aplicativo. */
-export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "REPARTO" | "GASTOS" | "ADMINISTRACION" | "USUARIOS";
+export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "REPARTO" | "GASTOS" | "CONDUCTORES" | "ADMINISTRACION" | "USUARIOS";
 
 const AREAS: Record<Rol, Area[]> = {
-  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "GASTOS", "ADMINISTRACION", "USUARIOS"],
+  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "GASTOS", "CONDUCTORES", "ADMINISTRACION", "USUARIOS"],
   ADMINISTRATIVO: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "GASTOS", "ADMINISTRACION"],
-  MYC: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "GASTOS", "ADMINISTRACION"],
+  MYC: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "GASTOS", "CONDUCTORES", "ADMINISTRACION"],
 };
 
 /** Nombre del rol para mostrarlo. */
@@ -42,6 +44,7 @@ const AREA_RUTA: Array<[string, Area]> = [
   ["/gastos", "GASTOS"],
   ["/nomina", "GASTOS"],
   ["/utilidades", "LIQUIDACION"],
+  ["/cuentas-vehiculos", "CONDUCTORES"],
   ["/preoperacional", "RNDC"],
   ["/vehiculos", "RNDC"],
   ["/plantillas", "RNDC"],

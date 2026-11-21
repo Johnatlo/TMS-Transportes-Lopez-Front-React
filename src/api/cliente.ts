@@ -2170,6 +2170,22 @@ export interface LineaNomina {
   gastoId: number | null;
   /** Por que no se puede aprobar. */
   problema: string | null;
+  /** Conductor: saldo de sus cuentas de viaje del mes del producido (positivo: se le debe) y viajes sin cuenta. */
+  cuentasViaje?: { saldo: number; sinCuenta: number } | null;
+  /** Prestamos con saldo o con descuento en el mes del producido. */
+  prestamos?: PrestamoLinea[];
+  /** Neto + saldo de las cuentas de viaje - prestamos descontados. */
+  totalAPagar?: number;
+}
+
+/** Un prestamo de un empleado visto desde su nomina o su liquidacion: saldo y lo que se descuenta el mes. */
+export interface PrestamoLinea {
+  prestamoId: number;
+  fecha: string;
+  monto: number;
+  saldo: number;
+  cuota: number | null;
+  descuento: number | null;
 }
 
 /** Una nomina (periodo) con sus lineas. */
@@ -2205,12 +2221,16 @@ export interface ViajeProducidoNomina {
   pesoKg: number | null;
   tipoFlete: string;
   tarifaKilo: number | null;
-  /** null = sin tarifa (no suma). */
+  /** Producido conductor (lo que suma al producido de la nomina); null = sin valor (no suma). */
   flete: number | null;
+  /** Flete de la empresa (referencia). */
+  fleteEmpresa?: number | null;
 }
 
 /** Empleados, parametros y nominas. */
 export const apiNomina = {
+  /** Lo que se descuenta de un prestamo en un mes (vacio = no se descuenta); el mismo dato que en Conductores. */
+  descontarPrestamo: (prestamoId: number, mes: string, valor: number | null) => put<{ ok: boolean }>(`/nomina/prestamos/${prestamoId}/descuento`, { mes, valor }),
   /** Parametros por ano. */
   parametros: () => get<ParametrosNomina[]>("/nomina/parametros"),
   /** Crea o cambia los parametros de un ano (solo rol total). */
@@ -2501,4 +2521,167 @@ export const apiUtilidades = {
     post<CuentaSocio[]>(`/utilidades/socios/${socioId}/pagos`, d),
   /** Borra un pago registrado por error. */
   borrarPago: (id: number) => del<CuentaSocio[]>(`/utilidades/pagos/${id}`),
+};
+
+// ---------- Conductores: fletes conductor, cuentas de viaje, prestamos y liquidacion ----------
+
+/** Conceptos de la hoja de cuenta de viaje. */
+export type ConceptoCuenta = "acpm" | "peajes" | "cargue" | "descargue" | "parqueo" | "llantas" | "lavada" | "comision" | "engrase" | "propinas" | "arreglos" | "accesorios" | "otros";
+
+/** Una tarifa de la empresa con su flete conductor vigente y su historial. */
+export interface TarifaConductor {
+  tarifaFleteId: number;
+  nombre: string;
+  razonSocial: string | null;
+  valorEmpresa: number | null;
+  tipoEmpresa: string;
+  vigente: { id: number; valor: number; tipo: "TON" | "FIJO"; desde: string } | null;
+  historial: Array<{ id: number; valor: number; tipo: "TON" | "FIJO"; desde: string }>;
+  viajesRecientes: number;
+}
+
+/** La cuenta de viaje guardada de un viaje. */
+export type CuentaViaje = Record<ConceptoCuenta, number> & {
+  id: number;
+  /** El ACPM se escribio a mano (si no, es el combustible de los anticipos). */
+  acpmManual: boolean;
+  otrosConcepto: string | null;
+  nota: string | null;
+  total: number;
+  /** Gastos - lo recibido: positivo, se le debe al conductor; negativo, el conductor debe. */
+  saldo: number;
+  gastoId: number | null;
+};
+
+/** Un viaje de la flota propia con su producido conductor y su cuenta de viaje. */
+export interface ViajeConductor {
+  cuadroViajeId: number;
+  fecha: string;
+  placa: string;
+  vehiculoId: number | null;
+  empresaVehiculo: EmpresaGasto;
+  cliente: string;
+  manifiesto: string | null;
+  remision: string | null;
+  remisionUrl: string | null;
+  facturaUrl: string | null;
+  pesoKg: number | null;
+  tarifaFleteId: number | null;
+  tarifa: string | null;
+  empleadoId: number | null;
+  conductor: string | null;
+  producido: number | null;
+  producidoMatriz: number | null;
+  producidoManual: boolean;
+  efectivo: number;
+  combustible: number;
+  transferencia: number;
+  recibido: number;
+  cuenta: CuentaViaje | null;
+}
+
+/** Un prestamo con su saldo y lo descontado por mes. */
+export interface PrestamoEmpleado {
+  id: number;
+  empleadoId: number;
+  empleado: string;
+  empresa: EmpresaGasto;
+  fecha: string;
+  monto: number;
+  cuota: number | null;
+  nota: string | null;
+  descuentos: Array<{ mes: string; valor: number }>;
+  saldo: number;
+}
+
+/** Lo de la nomina de un conductor que entra a su liquidacion. */
+export interface NominaLiquidacion {
+  nominaId: number;
+  estado: string;
+  desde: string;
+  hasta: string;
+  devengado: number;
+  deducciones: number;
+  neto: number;
+  basico: number;
+  auxilio: number;
+  salud: number;
+  pension: number;
+}
+
+/** La liquidacion de un conductor en un mes. */
+export interface LiquidacionConductor {
+  empleadoId: number;
+  nombre: string;
+  empresa: EmpresaGasto;
+  pctSalarial: number;
+  pctViaticos: number;
+  viajes: number;
+  producido: number;
+  viajesSinProducido: number;
+  salarial: number;
+  viaticos: number;
+  saldoCuentas: number;
+  viajesSinCuenta: number;
+  prestamos: number;
+  netoNomina: number | null;
+  totalAPagar: number | null;
+  nomina: NominaLiquidacion | null;
+  prestamosDetalle: PrestamoLinea[];
+  pagada: { fechaPago: string; total: number } | null;
+  /** true: es la foto guardada al pagar (no se recalcula). */
+  congelada?: boolean;
+}
+
+/** Liquidacion de todos los conductores de un mes. */
+export interface LiquidacionMes {
+  mes: string;
+  conductores: LiquidacionConductor[];
+  viajesSinConductor: number;
+}
+
+/** Modulo Conductores. */
+export const apiConductores = {
+  /** Matriz de fletes conductor. */
+  fletes: () => get<TarifaConductor[]>("/conductores/fletes"),
+  /** Guarda el flete conductor de una tarifa desde una fecha. */
+  guardarFlete: (d: { tarifaFleteId: number; valor: number; tipo: "TON" | "FIJO"; desde: string }) => put<TarifaConductor[]>("/conductores/fletes", d),
+  /** Borra un valor de la matriz. */
+  borrarFlete: (id: number) => del<TarifaConductor[]>(`/conductores/fletes/${id}`),
+  /** Importa la matriz del Excel; sin aplicar solo dice cuales encontro. */
+  importarFletes: (filas: Array<{ nombre: string; valor: number; tipo: string; desde: string | null }>, aplicar: boolean) =>
+    post<{
+      encontradas: Array<{ nombre: string; tarifa: string; valor: number; tipo: string; desde: string }>;
+      sinTarifa: string[];
+      /** Las que cambiarian meses cerrados, con nomina aprobada o liquidacion pagada (no se importan). */
+      protegidas?: Array<{ nombre: string; motivo: string }>;
+    }>("/conductores/fletes/importar", {
+      filas,
+      aplicar,
+    }),
+  /** Viajes de la flota propia de un mes con su producido conductor y su cuenta. */
+  viajes: (mes: string) => get<ViajeConductor[]>(`/conductores/viajes?mes=${mes}`),
+  /** Guarda la cuenta de viaje de un viaje. */
+  guardarCuenta: (cuadroViajeId: number, mes: string, d: Record<string, unknown>) =>
+    put<ViajeConductor | null>(`/conductores/viajes/${cuadroViajeId}/cuenta`, { ...d, mes }),
+  /** Borra la cuenta de viaje (y su gasto del libro). */
+  borrarCuenta: (cuadroViajeId: number) => del<{ ok: boolean }>(`/conductores/viajes/${cuadroViajeId}/cuenta`),
+  /** Prestamos. */
+  prestamos: () => get<PrestamoEmpleado[]>("/conductores/prestamos"),
+  /** Registra un prestamo. */
+  crearPrestamo: (d: { empleadoId: number; fecha: string; monto: number; cuota: number | null; nota: string | null }) =>
+    post<PrestamoEmpleado[]>("/conductores/prestamos", d),
+  /** Cambia un prestamo. */
+  actualizarPrestamo: (id: number, d: { empleadoId: number; fecha: string; monto: number; cuota: number | null; nota: string | null }) =>
+    put<PrestamoEmpleado[]>(`/conductores/prestamos/${id}`, d),
+  /** Borra un prestamo. */
+  borrarPrestamo: (id: number) => del<PrestamoEmpleado[]>(`/conductores/prestamos/${id}`),
+  /** Lo que se descuenta de un prestamo en un mes (vacio = no se descuenta). */
+  descontar: (id: number, mes: string, valor: number | null) => put<PrestamoEmpleado[]>(`/conductores/prestamos/${id}/descuento`, { mes, valor }),
+  /** Liquidacion de cada conductor en un mes. */
+  liquidacion: (mes: string) => get<LiquidacionMes>(`/conductores/liquidacion?mes=${mes}`),
+  /** Marca pagada la liquidacion de un conductor. */
+  pagar: (empleadoId: number, mes: string, fechaPago: string) => put<LiquidacionMes>(`/conductores/liquidacion/${empleadoId}/${mes}/pago`, { fechaPago }),
+  /** Quita la marca de pagada. */
+  quitarPago: (empleadoId: number, mes: string) => del<LiquidacionMes>(`/conductores/liquidacion/${empleadoId}/${mes}/pago`),
 };

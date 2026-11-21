@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_716 funciones, componentes, métodos y rutas en 112 archivos._
+_757 funciones, componentes, métodos y rutas en 118 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (229)
+- [`src/api/cliente.ts`](#srcapiclientets) (246)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -193,7 +193,7 @@ _716 funciones, componentes, métodos y rutas en 112 archivos._
 - [`src/componentes/EstadoSincronizacion.tsx`](#srccomponentesestadosincronizaciontsx) (3)
 - [`src/componentes/FiltrosTabla.tsx`](#srccomponentesfiltrostablatsx) (2)
 - [`src/componentes/FormularioGenerico.tsx`](#srccomponentesformulariogenericotsx) (2)
-- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (30)
+- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (31)
 - [`src/componentes/Indicador.tsx`](#srccomponentesindicadortsx) (1)
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
 - [`src/componentes/LinksViaje.tsx`](#srccomponenteslinksviajetsx) (3)
@@ -224,6 +224,12 @@ _716 funciones, componentes, métodos y rutas en 112 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
+- [`src/paginas/conductores/CuentasViaje.tsx`](#srcpaginasconductorescuentasviajetsx) (4)
+- [`src/paginas/conductores/FletesConductor.tsx`](#srcpaginasconductoresfletesconductortsx) (4)
+- [`src/paginas/conductores/Liquidacion.tsx`](#srcpaginasconductoresliquidaciontsx) (4)
+- [`src/paginas/conductores/LiquidacionConductores.tsx`](#srcpaginasconductoresliquidacionconductorestsx) (1)
+- [`src/paginas/conductores/Prestamos.tsx`](#srcpaginasconductoresprestamostsx) (2)
+- [`src/paginas/conductores/calculos.ts`](#srcpaginasconductorescalculosts) (8)
 - [`src/paginas/cuadro/CampoValorAnticipo.tsx`](#srcpaginascuadrocampovaloranticipotsx) (1)
 - [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (10)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (4)
@@ -937,6 +943,9 @@ _716 funciones, componentes, métodos y rutas en 112 archivos._
 - **`apiNomina`** · _módulo_
   Empleados, parametros y nominas.
 
+  - **`apiNomina.descontarPrestamo(prestamoId, mes, valor)`** · _método_
+    Lo que se descuenta de un prestamo en un mes (vacio = no se descuenta); el mismo dato que en Conductores.
+
   - **`apiNomina.parametros()`** · _método_
     Parametros por ano.
 
@@ -1044,6 +1053,54 @@ _716 funciones, componentes, métodos y rutas en 112 archivos._
 
   - **`apiUtilidades.borrarPago(id)`** · _método_
     Borra un pago registrado por error.
+
+- **`apiConductores`** · _módulo_
+  Modulo Conductores.
+
+  - **`apiConductores.fletes()`** · _método_
+    Matriz de fletes conductor.
+
+  - **`apiConductores.guardarFlete(d)`** · _método_
+    Guarda el flete conductor de una tarifa desde una fecha.
+
+  - **`apiConductores.borrarFlete(id)`** · _método_
+    Borra un valor de la matriz.
+
+  - **`apiConductores.importarFletes(filas, aplicar)`** · _método_
+    Importa la matriz del Excel; sin aplicar solo dice cuales encontro.
+
+  - **`apiConductores.viajes(mes)`** · _método_
+    Viajes de la flota propia de un mes con su producido conductor y su cuenta.
+
+  - **`apiConductores.guardarCuenta(cuadroViajeId, mes, d)`** · _método_
+    Guarda la cuenta de viaje de un viaje.
+
+  - **`apiConductores.borrarCuenta(cuadroViajeId)`** · _método_
+    Borra la cuenta de viaje (y su gasto del libro).
+
+  - **`apiConductores.prestamos()`** · _método_
+    Prestamos.
+
+  - **`apiConductores.crearPrestamo(d)`** · _método_
+    Registra un prestamo.
+
+  - **`apiConductores.actualizarPrestamo(id, d)`** · _método_
+    Cambia un prestamo.
+
+  - **`apiConductores.borrarPrestamo(id)`** · _método_
+    Borra un prestamo.
+
+  - **`apiConductores.descontar(id, mes, valor)`** · _método_
+    Lo que se descuenta de un prestamo en un mes (vacio = no se descuenta).
+
+  - **`apiConductores.liquidacion(mes)`** · _método_
+    Liquidacion de cada conductor en un mes.
+
+  - **`apiConductores.pagar(empleadoId, mes, fechaPago)`** · _método_
+    Marca pagada la liquidacion de un conductor.
+
+  - **`apiConductores.quitarPago(empleadoId, mes)`** · _método_
+    Quita la marca de pagada.
 
 ### `src/componentes/AccesoGps.tsx`
 
@@ -1425,6 +1482,9 @@ _716 funciones, componentes, métodos y rutas en 112 archivos._
 
 - **`IconoTorta()`** · _componente React_
   Icono del menu Utilidades (torta: reparto entre socios).
+
+- **`IconoCuentaViaje()`** · _componente React_
+  Icono del menu Cuentas vehiculos (hoja de cuenta de viaje con su total).
 
 - **`IconoVolante()`** · _componente React_
   Icono del menu Vehiculos (volante).
@@ -2126,6 +2186,141 @@ _716 funciones, componentes, métodos y rutas en 112 archivos._
 - **`ClaveTemporal({...})`** · _componente React_
   Muestra UNA vez la clave temporal cuando no se envio por correo (con el
   motivo, si lo hay), para dictarla o copiarla.
+
+### `src/paginas/conductores/CuentasViaje.tsx`
+
+> Cuentas de viaje, por vehiculo: arriba cada carro de la flota propia con
+> sus viajes del mes, lo gastado y el saldo con el conductor (clic para ver
+> solo ese carro); abajo sus viajes con su producido conductor y su hoja de
+> gastos (la que llena el conductor). El rol total filtra por empresa (Lopez
+> o M&C) para las cuentas de cada dueno; M&C solo ve sus carros. Clic en un viaje
+> abre la hoja: lo que recibio (anticipo de la bomba y transferencia, del
+> Cuadro pagos) y lo que gasto por concepto. El ACPM sale del combustible del
+> anticipo y se puede corregir. Al guardar, los gastos quedan en el libro de
+> gastos (gasto del vehiculo) y en Utilidades el viaje cuenta lo gastado.
+
+- **`Saldo({...})`** · _componente React_
+  Saldo con su color: verde si se le debe al conductor, rojo si el debe.
+
+- **`porVehiculo(viajes)`** · _función_
+  Resumen de cada vehiculo (por placa), en orden de placa.
+
+- **`CuentasViaje({...})`** · _componente React_
+  Cuentas de viaje del mes, por vehiculo.
+
+- **`FormularioCuenta({...})`** · _componente React_
+  La hoja de cuenta de un viaje.
+
+### `src/paginas/conductores/FletesConductor.tsx`
+
+> Matriz de fletes conductor: para cada tarifa de la matriz de fletes de la
+> empresa (la misma con que se cobra el viaje), lo que vale el viaje para el
+> conductor (por tonelada o fijo), con su vigencia. Con ella se calcula el
+> producido conductor de cada viaje. Solo se ve en este modulo. Se puede
+> cargar del Excel (hoja con el bloque "FLETES CONDUCTOR", como TABLAS de
+> SWK-973): cada nombre se busca entre las tarifas de la empresa.
+
+- **`valorTexto(valor, tipo)`** · _función_
+  Valor de la matriz como texto ("4.200.000 fijo" / "100.000 por ton").
+
+- **`FletesConductor()`** · _componente React_
+  La matriz de fletes conductor.
+
+- **`VentanaFlete({...})`** · _componente React_
+  El flete conductor de una tarifa: historial y nuevo valor desde una fecha.
+
+- **`VentanaImportar({...})`** · _componente React_
+  Importar la matriz del Excel: lee el bloque "FLETES CONDUCTOR", muestra cuales encontro y las guarda.
+
+### `src/paginas/conductores/Liquidacion.tsx`
+
+> Liquidacion de los conductores del mes: por conductor, el producido
+> conductor de sus viajes (sobre el que van el 4 % salarial y el 5 % de
+> viaticos), lo de la nomina que cubre ese producido (sueldo, % y aportes),
+> el saldo de sus cuentas de viaje y lo que se descuenta de sus prestamos.
+> Total a pagar = neto de la nomina + saldo de las cuentas - prestamos. Lo
+> descontado de los prestamos es el mismo dato que en la nomina. Una
+> liquidacion pagada se muestra como se pago (la foto guardada), y sus cuentas
+> de viaje y prestamos de ese mes no cambian sin quitar antes la marca.
+
+- **`Liquidacion({...})`** · _componente React_
+  Liquidacion de todos los conductores de un mes.
+
+- **`Renglon({...})`** · _componente React_
+  Un renglon del desglose.
+
+- **`DetalleLiquidacion({...})`** · _componente React_
+  El desglose de la liquidacion de un conductor, sus prestamos y sus viajes.
+
+- **`FilaPrestamo({...})`** · _componente React_
+  Un prestamo: saldo y cuanto se descuenta este mes (vacio = no se descuenta).
+
+### `src/paginas/conductores/LiquidacionConductores.tsx`
+
+> Pantalla Cuentas vehiculos: las cuentas de viaje de cada vehiculo de la
+> flota propia y la liquidacion de sus conductores, mes a mes. Solo el rol
+> total y M&C (M&C solo ve sus vehiculos; el rol total filtra por empresa,
+> Lopez o M&C, para llevar las cuentas de cada dueno).
+>
+> - Cuentas de viaje: por vehiculo, la hoja de gastos de cada viaje (ver
+>   CuentasViaje.tsx).
+> - Liquidacion: por conductor, el producido conductor de sus viajes, lo de
+>   la nomina, el saldo de sus cuentas de viaje y los prestamos; el total a
+>   pagar y la marca de pagado (ver Liquidacion.tsx).
+> - Prestamos: monto, saldo y lo descontado cada mes (ver Prestamos.tsx).
+> - Fletes conductor: la matriz con que se calcula el producido conductor
+>   (ver FletesConductor.tsx). Solo se ve aqui.
+
+- **`LiquidacionConductores()`** · _componente React_
+  Pantalla del modulo.
+
+### `src/paginas/conductores/Prestamos.tsx`
+
+> Prestamos a los empleados: el monto, la cuota sugerida y lo descontado mes
+> a mes, con su saldo. Cada mes se decide si se descuenta y cuanto (aqui, en
+> la liquidacion del conductor o en la nomina: es el mismo dato).
+
+- **`Prestamos({...})`** · _componente React_
+  Lista de prestamos.
+
+- **`FormularioPrestamo({...})`** · _componente React_
+  Registrar o cambiar un prestamo.
+
+### `src/paginas/conductores/calculos.ts`
+
+> Calculos del modulo Conductores en el navegador (los mismos de
+> backend/src/calculoConductores.ts, para ver el resultado mientras se
+> escribe) y lectura de la matriz de fletes conductor desde el Excel.
+
+- **`c2(v)`** · _función_
+  Centavos exactos.
+
+- **`numero(v)`** · _función_
+  Numero de un campo (vacio = 0).
+
+- **`totalesCuenta(valores, combustible, recibido)`** · _función_
+  Totales de la cuenta de viaje mientras se escribe: el ACPM vacio es el
+  combustible de los anticipos; el saldo es gastos - lo recibido (positivo:
+  se le debe al conductor; negativo: el conductor debe).
+
+- **`textoSaldo(saldo)`** · _función_
+  Texto del saldo con el conductor.
+
+- **`texto(v)`** · _función_
+  Texto de una celda para comparar encabezados.
+
+- **`fecha(v)`** · _función_
+  Fecha de una celda (Date o "AAAA-MM-DD") en "AAAA-MM-DD", o null.
+
+- **`leerMatrizConductor(filas)`** · _función_
+  La matriz de fletes conductor de una hoja (filas x columnas, como el Excel
+  "SWK-973" hoja TABLAS): busca el titulo "FLETES CONDUCTOR", toma los
+  encabezados de la fila de abajo (EMPRESA, VALOR, FECHA VIGENCIA, TIPO) y lee
+  las filas hasta la primera sin nombre. Sin ese titulo, busca directamente
+  una fila con EMPRESA y VALOR. Devuelve [] si no la encuentra.
+
+- **`mesAnterior(mes)`** · _función_
+  "2026-11" -> "2026-10".
 
 ### `src/paginas/cuadro/CampoValorAnticipo.tsx`
 
@@ -2885,7 +3080,12 @@ _716 funciones, componentes, métodos y rutas en 112 archivos._
 > empleados y parametros por ano.
 >
 > - Liquidacion: se crea con desde y hasta y trae a los empleados activos.
->   El producido de cada conductor sale de los viajes del sistema (flete de
+>   El producido de cada conductor es su PRODUCIDO CONDUCTOR (matriz de fletes
+>   conductor del modulo Cuentas vehiculos; no el flete de la empresa).
+>   Cada conductor muestra tambien el saldo de sus cuentas de viaje, sus
+>   prestamos (lo que se descuenta el mes, editable: es el mismo dato que en
+>   la liquidacion) y el total a pagar.
+>   El producido sale de los viajes del sistema (de
 >   los vehiculos que manejaba en el mes del producido; por defecto el mes en
 >   que empieza la nomina) y se puede ver viaje por viaje. Si hace falta se
 >   escribe a mano y se puede volver al del sistema. En cada linea tambien
@@ -3754,6 +3954,8 @@ _716 funciones, componentes, métodos y rutas en 112 archivos._
 > - ADMINISTRATIVO: todo menos el reparto de los socios y el cambio de roles.
 > - MYC: Transportes M&C. Todo menos la rentabilidad de los terceros (la
 >   filtra el servidor) y el cambio de roles.
+> - Conductores (cuentas de viaje y liquidacion): solo TOTAL y MYC (M&C solo
+>   los vehiculos de su flota).
 
 - **`puede(rol, area)`** · _función_
   El rol (o un rol desconocido, como administrativo) tiene esa area.

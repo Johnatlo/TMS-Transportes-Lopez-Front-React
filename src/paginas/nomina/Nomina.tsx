@@ -3,7 +3,12 @@
  * empleados y parametros por ano.
  *
  * - Liquidacion: se crea con desde y hasta y trae a los empleados activos.
- *   El producido de cada conductor sale de los viajes del sistema (flete de
+ *   El producido de cada conductor es su PRODUCIDO CONDUCTOR (matriz de fletes
+ *   conductor del modulo Cuentas vehiculos; no el flete de la empresa).
+ *   Cada conductor muestra tambien el saldo de sus cuentas de viaje, sus
+ *   prestamos (lo que se descuenta el mes, editable: es el mismo dato que en
+ *   la liquidacion) y el total a pagar.
+ *   El producido sale de los viajes del sistema (de
  *   los vehiculos que manejaba en el mes del producido; por defecto el mes en
  *   que empieza la nomina) y se puede ver viaje por viaje. Si hace falta se
  *   escribe a mano y se puede volver al del sistema. En cada linea tambien
@@ -192,10 +197,11 @@ function Liquidaciones({
                   <th>Empleado</th>
                   <th>Vehiculo</th>
                   <th className="num">Dias</th>
-                  <th className="num">Producido</th>
+                  <th className="num">Producido conductor</th>
                   <th className="num">Salarial</th>
                   <th className="num">Viaticos</th>
-                  <th className="num">Neto a pagar</th>
+                  <th className="num">Neto nomina</th>
+                  <th className="num">Total a pagar</th>
                   <th className="num">Costo empleador</th>
                   <th className="num">Ajuste</th>
                   <th className="num">Costo total</th>
@@ -214,6 +220,7 @@ function Liquidaciones({
                     alAbrir={() => setAbierta(abierta === l.id ? null : l.id)}
                     alCambiar={(d) => accion(() => apiNomina.actualizarLinea(n.id, l.id, d))}
                     alVerViajes={() => setViajes(l)}
+                    alDescontar={(prestamoId, valor) => accion(() => apiNomina.descontarPrestamo(prestamoId, n.producidoDesde.slice(0, 7), valor))}
                     alQuitar={() => window.confirm(`¿Quitar a ${l.nombre} de esta nomina?`) && accion(() => apiNomina.quitarLinea(n.id, l.id))}
                   />
                 ))}
@@ -288,6 +295,7 @@ function FilaLinea({
   alAbrir,
   alCambiar,
   alVerViajes,
+  alDescontar,
   alQuitar,
 }: {
   l: LineaNomina;
@@ -300,6 +308,8 @@ function FilaLinea({
   alCambiar: (d: Partial<Pick<LineaNomina, "dias" | "producido" | "producidoManual" | "vehiculoId" | "ajuste" | "notaAjuste">>) => void;
   /** Abre los viajes que suman el producido. */
   alVerViajes: () => void;
+  /** Lo que se descuenta de un prestamo en el mes del producido (null = no se descuenta). */
+  alDescontar: (prestamoId: number, valor: number | null) => void;
   alQuitar: () => void;
 }) {
   const borrador = n.estado === "BORRADOR" && editable;
@@ -374,7 +384,7 @@ function FilaLinea({
                 )}
               </span>
               {l.porVehiculo.some((v) => v.sinTarifa > 0) && (
-                <span className="texto-vencido producido-origen">{l.porVehiculo.reduce((s, v) => s + v.sinTarifa, 0)} sin tarifa (no suman)</span>
+                <span className="texto-vencido producido-origen">{l.porVehiculo.reduce((s, v) => s + v.sinTarifa, 0)} sin producido conductor (no suman)</span>
               )}
             </>
           ) : (
@@ -383,8 +393,26 @@ function FilaLinea({
         </td>
         <td className="num">{moneda(c.salarial)}</td>
         <td className="num">{c.viaticos ? moneda(c.viaticos) : "-"}</td>
+        <td className="num">{moneda(c.neto)}</td>
         <td className="num">
-          <strong>{moneda(c.neto)}</strong>
+          <strong className={(l.totalAPagar ?? c.neto) < 0 ? "texto-vencido" : undefined}>{moneda(l.totalAPagar ?? c.neto)}</strong>
+          {((l.cuentasViaje && l.cuentasViaje.saldo !== 0) || (l.prestamos ?? []).some((p) => p.descuento)) && (
+            <span className="partes-valor">
+              {l.cuentasViaje && l.cuentasViaje.saldo !== 0 && (
+                <>
+                  <span>Cuentas de viaje</span>
+                  <span>{l.cuentasViaje.saldo > 0 ? `+ ${moneda(l.cuentasViaje.saldo)}` : `- ${moneda(-l.cuentasViaje.saldo)}`}</span>
+                </>
+              )}
+              {(l.prestamos ?? []).some((p) => p.descuento) && (
+                <>
+                  <span>Prestamos</span>
+                  <span>- {moneda((l.prestamos ?? []).reduce((s2, p) => s2 + (p.descuento ?? 0), 0))}</span>
+                </>
+              )}
+            </span>
+          )}
+          {l.cuentasViaje && l.cuentasViaje.sinCuenta > 0 && <span className="texto-aviso">{l.cuentasViaje.sinCuenta} viaje(s) sin cuenta</span>}
         </td>
         <td className="num">{moneda(c.costoEmpleador)}</td>
         <td className="num">
@@ -413,7 +441,7 @@ function FilaLinea({
       </tr>
       {abierta && (
         <tr>
-          <td colSpan={11}>
+          <td colSpan={12}>
             <div className="detalle-nomina">
               <div>
                 <h5>Empleado</h5>
@@ -444,6 +472,36 @@ function FilaLinea({
                 <Concepto t="Costo del empleador" v={c.costoEmpleador} fuerte />
                 <Concepto t="Costo total" v={c.costoTotal} fuerte />
               </div>
+              {(conductor || (l.prestamos ?? []).length > 0) && (
+                <div>
+                  <h5>Lo que se le paga</h5>
+                  <Concepto t="Neto de la nomina" v={c.neto} />
+                  {l.cuentasViaje && <Concepto t={l.cuentasViaje.saldo >= 0 ? "Cuentas de viaje (se le debe)" : "Cuentas de viaje (debe)"} v={l.cuentasViaje.saldo} />}
+                  {(l.prestamos ?? []).map((p) => (
+                    <div key={p.prestamoId} className="concepto-nomina">
+                      <span>
+                        Prestamo {fechaCorta(p.fecha)} (saldo {moneda(p.saldo)})
+                      </span>
+                      <input
+                        key={`${p.prestamoId}-${p.descuento}`}
+                        type="number"
+                        min={0}
+                        disabled={!editable}
+                        style={{ width: "7rem", textAlign: "right" }}
+                        defaultValue={p.descuento ?? ""}
+                        placeholder={p.cuota ? `Cuota ${p.cuota}` : "No se descuenta"}
+                        aria-label="Descontar este mes"
+                        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim() === "" ? null : Number(e.target.value);
+                          if (v !== p.descuento) alDescontar(p.prestamoId, v);
+                        }}
+                      />
+                    </div>
+                  ))}
+                  <Concepto t="Total a pagar" v={l.totalAPagar ?? c.neto} fuerte />
+                </div>
+              )}
             </div>
           </td>
         </tr>
@@ -519,7 +577,8 @@ function VentanaViajes({ n, l, alCerrar }: { n: TipoNomina; l: LineaNomina; alCe
     >
       <div className="section-desc" style={{ marginBottom: "0.5rem" }}>
         Viajes del {fechaCorta(n.producidoDesde)} al {fechaCorta(n.producidoHasta)} de los vehiculos que manejaba (segun su asignacion en Empleados). El
-        producido es la suma del flete de cada viaje; los que no tienen tarifa no suman hasta que se les ponga en el Cuadro pagos.
+        producido es la suma del producido conductor de cada viaje (matriz de fletes conductor, o el escrito en su cuenta de viaje en Liquidacion
+        conductores); los que no tienen valor no suman hasta que se les ponga.
         {l.porVehiculo.length > 1 && " Al aprobar, su costo se reparte entre los vehiculos segun lo que produjo en cada uno."}
       </div>
       {error && <div className="alert danger">{error}</div>}
@@ -541,7 +600,8 @@ function VentanaViajes({ n, l, alCerrar }: { n: TipoNomina; l: LineaNomina; alCe
                   <th>Cliente</th>
                   <th className="num">Peso</th>
                   <th className="num">Tarifa</th>
-                  <th className="num">Flete</th>
+                  <th className="num">Flete empresa</th>
+                  <th className="num">Producido conductor</th>
                 </tr>
               </thead>
               <tbody>
@@ -557,7 +617,8 @@ function VentanaViajes({ n, l, alCerrar }: { n: TipoNomina; l: LineaNomina; alCe
                     </td>
                     <td className="num">{v.pesoKg !== null ? v.pesoKg.toLocaleString("es-CO") : "-"}</td>
                     <td className="num">{v.tipoFlete === "FIJO" ? "Fijo" : v.tarifaKilo !== null ? v.tarifaKilo.toLocaleString("es-CO") : "-"}</td>
-                    <td className="num">{v.flete !== null ? moneda(v.flete) : <span className="texto-vencido">Sin tarifa</span>}</td>
+                    <td className="num dato-sec">{v.fleteEmpresa != null ? moneda(v.fleteEmpresa) : "-"}</td>
+                    <td className="num">{v.flete !== null ? moneda(v.flete) : <span className="texto-vencido">Sin valor</span>}</td>
                   </tr>
                 ))}
               </tbody>

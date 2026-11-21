@@ -18,6 +18,7 @@ import {
   IconoCampana,
   IconoClientes,
   IconoConductores,
+  IconoCuentaViaje,
   IconoConfiguracion,
   IconoContraer,
   IconoDocumento,
@@ -92,6 +93,7 @@ const GRUPOS: Array<{ id: string; titulo: string | null; secciones: Seccion[] }>
       { ruta: "/gastos", etiqueta: "Gastos", icono: <IconoRecibo /> },
       { ruta: "/nomina", etiqueta: "Nomina", icono: <IconoNomina /> },
       { ruta: "/utilidades", etiqueta: "Utilidades", icono: <IconoTorta /> },
+      { ruta: "/cuentas-vehiculos", etiqueta: "Cuentas vehiculos", icono: <IconoCuentaViaje /> },
     ],
   },
   {
