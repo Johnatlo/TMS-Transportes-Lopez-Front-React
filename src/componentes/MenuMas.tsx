@@ -4,6 +4,7 @@
  * opcion lo cierran.
  */
 import { useEffect, useRef, useState } from "react";
+import { esClicEnBarra } from "./clicFuera";
 import type { ReactNode } from "react";
 
 /** Una opcion del menu. */
@@ -37,7 +38,8 @@ export default function MenuMas({
 
   useEffect(() => {
     if (!abierto) return;
-    const fuera = (e: MouseEvent) => caja.current && !caja.current.contains(e.target as Node) && setAbierto(false);
+    // Un clic en la barra de desplazamiento no lo cierra (quien no tiene rueda la arrastra para bajar).
+    const fuera = (e: MouseEvent) => caja.current && !caja.current.contains(e.target as Node) && !esClicEnBarra(e) && setAbierto(false);
     const tecla = (e: KeyboardEvent) => e.key === "Escape" && setAbierto(false);
     document.addEventListener("mousedown", fuera);
     window.addEventListener("keydown", tecla);

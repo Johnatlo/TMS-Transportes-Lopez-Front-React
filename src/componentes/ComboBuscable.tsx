@@ -1,6 +1,11 @@
 /**
  * Lista desplegable con buscador, para elegir entre muchos registros
- * (vehiculos, conductores, terceros, plantillas, municipios).
+ * (vehiculos, conductores, terceros, plantillas, municipios, viajes).
+ *
+ * La lista abierta NO se cierra con un clic afuera (ni en la barra de
+ * desplazamiento): quien no tiene rueda en el raton arrastra la barra para
+ * llegar a las opciones de abajo. Se cierra al elegir, con Escape, con
+ * "Cerrar lista" o al pasar a otro campo.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,6 +29,7 @@ export default function ComboBuscable<T, K extends number | string = number>({
   alCambiar,
   obtenerId,
   obtenerEtiqueta,
+  obtenerBusqueda,
   placeholder = "Escribe para buscar...",
   disabled = false,
 }: {
@@ -32,6 +38,8 @@ export default function ComboBuscable<T, K extends number | string = number>({
   alCambiar: (id: K | null) => void;
   obtenerId: (item: T) => K;
   obtenerEtiqueta: (item: T) => string;
+  /** Texto extra que tambien encuentra la opcion (por ejemplo la remision de un viaje), aunque no se muestre. */
+  obtenerBusqueda?: (item: T) => string | null | undefined;
   placeholder?: string;
   disabled?: boolean;
 }) {
@@ -51,20 +59,35 @@ export default function ComboBuscable<T, K extends number | string = number>({
   const filtradas = useMemo(() => {
     const q = texto.trim().toLowerCase();
     if (!q) return opciones;
-    return opciones.filter((o) => obtenerEtiqueta(o).toLowerCase().includes(q));
-  }, [opciones, texto, obtenerEtiqueta]);
+    return opciones.filter((o) => `${obtenerEtiqueta(o)} ${obtenerBusqueda?.(o) ?? ""}`.toLowerCase().includes(q));
+  }, [opciones, texto, obtenerEtiqueta, obtenerBusqueda]);
 
-  // Clic fuera del combo cierra la lista sin perder la seleccion actual.
+  /** Cierra la lista sin perder la seleccion actual. */
+  const cerrar = () => {
+    setAbierto(false);
+    setTexto("");
+  };
+
+  // Se cierra al pasar a otro campo (Tab o clic en otro campo) o con Escape; un clic suelto afuera no la cierra.
   useEffect(() => {
-    function alHacerClicFuera(e: MouseEvent) {
-      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) {
-        setAbierto(false);
-        setTexto("");
-      }
-    }
-    document.addEventListener("mousedown", alHacerClicFuera);
-    return () => document.removeEventListener("mousedown", alHacerClicFuera);
-  }, []);
+    if (!abierto) return;
+    const alEnfocarOtro = (e: FocusEvent) => {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) cerrar();
+    };
+    // Escape cierra solo la lista (se escucha antes que la ventana, que tambien se cierra con Escape):
+    // asi no se pierde lo que ya se escribio en la ventana. Un segundo Escape cierra la ventana.
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      cerrar();
+    };
+    document.addEventListener("focusin", alEnfocarOtro);
+    window.addEventListener("keydown", tecla, true);
+    return () => {
+      document.removeEventListener("focusin", alEnfocarOtro);
+      window.removeEventListener("keydown", tecla, true);
+    };
+  }, [abierto]);
 
   function elegir(item: T) {
     alCambiar(obtenerId(item));
@@ -108,6 +131,17 @@ export default function ComboBuscable<T, K extends number | string = number>({
               {obtenerEtiqueta(item)}
             </div>
           ))}
+          {filtradas.length > 50 && <div className="combo-vacio">Hay {filtradas.length - 50} mas: escribe para filtrar.</div>}
+          <div
+            className="combo-cerrar"
+            role="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              cerrar();
+            }}
+          >
+            Cerrar lista
+          </div>
         </div>
       )}
     </div>

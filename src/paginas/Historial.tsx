@@ -110,6 +110,7 @@ export default function Historial() {
       id: "manifiesto",
       titulo: "Manifiesto",
       valor: (v) => v.consecutivoManifiesto,
+      buscar: (v) => v.remisiones,
       celda: (v) => (
         <>
           <span className="codigo principal">
@@ -118,6 +119,7 @@ export default function Historial() {
           {v.numeroManifiestoRndc && (
             <span className="dato-sec">Radicado {v.numeroManifiestoRndc}</span>
           )}
+          {v.remisiones && <span className="dato-sec">Rem. {v.remisiones}</span>}
           {v.radicadoAnulacion && (
             <span className="dato-sec">
               Anulado: radicado {v.radicadoAnulacion}
@@ -241,7 +243,7 @@ export default function Historial() {
             pestanas={PESTANAS_VIAJES}
             claseTabla="tabla-viajes"
             nombreArchivo="viajes"
-            placeholderBusqueda="Buscar manifiesto, radicado, error..."
+            placeholderBusqueda="Buscar manifiesto, remision, radicado, error..."
             vacio="No hay viajes con estos criterios."
             alClicFila={(v) => setViendo(v.id)}
           />

@@ -55,6 +55,7 @@ const COLUMNAS: Columna<FacturaCartera>[] = [
     id: "factura",
     titulo: "Factura",
     valor: (f) => f.facturaNumero,
+    buscar: (f) => f.viajes.map((v) => `${v.remision ?? ""} ${v.manifiesto ?? ""}`).join(" "),
     celda: (f) => (
       <>
         <span className="codigo principal">{f.facturaNumero}</span>
@@ -304,7 +305,7 @@ export default function Cartera() {
             clave={(f) => `${f.facturaNumero}|${f.empresa}`}
             pestanas={PESTANAS}
             nombreArchivo="cartera"
-            placeholderBusqueda="Buscar factura, cliente, gestion..."
+            placeholderBusqueda="Buscar factura, remision, manifiesto, cliente, gestion..."
             vacio="No hay facturas por cobrar con estos criterios."
             alClicFila={(f) => setAbierta({ numero: f.facturaNumero, empresa: f.empresa })}
             acciones={

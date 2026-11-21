@@ -3,7 +3,9 @@
  * docs/filtros y comportamiento de las tablas ui.mp4: se abre a la derecha,
  * la pagina se pone gris detras, y cada filtro es una lista de seleccion
  * multiple con "chips". Los cambios se aplican con "Filtrar"; "Limpiar"
- * quita todos. Escape o clic afuera la cierran sin aplicar.
+ * quita todos. Escape o "Cerrar" la cierran sin aplicar. Un clic afuera no la
+ * cierra (ni la ventana ni las listas de cada filtro): quien no tiene rueda en
+ * el raton usa la barra de desplazamiento sin perder lo que estaba eligiendo.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -52,7 +54,7 @@ export default function FiltrosTabla({
   const activos = Object.values(borrador).reduce((s, v) => s + (v?.length ? 1 : 0), 0);
 
   return (
-    <div className={`filtros-capa ${cerrando ? "saliendo" : ""}`} onMouseDown={(e) => e.target === e.currentTarget && cerrar()}>
+    <div className={`filtros-capa ${cerrando ? "saliendo" : ""}`}>
       <aside className="filtros-panel" role="dialog" aria-label="Filtros">
         <header className="filtros-cabecera">
           <h3>Filtros</h3>
@@ -111,12 +113,12 @@ function SeleccionMultiple({
   const [buscar, setBuscar] = useState("");
   const caja = useRef<HTMLDivElement>(null);
 
-  // Clic fuera de la lista la cierra.
+  // La lista se cierra al pasar a otro filtro o campo (o con su encabezado); un clic suelto afuera no la cierra.
   useEffect(() => {
     if (!abierta) return;
-    const fuera = (e: MouseEvent) => caja.current && !caja.current.contains(e.target as Node) && setAbierta(false);
-    document.addEventListener("mousedown", fuera);
-    return () => document.removeEventListener("mousedown", fuera);
+    const otroCampo = (e: FocusEvent) => caja.current && !caja.current.contains(e.target as Node) && setAbierta(false);
+    document.addEventListener("focusin", otroCampo);
+    return () => document.removeEventListener("focusin", otroCampo);
   }, [abierta]);
 
   const visibles = useMemo(() => {

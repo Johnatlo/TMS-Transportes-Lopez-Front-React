@@ -70,6 +70,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
     id: "documento",
     titulo: "Manifiesto / remision",
     valor: (f) => f.manifiesto ?? f.remision ?? "",
+    buscar: (f) => f.remision,
     celda: (f) => <span className="codigo">{f.manifiesto ?? f.remision ?? "-"}</span>,
   },
   {
@@ -189,7 +190,7 @@ export default function AnticiposEmpresas({
             clave={(f) => f.id}
             pestanas={PESTANAS}
             nombreArchivo="anticipos-empresas"
-            placeholderBusqueda="Buscar placa, empresa, manifiesto..."
+            placeholderBusqueda="Buscar remision, manifiesto, placa, empresa..."
             vacio="No hay viajes con estos criterios."
             alClicFila={(f) => setEditando(f.id)}
           />

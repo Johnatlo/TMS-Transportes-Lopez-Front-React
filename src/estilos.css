@@ -356,6 +356,19 @@ input:focus, select:focus { outline: 2px solid var(--color-accent); outline-offs
   font-size: 0.82rem;
   color: var(--color-text-muted);
 }
+/* Cerrar la lista sin elegir (la lista no se cierra con un clic afuera). Queda abajo, siempre a la vista. */
+.combo-cerrar {
+  position: sticky;
+  bottom: 0;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8rem;
+  text-align: center;
+  cursor: pointer;
+  color: var(--color-accent);
+  background: var(--color-surface, #fff);
+  border-top: 1px solid var(--color-border);
+}
+.combo-cerrar:hover { text-decoration: underline; }
 
 /* Vista previa de la numeracion en el despacho. */
 .alert.info { background: var(--color-info-bg); color: var(--color-info-text); }

@@ -31,7 +31,7 @@ export default function Empresa({ u, verTerceros }: { u: UtilidadesMes; verTerce
         </>
       ),
     },
-    { id: "cliente", titulo: "Cliente", filtrable: true, valor: (v) => v.cliente, celda: (v) => v.cliente },
+    { id: "cliente", titulo: "Cliente", filtrable: true, valor: (v) => v.cliente, buscar: (v) => `${v.remision ?? ""} ${v.manifiesto ?? ""}`, celda: (v) => v.cliente },
     { id: "flete", titulo: "Flete", alinear: "derecha", valor: (v) => Math.round(v.flete), celda: (v) => moneda(v.flete) },
     { id: "saldoEmpresa", titulo: "Saldo empresa", alinear: "derecha", valor: (v) => Math.round(v.saldoEmpresa), celda: (v) => moneda(v.saldoEmpresa) },
     { id: "saldoTercero", titulo: "Saldo tercero", alinear: "derecha", valor: (v) => Math.round(v.saldoTercero), celda: (v) => moneda(v.saldoTercero) },
@@ -88,7 +88,7 @@ export default function Empresa({ u, verTerceros }: { u: UtilidadesMes; verTerce
               columnas={columnas}
               clave={(v) => v.id}
               nombreArchivo={`rentabilidad-empresa-${u.mes}`}
-              placeholderBusqueda="Buscar placa, tercero o cliente..."
+              placeholderBusqueda="Buscar placa, tercero, cliente, remision o manifiesto..."
               vacio="No hay viajes de terceros en el mes."
             />
           </div>

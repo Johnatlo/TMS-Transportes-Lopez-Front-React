@@ -35,7 +35,7 @@ const COLUMNAS: Columna<Inspeccion>[] = [
   { id: "fecha", titulo: "Fecha", valor: (p) => p.fecha, celda: (p) => fechaCorta(p.fecha) },
   { id: "placa", titulo: "Placa", filtrable: true, valor: (p) => p.placa, celda: (p) => <span className="principal">{p.placa}</span> },
   { id: "conductor", titulo: "Conductor", filtrable: true, valor: (p) => p.conductor, celda: (p) => p.conductor },
-  { id: "manifiesto", titulo: "Manifiesto", valor: (p) => p.manifiesto, celda: (p) => <span className="codigo">{p.manifiesto ?? "-"}</span> },
+  { id: "manifiesto", titulo: "Manifiesto", valor: (p) => p.manifiesto, buscar: (p) => p.remisiones, celda: (p) => <span className="codigo">{p.manifiesto ?? "-"}</span> },
   {
     id: "aprobo",
     titulo: "Aprobo",
@@ -98,7 +98,7 @@ export default function Preoperacional() {
 
   const columnasPendientes: Columna<PreoperacionalPendiente>[] = [
     { id: "fecha", titulo: "Despachado", valor: (v) => v.fecha, celda: (v) => fechaCorta(v.fecha.slice(0, 10)) },
-    { id: "manifiesto", titulo: "Manifiesto", valor: (v) => v.manifiesto, celda: (v) => <span className="codigo">{v.manifiesto ?? "-"}</span> },
+    { id: "manifiesto", titulo: "Manifiesto", valor: (v) => v.manifiesto, buscar: (v) => v.remisiones, celda: (v) => <span className="codigo">{v.manifiesto ?? "-"}</span> },
     { id: "placa", titulo: "Placa", filtrable: true, valor: (v) => v.placa, celda: (v) => <span className="principal">{v.placa ?? "-"}</span> },
     { id: "conductor", titulo: "Conductor", filtrable: true, valor: (v) => v.conductor, celda: (v) => v.conductor ?? "-" },
     {
@@ -168,7 +168,7 @@ export default function Preoperacional() {
             filas={lista}
             columnas={COLUMNAS}
             clave={(p) => p.id}
-            placeholderBusqueda="Buscar placa, conductor, manifiesto..."
+            placeholderBusqueda="Buscar placa, conductor, manifiesto, remision..."
             vacio="Aun no hay inspecciones."
             acciones={acciones}
             alClicFila={(p) => setAbierto({ viajeId: p.viajeId, titulo: `${p.placa} · ${fechaCorta(p.fecha)}`, existente: p })}
@@ -179,7 +179,7 @@ export default function Preoperacional() {
             filas={faltan}
             columnas={columnasPendientes}
             clave={(v) => v.viajeId}
-            placeholderBusqueda="Buscar placa, conductor, manifiesto..."
+            placeholderBusqueda="Buscar placa, conductor, manifiesto, remision..."
             vacio="Todos los viajes de los ultimos 30 dias tienen su inspeccion."
             acciones={acciones}
           />

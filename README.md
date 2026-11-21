@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_710 funciones, componentes, métodos y rutas en 108 archivos._
+_711 funciones, componentes, métodos y rutas en 109 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (229)
@@ -204,6 +204,7 @@ _710 funciones, componentes, métodos y rutas en 108 archivos._
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (4)
 - [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (12)
+- [`src/componentes/clicFuera.ts`](#srccomponentesclicfuerats) (1)
 - [`src/componentes/excelConsecutivos.ts`](#srccomponentesexcelconsecutivosts) (9)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
 - [`src/componentes/excelTabla.ts`](#srccomponentesexceltablats) (5)
@@ -1150,7 +1151,12 @@ _710 funciones, componentes, métodos y rutas en 108 archivos._
 ### `src/componentes/ComboBuscable.tsx`
 
 > Lista desplegable con buscador, para elegir entre muchos registros
-> (vehiculos, conductores, terceros, plantillas, municipios).
+> (vehiculos, conductores, terceros, plantillas, municipios, viajes).
+>
+> La lista abierta NO se cierra con un clic afuera (ni en la barra de
+> desplazamiento): quien no tiene rueda en el raton arrastra la barra para
+> llegar a las opciones de abajo. Se cierra al elegir, con Escape, con
+> "Cerrar lista" o al pasar a otro campo.
 
 - **`ComboBuscable({...})`** · _componente React_
   Select con busqueda: en vez de desplegar la lista completa (placas, nombres
@@ -1298,7 +1304,9 @@ _710 funciones, componentes, métodos y rutas en 108 archivos._
 > docs/filtros y comportamiento de las tablas ui.mp4: se abre a la derecha,
 > la pagina se pone gris detras, y cada filtro es una lista de seleccion
 > multiple con "chips". Los cambios se aplican con "Filtrar"; "Limpiar"
-> quita todos. Escape o clic afuera la cierran sin aplicar.
+> quita todos. Escape o "Cerrar" la cierran sin aplicar. Un clic afuera no la
+> cierra (ni la ventana ni las listas de cada filtro): quien no tiene rueda en
+> el raton usa la barra de desplazamiento sin perder lo que estaba eligiendo.
 
 - **`FiltrosTabla({...})`** · _componente React_
   Ventana de filtros.
@@ -1623,6 +1631,16 @@ _710 funciones, componentes, métodos y rutas en 108 archivos._
 
 - **`IconoExportar()`** · _componente React_
   Icono del boton Exportar.
+
+### `src/componentes/clicFuera.ts`
+
+> Clics que no deben cerrar una lista abierta: los que caen en una barra de
+> desplazamiento (la de la pagina o la de una ventana). Quien no tiene rueda
+> en el raton arrastra esa barra para bajar y ver la lista; si eso la cerrara,
+> no podria llegar a las opciones de abajo.
+
+- **`esClicEnBarra(e)`** · _función_
+  true si el clic cayo en la barra de desplazamiento de la pagina o de un elemento con scroll.
 
 ### `src/componentes/excelConsecutivos.ts`
 

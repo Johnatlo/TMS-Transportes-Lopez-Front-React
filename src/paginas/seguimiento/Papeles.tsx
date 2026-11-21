@@ -208,7 +208,7 @@ export default function Papeles({
           pestanas={PESTANAS}
           fechaMes={(f) => f.fecha}
           nombreArchivo="seguimiento-papeles"
-          placeholderBusqueda="Buscar placa, empresa, conductor, manifiesto..."
+          placeholderBusqueda="Buscar remision, manifiesto, placa, empresa, conductor..."
           vacio="No hay viajes con estos criterios."
           alClicFila={(f) => setRegistrando(f.id)}
         />

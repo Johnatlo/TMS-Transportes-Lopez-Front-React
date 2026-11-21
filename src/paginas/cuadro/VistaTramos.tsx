@@ -110,11 +110,12 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
       titulo: "Empresa prov.",
       filtrable: true,
       valor: (t) => t.empresa ?? "Sin viaje",
+      buscar: (t) => `${t.remision ?? ""} ${t.manifiesto ?? ""}`,
       celda: (t) =>
         t.cuadroViajeId ? (
           <>
             <span>{t.empresa ?? "-"}</span>
-            <span className="dato-sec">{t.manifiesto ? `Manif. ${t.manifiesto}` : "Sin manifiesto"}</span>
+            <span className="dato-sec">{[t.remision && `Rem. ${t.remision}`, t.manifiesto ? `Manif. ${t.manifiesto}` : "Sin manifiesto"].filter(Boolean).join(" · ")}</span>
           </>
         ) : (
           <span className="texto-vencido">Sin viaje (vuelta pendiente)</span>
@@ -200,7 +201,7 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
         const soloEstos = visibles.map((t) => ({ ...(tanqueoDe(t) as Tanqueo), tramos: [t] }));
         return descargarAnticipos(soloEstos, `anticipos-${hoyColombia()}`);
       }}
-      placeholderBusqueda="Buscar placa, empresa, manifiesto, factura..."
+      placeholderBusqueda="Buscar remision, manifiesto, placa, empresa, factura..."
       vacio="No hay anticipos con estos criterios."
       claseFila={(t) => (estadoTramo(t) === "CRUZADO" ? "fila-cruzada" : estadoTramo(t) === "DIFERENCIA" ? "fila-diferencia" : undefined)}
       detalle={(t) => {

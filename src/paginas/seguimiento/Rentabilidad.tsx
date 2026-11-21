@@ -125,7 +125,7 @@ const columnasInicio = (terceros: boolean): Columna<FilaRentabilidad>[] => [
     id: "remision",
     titulo: "Remision / factura",
     valor: (f) => f.remision ?? f.manifiesto ?? "",
-    buscar: (f) => f.facturaNumero,
+    buscar: (f) => `${f.facturaNumero ?? ""} ${f.manifiesto ?? ""}`,
     celda: (f) => (
       <>
         <span>{f.remision ?? f.manifiesto ?? "-"}</span>

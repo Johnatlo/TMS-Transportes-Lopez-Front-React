@@ -88,7 +88,18 @@ const COLUMNAS: Columna<FilaConsecutivo>[] = [
     ),
   },
   { id: "manifiesto", titulo: "N° manifiesto", valor: (f) => f.consecutivoManifiesto, celda: (f) => <span className="codigo principal">{f.consecutivoManifiesto ?? "-"}</span> },
-  { id: "remesa", titulo: "N° remesa", valor: (f) => f.consecutivoRemesa, celda: (f) => <span className="codigo">{f.consecutivoRemesa ?? "-"}</span> },
+  {
+    id: "remesa",
+    titulo: "N° remesa",
+    valor: (f) => f.consecutivoRemesa,
+    buscar: (f) => f.remision,
+    celda: (f) => (
+      <>
+        <span className="codigo">{f.consecutivoRemesa ?? "-"}</span>
+        {f.remision && <span className="dato-sec">Rem. {f.remision}</span>}
+      </>
+    ),
+  },
   { id: "radicado", titulo: "Radicado remesa", valor: (f) => f.radicadoRemesa, celda: (f) => <span className="codigo">{f.radicadoRemesa ?? "-"}</span> },
   { id: "estado", titulo: "Estado", filtrable: true, valor: (f) => estadoFila(f), celda: (f) => <Pastilla tono={tonoFila(f)}>{estadoFila(f)}</Pastilla> },
   {
@@ -141,7 +152,7 @@ export default function LibroConsecutivos({ alAbrirViaje }: { alAbrirViaje: (via
       pestanas={PESTANAS}
       // Excel como el de la empresa (una hoja por mes) con lo filtrado.
       alExportar={(filas) => descargarConsecutivos(filas, `consecutivos-manifiestos-remesas-${new Date().toISOString().slice(0, 10)}`)}
-      placeholderBusqueda="Buscar placa, numero, radicado, NIT..."
+      placeholderBusqueda="Buscar placa, numero, remision, radicado, NIT..."
       vacio="No hay remesas con estos criterios."
       alClicFila={(f) => alAbrirViaje(f.viajeId)}
     />

@@ -272,6 +272,8 @@ export interface Viaje {
   radicadoAnulacionCumplidoManifiesto?: string | null;
   fechaCumplido?: string | null;
   cumplidoPorNombre?: string | null;
+  /** Remisiones del viaje en el Cuadro pagos, separadas por coma (para buscar por ellas). */
+  remisiones?: string | null;
   /** Solo en el historial, para manifiestos vigentes sin cumplir. */
   plazoCumplido?: PlazoCumplido;
 }

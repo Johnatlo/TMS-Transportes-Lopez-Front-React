@@ -71,7 +71,7 @@ function Viaje({ t }: { t: AnticipoBomba | null }) {
     <>
       <span className="principal">{t.empresa ?? "-"}</span>
       <span className="dato-sec">
-        {t.manifiesto ? `Manifiesto ${t.manifiesto}` : "Sin manifiesto"}
+        {[t.remision && `Rem. ${t.remision}`, t.manifiesto ? `Manifiesto ${t.manifiesto}` : "Sin manifiesto"].filter(Boolean).join(" · ")}
         {t.fechaViaje ? ` · ${fechaCorta(t.fechaViaje)}` : ""}
       </span>
     </>
@@ -151,11 +151,12 @@ export default function CuadroAnticipos() {
   const columnas: Columna<Tanqueo>[] = [
     { id: "fecha", titulo: "Fecha", valor: (g) => g.fecha, celda: (g) => fechaCorta(g.fecha) },
     { id: "placa", titulo: "Placa", filtrable: true, valor: (g) => placaConGuion(g.placa), celda: (g) => <span className="principal">{placaConGuion(g.placa)}</span> },
-    { id: "ida", titulo: "Ida", valor: (g) => g.ida.empresa ?? "", celda: (g) => <Viaje t={g.ida} /> },
+    { id: "ida", titulo: "Ida", valor: (g) => g.ida.empresa ?? "", buscar: (g) => `${g.ida.remision ?? ""} ${g.ida.manifiesto ?? ""}`, celda: (g) => <Viaje t={g.ida} /> },
     {
       id: "vuelta",
       titulo: "Vuelta",
       valor: (g) => (g.vuelta ? g.vuelta.empresa ?? "Pendiente" : ""),
+      buscar: (g) => (g.vuelta ? `${g.vuelta.remision ?? ""} ${g.vuelta.manifiesto ?? ""}` : ""),
       celda: (g) => (g.vuelta ? <Viaje t={g.vuelta} /> : posiblesVueltas(g, tanqueos).length ? <Pastilla tono="aviso">Posible vuelta</Pastilla> : <span className="dato-sec">-</span>),
     },
     { id: "eds", titulo: "EDS", filtrable: true, valor: (g) => g.bomba ?? "Solo efectivo", celda: (g) => <Bomba nombre={g.bomba} /> },
@@ -291,7 +292,7 @@ export default function CuadroAnticipos() {
           pestanas={pestanas}
           nombreArchivo="anticipos"
           alExportar={(visibles) => descargarAnticipos(visibles, `anticipos-${hoyColombia()}`)}
-          placeholderBusqueda="Buscar placa, empresa, bomba, factura..."
+          placeholderBusqueda="Buscar remision, manifiesto, placa, empresa, bomba, factura..."
           vacio="No hay anticipos con estos criterios."
           claseFila={(g) => (g.cruce === "CRUZADO" ? "fila-cruzada" : g.cruce === "DIFERENCIA" ? "fila-diferencia" : undefined)}
           detalle={(g) => (
@@ -1002,11 +1003,12 @@ function VentanaAbono({ alCerrar, alGuardar }: { alCerrar: () => void; alGuardar
               alCambiar={(id) => cambiar(i, { cuadroViajeId: id })}
               obtenerId={(v) => v.id}
               obtenerEtiqueta={(v) =>
-                `${v.remesa ? `Remesa ${v.remesa} · ` : ""}${placaConGuion(v.placa)} · ${fechaCorta(v.fecha)} · ${v.empresa}${
+                `${v.remision ? `Rem. ${v.remision} · ` : ""}${placaConGuion(v.placa)} · ${fechaCorta(v.fecha)} · ${v.empresa}${
                   v.manifiesto ? ` · Manif. ${v.manifiesto}` : ""
                 }`
               }
-              placeholder="Busca por remesa, placa, fecha o empresa..."
+              obtenerBusqueda={(v) => (v.remesa ? `Remesa ${v.remesa}` : "")}
+              placeholder="Busca por remision, placa, fecha, empresa o manifiesto..."
             />
           </div>
           <input type="number" min={0} placeholder="Valor" style={{ width: "10rem" }} value={l.valor} onChange={(e) => cambiar(i, { valor: e.target.value })} />

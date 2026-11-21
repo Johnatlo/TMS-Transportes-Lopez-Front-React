@@ -70,6 +70,7 @@ const COLUMNAS: Columna<ViajeTercero>[] = [
     id: "documento",
     titulo: "Manifiesto / remision",
     valor: (v) => v.manifiesto ?? v.remision ?? "",
+    buscar: (v) => v.remision,
     celda: (v) => (
       <>
         <span className="codigo">{v.manifiesto ?? "-"}</span>
@@ -248,7 +249,7 @@ export default function PagoTerceros() {
             pestanas={PESTANAS}
             nombreArchivo="pago-terceros"
             acciones={botonNombres}
-            placeholderBusqueda="Buscar tercero, placa, empresa, manifiesto..."
+            placeholderBusqueda="Buscar remision, manifiesto, tercero, placa, empresa..."
             vacio="No hay viajes con estos criterios."
             alClicFila={(v) => setEditando(v.id)}
           />

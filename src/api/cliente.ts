@@ -124,6 +124,8 @@ const del = <T>(ruta: string) => pedir<T>(ruta, { method: "DELETE" });
 export interface FilaConsecutivo {
   viajeId: number;
   remesaId: number;
+  /** Remision de la remesa en el Cuadro pagos. */
+  remision?: string | null;
   orden: number;
   fechaPlanillada: string;
   placa: string | null;
@@ -814,6 +816,8 @@ export interface AnticipoBomba {
   cuadroViajeId: number | null;
   empresa: string | null;
   manifiesto: string | null;
+  /** Remision del viaje en el Cuadro pagos. */
+  remision?: string | null;
   efectivo: number;
   combustible: number;
   valor: number;
@@ -1711,6 +1715,8 @@ export interface Preoperacional {
   id: number;
   viajeId: number | null;
   manifiesto: string | null;
+  /** Remisiones del viaje en el Cuadro pagos. */
+  remisiones?: string | null;
   fecha: string;
   placa: string;
   conductor: string;
@@ -1725,6 +1731,8 @@ export interface Preoperacional {
 export interface PreoperacionalPendiente {
   viajeId: number;
   manifiesto: string | null;
+  /** Remisiones del viaje en el Cuadro pagos. */
+  remisiones?: string | null;
   fecha: string;
   placa: string | null;
   conductor: string | null;
@@ -2322,6 +2330,8 @@ export interface ViajeTerceroUtilidad {
   tercero: string | null;
   cliente: string;
   manifiesto: string | null;
+  /** Remision del viaje en el Cuadro pagos. */
+  remision?: string | null;
   flete: number;
   saldoEmpresa: number;
   saldoTercero: number;
