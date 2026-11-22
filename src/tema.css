@@ -841,3 +841,11 @@ ul.lista-motivos.error li::before { background: var(--color-danger-text); }
 .menu-contraido .detalle-nomina-desglose, .menu-contraido .gasto-linea { max-width: calc(100vw - 72px - 90px); }
 @media (max-width: 820px) { .detalle-nomina-desglose, .gasto-linea { max-width: calc(100vw - 32px); } }
 .tabla-gasto .concepto-gasto span { white-space: nowrap; }
+
+/* Cuenta del vehiculo: los carros arriba (clic para elegir) y el resumen y los conductores abajo. */
+.tarjetas-vehiculo { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.6rem; margin-bottom: 0.8rem; }
+.tarjeta-vehiculo { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; padding: 0.6rem 0.8rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.tarjeta-vehiculo.activo { border-color: var(--color-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 25%, transparent); }
+.cuenta-vehiculo-pie { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1rem; margin-top: 1rem; align-items: start; }
+@media (max-width: 1100px) { .cuenta-vehiculo-pie { grid-template-columns: 1fr; } }
+.cuenta-vehiculo-pie > .panel { padding: 0.9rem 1rem; }

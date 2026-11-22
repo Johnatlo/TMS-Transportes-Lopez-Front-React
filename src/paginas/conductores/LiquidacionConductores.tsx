@@ -4,6 +4,9 @@
  * total y M&C (M&C solo ve sus vehiculos; el rol total filtra por empresa,
  * Lopez o M&C, para llevar las cuentas de cada dueno).
  *
+ * - Cuenta del vehiculo: lo que era el cuadro SWK-973: los viajes del carro
+ *   con su producido y lo del conductor, y lo que le queda en el mes (ver
+ *   CuentaVehiculo.tsx).
  * - Cuentas de viaje: por vehiculo, la hoja de gastos de cada viaje (ver
  *   CuentasViaje.tsx).
  * - Liquidacion: por conductor, el producido conductor de sus viajes, lo de
@@ -18,17 +21,19 @@ import { hoyColombia } from "../../api/cliente";
 import type { EmpresaGasto } from "../../api/cliente";
 import { useSesion } from "../../ganchos/useSesion";
 import { nombreMes } from "../gastos/nombres";
+import CuentaVehiculo from "./CuentaVehiculo";
 import CuentasViaje from "./CuentasViaje";
 import FletesConductor from "./FletesConductor";
 import Liquidacion from "./Liquidacion";
 import Prestamos from "./Prestamos";
 
-type Vista = "cuentas" | "liquidacion" | "prestamos" | "fletes";
+type Vista = "vehiculo" | "cuentas" | "liquidacion" | "prestamos" | "fletes";
 
 /** Empresa elegida en el filtro (el rol total); TODAS = las dos. */
 export type FiltroEmpresa = EmpresaGasto | "TODAS";
 
 const VISTAS: Array<[Vista, string]> = [
+  ["vehiculo", "Cuenta del vehiculo"],
   ["cuentas", "Cuentas de viaje"],
   ["liquidacion", "Liquidacion de conductores"],
   ["prestamos", "Prestamos"],
@@ -40,7 +45,7 @@ export default function LiquidacionConductores() {
   const { usuario } = useSesion();
   // M&C solo ve lo suyo (lo filtra el servidor): no necesita el filtro.
   const soloMyc = usuario?.rol === "MYC";
-  const [vista, setVista] = useState<Vista>("cuentas");
+  const [vista, setVista] = useState<Vista>("vehiculo");
   const [mes, setMes] = useState(hoyColombia().slice(0, 7));
   const [empresa, setEmpresa] = useState<FiltroEmpresa>("TODAS");
   return (
@@ -68,7 +73,7 @@ export default function LiquidacionConductores() {
             ))}
           </div>
         )}
-        {(vista === "liquidacion" || vista === "cuentas") && (
+        {(vista === "liquidacion" || vista === "cuentas" || vista === "vehiculo") && (
           <label className="selector-mes">
             <span className="dato-sec">Mes de los viajes</span>
             <input type="month" value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} />
@@ -76,6 +81,7 @@ export default function LiquidacionConductores() {
           </label>
         )}
       </div>
+      {vista === "vehiculo" && <CuentaVehiculo mes={mes} empresa={empresa} />}
       {vista === "cuentas" && <CuentasViaje mes={mes} empresa={empresa} />}
       {vista === "liquidacion" && <Liquidacion mes={mes} empresa={empresa} irACuentas={() => setVista("cuentas")} />}
       {vista === "prestamos" && <Prestamos mes={mes} empresa={empresa} />}

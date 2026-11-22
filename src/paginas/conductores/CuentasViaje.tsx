@@ -122,6 +122,11 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
         ) : (
           <>
             {moneda(v.producido)}
+            {v.integro && (
+              <span className="dato-sec" title="Se le paga completo al conductor (no se le saca el %)">
+                integro
+              </span>
+            )}
             {v.producidoManual && <span className="dato-sec">a mano</span>}
           </>
         ),

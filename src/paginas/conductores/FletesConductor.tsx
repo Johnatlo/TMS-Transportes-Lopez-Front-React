@@ -8,7 +8,7 @@
  */
 import { useState } from "react";
 import { apiConductores, moneda } from "../../api/cliente";
-import type { TarifaConductor } from "../../api/cliente";
+import type { TarifaConductor, TipoFleteConductor } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import MiniTabla from "../../componentes/MiniTabla";
@@ -19,8 +19,8 @@ import { fechaCorta } from "../cuadro/estadosCuadro";
 import { leerMatrizConductor } from "./calculos";
 import type { FilaMatriz } from "./calculos";
 
-/** Valor de la matriz como texto ("4.200.000 fijo" / "100.000 por ton"). */
-const valorTexto = (valor: number, tipo: string) => `${moneda(valor)} ${tipo === "FIJO" ? "fijo" : "por ton"}`;
+/** Valor de la matriz como texto ("4.200.000 fijo" / "100.000 por ton" / "200.000 integro"). */
+const valorTexto = (valor: number, tipo: string) => `${moneda(valor)} ${tipo === "FIJO" ? "fijo" : tipo === "INTEGRO" ? "integro" : "por ton"}`;
 
 /** La matriz de fletes conductor. */
 export default function FletesConductor() {
@@ -123,7 +123,7 @@ export default function FletesConductor() {
 /** El flete conductor de una tarifa: historial y nuevo valor desde una fecha. */
 function VentanaFlete({ tarifa, alCerrar, alCambiar }: { tarifa: TarifaConductor; alCerrar: () => void; alCambiar: (lista: TarifaConductor[]) => void }) {
   const [valor, setValor] = useState(tarifa.vigente ? String(tarifa.vigente.valor) : "");
-  const [tipo, setTipo] = useState<"TON" | "FIJO">(tarifa.vigente?.tipo ?? "FIJO");
+  const [tipo, setTipo] = useState<TipoFleteConductor>(tarifa.vigente?.tipo ?? "FIJO");
   const [desde, setDesde] = useState(tarifa.vigente ? new Date().toISOString().slice(0, 10) : "2020-01-01");
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -170,9 +170,10 @@ function VentanaFlete({ tarifa, alCerrar, alCambiar }: { tarifa: TarifaConductor
         </div>
         <div>
           <label>Se paga</label>
-          <select value={tipo} onChange={(e) => setTipo(e.target.value as "TON" | "FIJO")}>
-            <option value="FIJO">Fijo por viaje</option>
-            <option value="TON">Por tonelada (x las toneladas reales)</option>
+          <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoFleteConductor)}>
+            <option value="FIJO">Fijo por viaje (se le saca el %)</option>
+            <option value="TON">Por tonelada (x las toneladas reales; se le saca el %)</option>
+            <option value="INTEGRO">Integro por viaje (se le paga completo, sin %)</option>
           </select>
         </div>
         <div>

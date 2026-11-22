@@ -387,6 +387,11 @@ function FilaLinea({
                   </button>
                 )}
               </span>
+              {(l.integro ?? 0) > 0 && (
+                <span className="dato-sec producido-origen" title="Viajes con flete conductor integro: se le pagan completos, no van al %">
+                  + {moneda(l.integro)} integros
+                </span>
+              )}
               {l.porVehiculo.some((v) => v.sinTarifa > 0) && (
                 <span className="texto-vencido producido-origen">{l.porVehiculo.reduce((s, v) => s + v.sinTarifa, 0)} sin producido conductor (no suman)</span>
               )}

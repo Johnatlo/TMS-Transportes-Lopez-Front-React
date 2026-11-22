@@ -92,7 +92,7 @@ function FilasCategoria({ categoria, partidas, total }: { categoria: string; par
 }
 
 /** Cada paso de la cascada de un vehiculo con su detalle, por colores. */
-export default function DesgloseVehiculo({ v }: { v: FilaVehiculo }) {
+export default function DesgloseVehiculo({ v }: { v: Pick<FilaVehiculo, "cascada" | "detalleViajes"> }) {
   const c = v.cascada;
   const [viajes, setViajes] = useState(false);
   const suma = (k: "combustible" | "efectivo" | "transferencia") => v.detalleViajes.reduce((s, t) => s + (t[k] ?? 0), 0);

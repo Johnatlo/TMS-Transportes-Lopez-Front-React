@@ -194,7 +194,8 @@ function DetalleLiquidacion({
             <tr className="desglose-titulo">
               <th colSpan={2}>Producido conductor ({c.viajes} viajes)</th>
             </tr>
-            <Renglon t="Producido conductor" v={c.producido} />
+            <Renglon t="Producido conductor (va al %)" v={c.producido} />
+            {(c.integro ?? 0) > 0 && <Renglon t="Viajes integros (se pagan completos)" v={c.integro} />}
             <Renglon t={`${c.pctSalarial} % salarial (genera prestaciones)`} v={c.salarial} />
             <Renglon t={`${c.pctViaticos} % viaticos (no es salario)`} v={c.viaticos} />
             {c.viajesSinProducido > 0 && (
@@ -313,7 +314,19 @@ function DetalleLiquidacion({
               { titulo: "Placa", celda: (v) => <strong>{placaConGuion(v.placa)}</strong> },
               { titulo: "Cliente", celda: (v) => v.cliente },
               { titulo: "Remision", celda: (v) => <span className="codigo">{v.remision ?? v.manifiesto ?? "-"}</span> },
-              { titulo: "Producido", num: true, celda: (v) => (v.producido === null ? <span className="texto-aviso">Sin valor</span> : moneda(v.producido)) },
+              {
+                titulo: "Producido",
+                num: true,
+                celda: (v) =>
+                  v.producido === null ? (
+                    <span className="texto-aviso">Sin valor</span>
+                  ) : (
+                    <>
+                      {moneda(v.producido)}
+                      {v.integro && <span className="dato-sec">integro</span>}
+                    </>
+                  ),
+              },
               { titulo: "Recibio", num: true, celda: (v) => moneda(v.recibido) },
               { titulo: "Gastos", num: true, celda: (v) => (v.cuenta ? moneda(v.cuenta.total) : "-") },
               { titulo: "Saldo", num: true, celda: (v) => (v.cuenta ? <Saldo valor={v.cuenta.saldo} /> : <Pastilla tono="aviso">Sin cuenta</Pastilla>) },

@@ -98,7 +98,10 @@ export function leerMatrizConductor(filas: unknown[][]): FilaMatriz[] {
     if (!nombre) break;
     const valor = Number(f[cValor]);
     if (!Number.isFinite(valor) || valor <= 0) continue;
-    resultado.push({ nombre, valor, tipo: texto(cTipo >= 0 ? f[cTipo] : "") === "FIJO" ? "FIJO" : "TON", desde: cDesde >= 0 ? fecha(f[cDesde]) : null });
+    const t = texto(cTipo >= 0 ? f[cTipo] : "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    resultado.push({ nombre, valor, tipo: t === "FIJO" || t === "INTEGRO" ? t : "TON", desde: cDesde >= 0 ? fecha(f[cDesde]) : null });
   }
   return resultado;
 }

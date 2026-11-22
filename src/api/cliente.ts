@@ -2164,7 +2164,9 @@ export interface LineaNomina {
   producidoManual: boolean;
   /** El que sale de los viajes del sistema, y cuanto en cada vehiculo. */
   producidoSistema: number;
-  porVehiculo: Array<{ vehiculoId: number; placa: string; producido: number; viajes: number; sinTarifa: number }>;
+  /** Viajes con flete conductor INTEGRO: se pagan completos, no van al %. */
+  integro: number;
+  porVehiculo: Array<{ vehiculoId: number; placa: string; producido: number; integro?: number; viajes: number; sinTarifa: number }>;
   ajuste: number;
   notaAjuste: string | null;
   entrada: { riesgoArl: number; pctSalarial: number; pctViaticos: number };
@@ -2239,6 +2241,8 @@ export interface ViajeProducidoNomina {
   tarifaKilo: number | null;
   /** Producido conductor (lo que suma al producido de la nomina); null = sin valor (no suma). */
   flete: number | null;
+  /** INTEGRO: se le paga completo (no va al %). */
+  integro?: boolean;
   /** Flete de la empresa (referencia). */
   fleteEmpresa?: number | null;
 }
@@ -2558,8 +2562,8 @@ export interface TarifaConductor {
   razonSocial: string | null;
   valorEmpresa: number | null;
   tipoEmpresa: string;
-  vigente: { id: number; valor: number; tipo: "TON" | "FIJO"; desde: string } | null;
-  historial: Array<{ id: number; valor: number; tipo: "TON" | "FIJO"; desde: string }>;
+  vigente: { id: number; valor: number; tipo: TipoFleteConductor; desde: string } | null;
+  historial: Array<{ id: number; valor: number; tipo: TipoFleteConductor; desde: string }>;
   viajesRecientes: number;
 }
 
@@ -2575,6 +2579,9 @@ export type CuentaViaje = Record<ConceptoCuenta, number> & {
   saldo: number;
   gastoId: number | null;
 };
+
+/** Flete conductor: TON por tonelada, FIJO por viaje (va al %), INTEGRO por viaje que se le paga completo (sin %). */
+export type TipoFleteConductor = "TON" | "FIJO" | "INTEGRO";
 
 /** Un viaje de la flota propia con su producido conductor y su cuenta de viaje. */
 export interface ViajeConductor {
@@ -2596,6 +2603,8 @@ export interface ViajeConductor {
   producido: number | null;
   producidoMatriz: number | null;
   producidoManual: boolean;
+  /** Flete conductor INTEGRO: se le paga completo (no va al %). */
+  integro: boolean;
   efectivo: number;
   combustible: number;
   transferencia: number;
@@ -2640,7 +2649,10 @@ export interface LiquidacionConductor {
   pctSalarial: number;
   pctViaticos: number;
   viajes: number;
+  /** Producido de los viajes que van al %. */
   producido: number;
+  /** Viajes integros: se le pagan completos. */
+  integro: number;
   viajesSinProducido: number;
   salarial: number;
   viaticos: number;
@@ -2663,12 +2675,57 @@ export interface LiquidacionMes {
   viajesSinConductor: number;
 }
 
-/** Modulo Conductores. */
+/** Un viaje en la cuenta del vehiculo (una fila del cuadro SWK-973). */
+export interface ViajeCuentaVehiculo {
+  id: number;
+  fecha: string;
+  remision: string | null;
+  manifiesto: string | null;
+  remisionUrl: string | null;
+  facturaUrl: string | null;
+  cliente: string;
+  pesoKg: number | null;
+  flete: number;
+  detalleDescuentos: Record<ClaveDescuentoUtilidad, number>;
+  descuentos: number;
+  /** Flete - descuentos. */
+  producido: number;
+  anticipo: number;
+  conCuenta: boolean;
+  /** Lo que se le liquida al dueno y cuando se le pago. */
+  saldo: number;
+  fechaPagoSaldo: string | null;
+  conductor: string | null;
+  fleteConductor: number | null;
+  integro: boolean;
+  /** Lo que gana el conductor por el viaje: el % o el integro. */
+  pagoConductor: number | null;
+  recibido: number;
+  gastosViaje: number | null;
+  /** Gastos - recibido (positivo: se le debe al conductor). */
+  rojo: number | null;
+}
+
+/** La cuenta de un vehiculo en un mes. */
+export interface CuentaVehiculo {
+  vehiculoId: number;
+  placa: string;
+  empresa: EmpresaGasto;
+  dueno: string | null;
+  viajes: ViajeCuentaVehiculo[];
+  cascada: CascadaVehiculo;
+  conductores: Array<{ nombre: string; viajes: number; pagoConductor: number; rojo: number; alConductor: number }>;
+}
+
+/** Modulo Cuentas vehiculos (conductores). */
 export const apiConductores = {
+  /** La cuenta de cada vehiculo del mes (viajes, descuentos, conductor y lo que queda). */
+  cuentasVehiculos: (mes: string) =>
+    get<{ mes: string; aprobado: boolean; cerrado: boolean; vehiculos: CuentaVehiculo[] }>(`/conductores/cuentas-vehiculos?mes=${encodeURIComponent(mes)}`),
   /** Matriz de fletes conductor. */
   fletes: () => get<TarifaConductor[]>("/conductores/fletes"),
   /** Guarda el flete conductor de una tarifa desde una fecha. */
-  guardarFlete: (d: { tarifaFleteId: number; valor: number; tipo: "TON" | "FIJO"; desde: string }) => put<TarifaConductor[]>("/conductores/fletes", d),
+  guardarFlete: (d: { tarifaFleteId: number; valor: number; tipo: TipoFleteConductor; desde: string }) => put<TarifaConductor[]>("/conductores/fletes", d),
   /** Borra un valor de la matriz. */
   borrarFlete: (id: number) => del<TarifaConductor[]>(`/conductores/fletes/${id}`),
   /** Importa la matriz del Excel; sin aplicar solo dice cuales encontro. */

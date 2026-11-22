@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_759 funciones, componentes, métodos y rutas en 119 archivos._
+_762 funciones, componentes, métodos y rutas en 120 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (246)
+- [`src/api/cliente.ts`](#srcapiclientets) (247)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -224,6 +224,7 @@ _759 funciones, componentes, métodos y rutas en 119 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
+- [`src/paginas/conductores/CuentaVehiculo.tsx`](#srcpaginasconductorescuentavehiculotsx) (2)
 - [`src/paginas/conductores/CuentasViaje.tsx`](#srcpaginasconductorescuentasviajetsx) (4)
 - [`src/paginas/conductores/FletesConductor.tsx`](#srcpaginasconductoresfletesconductortsx) (4)
 - [`src/paginas/conductores/Liquidacion.tsx`](#srcpaginasconductoresliquidaciontsx) (4)
@@ -1056,7 +1057,10 @@ _759 funciones, componentes, métodos y rutas en 119 archivos._
     Borra un pago registrado por error.
 
 - **`apiConductores`** · _módulo_
-  Modulo Conductores.
+  Modulo Cuentas vehiculos (conductores).
+
+  - **`apiConductores.cuentasVehiculos(mes)`** · _método_
+    La cuenta de cada vehiculo del mes (viajes, descuentos, conductor y lo que queda).
 
   - **`apiConductores.fletes()`** · _método_
     Matriz de fletes conductor.
@@ -2188,6 +2192,28 @@ _759 funciones, componentes, métodos y rutas en 119 archivos._
   Muestra UNA vez la clave temporal cuando no se envio por correo (con el
   motivo, si lo hay), para dictarla o copiarla.
 
+### `src/paginas/conductores/CuentaVehiculo.tsx`
+
+> Cuenta del vehiculo (lo que era el cuadro SWK-973 en Excel): arriba cada
+> carro de la flota propia con lo que produjo y lo que le queda en el mes
+> (clic para verlo); abajo, del carro elegido:
+> - Sus viajes: flete de la empresa, descuentos, producido (flete -
+>   descuentos), anticipo, saldo al dueno con su fecha de pago y, del
+>   conductor, su flete conductor (integro o no), lo que gana (el % o el
+>   integro), lo que gasto y el rojo.
+> - El resumen del mes: la cascada de Utilidades (fletes, descuentos,
+>   anticipos y gastos directos, nomina del conductor, generales y lo que
+>   queda), con los colores de Rentabilidad.
+> - Lo de cada conductor por los viajes de este carro.
+> Todo sale de lo que ya esta en el sistema (Rentabilidad, Cuentas de viaje,
+> Gastos y Nomina); si el mes esta aprobado en Utilidades, es la foto aprobada.
+
+- **`gastosDe(c)`** · _función_
+  Gastos del carro en el mes: anticipos y directos, conductor y generales.
+
+- **`CuentaVehiculo({...})`** · _componente React_
+  Cuentas de los vehiculos del mes.
+
 ### `src/paginas/conductores/CuentasViaje.tsx`
 
 > Cuentas de viaje, por vehiculo: arriba cada carro de la flota propia con
@@ -2222,7 +2248,7 @@ _759 funciones, componentes, métodos y rutas en 119 archivos._
 > SWK-973): cada nombre se busca entre las tarifas de la empresa.
 
 - **`valorTexto(valor, tipo)`** · _función_
-  Valor de la matriz como texto ("4.200.000 fijo" / "100.000 por ton").
+  Valor de la matriz como texto ("4.200.000 fijo" / "100.000 por ton" / "200.000 integro").
 
 - **`FletesConductor()`** · _componente React_
   La matriz de fletes conductor.
@@ -2263,6 +2289,9 @@ _759 funciones, componentes, métodos y rutas en 119 archivos._
 > total y M&C (M&C solo ve sus vehiculos; el rol total filtra por empresa,
 > Lopez o M&C, para llevar las cuentas de cada dueno).
 >
+> - Cuenta del vehiculo: lo que era el cuadro SWK-973: los viajes del carro
+>   con su producido y lo del conductor, y lo que le queda en el mes (ver
+>   CuentaVehiculo.tsx).
 > - Cuentas de viaje: por vehiculo, la hoja de gastos de cada viaje (ver
 >   CuentasViaje.tsx).
 > - Liquidacion: por conductor, el producido conductor de sus viajes, lo de
