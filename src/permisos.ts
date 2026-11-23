@@ -6,18 +6,21 @@
  * - ADMINISTRATIVO: todo menos el reparto de los socios y el cambio de roles.
  * - MYC: Transportes M&C. Todo menos la rentabilidad de los terceros (la
  *   filtra el servidor) y el cambio de roles.
- * - Conductores (cuentas de viaje y liquidacion): solo TOTAL y MYC (M&C solo
- *   los vehiculos de su flota).
+ * - Cuentas conductores: TOTAL y MYC (M&C solo los vehiculos de su flota y
+ *   los visibles para todos); ADMINISTRATIVO solo las cuentas de viaje, sin el
+ *   producido ni el saldo del conductor.
+ * - Rentabilidad: TOTAL todo; MYC solo la cuenta de sus vehiculos;
+ *   ADMINISTRATIVO no entra.
  */
 import type { Rol } from "./api/tipos";
 
 /** Areas del aplicativo. */
-export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "REPARTO" | "GASTOS" | "CONDUCTORES" | "ADMINISTRACION" | "USUARIOS";
+export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "REPARTO" | "RENTABILIDAD" | "GASTOS" | "CONDUCTORES" | "ADMINISTRACION" | "USUARIOS";
 
 const AREAS: Record<Rol, Area[]> = {
-  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "GASTOS", "CONDUCTORES", "ADMINISTRACION", "USUARIOS"],
-  ADMINISTRATIVO: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "GASTOS", "ADMINISTRACION"],
-  MYC: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "GASTOS", "CONDUCTORES", "ADMINISTRACION"],
+  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "RENTABILIDAD", "GASTOS", "CONDUCTORES", "ADMINISTRACION", "USUARIOS"],
+  ADMINISTRATIVO: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "GASTOS", "CONDUCTORES", "ADMINISTRACION"],
+  MYC: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "RENTABILIDAD", "GASTOS", "CONDUCTORES", "ADMINISTRACION"],
 };
 
 /** Nombre del rol para mostrarlo. */
@@ -26,6 +29,9 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   ADMINISTRATIVO: "Administrativo",
   MYC: "Transportes M&C",
 };
+
+/** En Cuentas conductores solo registra las cuentas de viaje, sin producido ni saldo del conductor. */
+export const soloGastosConductores = (rol: Rol | null | undefined) => (rol ?? "ADMINISTRATIVO") === "ADMINISTRATIVO";
 
 /** El rol (o un rol desconocido, como administrativo) tiene esa area. */
 export const puede = (rol: Rol | null | undefined, area: Area) => (AREAS[rol ?? "ADMINISTRATIVO"] ?? AREAS.ADMINISTRATIVO).includes(area);
@@ -40,10 +46,14 @@ const AREA_RUTA: Array<[string, Area]> = [
   ["/papeles", "OPERACION"],
   ["/cartera", "OPERACION"],
   ["/terceros", "OPERACION"],
-  ["/rentabilidad", "CUENTAS"],
+  ["/liquidacion-viajes", "CUENTAS"],
   ["/gastos", "GASTOS"],
   ["/nomina", "GASTOS"],
-  ["/utilidades", "LIQUIDACION"],
+  ["/rentabilidad", "RENTABILIDAD"],
+  ["/reparto", "LIQUIDACION"],
+  ["/cuentas-conductores", "CONDUCTORES"],
+  // Los nombres de antes (redirigen).
+  ["/utilidades", "RENTABILIDAD"],
   ["/cuentas-vehiculos", "CONDUCTORES"],
   ["/preoperacional", "RNDC"],
   ["/vehiculos", "RNDC"],

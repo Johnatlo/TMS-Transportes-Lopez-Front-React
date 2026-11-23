@@ -15,7 +15,7 @@
 import { moneda } from "../../api/cliente";
 import type { UtilidadesMes } from "../../api/cliente";
 import Indicador from "../../componentes/Indicador";
-import TablaDatos from "../../componentes/TablaDatos";
+import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
@@ -80,7 +80,12 @@ export default function Empresa({ u, verTerceros }: { u: UtilidadesMes; verTerce
       titulo: "Rentabilidad",
       alinear: "derecha",
       valor: (v) => Math.round(v.rentabilidad),
-      celda: (v) => <strong className={v.rentabilidad < 0 ? "texto-vencido" : undefined}>{moneda(v.rentabilidad)}</strong>,
+      celda: (v) => (
+        <>
+          <strong className={v.rentabilidad < 0 ? "texto-vencido" : undefined}>{moneda(v.rentabilidad)}</strong>
+          {v.sinPactar && <Pastilla tono="aviso">Sin pactar</Pastilla>}
+        </>
+      ),
     },
     { id: "renta", titulo: "Anticipo de renta", alinear: "derecha", valor: (v) => Math.round(v.anticipoRenta), celda: (v) => moneda(v.anticipoRenta) },
   ];
@@ -104,8 +109,15 @@ export default function Empresa({ u, verTerceros }: { u: UtilidadesMes; verTerce
     { id: "ingreso", titulo: "Para la empresa", alinear: "derecha", valor: (v) => Math.round(v.ingreso), celda: (v) => <strong>{moneda(v.ingreso)}</strong> },
     { id: "renta", titulo: "Anticipo de renta", alinear: "derecha", valor: (v) => Math.round(v.anticipoRenta), celda: (v) => moneda(v.anticipoRenta) },
   ];
+  const sinPactar = e.detalleTerceros.filter((v) => v.sinPactar);
   return (
     <>
+      {verTerceros && sinPactar.length > 0 && (
+        <div className="alert warning" style={{ marginBottom: "0.75rem" }}>
+          {sinPactar.length} viaje(s) de terceros sin valor pactado en Pago a terceros: su rentabilidad no es real (sale todo el flete como si fuera de la
+          empresa, {moneda(sinPactar.reduce((t, v) => t + v.rentabilidad, 0))}). Pacta el valor con el tercero para que cuadre.
+        </div>
+      )}
       <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
         <Indicador
           dinero

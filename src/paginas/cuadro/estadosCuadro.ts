@@ -50,8 +50,7 @@ export function tonoEstadoCuadro(f: Pick<FilaCuadro, "estado" | "todoPagado">): 
 }
 
 /** Nombre del estado para mostrar; "Todo pagado" cuando ya se pago todo. */
-export const etiquetaEstadoCuadro = (f: Pick<FilaCuadro, "estado" | "todoPagado">) =>
-  f.todoPagado ? "Todo pagado" : ETIQUETA_ESTADO_CUADRO[f.estado];
+export const etiquetaEstadoCuadro = (f: Pick<FilaCuadro, "estado" | "todoPagado">) => (f.todoPagado ? "Todo pagado" : ETIQUETA_ESTADO_CUADRO[f.estado]);
 
 export const ETIQUETA_ESTADO_FACTURA: Record<EstadoFactura, string> = {
   SIN_FACTURAR: "Sin facturar",
@@ -60,8 +59,7 @@ export const ETIQUETA_ESTADO_FACTURA: Record<EstadoFactura, string> = {
 };
 
 /** Color de la pastilla de la factura: azul sin datos, celeste facturado. */
-export const tonoEstadoFactura = (e: EstadoFactura): TonoPastilla =>
-  e === "FACTURADO_SIN_DATOS" ? "azul" : e === "FACTURADO" ? "info" : "neutro";
+export const tonoEstadoFactura = (e: EstadoFactura): TonoPastilla => (e === "FACTURADO_SIN_DATOS" ? "azul" : e === "FACTURADO" ? "info" : "neutro");
 
 /**
  * Pastilla de factura que se muestra junto a la de papeles: ninguna si aun no
@@ -89,9 +87,7 @@ export const ETIQUETA_PAPELES: Record<EstadoPapeles, string> = {
  * radicados en el cliente) solo para CORAME / Cartones America.
  */
 export const pasosPapeles = (flujoCorame: boolean): EstadoPapeles[] =>
-  flujoCorame
-    ? ["EN_RUTA", "DESCARGADO", "CONDUCTOR", "PARQUEADERO", "OFICINA", "RADICADO", "RADICADOS"]
-    : ["EN_RUTA", "DESCARGADO", "CONDUCTOR", "RADICADO"];
+  flujoCorame ? ["EN_RUTA", "DESCARGADO", "CONDUCTOR", "PARQUEADERO", "OFICINA", "RADICADO", "RADICADOS"] : ["EN_RUTA", "DESCARGADO", "CONDUCTOR", "RADICADO"];
 
 export const ETIQUETA_FLOTA: Record<Flota, string> = {
   LOPEZ: "Flota Lopez",

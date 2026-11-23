@@ -28,6 +28,7 @@ export interface Tanqueo {
   idaYVuelta: boolean;
   facturaBomba: string | null;
   fechaFacturaBomba: string | null;
+  fechaVencimientoBomba: string | null;
   flota: string | null;
   ida: AnticipoBomba;
   vuelta: AnticipoBomba | null;
@@ -99,6 +100,7 @@ export function agruparPorTanqueo(tramos: AnticipoBomba[]): Tanqueo[] {
       idaYVuelta: ida.idaYVuelta || !!vuelta,
       facturaBomba: ida.facturaBomba,
       fechaFacturaBomba: ida.fechaFacturaBomba,
+      fechaVencimientoBomba: ida.fechaVencimientoBomba ?? null,
       flota: ida.flota,
       ida,
       vuelta,

@@ -153,14 +153,33 @@ export default function CuadroAnticipos() {
 
   const columnas: Columna<Tanqueo>[] = [
     { id: "fecha", titulo: "Fecha", valor: (g) => g.fecha, celda: (g) => fechaCorta(g.fecha) },
-    { id: "placa", titulo: "Placa", filtrable: true, valor: (g) => placaConGuion(g.placa), celda: (g) => <span className="principal">{placaConGuion(g.placa)}</span> },
-    { id: "ida", titulo: "Ida", valor: (g) => g.ida.empresa ?? "", buscar: (g) => `${g.ida.remision ?? ""} ${g.ida.manifiesto ?? ""}`, celda: (g) => <Viaje t={g.ida} /> },
+    {
+      id: "placa",
+      titulo: "Placa",
+      filtrable: true,
+      valor: (g) => placaConGuion(g.placa),
+      celda: (g) => <span className="principal">{placaConGuion(g.placa)}</span>,
+    },
+    {
+      id: "ida",
+      titulo: "Ida",
+      valor: (g) => g.ida.empresa ?? "",
+      buscar: (g) => `${g.ida.remision ?? ""} ${g.ida.manifiesto ?? ""}`,
+      celda: (g) => <Viaje t={g.ida} />,
+    },
     {
       id: "vuelta",
       titulo: "Vuelta",
-      valor: (g) => (g.vuelta ? g.vuelta.empresa ?? "Pendiente" : ""),
+      valor: (g) => (g.vuelta ? (g.vuelta.empresa ?? "Pendiente") : ""),
       buscar: (g) => (g.vuelta ? `${g.vuelta.remision ?? ""} ${g.vuelta.manifiesto ?? ""}` : ""),
-      celda: (g) => (g.vuelta ? <Viaje t={g.vuelta} /> : posiblesVueltas(g, tanqueos).length ? <Pastilla tono="aviso">Posible vuelta</Pastilla> : <span className="dato-sec">-</span>),
+      celda: (g) =>
+        g.vuelta ? (
+          <Viaje t={g.vuelta} />
+        ) : posiblesVueltas(g, tanqueos).length ? (
+          <Pastilla tono="aviso">Posible vuelta</Pastilla>
+        ) : (
+          <span className="dato-sec">-</span>
+        ),
     },
     { id: "eds", titulo: "EDS", filtrable: true, valor: (g) => g.bomba ?? "Solo efectivo", celda: (g) => <Bomba nombre={g.bomba} /> },
     { id: "efectivo", titulo: "Efectivo", alinear: "derecha", valor: (g) => g.efectivo, celda: (g) => moneda(g.efectivo) },
@@ -175,6 +194,7 @@ export default function CuadroAnticipos() {
         <>
           <span className="codigo">{g.facturaBomba ?? "-"}</span>
           {g.fechaFacturaBomba && <span className="dato-sec">{fechaCorta(g.fechaFacturaBomba)}</span>}
+          {g.fechaVencimientoBomba && <span className="dato-sec">vence {fechaCorta(g.fechaVencimientoBomba)}</span>}
         </>
       ),
     },
@@ -194,14 +214,7 @@ export default function CuadroAnticipos() {
       id: "pago",
       titulo: "Pago a la bomba",
       valor: (g) => g.fechaPago ?? "",
-      celda: (g) =>
-        !g.bombaId ? (
-          <span className="dato-sec">-</span>
-        ) : g.pagado ? (
-          fechaCorta(g.fechaPago)
-        ) : (
-          <span className="texto-vencido">Se debe</span>
-        ),
+      celda: (g) => (!g.bombaId ? <span className="dato-sec">-</span> : g.pagado ? fechaCorta(g.fechaPago) : <span className="texto-vencido">Se debe</span>),
     },
     { id: "flota", titulo: "Empresa del vehiculo", filtrable: true, valor: (g) => flotaTexto(g.flota), celda: (g) => flotaTexto(g.flota) },
   ];
@@ -272,8 +285,8 @@ export default function CuadroAnticipos() {
         {vista === "tramos"
           ? "Un anticipo por fila, como el cuadro de la empresa: la ida y la vuelta por separado. Si quedo mal marcado, cambia Ida / Vuelta en la fila; la ultima columna sugiere su pareja y la junta con un clic. "
           : "Un tanqueo por fila (la ida y su vuelta). "}
-        Clic en una fila para ver el cruce con la bomba, la factura y el pago. En verde, los ya cruzados: con sus vales de la
-        bomba, con factura y pago a la bomba, o marcados a mano. Los anticipos se registran en cada viaje del Cuadro pagos.
+        Clic en una fila para ver el cruce con la bomba, la factura y el pago. En verde, los ya cruzados: con sus vales de la bomba, con factura y pago a la
+        bomba, o marcados a mano. Los anticipos se registran en cada viaje del Cuadro pagos.
       </div>
       <div className="panel">
         {vista === "tramos" ? (
@@ -287,28 +300,19 @@ export default function CuadroAnticipos() {
             detalle={(g) => <DetalleTanqueo g={g} posibles={posiblesVueltas(g, tanqueos)} abonos={abonos} resumen={r} Bomba={Bomba} guardar={guardar} />}
           />
         ) : (
-        <TablaDatos
-          filas={tanqueos}
-          columnas={columnas}
-          columnasFijas={2}
-          clave={(g) => g.clave}
-          pestanas={pestanas}
-          nombreArchivo="anticipos"
-          alExportar={(visibles) => descargarAnticipos(visibles, `anticipos-${hoyColombia()}`)}
-          placeholderBusqueda="Buscar remision, manifiesto, placa, empresa, bomba, factura..."
-          vacio="No hay anticipos con estos criterios."
-          claseFila={(g) => (g.cruce === "CRUZADO" ? "fila-cruzada" : g.cruce === "DIFERENCIA" ? "fila-diferencia" : undefined)}
-          detalle={(g) => (
-            <DetalleTanqueo
-              g={g}
-              posibles={posiblesVueltas(g, tanqueos)}
-              abonos={abonos}
-              resumen={r}
-              Bomba={Bomba}
-              guardar={guardar}
-            />
-          )}
-        />
+          <TablaDatos
+            filas={tanqueos}
+            columnas={columnas}
+            columnasFijas={2}
+            clave={(g) => g.clave}
+            pestanas={pestanas}
+            nombreArchivo="anticipos"
+            alExportar={(visibles) => descargarAnticipos(visibles, `anticipos-${hoyColombia()}`)}
+            placeholderBusqueda="Buscar remision, manifiesto, placa, empresa, bomba, factura..."
+            vacio="No hay anticipos con estos criterios."
+            claseFila={(g) => (g.cruce === "CRUZADO" ? "fila-cruzada" : g.cruce === "DIFERENCIA" ? "fila-diferencia" : undefined)}
+            detalle={(g) => <DetalleTanqueo g={g} posibles={posiblesVueltas(g, tanqueos)} abonos={abonos} resumen={r} Bomba={Bomba} guardar={guardar} />}
+          />
         )}
       </div>
 
@@ -433,92 +437,100 @@ function DetalleTanqueo({
             const conDiferencia = Math.abs(d) >= DIFERENCIA_MINIMA;
             return (
               <Fragment key={t.id}>
-              <tr>
-                <td>
-                  <select
-                    className={`selector-tramo ${t.tramo === "VUELTA" ? "es-vuelta" : "es-ida"}`}
-                    value={t.tramo}
-                    onChange={(e) => guardar(() => apiCuadro.actualizarTramo(t.id, { tramo: e.target.value }))}
-                    aria-label="Ida o vuelta"
-                  >
-                    <option value="IDA">Ida</option>
-                    <option value="VUELTA">Vuelta</option>
-                  </select>
-                  <button className="btn-link texto-vencido" style={{ display: "block", marginTop: "0.2rem" }} onClick={() => borrar(t)}>
-                    Borrar
-                  </button>
-                </td>
-                <td>
-                  <Viaje t={t} />
-                  {t.cuadroViajeId && (
-                    <Link className="btn-link" style={{ display: "block" }} to={`/cuadro?viaje=${t.cuadroViajeId}&anticipos=1`}>
-                      Ir al viaje en Cuadro pagos
-                    </Link>
-                  )}
-                </td>
-                <td className="num">{campoValor(t, "efectivo")}</td>
-                <td className="num">{campoValor(t, "combustible")}</td>
-                <td>
-                  {/* Un vale para el combustible y otro para el efectivo (la bomba da los dos). */}
-                  {/* Los vales armados a mano no traen numero: salen como "cruzado a mano". */}
-                  {t.cruzadoCombustible || t.cruzadoEfectivo || falta.combustible || falta.efectivo ? (
-                    <span className="partes-valor izq">
-                      {(t.cruzadoCombustible || falta.combustible) && (
-                        <>
-                          <span>Combustible</span>
-                          {t.cruzadoCombustible ? <span>{t.vale ? `Vale ${t.vale}` : "Cruzado a mano"}</span> : <span className="texto-aviso">Sin vale</span>}
-                        </>
-                      )}
-                      {(t.cruzadoEfectivo || falta.efectivo) && (
-                        <>
-                          <span>Efectivo</span>
-                          {t.cruzadoEfectivo ? <span>{t.valeEfectivo ? `Vale ${t.valeEfectivo}` : "Cruzado a mano"}</span> : <span className="texto-aviso">Sin vale</span>}
-                        </>
-                      )}
-                    </span>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-                <td>{campoCruce(t, "galones")}</td>
-                <td>{campoCruce(t, "precioGalon", resumen?.precioGalonBomba)}</td>
-                <td>{campoCruce(t, "descuento", t.galones !== null ? Math.round(t.galones * t.descuentoGalon) : undefined)}</td>
-                <td className="num">
-                  {t.combustibleEntregado === null && t.efectivoEntregado === null && "-"}
-                  {t.combustibleEntregado !== null && <span>Comb. {moneda(t.combustibleEntregado)}</span>}
-                  {t.efectivoEntregado !== null && <span className="dato-sec">Efect. {moneda(t.efectivoEntregado)}</span>}
-                </td>
-                <td className="num">
-                  {t.combustibleEntregado === null && t.efectivoEntregado === null ? "-" : <span className={conDiferencia ? "texto-vencido" : "dato-sec"}>{moneda(d)}</span>}
-                </td>
-                <td>
-                  {t.bombaId ? (
-                    <CampoFecha valor={t.fechaPago} alGuardar={(f) => guardar(() => apiCuadro.actualizarTramo(t.id, { fechaPago: f }))} />
-                  ) : (
-                    <span className="dato-sec">No es de la bomba</span>
-                  )}
-                </td>
-                <td className="num">
-                  {conDiferencia && (
-                    <button className="boton-suave" onClick={() => setCorrigiendo(corrigiendo === t.id ? null : t.id)}>
-                      {corrigiendo === t.id ? "Cerrar" : "Corregir"}
-                    </button>
-                  )}
-                </td>
-              </tr>
-              {corrigiendo === t.id && (
                 <tr>
-                  <td colSpan={12}>
-                    <CorregirTramo
-                      t={t}
-                      guardar={async (accion) => {
-                        await guardar(accion);
-                        setCorrigiendo(null);
-                      }}
-                    />
+                  <td>
+                    <select
+                      className={`selector-tramo ${t.tramo === "VUELTA" ? "es-vuelta" : "es-ida"}`}
+                      value={t.tramo}
+                      onChange={(e) => guardar(() => apiCuadro.actualizarTramo(t.id, { tramo: e.target.value }))}
+                      aria-label="Ida o vuelta"
+                    >
+                      <option value="IDA">Ida</option>
+                      <option value="VUELTA">Vuelta</option>
+                    </select>
+                    <button className="btn-link texto-vencido" style={{ display: "block", marginTop: "0.2rem" }} onClick={() => borrar(t)}>
+                      Borrar
+                    </button>
+                  </td>
+                  <td>
+                    <Viaje t={t} />
+                    {t.cuadroViajeId && (
+                      <Link className="btn-link" style={{ display: "block" }} to={`/cuadro?viaje=${t.cuadroViajeId}&anticipos=1`}>
+                        Ir al viaje en Cuadro pagos
+                      </Link>
+                    )}
+                  </td>
+                  <td className="num">{campoValor(t, "efectivo")}</td>
+                  <td className="num">{campoValor(t, "combustible")}</td>
+                  <td>
+                    {/* Un vale para el combustible y otro para el efectivo (la bomba da los dos). */}
+                    {/* Los vales armados a mano no traen numero: salen como "cruzado a mano". */}
+                    {t.cruzadoCombustible || t.cruzadoEfectivo || falta.combustible || falta.efectivo ? (
+                      <span className="partes-valor izq">
+                        {(t.cruzadoCombustible || falta.combustible) && (
+                          <>
+                            <span>Combustible</span>
+                            {t.cruzadoCombustible ? <span>{t.vale ? `Vale ${t.vale}` : "Cruzado a mano"}</span> : <span className="texto-aviso">Sin vale</span>}
+                          </>
+                        )}
+                        {(t.cruzadoEfectivo || falta.efectivo) && (
+                          <>
+                            <span>Efectivo</span>
+                            {t.cruzadoEfectivo ? (
+                              <span>{t.valeEfectivo ? `Vale ${t.valeEfectivo}` : "Cruzado a mano"}</span>
+                            ) : (
+                              <span className="texto-aviso">Sin vale</span>
+                            )}
+                          </>
+                        )}
+                      </span>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  <td>{campoCruce(t, "galones")}</td>
+                  <td>{campoCruce(t, "precioGalon", resumen?.precioGalonBomba)}</td>
+                  <td>{campoCruce(t, "descuento", t.galones !== null ? Math.round(t.galones * t.descuentoGalon) : undefined)}</td>
+                  <td className="num">
+                    {t.combustibleEntregado === null && t.efectivoEntregado === null && "-"}
+                    {t.combustibleEntregado !== null && <span>Comb. {moneda(t.combustibleEntregado)}</span>}
+                    {t.efectivoEntregado !== null && <span className="dato-sec">Efect. {moneda(t.efectivoEntregado)}</span>}
+                  </td>
+                  <td className="num">
+                    {t.combustibleEntregado === null && t.efectivoEntregado === null ? (
+                      "-"
+                    ) : (
+                      <span className={conDiferencia ? "texto-vencido" : "dato-sec"}>{moneda(d)}</span>
+                    )}
+                  </td>
+                  <td>
+                    {t.bombaId ? (
+                      <CampoFecha valor={t.fechaPago} alGuardar={(f) => guardar(() => apiCuadro.actualizarTramo(t.id, { fechaPago: f }))} />
+                    ) : (
+                      <span className="dato-sec">No es de la bomba</span>
+                    )}
+                  </td>
+                  <td className="num">
+                    {conDiferencia && (
+                      <button className="boton-suave" onClick={() => setCorrigiendo(corrigiendo === t.id ? null : t.id)}>
+                        {corrigiendo === t.id ? "Cerrar" : "Corregir"}
+                      </button>
+                    )}
                   </td>
                 </tr>
-              )}
+                {corrigiendo === t.id && (
+                  <tr>
+                    <td colSpan={12}>
+                      <CorregirTramo
+                        t={t}
+                        guardar={async (accion) => {
+                          await guardar(accion);
+                          setCorrigiendo(null);
+                        }}
+                      />
+                    </td>
+                  </tr>
+                )}
               </Fragment>
             );
           })}
@@ -539,8 +551,7 @@ function DetalleTanqueo({
                 placeholder="AE5044797"
                 style={{ width: "9rem" }}
                 onBlur={(e) =>
-                  e.target.value.trim() !== (g.facturaBomba ?? "") &&
-                  guardar(() => apiCuadro.actualizarTanqueo(g.tanqueoId!, { facturaBomba: e.target.value }))
+                  e.target.value.trim() !== (g.facturaBomba ?? "") && guardar(() => apiCuadro.actualizarTanqueo(g.tanqueoId!, { facturaBomba: e.target.value }))
                 }
               />
             </label>
@@ -704,8 +715,8 @@ function VentanaAbonos({ abonos, alCerrar, alCambiar }: { abonos: AbonoSocio[]; 
       }
     >
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
-        Lo que el socio (el Zorro) le paga directamente a la bomba por algunos viajes. Solo se descuenta de la deuda con la bomba
-        cuando se cruza: al usarlo en el pago a la bomba o marcandolo aqui como cruzado.
+        Lo que el socio (el Zorro) le paga directamente a la bomba por algunos viajes. Solo se descuenta de la deuda con la bomba cuando se cruza: al usarlo en
+        el pago a la bomba o marcandolo aqui como cruzado.
       </div>
       {abonos.length === 0 ? (
         <div className="alert info">Aun no hay abonos a la bomba.</div>
@@ -927,9 +938,8 @@ function VentanaCupo({ resumen, alCerrar, alGuardar }: { resumen: ResumenBomba; 
         </table>
       )}
       <div className="dato-sec" style={{ marginTop: "0.6rem" }}>
-        Solo Chuzaca lleva descuento (en las demas, 0). En el cruce se sugiere combustible = galones x precio - galones x descuento
-        de su bomba, vigente en la fecha del anticipo. El nuevo valor rige para los anticipos desde la fecha elegida; los
-        anteriores y los ya cruzados conservan su descuento.
+        Solo Chuzaca lleva descuento (en las demas, 0). En el cruce se sugiere combustible = galones x precio - galones x descuento de su bomba, vigente en la
+        fecha del anticipo. El nuevo valor rige para los anticipos desde la fecha elegida; los anteriores y los ya cruzados conservan su descuento.
       </div>
     </Modal>
   );
@@ -967,7 +977,7 @@ function VentanaAbono({ alCerrar, alGuardar }: { alCerrar: () => void; alGuardar
           fecha,
           nota,
           viajes: completas.map((l) => ({ cuadroViajeId: l.cuadroViajeId!, valor: Number(l.valor) })),
-        })
+        }),
       );
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "No se pudo guardar.");
@@ -996,8 +1006,8 @@ function VentanaAbono({ alCerrar, alGuardar }: { alCerrar: () => void; alGuardar
       }
     >
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
-        El socio le paga directamente a la bomba los anticipos de algunos viajes. Al registrarlo queda por cruzar: no se
-        descuenta de la deuda con la bomba hasta que se cruce (en el pago a la bomba o marcandolo como cruzado).
+        El socio le paga directamente a la bomba los anticipos de algunos viajes. Al registrarlo queda por cruzar: no se descuenta de la deuda con la bomba
+        hasta que se cruce (en el pago a la bomba o marcandolo como cruzado).
       </div>
       {error && <div className="alert danger">{error}</div>}
       <div className="campos-cuadro">

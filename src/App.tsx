@@ -24,10 +24,11 @@ const CuadroCentral = lazy(() => import("./paginas/cuadro/CuadroCentral"));
 const Anticipos = lazy(() => import("./paginas/cuadro/CuadroAnticipos"));
 const Cartera = lazy(() => import("./paginas/seguimiento/Cartera"));
 const PagoTerceros = lazy(() => import("./paginas/seguimiento/PagoTerceros"));
-const Rentabilidad = lazy(() => import("./paginas/seguimiento/Rentabilidad"));
+const LiquidacionViajes = lazy(() => import("./paginas/seguimiento/Rentabilidad"));
 const Gastos = lazy(() => import("./paginas/gastos/Gastos"));
 const Nomina = lazy(() => import("./paginas/nomina/Nomina"));
-const Utilidades = lazy(() => import("./paginas/utilidades/Utilidades"));
+const Rentabilidad = lazy(() => import("./paginas/utilidades/Rentabilidad"));
+const RepartoSocios = lazy(() => import("./paginas/utilidades/RepartoSocios"));
 const LiquidacionConductores = lazy(() => import("./paginas/conductores/LiquidacionConductores"));
 const Preoperacional = lazy(() => import("./paginas/preoperacional/Preoperacional"));
 const Vehiculos = lazy(() => import("./paginas/vehiculos/Vehiculos"));
@@ -126,10 +127,10 @@ export default function App() {
           }
         />
         <Route
-          path="/rentabilidad"
+          path="/liquidacion-viajes"
           element={
-            <ConPermiso ruta="/rentabilidad">
-              <Rentabilidad />
+            <ConPermiso ruta="/liquidacion-viajes">
+              <LiquidacionViajes />
             </ConPermiso>
           }
         />
@@ -150,21 +151,32 @@ export default function App() {
           }
         />
         <Route
-          path="/utilidades"
+          path="/rentabilidad"
           element={
-            <ConPermiso ruta="/utilidades">
-              <Utilidades />
+            <ConPermiso ruta="/rentabilidad">
+              <Rentabilidad />
             </ConPermiso>
           }
         />
         <Route
-          path="/cuentas-vehiculos"
+          path="/reparto"
           element={
-            <ConPermiso ruta="/cuentas-vehiculos">
+            <ConPermiso ruta="/reparto">
+              <RepartoSocios />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/cuentas-conductores"
+          element={
+            <ConPermiso ruta="/cuentas-conductores">
               <LiquidacionConductores />
             </ConPermiso>
           }
         />
+        {/* Los nombres de antes: Utilidades es Rentabilidad y Cuentas vehiculos es Cuentas conductores. */}
+        <Route path="/utilidades" element={<Navigate to="/rentabilidad" replace />} />
+        <Route path="/cuentas-vehiculos" element={<Navigate to="/cuentas-conductores" replace />} />
         <Route
           path="/preoperacional"
           element={

@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_764 funciones, componentes, métodos y rutas en 120 archivos._
+_766 funciones, componentes, métodos y rutas en 121 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (247)
@@ -224,7 +224,6 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
 - [`src/paginas/Plantillas.tsx`](#srcpaginasplantillastsx) (2)
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
-- [`src/paginas/conductores/CuentaVehiculo.tsx`](#srcpaginasconductorescuentavehiculotsx) (2)
 - [`src/paginas/conductores/CuentasViaje.tsx`](#srcpaginasconductorescuentasviajetsx) (4)
 - [`src/paginas/conductores/FletesConductor.tsx`](#srcpaginasconductoresfletesconductortsx) (4)
 - [`src/paginas/conductores/Liquidacion.tsx`](#srcpaginasconductoresliquidaciontsx) (4)
@@ -283,12 +282,14 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
 - [`src/paginas/seguimiento/liquidacionDuenos.ts`](#srcpaginasseguimientoliquidacionduenosts) (7)
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
+- [`src/paginas/utilidades/CuentaVehiculo.tsx`](#srcpaginasutilidadescuentavehiculotsx) (2)
 - [`src/paginas/utilidades/DesgloseVehiculo.tsx`](#srcpaginasutilidadesdesglosevehiculotsx) (5)
 - [`src/paginas/utilidades/Empresa.tsx`](#srcpaginasutilidadesempresatsx) (3)
 - [`src/paginas/utilidades/FondosReparto.tsx`](#srcpaginasutilidadesfondosrepartotsx) (2)
 - [`src/paginas/utilidades/Participaciones.tsx`](#srcpaginasutilidadesparticipacionestsx) (2)
+- [`src/paginas/utilidades/Rentabilidad.tsx`](#srcpaginasutilidadesrentabilidadtsx) (3)
+- [`src/paginas/utilidades/RepartoSocios.tsx`](#srcpaginasutilidadesrepartosociostsx) (1)
 - [`src/paginas/utilidades/Socios.tsx`](#srcpaginasutilidadessociostsx) (3)
-- [`src/paginas/utilidades/Utilidades.tsx`](#srcpaginasutilidadesutilidadestsx) (3)
 - [`src/paginas/utilidades/excelUtilidades.ts`](#srcpaginasutilidadesexcelutilidadests) (4)
 - [`src/paginas/utilidades/pasos.ts`](#srcpaginasutilidadespasosts) (3)
 - [`src/paginas/vehiculos/PerfilVehiculo.tsx`](#srcpaginasvehiculosperfilvehiculotsx) (1)
@@ -296,7 +297,7 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
 - [`src/paginas/vehiculos/VisorCamion.tsx`](#srcpaginasvehiculosvisorcamiontsx) (2)
 - [`src/paginas/vehiculos/esquemaCamion.ts`](#srcpaginasvehiculosesquemacamionts) (6)
 - [`src/paginas/vehiculos/vistasMantenimiento.ts`](#srcpaginasvehiculosvistasmantenimientots) (8)
-- [`src/permisos.ts`](#srcpermisosts) (2)
+- [`src/permisos.ts`](#srcpermisosts) (3)
 
 ### `src/App.tsx`
 
@@ -1008,6 +1009,9 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
   - **`apiUtilidades.mes(mes)`** · _método_
     Cascada, fondos y reparto del mes ("AAAA-MM").
 
+  - **`apiUtilidades.cuentasVehiculos(mes)`** · _método_
+    La cuenta de cada vehiculo del mes (viajes, descuentos, conductor y lo que queda).
+
   - **`apiUtilidades.simular(mes, repartimos)`** · _método_
     El mes con lo que se reparte de cada vehiculo (sin guardar).
 
@@ -1057,10 +1061,7 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
     Borra un pago registrado por error.
 
 - **`apiConductores`** · _módulo_
-  Modulo Cuentas vehiculos (conductores).
-
-  - **`apiConductores.cuentasVehiculos(mes)`** · _método_
-    La cuenta de cada vehiculo del mes (viajes, descuentos, conductor y lo que queda).
+  Modulo Cuentas conductores.
 
   - **`apiConductores.fletes()`** · _método_
     Matriz de fletes conductor.
@@ -2192,28 +2193,6 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
   Muestra UNA vez la clave temporal cuando no se envio por correo (con el
   motivo, si lo hay), para dictarla o copiarla.
 
-### `src/paginas/conductores/CuentaVehiculo.tsx`
-
-> Cuenta del vehiculo (lo que era el cuadro SWK-973 en Excel): arriba cada
-> carro de la flota propia con lo que produjo y lo que le queda en el mes
-> (clic para verlo); abajo, del carro elegido:
-> - Sus viajes: flete de la empresa, descuentos, producido (flete -
->   descuentos), anticipo, saldo al dueno con su fecha de pago y, del
->   conductor, su flete conductor (integro o no), lo que gana (el % o el
->   integro), lo que gasto y el rojo.
-> - El resumen del mes: la cascada de Utilidades (fletes, descuentos,
->   anticipos y gastos directos, nomina del conductor, generales y lo que
->   queda), con los colores de Rentabilidad.
-> - Lo de cada conductor por los viajes de este carro.
-> Todo sale de lo que ya esta en el sistema (Rentabilidad, Cuentas de viaje,
-> Gastos y Nomina); si el mes esta aprobado en Utilidades, es la foto aprobada.
-
-- **`gastosDe(c)`** · _función_
-  Gastos del carro en el mes: anticipos y directos, conductor y generales.
-
-- **`CuentaVehiculo({...})`** · _componente React_
-  Cuentas de los vehiculos del mes.
-
 ### `src/paginas/conductores/CuentasViaje.tsx`
 
 > Cuentas de viaje, por vehiculo: arriba cada carro de la flota propia con
@@ -2284,14 +2263,12 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
 
 ### `src/paginas/conductores/LiquidacionConductores.tsx`
 
-> Pantalla Cuentas vehiculos: las cuentas de viaje de cada vehiculo de la
+> Pantalla Cuentas conductores: las cuentas de viaje de cada vehiculo de la
 > flota propia y la liquidacion de sus conductores, mes a mes. Solo el rol
 > total y M&C (M&C solo ve sus vehiculos; el rol total filtra por empresa,
 > Lopez o M&C, para llevar las cuentas de cada dueno).
 >
-> - Cuenta del vehiculo: lo que era el cuadro SWK-973: los viajes del carro
->   con su producido y lo del conductor, y lo que le queda en el mes (ver
->   CuentaVehiculo.tsx).
+> La cuenta de cada vehiculo (el cuadro SWK-973) esta en Rentabilidad.
 > - Cuentas de viaje: por vehiculo, la hoja de gastos de cada viaje (ver
 >   CuentasViaje.tsx).
 > - Liquidacion: por conductor, el producido conductor de sus viajes, lo de
@@ -3482,8 +3459,10 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
 
 ### `src/paginas/seguimiento/Rentabilidad.tsx`
 
-> Rentabilidad: cuanto deja cada viaje cuando el cliente le paga a la empresa
-> (reemplaza el Excel "ejemplo rentabilidad"). Una pestana por grupo de
+> Liquidacion de viajes: cuanto se le paga a cada quien por cada viaje (el
+> dueno o el tercero) despues de los impuestos y descuentos de la factura
+> (reemplaza el Excel "ejemplo rentabilidad"). Lo que deja cada carro y la
+> empresa esta en Rentabilidad. Una pestana por grupo de
 > carros (TERCEROS, CELSO, MAURICIO, MILLER, SOCIEDAD, JTY-221, SWK-973,
 > XGJ-197); las cuentas las hace el backend (src/rentabilidad.ts) con lo que
 > ya esta en el Cuadro pagos, Anticipos y Pago a terceros.
@@ -3744,6 +3723,28 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
 - **`numeroONulo(t)`** · _función_
   Texto del formulario a numero; vacio = null.
 
+### `src/paginas/utilidades/CuentaVehiculo.tsx`
+
+> Cuenta del vehiculo (lo que era el cuadro SWK-973 en Excel): arriba cada
+> carro de la flota propia con lo que produjo y lo que le queda en el mes
+> (clic para verlo); abajo, del carro elegido:
+> - Sus viajes: flete de la empresa, descuentos, producido (flete -
+>   descuentos), anticipo, saldo al dueno con su fecha de pago y, del
+>   conductor, su flete conductor (integro o no), lo que gana (el % o el
+>   integro), lo que gasto y el rojo.
+> - El resumen del mes: la cascada de Utilidades (fletes, descuentos,
+>   anticipos y gastos directos, nomina del conductor, generales y lo que
+>   queda), con los colores de Rentabilidad.
+> - Lo de cada conductor por los viajes de este carro.
+> Todo sale de lo que ya esta en el sistema (Rentabilidad, Cuentas de viaje,
+> Gastos y Nomina); si el mes esta aprobado en Utilidades, es la foto aprobada.
+
+- **`gastosDe(c)`** · _función_
+  Gastos del carro en el mes: anticipos y directos, conductor y generales.
+
+- **`CuentaVehiculo({...})`** · _componente React_
+  Cuentas de los vehiculos del mes.
+
 ### `src/paginas/utilidades/DesgloseVehiculo.tsx`
 
 > Desglose de la cascada de un vehiculo en el mes, con los colores del
@@ -3823,6 +3824,51 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
 - **`FormularioParticipacion({...})`** · _componente React_
   Nueva participacion de un vehiculo desde una fecha (por defecto, 50/50 si se agrega un segundo socio).
 
+### `src/paginas/utilidades/Rentabilidad.tsx`
+
+> Rentabilidad: cuanto deja cada carro y cuanto deja la empresa, mes a mes.
+> Lee lo que calculan los demas modulos (Liquidacion de viajes, Gastos,
+> Nomina, Cuentas conductores); no calcula nada aparte.
+>
+> - Consolidado: los carros de T. Lopez, los de T. M&C y la empresa, con el
+>   total del mes (lo de los carros es de sus duenos y socios; lo de la
+>   empresa no se reparte).
+> - Empresa: el estado de resultados (terceros + reconocidos + T. Lopez -
+>   gastos de la empresa) y el anticipo de renta aparte (ver Empresa.tsx).
+> - Vehiculos: la cascada de cada carro (fletes, descuentos, directos,
+>   conductor, generales y utilidad); clic para ver cada paso.
+> - Cuenta del vehiculo: lo que era el cuadro SWK-973, viaje por viaje (ver
+>   CuentaVehiculo.tsx).
+> El rol total ve todo y filtra los carros por empresa. M&C solo ve la cuenta
+> de sus vehiculos (y de los visibles para todos): ni la empresa, ni el
+> consolidado, ni la cascada de los demas carros. Las administrativas no
+> entran a Rentabilidad.
+> El reparto entre socios esta en Reparto a socios.
+
+- **`Rentabilidad()`** · _componente React_
+  Pantalla de rentabilidad.
+
+- **`Consolidado({...})`** · _componente React_
+  Los carros de T. Lopez, los de T. M&C y la empresa, con el total del mes.
+
+- **`Vehiculos({...})`** · _componente React_
+  Cascada por vehiculo (filtrada por empresa).
+
+### `src/paginas/utilidades/RepartoSocios.tsx`
+
+> Reparto a socios: como se reparte lo que dejaron los carros, mes a mes.
+> Lo que deja cada carro sale de Rentabilidad (su cascada).
+>
+> - Fondos y reparto: el fondo de cada vehiculo, lo que se reparte y lo que
+>   le toca a cada socio; aprobar el mes (ver FondosReparto.tsx).
+> - Participaciones: quien es dueno de cada vehiculo (sociedades).
+> - Socios: la cuenta de cada socio (saldo, netos de cada mes y pagos).
+> Las administrativas solo ven las participaciones (el reparto es del area
+> REPARTO). Aprobar y cambiar fondos, participaciones y socios: rol total.
+
+- **`RepartoSocios()`** · _componente React_
+  Pantalla del reparto a socios.
+
 ### `src/paginas/utilidades/Socios.tsx`
 
 > Socios y su cuenta: los de la empresa y los externos (los que solo estan en
@@ -3842,31 +3888,6 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
 
 - **`FormularioSocio({...})`** · _componente React_
   Formulario para crear o cambiar un socio.
-
-### `src/paginas/utilidades/Utilidades.tsx`
-
-> Pantalla Utilidades: cascada de rentabilidad por vehiculo, fondos y reparto
-> entre socios, rentabilidad de la empresa, participaciones y socios, mes a mes.
->
-> - Cascada: por vehiculo, 1. fletes, 2. descuentos del viaje, 3. costos
->   directos (anticipos de los viajes y gastos que van completos al carro),
->   4. nomina del conductor, 5. gastos generales prorrateados, 6. utilidad.
->   Clic en un vehiculo muestra cada paso con su detalle (viajes y gastos).
-> - Fondos y reparto (no lo ven las administrativas): ver FondosReparto.tsx.
-> - Empresa: ganancia de terceros (no la ve M&C) menos los gastos de la
->   empresa. No se reparte.
-> - Participaciones: quien es dueno de cada vehiculo (sociedades).
-> - Socios (no lo ven las administrativas): la cuenta de cada socio.
-> Aprobar el reparto y cambiar fondos, participaciones y socios: rol total.
-
-- **`Utilidades()`** · _componente React_
-  Pantalla de utilidades.
-
-- **`Resumen({...})`** · _componente React_
-  Totales del mes.
-
-- **`Cascada({...})`** · _componente React_
-  Cascada por vehiculo.
 
 ### `src/paginas/utilidades/excelUtilidades.ts`
 
@@ -4022,8 +4043,14 @@ _764 funciones, componentes, métodos y rutas en 120 archivos._
 > - ADMINISTRATIVO: todo menos el reparto de los socios y el cambio de roles.
 > - MYC: Transportes M&C. Todo menos la rentabilidad de los terceros (la
 >   filtra el servidor) y el cambio de roles.
-> - Conductores (cuentas de viaje y liquidacion): solo TOTAL y MYC (M&C solo
->   los vehiculos de su flota).
+> - Cuentas conductores: TOTAL y MYC (M&C solo los vehiculos de su flota y
+>   los visibles para todos); ADMINISTRATIVO solo las cuentas de viaje, sin el
+>   producido ni el saldo del conductor.
+> - Rentabilidad: TOTAL todo; MYC solo la cuenta de sus vehiculos;
+>   ADMINISTRATIVO no entra.
+
+- **`soloGastosConductores(rol)`** · _función_
+  En Cuentas conductores solo registra las cuentas de viaje, sin producido ni saldo del conductor.
 
 - **`puede(rol, area)`** · _función_
   El rol (o un rol desconocido, como administrativo) tiene esa area.

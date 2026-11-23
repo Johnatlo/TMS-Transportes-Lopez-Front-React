@@ -44,8 +44,26 @@ describe("relacion de la bomba en PDF", () => {
       numero: "AE5044797",
       fecha: "2026-10-01",
       vales: [
-        { tipo: "COMBUSTIBLE", eds: "EDS CHUSACA", vale: "V56300011898", fecha: "2026-09-30", hora: "18:47:25", placa: "SWN623", galones: 89.767, valor: 1_000_000 },
-        { tipo: "COMBUSTIBLE", eds: "EDS SAN ESTEBAN", vale: "V46300001253", fecha: "2026-09-20", hora: "19:11:55", placa: "SWN623", galones: 53.122, valor: 594_435 },
+        {
+          tipo: "COMBUSTIBLE",
+          eds: "EDS CHUSACA",
+          vale: "V56300011898",
+          fecha: "2026-09-30",
+          hora: "18:47:25",
+          placa: "SWN623",
+          galones: 89.767,
+          valor: 1_000_000,
+        },
+        {
+          tipo: "COMBUSTIBLE",
+          eds: "EDS SAN ESTEBAN",
+          vale: "V46300001253",
+          fecha: "2026-09-20",
+          hora: "19:11:55",
+          placa: "SWN623",
+          galones: 53.122,
+          valor: 594_435,
+        },
       ],
     });
   });
@@ -69,7 +87,18 @@ describe("relacion de la bomba en Excel", () => {
     expect(r).toEqual({
       numero: "AE5044797",
       fecha: "2026-10-01",
-      vales: [{ tipo: "COMBUSTIBLE", eds: "EDS CHUSACA", vale: "V56300011898", fecha: "2026-09-30", hora: "18:47:25", placa: "SWN623", galones: 89.767, valor: 1_000_000 }],
+      vales: [
+        {
+          tipo: "COMBUSTIBLE",
+          eds: "EDS CHUSACA",
+          vale: "V56300011898",
+          fecha: "2026-09-30",
+          hora: "18:47:25",
+          placa: "SWN623",
+          galones: 89.767,
+          valor: 1_000_000,
+        },
+      ],
     });
   });
 

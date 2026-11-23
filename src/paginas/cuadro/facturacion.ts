@@ -285,9 +285,7 @@ export function agruparPorCliente<T extends { razonSocial: string }>(filas: T[])
  * social. Si un cliente tiene dos numeros distintos no se puede decidir solo:
  * se devuelve en `conflictos` (uno por cliente) para que lo corrijan.
  */
-export function unificarFacturas<T extends { razonSocial: string; facturaNumero: string }>(
-  filas: T[]
-): { filas: T[]; conflictos: string[] } {
+export function unificarFacturas<T extends { razonSocial: string; facturaNumero: string }>(filas: T[]): { filas: T[]; conflictos: string[] } {
   const conflictos: string[] = [];
   const numeroDe = new Map<string, string>();
   for (const bloque of agruparPorCliente(filas)) {
@@ -324,7 +322,10 @@ export interface FilaMatrizCruda {
  *   URBANO: 28,663636 x 33.000 kg = 945.900): se pasa a valor por tonelada.
  */
 export function convertirMatriz(filas: FilaMatrizCruda[]): Omit<TarifaFlete, "id">[] {
-  const texto = (v: unknown) => String(v ?? "").replace(/\s+/g, " ").trim();
+  const texto = (v: unknown) =>
+    String(v ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
   const minimos = new Set<string>();
   const tarifas: Omit<TarifaFlete, "id">[] = [];
   for (const f of filas) {

@@ -98,9 +98,7 @@ export async function descargarCuadroEnvio(bloques: FilaEnvio[][], nombreArchivo
     for (const e of bloque) viaje(hoja, e);
   });
   const datos = await libro.xlsx.writeBuffer();
-  const url = URL.createObjectURL(
-    new Blob([datos], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
-  );
+  const url = URL.createObjectURL(new Blob([datos], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
   const enlace = document.createElement("a");
   enlace.href = url;
   enlace.download = nombreArchivo;
@@ -133,8 +131,12 @@ export async function leerMatrizFletes(archivo: File): Promise<FilaMatrizCruda[]
   let inicio = 0;
   hoja.eachRow((fila: Row, n: number) => {
     if (inicio) return;
-    const a = String(valorCelda(fila.getCell(1).value) ?? "").trim().toUpperCase();
-    const b = String(valorCelda(fila.getCell(2).value) ?? "").trim().toUpperCase();
+    const a = String(valorCelda(fila.getCell(1).value) ?? "")
+      .trim()
+      .toUpperCase();
+    const b = String(valorCelda(fila.getCell(2).value) ?? "")
+      .trim()
+      .toUpperCase();
     if (a === "EMPRESA" && b.startsWith("RAZON")) inicio = n;
   });
   if (!inicio) throw new Error('No se encontro la fila de titulos "EMPRESA | RAZON SOCIAL | VALOR | TIPO | OBSERVACIONES".');

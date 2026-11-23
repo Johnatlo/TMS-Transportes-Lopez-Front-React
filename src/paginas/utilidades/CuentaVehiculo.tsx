@@ -14,9 +14,9 @@
  * Gastos y Nomina); si el mes esta aprobado en Utilidades, es la foto aprobada.
  */
 import { useState } from "react";
-import { apiConductores, moneda } from "../../api/cliente";
+import { apiUtilidades, moneda } from "../../api/cliente";
 import type { CuentaVehiculo as Cuenta, ViajeCuentaVehiculo } from "../../api/cliente";
-import type { FiltroEmpresa } from "./LiquidacionConductores";
+import type { FiltroEmpresa } from "../conductores/LiquidacionConductores";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Indicador from "../../componentes/Indicador";
@@ -25,16 +25,16 @@ import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
-import DesgloseVehiculo from "../utilidades/DesgloseVehiculo";
-import { DESCUENTOS } from "../utilidades/pasos";
-import { Saldo } from "./CuentasViaje";
+import DesgloseVehiculo from "./DesgloseVehiculo";
+import { DESCUENTOS } from "./pasos";
+import { Saldo } from "../conductores/CuentasViaje";
 
 /** Gastos del carro en el mes: anticipos y directos, conductor y generales. */
 const gastosDe = (c: Cuenta) => c.cascada.totalDirectos + c.cascada.totalConductor + c.cascada.totalGenerales;
 
 /** Cuentas de los vehiculos del mes. */
 export default function CuentaVehiculo({ mes, empresa }: { mes: string; empresa: FiltroEmpresa }) {
-  const carga = useDatos(() => apiConductores.cuentasVehiculos(mes), [mes]);
+  const carga = useDatos(() => apiUtilidades.cuentasVehiculos(mes), [mes]);
   const [placa, setPlaca] = useState<string | null>(null);
   if (carga.cargando && !carga.datos) return <Cargando que="las cuentas de los vehiculos" />;
   if (carga.error || !carga.datos) return <ErrorCarga mensaje={carga.error ?? "Sin datos"} alReintentar={carga.recargar} />;

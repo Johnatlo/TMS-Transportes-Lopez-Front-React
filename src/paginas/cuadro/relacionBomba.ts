@@ -40,7 +40,7 @@ export async function leerPdf(archivo: File): Promise<TextoPdf[][]> {
     paginas.push(
       contenido.items
         .filter((it): it is typeof it & { str: string; transform: number[] } => "str" in it && !!it.str.trim())
-        .map((it) => ({ x: it.transform[4], y: it.transform[5], texto: it.str.trim() }))
+        .map((it) => ({ x: it.transform[4], y: it.transform[5], texto: it.str.trim() })),
     );
   }
   return paginas;
@@ -156,7 +156,7 @@ export function valesDesdeFilas(filas: unknown[][]): RelacionLeida {
     const t = f.map(titulo);
     return t.some((c) => c === "NRO DOCU" || c === "VALE") && t.includes("PLACA") && t.includes("VALOR");
   });
-  if (i < 0) throw new Error('No se encontro la fila de titulos de la relacion (Nro. Docu, Placa, Valor).');
+  if (i < 0) throw new Error("No se encontro la fila de titulos de la relacion (Nro. Docu, Placa, Valor).");
   const t = filas[i].map(titulo);
   const col = (...nombres: string[]) => t.findIndex((c) => nombres.includes(c));
   const c = {
@@ -169,14 +169,24 @@ export function valesDesdeFilas(filas: unknown[][]): RelacionLeida {
     galones: col("CANT", "CANTIDAD", "GALONES"),
     valor: col("VALOR"),
   };
-  const arriba = filas.slice(0, i).flat().map((v) => String(v ?? "").trim());
+  const arriba = filas
+    .slice(0, i)
+    .flat()
+    .map((v) => String(v ?? "").trim());
   const numero = arriba.find((v) => NUMERO_FACTURA.test(v)) ?? null;
-  const fechaArriba = filas.slice(0, i).flat().map((v) => fechaCelda(v) ?? fechaDma(String(v ?? ""))).find(Boolean) ?? null;
+  const fechaArriba =
+    filas
+      .slice(0, i)
+      .flat()
+      .map((v) => fechaCelda(v) ?? fechaDma(String(v ?? "")))
+      .find(Boolean) ?? null;
   const vales: ValeBomba[] = [];
   for (const f of filas.slice(i + 1)) {
     const valor = numeroCelda(f[c.valor]);
-    const placa = String(f[c.placa] ?? "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
-    const fechaVale = c.fecha >= 0 ? fechaCelda(f[c.fecha]) ?? fechaDma(String(f[c.fecha] ?? "")) : null;
+    const placa = String(f[c.placa] ?? "")
+      .replace(/[^A-Z0-9]/gi, "")
+      .toUpperCase();
+    const fechaVale = c.fecha >= 0 ? (fechaCelda(f[c.fecha]) ?? fechaDma(String(f[c.fecha] ?? ""))) : null;
     if (!valor || !placa || !fechaVale) continue;
     const cantidad = c.galones >= 0 ? (typeof f[c.galones] === "number" ? (f[c.galones] as number) : galonesTexto(String(f[c.galones] ?? ""))) : null;
     const tipo = tipoDeVale(c.producto >= 0 ? String(f[c.producto] ?? "") : null, cantidad);

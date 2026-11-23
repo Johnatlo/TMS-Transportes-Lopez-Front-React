@@ -116,7 +116,9 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
         t.cuadroViajeId ? (
           <>
             <span>{t.empresa ?? "-"}</span>
-            <span className="dato-sec">{[t.remision && `Rem. ${t.remision}`, t.manifiesto ? `Manif. ${t.manifiesto}` : "Sin manifiesto"].filter(Boolean).join(" · ")}</span>
+            <span className="dato-sec">
+              {[t.remision && `Rem. ${t.remision}`, t.manifiesto ? `Manif. ${t.manifiesto}` : "Sin manifiesto"].filter(Boolean).join(" · ")}
+            </span>
             <LinksViaje remisionUrl={t.remisionUrl} facturaUrl={t.facturaUrl} />
           </>
         ) : (
@@ -149,6 +151,7 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
         <>
           <span className="codigo">{t.facturaBomba ?? "-"}</span>
           {t.fechaFacturaBomba && <span className="dato-sec">{fechaCorta(t.fechaFacturaBomba)}</span>}
+          {t.fechaVencimientoBomba && <span className="dato-sec">vence {fechaCorta(t.fechaVencimientoBomba)}</span>}
         </>
       ),
     },

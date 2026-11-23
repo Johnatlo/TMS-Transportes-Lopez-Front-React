@@ -367,7 +367,7 @@ export default function DetalleCuadro({
             ) : (
               <div className="dato-sec">
                 {d.dueno ? `Vehiculo de ${d.dueno} (socio)` : `Vehiculo de la flota propia (${ETIQUETA_FLOTA[d.flota]})`}: la fecha en que se
-                le pago o se le repartio lo del viaje. Lo que le toca se ve en <Link to="/rentabilidad">Rentabilidad</Link>.
+                le pago o se le repartio lo del viaje. Lo que le toca se ve en <Link to="/liquidacion-viajes">Liquidacion de viajes</Link>.
               </div>
             )}
           </Seccion>

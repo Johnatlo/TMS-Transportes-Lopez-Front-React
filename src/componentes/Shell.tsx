@@ -89,11 +89,12 @@ const GRUPOS: Array<{ id: string; titulo: string | null; secciones: Seccion[] }>
     id: "finanzas",
     titulo: "Finanzas",
     secciones: [
-      { ruta: "/rentabilidad", etiqueta: "Rentabilidad", icono: <IconoGrafica /> },
+      { ruta: "/liquidacion-viajes", etiqueta: "Liquidacion de viajes", icono: <IconoDocumento /> },
       { ruta: "/gastos", etiqueta: "Gastos", icono: <IconoRecibo /> },
       { ruta: "/nomina", etiqueta: "Nomina", icono: <IconoNomina /> },
-      { ruta: "/utilidades", etiqueta: "Utilidades", icono: <IconoTorta /> },
-      { ruta: "/cuentas-vehiculos", etiqueta: "Cuentas vehiculos", icono: <IconoCuentaViaje /> },
+      { ruta: "/cuentas-conductores", etiqueta: "Cuentas conductores", icono: <IconoCuentaViaje /> },
+      { ruta: "/rentabilidad", etiqueta: "Rentabilidad", icono: <IconoGrafica /> },
+      { ruta: "/reparto", etiqueta: "Reparto a socios", icono: <IconoTorta /> },
     ],
   },
   {
@@ -264,12 +265,7 @@ export default function Shell() {
                 )}
                 {(abierto || contraido) &&
                   visibles.map((s) => (
-                    <NavLink
-                      key={s.ruta}
-                      to={s.ruta}
-                      title={s.etiqueta}
-                      className={({ isActive }) => (isActive ? "active" : undefined)}
-                    >
+                    <NavLink key={s.ruta} to={s.ruta} title={s.etiqueta} className={({ isActive }) => (isActive ? "active" : undefined)}>
                       <span className="icon">{s.icono}</span>
                       <span className="solo-expandido">{s.etiqueta}</span>
                     </NavLink>
@@ -334,21 +330,12 @@ export default function Shell() {
                 );
               })}
             </div>
-            <button
-              className="boton-redondo"
-              title="Documentos vencidos o por vencer"
-              onClick={() => setVerAlertas(true)}
-              disabled={!alertas.datos}
-            >
+            <button className="boton-redondo" title="Documentos vencidos o por vencer" onClick={() => setVerAlertas(true)} disabled={!alertas.datos}>
               <IconoCampana />
               {pendientes > 0 && <span className="punto-contador">{pendientes > 99 ? "99+" : pendientes}</span>}
             </button>
             <div className="menu-usuario-contenedor">
-              <button
-                className="avatar-usuario"
-                title={usuario ? `${usuario.nombre} (${usuario.email})` : ""}
-                onClick={() => setMenuUsuario(!menuUsuario)}
-              >
+              <button className="avatar-usuario" title={usuario ? `${usuario.nombre} (${usuario.email})` : ""} onClick={() => setMenuUsuario(!menuUsuario)}>
                 {iniciales}
               </button>
               {menuUsuario && (

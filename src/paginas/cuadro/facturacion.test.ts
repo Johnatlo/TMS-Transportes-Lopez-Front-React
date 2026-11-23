@@ -21,7 +21,7 @@ const tarifa = (
   razonSocial: string | null,
   valor: number | null,
   tipo: TarifaFlete["tipo"] = "TON",
-  pesoMinimoKg: number | null = null
+  pesoMinimoKg: number | null = null,
 ): TarifaFlete => ({ id: ++id, nombre, razonSocial, valor, tipo, pesoMinimoKg, pesoFijoKg: null, observaciones: null });
 
 // Nombres reales de la matriz.
@@ -58,19 +58,29 @@ describe("peso, total y nota", () => {
   });
   test("nota como la del ejemplo", () => {
     expect(placaConGuion("szp339")).toBe("SZP-339");
-    expect(
-      notaFactura({ flujoCorame: false, remision: "1111", placa: "SZP339", tipo: "TON", pesoKg: 34000, valorTon: 150000, total: null })
-    ).toBe("REMISION 1111 TON 34,000 $150,000 SZP-339");
+    expect(notaFactura({ flujoCorame: false, remision: "1111", placa: "SZP339", tipo: "TON", pesoKg: 34000, valorTon: 150000, total: null })).toBe(
+      "REMISION 1111 TON 34,000 $150,000 SZP-339",
+    );
     // Reconocido de Cartones America: el concepto y su manifiesto en vez de la remision.
     expect(
-      notaFactura({ flujoCorame: true, concepto: "RECONOCIDO CORAME", reconocidoDe: "00006852", remision: "", placa: "SZX826", tipo: "TON", pesoKg: 1638, valorTon: 168000, total: null })
+      notaFactura({
+        flujoCorame: true,
+        concepto: "RECONOCIDO CORAME",
+        reconocidoDe: "00006852",
+        remision: "",
+        placa: "SZX826",
+        tipo: "TON",
+        pesoKg: 1638,
+        valorTon: 168000,
+        total: null,
+      }),
     ).toBe("RECONOCIDO CORAME MANIFIESTO 00006852 TON 1,638 $168,000 SZX-826");
-    expect(
-      notaFactura({ flujoCorame: true, remision: "1261139", placa: "XJB207", tipo: "TON", pesoKg: 1067, valorTon: 168000, total: null })
-    ).toBe("TRANSPORTE 1261139 TON 1,067 $168,000 XJB-207");
-    expect(
-      notaFactura({ flujoCorame: false, remision: "88", placa: "TEK298", tipo: "FIJO", pesoKg: 30000, valorTon: null, total: 4569079 })
-    ).toBe("REMISION 88 $4,569,079 TEK-298");
+    expect(notaFactura({ flujoCorame: true, remision: "1261139", placa: "XJB207", tipo: "TON", pesoKg: 1067, valorTon: 168000, total: null })).toBe(
+      "TRANSPORTE 1261139 TON 1,067 $168,000 XJB-207",
+    );
+    expect(notaFactura({ flujoCorame: false, remision: "88", placa: "TEK298", tipo: "FIJO", pesoKg: 30000, valorTon: null, total: 4569079 })).toBe(
+      "REMISION 88 $4,569,079 TEK-298",
+    );
   });
 });
 
@@ -143,7 +153,7 @@ describe("fila del cuadro de envio", () => {
         notaFactura: "NOTA GUARDADA",
         facturaNumero: "TL 1111",
       }),
-      MATRIZ
+      MATRIZ,
     );
     expect(e.incluir).toBe(false);
     expect(e.valorTon).toBe(150);
@@ -171,10 +181,7 @@ describe("tarifas POR y POR3 (2 y 3 clientes)", () => {
     expect(totalDe(aplicarTarifa(fila(), dekorando))).toBe(5850000);
   });
   test("el adicional guardado vuelve al abrir un viaje ya enviado", () => {
-    const e = filaInicial(
-      viaje({ enviadoFacturarEn: "2026-10-12T15:00:00Z", tarifaKilo: 195, pesoFacturadoKg: 30000, fleteAdicional: 300000 }),
-      []
-    );
+    const e = filaInicial(viaje({ enviadoFacturarEn: "2026-10-12T15:00:00Z", tarifaKilo: 195, pesoFacturadoKg: 30000, fleteAdicional: 300000 }), []);
     expect(totalDe(e)).toBe(6150000);
   });
   test("una tarifa sin valor deja el valor vacio para escribirlo a mano", () => {

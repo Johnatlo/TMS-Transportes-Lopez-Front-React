@@ -50,6 +50,7 @@ export function columnasAnticipos(tramos: AnticipoBomba[]): ColumnaTabla[] {
     col("EDS", (t) => t.bomba ?? "SOLO EFECTIVO"),
     col("N° FACTURA", (t) => t.facturaBomba ?? ""),
     col("FECHA FACTURA", (t) => t.fechaFacturaBomba),
+    col("FECHA VENCIMIENTO", (t) => t.fechaVencimientoBomba ?? null),
     col("EMPRESA DEL VEHICULO", (t) => flotaTexto(t.flota)),
     col("FECHA DE PAGO", (t) => t.fechaPago),
   ];

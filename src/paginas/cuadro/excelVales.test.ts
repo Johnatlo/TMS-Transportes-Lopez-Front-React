@@ -11,7 +11,19 @@ const relacion = (numero: string, vales: Array<Partial<RelacionBomba["vales"][nu
   total: 0,
   fechaPago: null,
   nota: null,
-  vales: vales.map((v, i) => ({ id: i + 1, tipo: "COMBUSTIBLE", eds: "EDS CHUSACA", vale: `V${i}`, fecha: "2026-09-01", hora: null, placa: "SWO594", galones: 98, valor: 0, tramoId: null, ...v })),
+  vales: vales.map((v, i) => ({
+    id: i + 1,
+    tipo: "COMBUSTIBLE",
+    eds: "EDS CHUSACA",
+    vale: `V${i}`,
+    fecha: "2026-09-01",
+    hora: null,
+    placa: "SWO594",
+    galones: 98,
+    valor: 0,
+    tramoId: null,
+    ...v,
+  })),
 });
 
 const tramo = { id: 10, fecha: "2026-09-01", placa: "SWO594", bomba: "CHUSACA", flota: "LOPEZ" } as AnticipoBomba;
@@ -19,9 +31,14 @@ const tramo = { id: 10, fecha: "2026-09-01", placa: "SWO594", bomba: "CHUSACA", 
 describe("filasVales", () => {
   test("una fila por tanqueo y factura con el efectivo y el combustible de sus vales", () => {
     const filas = filasVales(
-      [relacion("AE5043413", [{ tipo: "COMBUSTIBLE", valor: 1_100_000, tramoId: 10 }, { tipo: "EFECTIVO", valor: 1_100_000, tramoId: 10, galones: null }])],
+      [
+        relacion("AE5043413", [
+          { tipo: "COMBUSTIBLE", valor: 1_100_000, tramoId: 10 },
+          { tipo: "EFECTIVO", valor: 1_100_000, tramoId: 10, galones: null },
+        ]),
+      ],
       [tramo],
-      "2026-10-08"
+      "2026-10-08",
     );
     expect(filas).toEqual([
       {

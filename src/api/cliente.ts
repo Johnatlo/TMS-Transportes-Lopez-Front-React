@@ -837,6 +837,8 @@ export interface AnticipoBomba {
   bomba: string | null;
   facturaBomba: string | null;
   fechaFacturaBomba: string | null;
+  /** Vencimiento de la factura de la bomba. */
+  fechaVencimientoBomba?: string | null;
   idaYVuelta: boolean;
   /** LOPEZ, MYC o TERCERO. */
   flota: string | null;
@@ -2425,6 +2427,8 @@ export interface ViajeTerceroUtilidad {
   rentabilidad: number;
   anticipoRenta: number;
   ganancia: number;
+  /** Sin valor pactado con el tercero: su rentabilidad no es real. */
+  sinPactar?: boolean;
 }
 
 /** Cascada, fondos, reparto y empresa de un mes. */
@@ -2537,6 +2541,9 @@ export interface CuentaSocio extends SocioUtilidad {
 export const apiUtilidades = {
   /** Cascada, fondos y reparto del mes ("AAAA-MM"). */
   mes: (mes: string) => get<UtilidadesMes>(`/utilidades/${mes}`),
+  /** La cuenta de cada vehiculo del mes (viajes, descuentos, conductor y lo que queda). */
+  cuentasVehiculos: (mes: string) =>
+    get<{ mes: string; aprobado: boolean; cerrado: boolean; vehiculos: CuentaVehiculo[] }>(`/utilidades/cuentas-vehiculos/${encodeURIComponent(mes)}`),
   /** El mes con lo que se reparte de cada vehiculo (sin guardar). */
   simular: (mes: string, repartimos: Record<number, number>) => post<UtilidadesMes>(`/utilidades/${mes}/simular`, { repartimos }),
   /** Meses con reparto aprobado. */
@@ -2740,11 +2747,8 @@ export interface CuentaVehiculo {
   conductores: Array<{ nombre: string; viajes: number; pagoConductor: number; rojo: number; alConductor: number }>;
 }
 
-/** Modulo Cuentas vehiculos (conductores). */
+/** Modulo Cuentas conductores. */
 export const apiConductores = {
-  /** La cuenta de cada vehiculo del mes (viajes, descuentos, conductor y lo que queda). */
-  cuentasVehiculos: (mes: string) =>
-    get<{ mes: string; aprobado: boolean; cerrado: boolean; vehiculos: CuentaVehiculo[] }>(`/conductores/cuentas-vehiculos?mes=${encodeURIComponent(mes)}`),
   /** Matriz de fletes conductor. */
   fletes: () => get<TarifaConductor[]>("/conductores/fletes"),
   /** Guarda el flete conductor de una tarifa desde una fecha. */

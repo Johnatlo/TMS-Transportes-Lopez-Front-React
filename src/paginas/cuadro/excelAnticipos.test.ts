@@ -20,6 +20,7 @@ const tramo = (cambios: Partial<AnticipoBomba>): AnticipoBomba => ({
   bomba: "CHUSACA",
   facturaBomba: "AE5043413",
   fechaFacturaBomba: "2026-09-16",
+  fechaVencimientoBomba: "2026-10-16",
   idaYVuelta: true,
   flota: "LOPEZ",
   fechaPago: "2026-10-08",
@@ -60,6 +61,8 @@ describe("Excel del cuadro de anticipos", () => {
     expect(valor("EMPRESA PROV")).toEqual(["CORONA", "CORONA", "MADEIROS"]);
     expect(valor("PLACA")).toEqual(["SRO-029", "SWO-594", "SWO-594"]);
     expect(valor("N° FACTURA")).toEqual(["AE5043413", "AE5043413", "AE5043413"]);
+    // La fecha de vencimiento de la factura de la bomba, despues de la fecha de la factura.
+    expect(valor("FECHA VENCIMIENTO")).toEqual(["2026-10-16", "2026-10-16", "2026-10-16"]);
   });
 
   test("una vuelta sin viaje todavia sale como vuelta pendiente", () => {

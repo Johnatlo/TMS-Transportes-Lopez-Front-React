@@ -41,9 +41,7 @@ describe("color y nombre del estado (los colores del Excel)", () => {
     expect(muestraFactura(facturado)).toBe(true);
     expect(textoEstados(facturado)).toBe("Listo para facturar · Facturado");
     expect(tonoEstadoFactura("FACTURADO_SIN_DATOS")).toBe("azul");
-    expect(textoEstados({ ...facturado, estado: "SIN_RADICAR", estadoFactura: "FACTURADO_SIN_DATOS" })).toBe(
-      "Sin radicar · Facturado sin datos"
-    );
+    expect(textoEstados({ ...facturado, estado: "SIN_RADICAR", estadoFactura: "FACTURADO_SIN_DATOS" })).toBe("Sin radicar · Facturado sin datos");
     expect(muestraFactura({ ...facturado, estadoFactura: "SIN_FACTURAR" })).toBe(false);
     const pagado = { estado: "PAGADO" as const, estadoFactura: "FACTURADO" as const, todoPagado: true };
     expect(muestraFactura(pagado)).toBe(false);

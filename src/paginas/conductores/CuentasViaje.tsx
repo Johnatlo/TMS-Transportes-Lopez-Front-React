@@ -10,6 +10,8 @@
  * gastos (gasto del vehiculo) y en Utilidades el viaje cuenta lo gastado.
  */
 import { useState } from "react";
+import { useSesion } from "../../ganchos/useSesion";
+import { soloGastosConductores } from "../../permisos";
 import { apiConductores, moneda } from "../../api/cliente";
 import type { ConceptoCuenta, EmpresaGasto, ViajeConductor } from "../../api/cliente";
 import type { FiltroEmpresa } from "./LiquidacionConductores";
@@ -62,6 +64,9 @@ function porVehiculo(viajes: ViajeConductor[]): ResumenVehiculo[] {
 
 /** Cuentas de viaje del mes, por vehiculo. */
 export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: FiltroEmpresa }) {
+  const { usuario } = useSesion();
+  // Las administrativas registran los gastos sin ver el producido ni el saldo del conductor.
+  const verPagos = !soloGastosConductores(usuario?.rol);
   const carga = useDatos(() => apiConductores.viajes(mes), [mes]);
   const [abierto, setAbierto] = useState<ViajeConductor | null>(null);
   /** Carro elegido (null = todos los de la empresa). */
@@ -141,11 +146,12 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
       celda: (v) => (v.cuenta ? <Saldo valor={v.cuenta.saldo} /> : <Pastilla tono="aviso">Sin cuenta</Pastilla>),
     },
   ];
+  const columnasVisibles = verPagos ? columnas : columnas.filter((c) => c.id !== "producido" && c.id !== "saldo");
   const pestanas: PestanaTabla<ViajeConductor>[] = [
     { id: "todos", etiqueta: "Todos", incluye: () => true },
     { id: "sin", etiqueta: "Sin cuenta", incluye: (v) => !v.cuenta },
     { id: "con", etiqueta: "Con cuenta", incluye: (v) => !!v.cuenta },
-    { id: "sinProducido", etiqueta: "Sin producido conductor", incluye: (v) => v.producido === null },
+    ...(verPagos ? [{ id: "sinProducido", etiqueta: "Sin producido conductor", incluye: (v: ViajeConductor) => v.producido === null }] : []),
   ];
 
   return (
@@ -173,7 +179,7 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
             </span>
             <span className="vehiculo-cuenta-valores">
               <span>Gastos {moneda(r.gastos)}</span>
-              <Saldo valor={r.saldo} />
+              {verPagos && <Saldo valor={r.saldo} />}
             </span>
           </button>
         ))}
@@ -191,18 +197,22 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
           valor={moneda(conCuenta.reduce((s, v) => s + (v.cuenta?.total ?? 0), 0))}
           detalle="segun las cuentas de viaje"
         />
-        <Indicador
-          dinero
-          titulo="Saldo con los conductores"
-          valor={moneda(conCuenta.reduce((s, v) => s + (v.cuenta?.saldo ?? 0), 0))}
-          detalle="+ se les debe / - deben"
-        />
-        <Indicador titulo="Sin producido conductor" valor={sinProducido.length} detalle="viajes sin valor en la matriz" alerta={sinProducido.length > 0} />
+        {verPagos && (
+          <Indicador
+            dinero
+            titulo="Saldo con los conductores"
+            valor={moneda(conCuenta.reduce((s, v) => s + (v.cuenta?.saldo ?? 0), 0))}
+            detalle="+ se les debe / - deben"
+          />
+        )}
+        {verPagos && (
+          <Indicador titulo="Sin producido conductor" valor={sinProducido.length} detalle="viajes sin valor en la matriz" alerta={sinProducido.length > 0} />
+        )}
       </div>
       <div className="panel">
         <TablaDatos
           filas={viajes}
-          columnas={columnas}
+          columnas={columnasVisibles}
           clave={(v) => v.cuadroViajeId}
           pestanas={pestanas}
           nombreArchivo={`cuentas-de-viaje-${elegido ?? (empresa === "TODAS" ? "todos" : empresa.toLowerCase())}-${mes}`}
@@ -213,6 +223,7 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
       </div>
       {abierto && (
         <FormularioCuenta
+          verPagos={verPagos}
           viaje={abierto}
           mes={mes}
           alCerrar={() => setAbierto(null)}
@@ -227,7 +238,20 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
 }
 
 /** La hoja de cuenta de un viaje. */
-function FormularioCuenta({ viaje, mes, alCerrar, alGuardar }: { viaje: ViajeConductor; mes: string; alCerrar: () => void; alGuardar: () => void }) {
+function FormularioCuenta({
+  viaje,
+  mes,
+  verPagos,
+  alCerrar,
+  alGuardar,
+}: {
+  viaje: ViajeConductor;
+  mes: string;
+  /** false: sin el producido ni el saldo del conductor (administrativas). */
+  verPagos: boolean;
+  alCerrar: () => void;
+  alGuardar: () => void;
+}) {
   const c = viaje.cuenta;
   const [valores, setValores] = useState<Record<ConceptoCuenta, string>>(
     () => Object.fromEntries(CONCEPTOS.map(([k]) => [k, c && (k !== "acpm" || c.acpmManual) && c[k] ? String(c[k]) : ""])) as Record<ConceptoCuenta, string>,
@@ -247,7 +271,7 @@ function FormularioCuenta({ viaje, mes, alCerrar, alGuardar }: { viaje: ViajeCon
         ...Object.fromEntries(CONCEPTOS.map(([k]) => [k, valores[k].trim() === "" ? (k === "acpm" ? null : 0) : Number(valores[k])])),
         otrosConcepto,
         nota,
-        producidoManual: producido.trim() === "" ? null : Number(producido),
+        ...(verPagos ? { producidoManual: producido.trim() === "" ? null : Number(producido) } : {}),
       });
       alGuardar();
     } catch (exc) {
@@ -351,30 +375,36 @@ function FormularioCuenta({ viaje, mes, alCerrar, alGuardar }: { viaje: ViajeCon
                 <td className="num">{moneda(t.total)}</td>
               </tr>
             </tbody>
-            <tbody className="desglose-resultado">
-              <tr className="desglose-total">
-                <td>{textoSaldo(t.saldo)}</td>
-                <td className="num">
-                  <Saldo valor={t.saldo} />
-                </td>
-              </tr>
-            </tbody>
+            {verPagos && (
+              <tbody className="desglose-resultado">
+                <tr className="desglose-total">
+                  <td>{textoSaldo(t.saldo)}</td>
+                  <td className="num">
+                    <Saldo valor={t.saldo} />
+                  </td>
+                </tr>
+              </tbody>
+            )}
           </table>
-          <label className="campo-ancho" style={{ marginTop: "0.8rem" }}>
-            <span>Producido conductor</span>
-            <input
-              type="number"
-              step="any"
-              value={producido}
-              placeholder={viaje.producidoMatriz === null ? "Sin valor en la matriz" : String(viaje.producidoMatriz)}
-              onChange={(e) => setProducido(e.target.value)}
-            />
-          </label>
-          <div className="dato-sec">
-            {viaje.producidoMatriz === null
-              ? `Sin valor en la matriz${viaje.tarifa ? ` para ${viaje.tarifa}` : " (el viaje no tiene tarifa)"}: escribelo aqui.`
-              : `De la matriz (${viaje.tarifa}): ${moneda(viaje.producidoMatriz)}. Vacio = ese valor.`}
-          </div>
+          {verPagos && (
+            <>
+              <label className="campo-ancho" style={{ marginTop: "0.8rem" }}>
+                <span>Producido conductor</span>
+                <input
+                  type="number"
+                  step="any"
+                  value={producido}
+                  placeholder={viaje.producidoMatriz === null ? "Sin valor en la matriz" : String(viaje.producidoMatriz)}
+                  onChange={(e) => setProducido(e.target.value)}
+                />
+              </label>
+              <div className="dato-sec">
+                {viaje.producidoMatriz === null
+                  ? `Sin valor en la matriz${viaje.tarifa ? ` para ${viaje.tarifa}` : " (el viaje no tiene tarifa)"}: escribelo aqui.`
+                  : `De la matriz (${viaje.tarifa}): ${moneda(viaje.producidoMatriz)}. Vacio = ese valor.`}
+              </div>
+            </>
+          )}
           <label className="campo-ancho" style={{ marginTop: "0.6rem" }}>
             <span>Nota (opcional)</span>
             <input value={nota} maxLength={300} onChange={(e) => setNota(e.target.value)} />
