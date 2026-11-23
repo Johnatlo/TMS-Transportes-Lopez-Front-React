@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_762 funciones, componentes, métodos y rutas en 120 archivos._
+_764 funciones, componentes, métodos y rutas en 120 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (247)
@@ -284,7 +284,7 @@ _762 funciones, componentes, métodos y rutas en 120 archivos._
 - [`src/paginas/seguimiento/liquidacionPago.ts`](#srcpaginasseguimientoliquidacionpagots) (3)
 - [`src/paginas/seguimiento/liquidacionTerceros.ts`](#srcpaginasseguimientoliquidaciontercerosts) (2)
 - [`src/paginas/utilidades/DesgloseVehiculo.tsx`](#srcpaginasutilidadesdesglosevehiculotsx) (5)
-- [`src/paginas/utilidades/Empresa.tsx`](#srcpaginasutilidadesempresatsx) (1)
+- [`src/paginas/utilidades/Empresa.tsx`](#srcpaginasutilidadesempresatsx) (3)
 - [`src/paginas/utilidades/FondosReparto.tsx`](#srcpaginasutilidadesfondosrepartotsx) (2)
 - [`src/paginas/utilidades/Participaciones.tsx`](#srcpaginasutilidadesparticipacionestsx) (2)
 - [`src/paginas/utilidades/Socios.tsx`](#srcpaginasutilidadessociostsx) (3)
@@ -3769,13 +3769,27 @@ _762 funciones, componentes, métodos y rutas en 120 archivos._
 
 ### `src/paginas/utilidades/Empresa.tsx`
 
-> Rentabilidad de la empresa en el mes: la ganancia de los viajes de terceros
-> (de Rentabilidad) menos los gastos que asume la empresa (los que en el libro
-> van a "Empresa", no a un carro ni a un socio). No se reparte entre socios.
-> Transportes M&C no ve la de los terceros (se la quita el servidor).
+> Estado de resultados de la empresa en el mes (lo que es de la empresa y no
+> se reparte entre socios), con los colores del desglose de Rentabilidad:
+>   + rentabilidad de los viajes de terceros (antes del anticipo de renta)
+>   + reconocidos de todos los carros (convenio entre empresas: son de la
+>     empresa, con los descuentos de su factura)
+>   + T. Lopez cobrado en los viajes
+>   - gastos que asume la empresa (los que en el libro van a "Empresa")
+>   = utilidad de la empresa.
+> El anticipo de renta va aparte: es impuesto pagado por adelantado que se
+> cruza en la declaracion (el de terceros y reconocidos lo asume la empresa;
+> el de los carros de socios se les descuenta a ellos).
+> Transportes M&C no ve lo de los terceros (se lo quita el servidor).
+
+- **`Renglon({...})`** · _componente React_
+  Un renglon del estado de resultados: "+" suma, "-" resta, "=" total.
+
+- **`Titulo({...})`** · _componente React_
+  Titulo de un bloque.
 
 - **`Empresa({...})`** · _componente React_
-  Rentabilidad de la empresa del mes.
+  Estado de resultados de la empresa del mes.
 
 ### `src/paginas/utilidades/FondosReparto.tsx`
 

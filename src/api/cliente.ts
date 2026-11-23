@@ -2450,13 +2450,36 @@ export interface UtilidadesMes {
   }>;
   socios: RepartoSocioUtilidad[];
   sinParticipacion: string[];
+  /** Estado de resultados de la empresa: terceros + reconocidos + T. Lopez - gastos; el anticipo de renta aparte. */
   empresa: {
     viajesTerceros: number;
+    /** Rentabilidad de los viajes de terceros, antes del anticipo de renta. */
     gananciaTerceros: number;
-    detalleTerceros: ViajeTerceroUtilidad[];
-    gastos: PartidaUtilidad[];
+    reconocidos: number;
+    tLopez: number;
+    ingresos: number;
     totalGastos: number;
     utilidad: number;
+    /** Impuesto pagado por adelantado (no es gasto). */
+    anticipoRenta: { asumido: number; descontadoSocios: number; total: number };
+    despuesDeAnticipo: number;
+    detalleTerceros: ViajeTerceroUtilidad[];
+    detalleReconocidos: Array<{
+      id: number;
+      fecha: string;
+      placa: string;
+      propio: boolean;
+      cliente: string;
+      manifiesto: string | null;
+      remisionUrl: string | null;
+      facturaUrl: string | null;
+      flete: number;
+      descuentos: number;
+      ingreso: number;
+      anticipoRenta: number;
+    }>;
+    detalleTLopez: Array<{ placa: string; propio: boolean; viajes: number; total: number }>;
+    gastos: PartidaUtilidad[];
   };
 }
 
