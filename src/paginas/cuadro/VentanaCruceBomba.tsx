@@ -57,15 +57,7 @@ const etiquetaTramo = (t: AnticipoBomba, tipo: TipoVale) =>
   `${fechaCorta(t.fecha)} · ${t.bomba ?? "-"} · ${t.tramo === "VUELTA" ? "vuelta" : "ida"} · ${t.empresa ?? "vuelta pendiente"} · ${tipo === "EFECTIVO" ? "efectivo" : "combustible"} ${moneda(montoDe(t, tipo))}`;
 
 /** Ventana del cruce: facturas cruzadas y nueva relacion. */
-export default function VentanaCruceBomba({
-  tramos,
-  alCerrar,
-  alCambiar,
-}: {
-  tramos: AnticipoBomba[];
-  alCerrar: () => void;
-  alCambiar: () => void;
-}) {
+export default function VentanaCruceBomba({ tramos, alCerrar, alCambiar }: { tramos: AnticipoBomba[]; alCerrar: () => void; alCambiar: () => void }) {
   const relaciones = useDatos(() => apiCuadro.relacionesBomba(), []);
   // Abonos del socio y pagos ya hechos (para el pago de la quincena).
   const extra = useDatos(() => Promise.all([apiCuadro.abonosSocio(), apiCuadro.pagosBomba()]), []);
@@ -101,7 +93,7 @@ export default function VentanaCruceBomba({
         filas,
         abonos: abs.map((a) => ({ etiqueta: `${a.socio} ${fechaCorta(a.fecha)}`, valor: a.valor })),
       },
-      `vales-bomba-${fechaPago ?? hoyColombia()}`
+      `vales-bomba-${fechaPago ?? hoyColombia()}`,
     );
   }
 
@@ -147,10 +139,9 @@ export default function VentanaCruceBomba({
       }
     >
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
-        La bomba manda cada quincena la relacion de vales de su factura (los tanqueos de ese periodo). Al cruzarla, cada
-        vale queda con su tanqueo, el combustible pasa a ser lo que cobra la bomba y el tanqueo se pinta de verde en el
-        cuadro. Escribe cuando vence cada factura (avisa 5 dias antes en la campana) y, cuando se le pague a la bomba, la
-        fecha de pago.
+        La bomba manda cada quincena la relacion de vales de su factura (los tanqueos de ese periodo). Al cruzarla, cada vale queda con su tanqueo, el
+        combustible pasa a ser lo que cobra la bomba y el tanqueo se pinta de verde en el cuadro. Escribe cuando vence cada factura (avisa 5 dias antes en la
+        campana) y, cuando se le pague a la bomba, la fecha de pago.
       </div>
       {error && <div className="alert danger">{error}</div>}
       {!datos && relaciones.cargando && <Cargando que="las facturas de la bomba" />}
@@ -261,7 +252,14 @@ export default function VentanaCruceBomba({
                     <td className="num">
                       <button
                         className="boton-suave"
-                        onClick={() => exportar(rels, abonos.filter((a) => p.abonos.includes(a.id)), p.fecha, p.id)}
+                        onClick={() =>
+                          exportar(
+                            rels,
+                            abonos.filter((a) => p.abonos.includes(a.id)),
+                            p.fecha,
+                            p.id,
+                          )
+                        }
                       >
                         Exportar Excel
                       </button>{" "}
@@ -329,12 +327,14 @@ function PagoQuincena({
     <div className="detalle-tanqueo" style={{ marginTop: "1rem" }}>
       <h4 style={{ margin: "0 0 0.4rem" }}>Pago de la quincena</h4>
       <div className="dato-sec" style={{ marginBottom: "0.5rem" }}>
-        Marca las facturas que se le pagan a la bomba y los abonos de los socios que se descuentan. Exporta el Excel para
-        revisarlo y, cuando se haga la transferencia, registra el pago.
+        Marca las facturas que se le pagan a la bomba y los abonos de los socios que se descuentan. Exporta el Excel para revisarlo y, cuando se haga la
+        transferencia, registra el pago.
       </div>
       <div className="campos-cuadro" style={{ alignItems: "flex-start" }}>
         <div>
-          <label>Facturas ({rels.length} de {facturas.length})</label>
+          <label>
+            Facturas ({rels.length} de {facturas.length})
+          </label>
           {facturas.map((x) => (
             <label key={x.id} className="check-linea" style={{ margin: "0.15rem 0" }}>
               <input type="checkbox" checked={marcadas.has(x.id)} onChange={() => alternar(marcadas, setMarcadas, x.id)} />
@@ -364,7 +364,12 @@ function PagoQuincena({
           Facturas <strong>{moneda(r.total)}</strong> · abonos <strong>- {moneda(r.totalAbonos)}</strong> · a pagar{" "}
           <strong style={{ fontSize: "1.1em" }}>{moneda(r.aPagar)}</strong>
         </span>
-        <button className="boton-barra" style={{ marginLeft: "auto" }} disabled={trabajando || rels.length === 0} onClick={() => accion(() => alExportar(rels, abs, fecha))}>
+        <button
+          className="boton-barra"
+          style={{ marginLeft: "auto" }}
+          disabled={trabajando || rels.length === 0}
+          onClick={() => accion(() => alExportar(rels, abs, fecha))}
+        >
           Exportar Excel
         </button>
         <button
@@ -447,8 +452,18 @@ function NuevaRelacion({
           fecha,
           fechaVencimiento: vence,
           nota,
-          vales: vales.map(({ tipo, eds, vale, fecha: f, hora, placa, galones, valor, tramoId }) => ({ tipo, eds, vale, fecha: f, hora, placa, galones, valor, tramoId })),
-        })
+          vales: vales.map(({ tipo, eds, vale, fecha: f, hora, placa, galones, valor, tramoId }) => ({
+            tipo,
+            eds,
+            vale,
+            fecha: f,
+            hora,
+            placa,
+            galones,
+            valor,
+            tramoId,
+          })),
+        }),
       );
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "No se pudo guardar.");
@@ -469,7 +484,7 @@ function NuevaRelacion({
         const nuevo = { ...v, ...cambios };
         const t = lista.find((x) => x.id === nuevo.tramoId);
         return { ...nuevo, combustibleTramo: t ? montoDe(t, nuevo.tipo) : null, estado: estadoDe(nuevo.valor, t, nuevo.tipo) };
-      })
+      }),
     );
 
   /** Corrige en el TMS lo registrado en el tanqueo del vale (efectivo o combustible). */
@@ -481,11 +496,13 @@ function NuevaRelacion({
       const nuevos = await apiCuadro.actualizarTramo(v.tramoId, { [v.tipo === "EFECTIVO" ? "efectivo" : "combustible"]: valor });
       setLista(nuevos);
       const t = nuevos.find((x) => x.id === v.tramoId);
-      setVales((vs) => (vs ?? []).map((x) => {
-        if (x.tramoId !== v.tramoId) return x;
-        const tx = nuevos.find((n) => n.id === x.tramoId);
-        return { ...x, combustibleTramo: tx ? montoDe(tx, x.tipo) : null, estado: estadoDe(x.valor, tx, x.tipo) };
-      }));
+      setVales((vs) =>
+        (vs ?? []).map((x) => {
+          if (x.tramoId !== v.tramoId) return x;
+          const tx = nuevos.find((n) => n.id === x.tramoId);
+          return { ...x, combustibleTramo: tx ? montoDe(tx, x.tipo) : null, estado: estadoDe(x.valor, tx, x.tipo) };
+        }),
+      );
       if (t) alCorregirTms();
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "No se pudo corregir el tanqueo.");
@@ -591,58 +608,76 @@ function NuevaRelacion({
               const opciones = lista.filter(
                 (t) =>
                   t.placa?.replace(/[^A-Z0-9]/gi, "").toUpperCase() === v.placa &&
-                  (t.id === v.tramoId || (libreParaTipo(t, v.tipo) && !elegidos.has(`${t.id}|${v.tipo}`)))
+                  (t.id === v.tramoId || (libreParaTipo(t, v.tipo) && !elegidos.has(`${t.id}|${v.tipo}`))),
               );
               return (
                 <Fragment key={i}>
-                <tr className={v.estado === "COINCIDE" ? "fila-cruzada" : undefined}>
-                  <td className="codigo">{v.vale ?? "-"}</td>
-                  <td>
-                    <Pastilla tono={v.tipo === "EFECTIVO" ? "turquesa" : "azul"}>{v.tipo === "EFECTIVO" ? "Efectivo" : "Combustible"}</Pastilla>
-                  </td>
-                  <td>
-                    {fechaCorta(v.fecha)}
-                    {v.hora && <span className="dato-sec">{v.hora}</span>}
-                  </td>
-                  <td>{placaConGuion(v.placa)}</td>
-                  <td>{v.eds || "-"}</td>
-                  <td className="num">{v.galones ?? "-"}</td>
-                  <td className="num">
-                    <strong>{moneda(v.valor)}</strong>
-                  </td>
-                  <td>
-                    <select value={v.tramoId ?? ""} onChange={(e) => cambiarVale(i, { tramoId: e.target.value ? Number(e.target.value) : null })}>
-                      <option value="">Ninguno</option>
-                      {opciones.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {etiquetaTramo(t, v.tipo)}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="num">{v.combustibleTramo === null ? "-" : moneda(v.combustibleTramo)}</td>
-                  <td>
-                    <Pastilla tono={ESTADO_VALE[v.estado].tono}>{ESTADO_VALE[v.estado].etiqueta}</Pastilla>
-                  </td>
-                  <td className="num">
-                    {v.estado !== "COINCIDE" && (
-                      <button className="boton-suave" onClick={() => setCorrigiendo(corrigiendo === i ? null : i)}>
-                        {corrigiendo === i ? "Cerrar" : "Corregir"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-                {corrigiendo === i && (
-                  <tr className="fila-detalle">
-                    <td colSpan={11}>
-                      <CorregirVale
-                        vale={v}
-                        alCambiarVale={(c) => cambiarVale(i, c)}
-                        alCorregirTms={(valor) => corregirTms(i, valor)}
-                      />
+                  <tr className={v.estado === "COINCIDE" ? "fila-cruzada" : undefined}>
+                    <td className="codigo">
+                      {v.vale ?? "-"}
+                      {v.agregado && (
+                        <span
+                          className="dato-sec"
+                          title="La relacion de la bomba no trae el efectivo, pero la factura lo cobra: lo agrega el TMS con lo registrado"
+                        >
+                          efectivo del TMS
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <Pastilla tono={v.tipo === "EFECTIVO" ? "turquesa" : "azul"}>{v.tipo === "EFECTIVO" ? "Efectivo" : "Combustible"}</Pastilla>
+                    </td>
+                    <td>
+                      {fechaCorta(v.fecha)}
+                      {v.hora && <span className="dato-sec">{v.hora}</span>}
+                    </td>
+                    <td>{placaConGuion(v.placa)}</td>
+                    <td>{v.eds || "-"}</td>
+                    <td className="num">{v.galones ?? "-"}</td>
+                    <td className="num">
+                      <strong>{moneda(v.valor)}</strong>
+                    </td>
+                    <td>
+                      <select value={v.tramoId ?? ""} onChange={(e) => cambiarVale(i, { tramoId: e.target.value ? Number(e.target.value) : null })}>
+                        <option value="">Ninguno</option>
+                        {opciones.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {etiquetaTramo(t, v.tipo)}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="num">{v.combustibleTramo === null ? "-" : moneda(v.combustibleTramo)}</td>
+                    <td>
+                      <Pastilla tono={ESTADO_VALE[v.estado].tono}>{ESTADO_VALE[v.estado].etiqueta}</Pastilla>
+                    </td>
+                    <td className="num">
+                      {v.agregado && (
+                        <button
+                          className="btn-link"
+                          onClick={() => {
+                            setCorrigiendo(null);
+                            setVales((vs) => (vs ?? []).filter((_, j) => j !== i));
+                          }}
+                          title="Este efectivo no va en esta factura"
+                        >
+                          Quitar
+                        </button>
+                      )}
+                      {v.estado !== "COINCIDE" && (
+                        <button className="boton-suave" onClick={() => setCorrigiendo(corrigiendo === i ? null : i)}>
+                          {corrigiendo === i ? "Cerrar" : "Corregir"}
+                        </button>
+                      )}
                     </td>
                   </tr>
-                )}
+                  {corrigiendo === i && (
+                    <tr className="fila-detalle">
+                      <td colSpan={11}>
+                        <CorregirVale vale={v} alCambiarVale={(c) => cambiarVale(i, c)} alCorregirTms={(valor) => corregirTms(i, valor)} />
+                      </td>
+                    </tr>
+                  )}
                 </Fragment>
               );
             })}
@@ -651,9 +686,8 @@ function NuevaRelacion({
       )}
       {vales && (
         <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
-          Al guardar, cada tanqueo elegido queda cruzado: su combustible o su efectivo pasa a ser el valor de la bomba (lo
-          registrado antes se guarda para ver la diferencia). Los que no coinciden tienen "Corregir". Los vales sin tanqueo
-          quedan en la factura para reclamarlos o registrarlos.
+          Al guardar, cada tanqueo elegido queda cruzado: su combustible o su efectivo pasa a ser el valor de la bomba (lo registrado antes se guarda para ver
+          la diferencia). Los que no coinciden tienen "Corregir". Los vales sin tanqueo quedan en la factura para reclamarlos o registrarlos.
         </div>
       )}
     </Modal>
@@ -733,8 +767,8 @@ function ArmarAMano({ libres, alListo }: { libres: AnticipoBomba[]; alListo: (va
                       tramoId: t.id,
                       estado: "COINCIDE" as const,
                       combustibleTramo: montoDe(t, tipo),
-                    }))
-                )
+                    })),
+                ),
             )
           }
         >

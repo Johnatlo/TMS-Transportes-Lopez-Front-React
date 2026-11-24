@@ -897,6 +897,8 @@ export interface ValePropuesto extends ValeBomba {
   tramoId: number | null;
   estado: EstadoVale;
   combustibleTramo: number | null;
+  /** Efectivo del tanqueo que no viene en la relacion de la bomba (lo agrega el TMS; se puede quitar). */
+  agregado?: boolean;
 }
 
 /** Relacion (factura) de la bomba ya cruzada. */
