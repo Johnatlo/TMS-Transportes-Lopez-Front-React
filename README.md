@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_768 funciones, componentes, métodos y rutas en 121 archivos._
+_770 funciones, componentes, métodos y rutas en 121 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (249)
+- [`src/api/cliente.ts`](#srcapiclientets) (251)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -756,6 +756,12 @@ _768 funciones, componentes, métodos y rutas en 121 archivos._
 
   - **`apiCuadro.porFacturar()`** · _método_
     Viajes listos para facturar y la ultima tarifa usada con cada cliente.
+
+  - **`apiCuadro.quitarDelEnvio(id, motivo)`** · _método_
+    Quita un viaje del envio a facturacion (no se factura: p. ej. manifiesto anulado).
+
+  - **`apiCuadro.devolverAlEnvio(id)`** · _método_
+    Devuelve al envio a facturacion un viaje quitado.
 
   - **`apiCuadro.enviarFacturacion(filas)`** · _método_
     Guarda en cada viaje lo que va en el cuadro de la contadora.

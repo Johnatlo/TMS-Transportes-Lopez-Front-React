@@ -1099,6 +1099,19 @@ export interface FilaPorFacturar extends FilaCuadro {
   radicadoRemesa: string | null;
 }
 
+/** Un viaje quitado del envio a facturacion (no se factura). */
+export interface QuitadoEnvio {
+  id: number;
+  fecha: string;
+  placa: string;
+  empresa: string;
+  manifiesto: string | null;
+  remision: string | null;
+  motivo: string | null;
+  en: string;
+  por: string | null;
+}
+
 /** Lo que se guarda de cada viaje al enviarlo a facturar. */
 export interface EnvioFacturacion {
   id: number;
@@ -1221,7 +1234,11 @@ export const apiCuadro = {
   /** Agrega una tarifa a la matriz sin importar el Excel. */
   crearTarifa: (datos: Omit<TarifaFlete, "id">) => post<TarifaFlete>("/cuadro/tarifas", datos),
   /** Viajes listos para facturar y la ultima tarifa usada con cada cliente. */
-  porFacturar: () => get<{ filas: FilaPorFacturar[]; ultimaTarifa: Record<string, number> }>("/cuadro/por-facturar"),
+  porFacturar: () => get<{ filas: FilaPorFacturar[]; ultimaTarifa: Record<string, number>; quitados: QuitadoEnvio[] }>("/cuadro/por-facturar"),
+  /** Quita un viaje del envio a facturacion (no se factura: p. ej. manifiesto anulado). */
+  quitarDelEnvio: (id: number, motivo: string) => post<{ ok: true }>(`/cuadro/por-facturar/${id}/quitar`, { motivo }),
+  /** Devuelve al envio a facturacion un viaje quitado. */
+  devolverAlEnvio: (id: number) => del<{ ok: true }>(`/cuadro/por-facturar/${id}/quitar`),
   /** Guarda en cada viaje lo que va en el cuadro de la contadora. */
   enviarFacturacion: (filas: EnvioFacturacion[]) => post<{ guardados: number }>("/cuadro/enviar-facturacion", { filas }),
   /** Propone el viaje de cada fila del Excel de anticipos (no guarda). */

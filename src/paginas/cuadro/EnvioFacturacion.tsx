@@ -6,7 +6,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { apiCuadro, moneda } from "../../api/cliente";
-import type { TarifaFlete } from "../../api/cliente";
+import type { QuitadoEnvio, TarifaFlete } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import ComboBuscable from "../../componentes/ComboBuscable";
@@ -43,18 +43,20 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  /** Viajes quitados del envio (no se facturan); se pueden devolver. */
+  const [quitados, setQuitados] = useState<QuitadoEnvio[]>([]);
+  const [verQuitados, setVerQuitados] = useState(false);
 
   const tarifas = datos.datos?.[1] ?? [];
   useEffect(() => {
     if (!datos.datos) return;
     const [{ filas: porFacturar }, lista] = datos.datos;
     setFilas(porFacturar.map((f) => filaInicial(f, lista)));
+    setQuitados(datos.datos[0].quitados ?? []);
   }, [datos.datos]);
 
   const empresas = useMemo(() => [...new Set((filas ?? []).map((e) => e.fila.empresa))].sort(), [filas]);
-  const visibles = (filas ?? []).filter(
-    (e) => (!empresa || e.fila.empresa === empresa) && (verEnviados || !e.fila.enviadoFacturarEn || e.incluir)
-  );
+  const visibles = (filas ?? []).filter((e) => (!empresa || e.fila.empresa === empresa) && (verEnviados || !e.fila.enviadoFacturarEn || e.incluir));
   const marcadas = (filas ?? []).filter((e) => e.incluir);
   const totalMarcado = marcadas.reduce((s, e) => s + (totalDe(e) ?? 0), 0);
 
@@ -86,6 +88,54 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
     });
   }
 
+  /** Quita un viaje del envio (no se factura: p. ej. el manifiesto se anulo). */
+  async function quitar(e: FilaEnvio) {
+    const motivo = window.prompt(
+      `¿Quitar del envio a facturacion el viaje ${e.fila.placa} del ${fechaCorta(e.fila.fecha)}${e.fila.manifiesto ? ` (manifiesto ${e.fila.manifiesto})` : ""}? No se va a facturar. Escribe el motivo:`,
+      "Manifiesto anulado",
+    );
+    if (motivo === null) return;
+    setError(null);
+    setAviso(null);
+    try {
+      await apiCuadro.quitarDelEnvio(e.fila.id, motivo);
+      // Se quita de la lista sin perder lo que se haya escrito en las demas filas.
+      setFilas((fs) => (fs ?? []).filter((x) => x.fila.id !== e.fila.id));
+      setQuitados((qs) => [
+        {
+          id: e.fila.id,
+          fecha: e.fila.fecha,
+          placa: e.fila.placa,
+          empresa: e.fila.empresa,
+          manifiesto: e.fila.manifiesto,
+          remision: e.fila.remision,
+          motivo: motivo.trim() || "No se factura",
+          en: new Date().toISOString(),
+          por: null,
+        },
+        ...qs,
+      ]);
+      setAviso(`Se quito del envio el viaje ${e.fila.placa} del ${fechaCorta(e.fila.fecha)}.`);
+      alCambiar();
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo quitar el viaje.");
+    }
+  }
+
+  /** Devuelve al envio un viaje quitado (si fue un error). */
+  async function devolver(q: QuitadoEnvio) {
+    setError(null);
+    setAviso(null);
+    try {
+      await apiCuadro.devolverAlEnvio(q.id);
+      setAviso(`El viaje ${q.placa} del ${fechaCorta(q.fecha)} vuelve al envio.`);
+      datos.recargar();
+      alCambiar();
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo devolver el viaje.");
+    }
+  }
+
   async function guardarYDescargar() {
     if (marcadas.length === 0) return;
     setError(null);
@@ -110,7 +160,7 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
           remision: e.remision,
           notaFactura: e.notaFactura,
           facturaNumero: e.facturaNumero,
-        }))
+        })),
       );
       await descargarCuadroEnvio(agruparPorCliente(envio), `envio-facturacion-${hoyColombia()}.xlsx`);
       setAviso(`Se guardaron ${marcadas.length} viaje(s) y se descargo el cuadro para la contadora.`);
@@ -149,10 +199,9 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
       {filas && (
         <>
           <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
-            Viajes con los papeles listos para facturar. La tarifa, el peso y el valor salen de la matriz de fletes y se
-            pueden cambiar. Los viajes de la misma razon social van juntos en el Excel, en un solo cuadro y con el mismo
-            numero de factura (al escribirlo en uno se copia a los demas). Al descargar, lo que se envio queda guardado
-            en cada viaje del cuadro pagos.
+            Viajes con los papeles listos para facturar. La tarifa, el peso y el valor salen de la matriz de fletes y se pueden cambiar. Los viajes de la misma
+            razon social van juntos en el Excel, en un solo cuadro y con el mismo numero de factura (al escribirlo en uno se copia a los demas). Al descargar,
+            lo que se envio queda guardado en cada viaje del cuadro pagos.
           </div>
           {tarifas.length === 0 && (
             <div className="alert warning">
@@ -175,16 +224,10 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
               <input type="checkbox" checked={verEnviados} onChange={(e) => setVerEnviados(e.target.checked)} />
               Mostrar los ya enviados sin fecha de factura
             </label>
-            <button
-              className="btn-link"
-              onClick={() => setFilas((fs) => (fs ?? []).map((e) => (visibles.includes(e) ? { ...e, incluir: true } : e)))}
-            >
+            <button className="btn-link" onClick={() => setFilas((fs) => (fs ?? []).map((e) => (visibles.includes(e) ? { ...e, incluir: true } : e)))}>
               Marcar todos
             </button>
-            <button
-              className="btn-link"
-              onClick={() => setFilas((fs) => (fs ?? []).map((e) => (visibles.includes(e) ? { ...e, incluir: false } : e)))}
-            >
+            <button className="btn-link" onClick={() => setFilas((fs) => (fs ?? []).map((e) => (visibles.includes(e) ? { ...e, incluir: false } : e)))}>
               Desmarcar
             </button>
             <button className="boton-barra" style={{ marginLeft: "auto" }} onClick={() => setVerMatriz(true)}>
@@ -220,6 +263,7 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
                     tarifas={tarifas}
                     mismoCliente={e.incluir ? (marcadasPorCliente.get(claveCliente(e.razonSocial)) ?? 1) - 1 : 0}
                     alCambiar={(c) => cambiar(e.fila.id, c)}
+                    alQuitar={() => quitar(e)}
                     alElegirTarifa={(t) => setFilas((fs) => (fs ?? []).map((x) => (x.fila.id === e.fila.id ? aplicarTarifa(x, t) : x)))}
                   />
                 ))}
@@ -233,6 +277,48 @@ export default function EnvioFacturacion({ alCerrar, alCambiar }: { alCerrar: ()
               </tbody>
             </table>
           </div>
+          {quitados.length > 0 && (
+            <div style={{ marginTop: "0.8rem" }}>
+              <button className="btn-link" onClick={() => setVerQuitados(!verQuitados)}>
+                {verQuitados ? "Ocultar" : "Ver"} los {quitados.length} viaje(s) quitados del envio (no se facturan)
+              </button>
+              {verQuitados && (
+                <table className="tabla tabla-compacta" style={{ marginTop: "0.4rem" }}>
+                  <thead>
+                    <tr>
+                      <th>Viaje</th>
+                      <th>Cliente</th>
+                      <th>Manifiesto / remision</th>
+                      <th>Motivo</th>
+                      <th>Quitado</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {quitados.map((q) => (
+                      <tr key={q.id}>
+                        <td>
+                          <strong>{q.placa}</strong> <span className="dato-sec">{fechaCorta(q.fecha)}</span>
+                        </td>
+                        <td>{q.empresa}</td>
+                        <td className="codigo">{q.manifiesto ?? q.remision ?? "-"}</td>
+                        <td>{q.motivo ?? "-"}</td>
+                        <td className="dato-sec">
+                          {fechaCorta(q.en.slice(0, 10))}
+                          {q.por ? ` · ${q.por}` : ""}
+                        </td>
+                        <td className="num">
+                          <button className="btn-link" onClick={() => devolver(q)}>
+                            Devolver al envio
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
         </>
       )}
       {verMatriz && (
@@ -262,6 +348,7 @@ function FilaEditable({
   tarifas,
   mismoCliente,
   alCambiar,
+  alQuitar,
   alElegirTarifa,
 }: {
   e: FilaEnvio;
@@ -269,6 +356,8 @@ function FilaEditable({
   /** Cuantos viajes marcados mas tiene esta razon social (van en la misma factura). */
   mismoCliente: number;
   alCambiar: (c: Partial<FilaEnvio>) => void;
+  /** Quita el viaje del envio (no se factura). */
+  alQuitar: () => void;
   alElegirTarifa: (t: TarifaFlete | null) => void;
 }) {
   const f = e.fila;
@@ -288,13 +377,18 @@ function FilaEditable({
       </td>
       <td>
         <span className="principal">{f.placa}</span>
-        <span className="dato-sec">{fechaCorta(f.fecha)} · {f.empresa}</span>
+        <span className="dato-sec">
+          {fechaCorta(f.fecha)} · {f.empresa}
+        </span>
         <span className="dato-sec">{f.conductor ?? "-"}</span>
         <span className="dato-sec">
           {f.remesa ? `Remesa ${f.remesa}` : "Sin remesa"}
           {f.radicadoRemesa ? ` · rad. ${f.radicadoRemesa}` : ""}
         </span>
         {f.enviadoFacturarEn && <span className="dato-sec texto-vencido">Ya enviado el {fechaCorta(f.enviadoFacturarEn)}</span>}
+        <button className="btn-link" onClick={alQuitar} title="No se factura (por ejemplo, el manifiesto se anulo): deja de salir en el envio">
+          Quitar del envio
+        </button>
       </td>
       <td>
         <input value={e.razonSocial} onChange={(x) => alCambiar({ razonSocial: x.target.value })} />
@@ -318,20 +412,14 @@ function FilaEditable({
           }
           placeholder={tarifas.length ? "Busca la tarifa..." : "Sin matriz"}
         />
-        <select value={e.tipo} onChange={(x) => alCambiar({ tipo: x.target.value as "TON" | "FIJO" })} style={{ marginTop: 10}}>
-          
+        <select value={e.tipo} onChange={(x) => alCambiar({ tipo: x.target.value as "TON" | "FIJO" })} style={{ marginTop: 10 }}>
           <option value="TON">Por tonelada</option>
           <option value="FIJO">Valor fijo</option>
         </select>
         {tarifa?.observaciones && <span className="dato-sec">{tarifa.observaciones}</span>}
       </td>
       <td>
-        <input
-          type="number"
-          min={0}
-          value={enInput(e.pesoFacturadoKg)}
-          onChange={(x) => alCambiar({ pesoFacturadoKg: deInput(x.target.value) })}
-        />
+        <input type="number" min={0} value={enInput(e.pesoFacturadoKg)} onChange={(x) => alCambiar({ pesoFacturadoKg: deInput(x.target.value) })} />
         <span className="dato-sec">Real: {f.pesoKg === null ? "-" : f.pesoKg.toLocaleString("es-CO")}</span>
       </td>
       <td>
@@ -401,10 +489,7 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
       const nuevas = convertirMatriz(await leerMatrizFletes(archivo));
       if (nuevas.length === 0) throw new Error("El archivo no trae tarifas.");
       const actuales = tarifas.datos?.length ?? 0;
-      if (
-        actuales > 0 &&
-        !window.confirm(`Se reemplazan las ${actuales} tarifas actuales por las ${nuevas.length} del archivo. ¿Seguir?`)
-      ) {
+      if (actuales > 0 && !window.confirm(`Se reemplazan las ${actuales} tarifas actuales por las ${nuevas.length} del archivo. ¿Seguir?`)) {
         return;
       }
       const r = await apiCuadro.importarTarifas(nuevas);
@@ -419,7 +504,16 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
   }
 
   /** Tarifa nueva (sin importar el Excel): se llena arriba de la tabla. */
-  const vacia: Omit<TarifaFlete, "id"> = { nombre: "", razonSocial: null, valor: null, tipo: "TON", pesoMinimoKg: null, pesoFijoKg: null, observaciones: null, urbano: false };
+  const vacia: Omit<TarifaFlete, "id"> = {
+    nombre: "",
+    razonSocial: null,
+    valor: null,
+    tipo: "TON",
+    pesoMinimoKg: null,
+    pesoFijoKg: null,
+    observaciones: null,
+    urbano: false,
+  };
   const [nueva, setNueva] = useState(vacia);
 
   async function agregar() {
@@ -446,9 +540,7 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
   }
 
   const texto = busqueda.trim().toUpperCase();
-  const lista = (tarifas.datos ?? []).filter(
-    (t) => !texto || t.nombre.toUpperCase().includes(texto) || (t.razonSocial ?? "").toUpperCase().includes(texto)
-  );
+  const lista = (tarifas.datos ?? []).filter((t) => !texto || t.nombre.toUpperCase().includes(texto) || (t.razonSocial ?? "").toUpperCase().includes(texto));
 
   return (
     <Modal
@@ -462,11 +554,10 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
       }
     >
       <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
-        Importa el Excel "MATRIZ FLETES" (columnas EMPRESA, RAZON SOCIAL, VALOR, TIPO, OBSERVACIONES). Las filas
-        "-34 TON" se vuelven el peso minimo (34.000 kg) de su tarifa. POR suma 300.000 (2 clientes) y POR3 600.000
-        (3 clientes) al valor por tonelada. Las tarifas sin valor o con "?" se escriben a mano al enviar. "Urbano" marca
-        las tarifas cuyos viajes son urbanos aunque el nombre no lo diga (no llevan poliza RCE); se conserva al reimportar. Tambien se pueden agregar
-        tarifas sin importar el Excel (fila de arriba). Los cambios de la tabla se guardan al salir de cada campo.
+        Importa el Excel "MATRIZ FLETES" (columnas EMPRESA, RAZON SOCIAL, VALOR, TIPO, OBSERVACIONES). Las filas "-34 TON" se vuelven el peso minimo (34.000 kg)
+        de su tarifa. POR suma 300.000 (2 clientes) y POR3 600.000 (3 clientes) al valor por tonelada. Las tarifas sin valor o con "?" se escriben a mano al
+        enviar. "Urbano" marca las tarifas cuyos viajes son urbanos aunque el nombre no lo diga (no llevan poliza RCE); se conserva al reimportar. Tambien se
+        pueden agregar tarifas sin importar el Excel (fila de arriba). Los cambios de la tabla se guardan al salir de cada campo.
       </div>
       {mensaje && <div className={`alert ${mensaje.tipo}`}>{mensaje.texto}</div>}
       <div className="barra-envio">
@@ -513,10 +604,20 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                 <input placeholder="Nombre (ej. TOLUA PASTO)" value={nueva.nombre} onChange={(e) => setNueva({ ...nueva, nombre: e.target.value })} />
               </td>
               <td>
-                <input placeholder="Razon social" value={nueva.razonSocial ?? ""} onChange={(e) => setNueva({ ...nueva, razonSocial: e.target.value || null })} />
+                <input
+                  placeholder="Razon social"
+                  value={nueva.razonSocial ?? ""}
+                  onChange={(e) => setNueva({ ...nueva, razonSocial: e.target.value || null })}
+                />
               </td>
               <td>
-                <input type="number" min={0} placeholder="Valor" value={enInput(nueva.valor)} onChange={(e) => setNueva({ ...nueva, valor: deInput(e.target.value) })} />
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="Valor"
+                  value={enInput(nueva.valor)}
+                  onChange={(e) => setNueva({ ...nueva, valor: deInput(e.target.value) })}
+                />
               </td>
               <td>
                 <select value={nueva.tipo} onChange={(e) => setNueva({ ...nueva, tipo: e.target.value as TarifaFlete["tipo"] })}>
@@ -527,16 +628,38 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                 </select>
               </td>
               <td>
-                <input type="number" min={0} placeholder="-" value={enInput(nueva.pesoMinimoKg)} onChange={(e) => setNueva({ ...nueva, pesoMinimoKg: deInput(e.target.value) })} />
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="-"
+                  value={enInput(nueva.pesoMinimoKg)}
+                  onChange={(e) => setNueva({ ...nueva, pesoMinimoKg: deInput(e.target.value) })}
+                />
               </td>
               <td>
-                <input type="number" min={0} placeholder="-" value={enInput(nueva.pesoFijoKg)} onChange={(e) => setNueva({ ...nueva, pesoFijoKg: deInput(e.target.value) })} />
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="-"
+                  value={enInput(nueva.pesoFijoKg)}
+                  onChange={(e) => setNueva({ ...nueva, pesoFijoKg: deInput(e.target.value) })}
+                />
               </td>
               <td style={{ textAlign: "center" }}>
-                <input type="checkbox" aria-label="Tarifa urbana" style={{ width: "auto" }} checked={!!nueva.urbano} onChange={(e) => setNueva({ ...nueva, urbano: e.target.checked })} />
+                <input
+                  type="checkbox"
+                  aria-label="Tarifa urbana"
+                  style={{ width: "auto" }}
+                  checked={!!nueva.urbano}
+                  onChange={(e) => setNueva({ ...nueva, urbano: e.target.checked })}
+                />
               </td>
               <td style={{ display: "flex", gap: "0.4rem" }}>
-                <input placeholder="Observaciones" value={nueva.observaciones ?? ""} onChange={(e) => setNueva({ ...nueva, observaciones: e.target.value || null })} />
+                <input
+                  placeholder="Observaciones"
+                  value={nueva.observaciones ?? ""}
+                  onChange={(e) => setNueva({ ...nueva, observaciones: e.target.value || null })}
+                />
                 <button className="btn-primary" onClick={agregar} disabled={!nueva.nombre.trim()}>
                   Agregar
                 </button>
@@ -579,9 +702,7 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                     min={0}
                     defaultValue={enInput(t.pesoMinimoKg)}
                     placeholder="-"
-                    onBlur={(e) =>
-                      deInput(e.target.value) !== t.pesoMinimoKg && guardar(t, { pesoMinimoKg: deInput(e.target.value) })
-                    }
+                    onBlur={(e) => deInput(e.target.value) !== t.pesoMinimoKg && guardar(t, { pesoMinimoKg: deInput(e.target.value) })}
                   />
                 </td>
                 <td>
@@ -594,7 +715,13 @@ function VentanaMatriz({ alCerrar, alCambiar }: { alCerrar: () => void; alCambia
                   />
                 </td>
                 <td style={{ textAlign: "center" }}>
-                  <input type="checkbox" aria-label={`${t.nombre} es urbana`} style={{ width: "auto" }} checked={!!t.urbano} onChange={(e) => guardar(t, { urbano: e.target.checked })} />
+                  <input
+                    type="checkbox"
+                    aria-label={`${t.nombre} es urbana`}
+                    style={{ width: "auto" }}
+                    checked={!!t.urbano}
+                    onChange={(e) => guardar(t, { urbano: e.target.checked })}
+                  />
                 </td>
                 <td>
                   <input
