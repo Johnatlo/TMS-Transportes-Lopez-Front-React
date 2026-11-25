@@ -849,3 +849,16 @@ ul.lista-motivos.error li::before { background: var(--color-danger-text); }
 .cuenta-vehiculo-pie { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1rem; margin-top: 1rem; align-items: start; }
 @media (max-width: 1100px) { .cuenta-vehiculo-pie { grid-template-columns: 1fr; } }
 .cuenta-vehiculo-pie > .panel { padding: 0.9rem 1rem; }
+
+/* Pago de la quincena a la bomba: facturas, abonos y el pago, en bloques de colores (como el desglose de Rentabilidad). */
+.pago-quincena { margin-top: 1rem; padding: 1rem 1.1rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; font-size: 0.95rem; }
+.pago-quincena h4 { margin: 0 0 0.3rem; font-size: 1.1rem; }
+.pago-quincena-bloques { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.2rem 1.4rem; align-items: start; }
+.pago-quincena table.desglose { width: 100%; }
+.pago-quincena table.desglose td, .pago-quincena table.desglose th { padding: 0.5rem 0.75rem; }
+.pago-quincena .check-linea { display: flex; align-items: center; gap: 0.5rem; margin: 0; cursor: pointer; }
+.pago-quincena .check-linea input { width: 1.05rem; height: 1.05rem; }
+.pago-quincena-resumen { display: flex; flex-direction: column; gap: 0.35rem; }
+.pago-quincena-resumen label { margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-text-muted); }
+.pago-quincena-total td { font-size: 1.15rem; }
+.pago-quincena-botones { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.8rem; flex-wrap: wrap; }

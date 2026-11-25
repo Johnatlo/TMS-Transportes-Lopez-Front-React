@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_766 funciones, componentes, métodos y rutas en 121 archivos._
+_768 funciones, componentes, métodos y rutas en 121 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (247)
+- [`src/api/cliente.ts`](#srcapiclientets) (249)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -826,8 +826,14 @@ _766 funciones, componentes, métodos y rutas en 121 archivos._
   - **`apiSeguimiento.pagarAnticiposEmpresa(ids, fecha)`** · _método_
     La empresa pago el anticipo de esos viajes.
 
-  - **`apiSeguimiento.guardarAnticipoCliente(facturaNumero, empresa, valor)`** · _método_
-    Anticipo (o abono) que el cliente ya pago de una factura; 0 lo quita.
+  - **`apiSeguimiento.anticiposCliente(facturaNumero, empresa)`** · _método_
+    Los anticipos del cliente de una factura (uno por transferencia).
+
+  - **`apiSeguimiento.agregarAnticipoCliente(facturaNumero, empresa, valor, fecha)`** · _método_
+    Registra un anticipo del cliente: valor y fecha en que transfirio.
+
+  - **`apiSeguimiento.borrarAnticipoCliente(id)`** · _método_
+    Borra un anticipo del cliente (si se digito mal).
 
   - **`apiSeguimiento.previaCartera(facturas)`** · _método_
     Propone como cargar las facturas del Excel "Cartera Total" (no guarda).

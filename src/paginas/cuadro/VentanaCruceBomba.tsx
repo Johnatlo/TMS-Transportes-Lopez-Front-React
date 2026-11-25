@@ -324,64 +324,108 @@ function PagoQuincena({
   };
 
   return (
-    <div className="detalle-tanqueo" style={{ marginTop: "1rem" }}>
-      <h4 style={{ margin: "0 0 0.4rem" }}>Pago de la quincena</h4>
-      <div className="dato-sec" style={{ marginBottom: "0.5rem" }}>
+    <div className="pago-quincena">
+      <h4>Pago de la quincena</h4>
+      <div className="dato-sec" style={{ marginBottom: "0.8rem" }}>
         Marca las facturas que se le pagan a la bomba y los abonos de los socios que se descuentan. Exporta el Excel para revisarlo y, cuando se haga la
         transferencia, registra el pago.
       </div>
-      <div className="campos-cuadro" style={{ alignItems: "flex-start" }}>
-        <div>
-          <label>
-            Facturas ({rels.length} de {facturas.length})
-          </label>
-          {facturas.map((x) => (
-            <label key={x.id} className="check-linea" style={{ margin: "0.15rem 0" }}>
-              <input type="checkbox" checked={marcadas.has(x.id)} onChange={() => alternar(marcadas, setMarcadas, x.id)} />
-              <span className="codigo">{x.numero}</span> {fechaCorta(x.fecha)} · {moneda(x.total)}
-            </label>
-          ))}
-        </div>
-        <div>
-          <label>Abonos de los socios</label>
-          {abonos.length === 0 && <div className="dato-sec">No hay abonos sin descontar.</div>}
-          {abonos.map((a) => (
-            <label key={a.id} className="check-linea" style={{ margin: "0.15rem 0" }}>
-              <input type="checkbox" checked={usados.has(a.id)} onChange={() => alternar(usados, setUsados, a.id)} />
-              {a.socio} {fechaCorta(a.fecha)} · {moneda(a.valor)}
-            </label>
-          ))}
-        </div>
-        <div>
+      <div className="pago-quincena-bloques">
+        <table className="tabla tabla-compacta desglose">
+          <tbody className="desglose-empresa">
+            <tr className="desglose-titulo">
+              <th colSpan={3}>
+                Facturas de la bomba ({rels.length} de {facturas.length})
+              </th>
+            </tr>
+            {facturas.map((x) => (
+              <tr key={x.id} className={marcadas.has(x.id) ? "" : "desglose-cero"}>
+                <td>
+                  <label className="check-linea">
+                    <input type="checkbox" checked={marcadas.has(x.id)} onChange={() => alternar(marcadas, setMarcadas, x.id)} />
+                    <span className="codigo">{x.numero}</span>
+                  </label>
+                </td>
+                <td>{fechaCorta(x.fecha)}</td>
+                <td className="num">{moneda(x.total)}</td>
+              </tr>
+            ))}
+            <tr className="desglose-total">
+              <td colSpan={2}>Total facturas</td>
+              <td className="num">{moneda(r.total)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <table className="tabla tabla-compacta desglose">
+          <tbody className="desglose-tercero">
+            <tr className="desglose-titulo">
+              <th colSpan={3}>
+                Abonos de los socios ({abs.length} de {abonos.length})
+              </th>
+            </tr>
+            {abonos.length === 0 && (
+              <tr className="desglose-cero">
+                <td colSpan={3}>No hay abonos sin descontar.</td>
+              </tr>
+            )}
+            {abonos.map((a) => (
+              <tr key={a.id} className={usados.has(a.id) ? "" : "desglose-cero"}>
+                <td>
+                  <label className="check-linea">
+                    <input type="checkbox" checked={usados.has(a.id)} onChange={() => alternar(usados, setUsados, a.id)} />
+                    {a.socio}
+                  </label>
+                </td>
+                <td>{fechaCorta(a.fecha)}</td>
+                <td className="num">{moneda(a.valor)}</td>
+              </tr>
+            ))}
+            <tr className="desglose-total">
+              <td colSpan={2}>Total abonos</td>
+              <td className="num">- {moneda(r.totalAbonos)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div className="pago-quincena-resumen">
+          <table className="tabla tabla-compacta desglose">
+            <tbody className="desglose-resultado">
+              <tr className="desglose-titulo">
+                <th colSpan={2}>Pago a la bomba</th>
+              </tr>
+              <tr>
+                <td>Facturas</td>
+                <td className="num">{moneda(r.total)}</td>
+              </tr>
+              <tr>
+                <td>Abonos de los socios</td>
+                <td className="num">- {moneda(r.totalAbonos)}</td>
+              </tr>
+              <tr className="desglose-total pago-quincena-total">
+                <td>A pagar</td>
+                <td className="num">{moneda(r.aPagar)}</td>
+              </tr>
+            </tbody>
+          </table>
           <label>Fecha del pago</label>
           <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-          <label style={{ marginTop: "0.4rem" }}>Referencia (opcional)</label>
+          <label>Referencia (opcional)</label>
           <input value={referencia} maxLength={80} onChange={(e) => setReferencia(e.target.value)} placeholder="CoescoLopez1raQuincSe" />
+          <div className="pago-quincena-botones">
+            <button className="boton-barra" disabled={trabajando || rels.length === 0} onClick={() => accion(() => alExportar(rels, abs, fecha))}>
+              Exportar Excel
+            </button>
+            <button
+              className="btn-primary"
+              disabled={trabajando || rels.length === 0 || !fecha}
+              onClick={() =>
+                window.confirm(`¿Registrar el pago a la bomba por ${moneda(r.aPagar)}? Las ${rels.length} facturas quedan pagadas el ${fechaCorta(fecha)}.`) &&
+                accion(() => alRegistrar({ relaciones: rels.map((x) => x.id), abonos: abs.map((a) => a.id), fecha, referencia }))
+              }
+            >
+              Registrar pago
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="barra-envio" style={{ marginTop: "0.6rem", marginBottom: 0 }}>
-        <span>
-          Facturas <strong>{moneda(r.total)}</strong> · abonos <strong>- {moneda(r.totalAbonos)}</strong> · a pagar{" "}
-          <strong style={{ fontSize: "1.1em" }}>{moneda(r.aPagar)}</strong>
-        </span>
-        <button
-          className="boton-barra"
-          style={{ marginLeft: "auto" }}
-          disabled={trabajando || rels.length === 0}
-          onClick={() => accion(() => alExportar(rels, abs, fecha))}
-        >
-          Exportar Excel
-        </button>
-        <button
-          className="btn-primary"
-          disabled={trabajando || rels.length === 0 || !fecha}
-          onClick={() =>
-            window.confirm(`¿Registrar el pago a la bomba por ${moneda(r.aPagar)}? Las ${rels.length} facturas quedan pagadas el ${fechaCorta(fecha)}.`) &&
-            accion(() => alRegistrar({ relaciones: rels.map((x) => x.id), abonos: abs.map((a) => a.id), fecha, referencia }))
-          }
-        >
-          Registrar pago
-        </button>
       </div>
     </div>
   );

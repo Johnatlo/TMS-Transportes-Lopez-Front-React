@@ -901,6 +901,16 @@ export interface ValePropuesto extends ValeBomba {
   agregado?: boolean;
 }
 
+/** Un anticipo del cliente de una factura de la cartera: lo que transfirio y cuando. */
+export interface RegistroAnticipoCliente {
+  id: number;
+  valor: number;
+  /** Fecha en que el cliente transfirio (null en los que venian de antes). */
+  fecha: string | null;
+  origen: "MANUAL" | "EXCEL" | "ANTERIOR";
+  registradoPor: string | null;
+}
+
 /** Relacion (factura) de la bomba ya cruzada. */
 export interface RelacionBomba {
   id: number;
@@ -1677,9 +1687,16 @@ export const apiSeguimiento = {
   /** La empresa pago el anticipo de esos viajes. */
   pagarAnticiposEmpresa: (ids: number[], fecha: string) =>
     post<{ pagados: number }>("/seguimiento/anticipos-empresas/pago", { ids, fecha }),
-  /** Anticipo (o abono) que el cliente ya pago de una factura; 0 lo quita. */
-  guardarAnticipoCliente: (facturaNumero: string, empresa: string, valor: number) =>
-    put<{ ok: true }>("/seguimiento/cartera/anticipo", { facturaNumero, empresa, valor }),
+  /** Los anticipos del cliente de una factura (uno por transferencia). */
+  anticiposCliente: (facturaNumero: string, empresa: string) =>
+    get<RegistroAnticipoCliente[]>(
+      `/seguimiento/cartera/anticipos?facturaNumero=${encodeURIComponent(facturaNumero)}&empresa=${encodeURIComponent(empresa)}`,
+    ),
+  /** Registra un anticipo del cliente: valor y fecha en que transfirio. */
+  agregarAnticipoCliente: (facturaNumero: string, empresa: string, valor: number, fecha: string) =>
+    post<RegistroAnticipoCliente[]>("/seguimiento/cartera/anticipos", { facturaNumero, empresa, valor, fecha }),
+  /** Borra un anticipo del cliente (si se digito mal). */
+  borrarAnticipoCliente: (id: number) => del<{ ok: true }>(`/seguimiento/cartera/anticipos/${id}`),
   /** Propone como cargar las facturas del Excel "Cartera Total" (no guarda). */
   previaCartera: (facturas: FacturaImportada[]) => post<FacturaPropuesta[]>("/seguimiento/cartera/importar/previa", { facturas }),
   /** Carga las facturas confirmadas. */

@@ -9,7 +9,15 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiSeguimiento, fechaHora, moneda } from "../../api/cliente";
-import type { Cartera as DatosCartera, FacturaCartera, GestionCobro, GrupoDueno, PlazoCliente, ResumenCliente } from "../../api/cliente";
+import type {
+  Cartera as DatosCartera,
+  FacturaCartera,
+  GestionCobro,
+  GrupoDueno,
+  PlazoCliente,
+  ResumenCliente,
+  RegistroAnticipoCliente,
+} from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Modal from "../../componentes/Modal";
@@ -225,7 +233,7 @@ export default function Cartera() {
   const total = datos.facturas.reduce((s, f) => s + f.valor, 0);
   const vencido = datos.facturas.filter((f) => f.diasVencida > 0).reduce((s, f) => s + f.valor, 0);
   const proximas = datos.facturas.filter((f) => f.diasVencida <= 0 && f.diasVencida >= -5);
-  const factura = abierta ? datos.facturas.find((f) => f.facturaNumero === abierta.numero && f.empresa === abierta.empresa) ?? null : null;
+  const factura = abierta ? (datos.facturas.find((f) => f.facturaNumero === abierta.numero && f.empresa === abierta.empresa) ?? null) : null;
 
   const pestanasVista = (
     <div className="tabla-pestanas selector-vista">
@@ -271,24 +279,9 @@ export default function Cartera() {
           valor={moneda(total)}
           detalle={`${datos.facturas.length} facturas`}
         />
-        <Indicador
-          dinero
-          titulo="Vencido"
-          valor={moneda(vencido)}
-          detalle={`${datos.facturas.filter((f) => f.diasVencida > 0).length} facturas`}
-        />
-        <Indicador
-          dinero
-          titulo="Vence en 5 dias"
-          valor={moneda(proximas.reduce((s, f) => s + f.valor, 0))}
-          detalle={`${proximas.length} facturas`}
-        />
-        <Indicador
-          dinero
-          titulo="Facturados sin numero o fecha"
-          valor={String(datos.sinDatos.length)}
-          detalle="no entran a cartera"
-        />
+        <Indicador dinero titulo="Vencido" valor={moneda(vencido)} detalle={`${datos.facturas.filter((f) => f.diasVencida > 0).length} facturas`} />
+        <Indicador dinero titulo="Vence en 5 dias" valor={moneda(proximas.reduce((s, f) => s + f.valor, 0))} detalle={`${proximas.length} facturas`} />
+        <Indicador dinero titulo="Facturados sin numero o fecha" valor={String(datos.sinDatos.length)} detalle="no entran a cartera" />
       </div>
 
       {pestanasVista}
@@ -334,8 +327,8 @@ export default function Cartera() {
         {vista === "sinDatos" && (
           <>
             <div className="dato-sec" style={{ marginBottom: "0.6rem" }}>
-              Estos viajes estan marcados como facturados pero les falta el numero o la fecha de la factura: sin eso no
-              se sabe cuando vence. Clic para completarlos en el cuadro pagos.
+              Estos viajes estan marcados como facturados pero les falta el numero o la fecha de la factura: sin eso no se sabe cuando vence. Clic para
+              completarlos en el cuadro pagos.
             </div>
             <table className="tabla tabla-compacta">
               <thead>
@@ -415,7 +408,10 @@ function DetalleFactura({
   const [texto, setTexto] = useState("");
   const [compromiso, setCompromiso] = useState("");
   const [fechaPago, setFechaPago] = useState(hoyColombia());
-  const [anticipo, setAnticipo] = useState(factura.anticipoCliente ? String(factura.anticipoCliente) : "");
+  // Anticipos del cliente: uno por transferencia (valor y fecha), se pueden borrar.
+  const anticipos = useDatos(() => apiSeguimiento.anticiposCliente(factura.facturaNumero, factura.empresa), [factura.facturaNumero, factura.empresa]);
+  const [anticipo, setAnticipo] = useState("");
+  const [fechaAnticipo, setFechaAnticipo] = useState(hoyColombia());
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -435,7 +431,7 @@ function DetalleFactura({
           empresa: factura.empresa,
           texto,
           compromisoPago: compromiso || null,
-        })
+        }),
       );
       setTexto("");
       setCompromiso("");
@@ -453,11 +449,30 @@ function DetalleFactura({
     setError(null);
     setAviso(null);
     try {
-      await apiSeguimiento.guardarAnticipoCliente(factura.facturaNumero, factura.empresa, Number(anticipo) || 0);
-      setAviso("Anticipo del cliente guardado.");
+      await apiSeguimiento.agregarAnticipoCliente(factura.facturaNumero, factura.empresa, Number(anticipo) || 0, fechaAnticipo);
+      setAnticipo("");
+      setAviso("Anticipo del cliente registrado.");
+      anticipos.recargar();
       alCambiar();
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : "No se pudo guardar el anticipo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function borrarAnticipo(a: RegistroAnticipoCliente) {
+    if (!window.confirm(`¿Borrar el anticipo de ${moneda(a.valor)}${a.fecha ? ` del ${fechaCorta(a.fecha)}` : ""}?`)) return;
+    setEnviando(true);
+    setError(null);
+    setAviso(null);
+    try {
+      await apiSeguimiento.borrarAnticipoCliente(a.id);
+      setAviso("Anticipo borrado.");
+      anticipos.recargar();
+      alCambiar();
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo borrar el anticipo.");
     } finally {
       setEnviando(false);
     }
@@ -494,8 +509,7 @@ function DetalleFactura({
           {factura.sinViaje && <Pastilla tono="neutro">Saldo sin viaje</Pastilla>}
           <span className="dato-sec">Facturada el {fechaCorta(factura.facturaFecha)}</span>
           <span className="dato-sec">
-            Vence el {fechaCorta(factura.vence)} (
-            {factura.venceManual ? "fecha pago cliente" : `${factura.diasCredito} dias de credito`})
+            Vence el {fechaCorta(factura.vence)} ({factura.venceManual ? "fecha pago cliente" : `${factura.diasCredito} dias de credito`})
           </span>
           <Pastilla tono={factura.diasVencida > 0 ? "error" : factura.alerta ? "aviso" : "ok"}>{textoVencimiento(factura)}</Pastilla>
         </div>
@@ -508,8 +522,7 @@ function DetalleFactura({
         )}
         {factura.viajesSinValor > 0 && (
           <div className="alert warning">
-            {factura.viajesSinValor} viaje(s) no tienen valor de flete: el total de la factura esta incompleto. Completalos
-            en el cuadro pagos.
+            {factura.viajesSinValor} viaje(s) no tienen valor de flete: el total de la factura esta incompleto. Completalos en el cuadro pagos.
           </div>
         )}
         {error && <div className="alert danger">{error}</div>}
@@ -573,22 +586,52 @@ function DetalleFactura({
         )}
 
         <section className="detalle-seccion">
-          <h4>Anticipo del cliente</h4>
+          <h4>Anticipos del cliente</h4>
           <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
-            Lo que el cliente ya pago de esta factura (anticipo o abono). Se resta: debe {moneda(totalFactura(factura))} de{" "}
-            {moneda(factura.valorBruto)}.
+            Lo que el cliente ya pago de esta factura (anticipos o abonos), cada uno con la fecha en que transfirio. Se restan: debe{" "}
+            {moneda(totalFactura(factura))} de {moneda(factura.valorBruto)}.
           </div>
+          {(anticipos.datos ?? []).length > 0 && (
+            <table className="tabla tabla-compacta" style={{ marginBottom: "0.5rem" }}>
+              <thead>
+                <tr>
+                  <th>Transfirio</th>
+                  <th className="num">Valor</th>
+                  <th>Registro</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {(anticipos.datos ?? []).map((a) => (
+                  <tr key={a.id}>
+                    <td>{a.fecha ? fechaCorta(a.fecha) : <span className="dato-sec">Sin fecha</span>}</td>
+                    <td className="num">
+                      <strong>{moneda(a.valor)}</strong>
+                    </td>
+                    <td className="dato-sec">
+                      {a.origen === "EXCEL" ? "Del Excel de cartera" : a.origen === "ANTERIOR" ? "Registrado antes" : (a.registradoPor ?? "-")}
+                    </td>
+                    <td className="num">
+                      <button className="btn-link" disabled={enviando} onClick={() => borrarAnticipo(a)}>
+                        Borrar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
           <div className="nota-nueva">
             <div>
-              <label className="dato-sec">Anticipo del cliente</label>
+              <label className="dato-sec">Valor del anticipo</label>
               <input type="number" min={0} value={anticipo} placeholder="0" onChange={(e) => setAnticipo(e.target.value)} />
             </div>
-            <button
-              className="btn-secondary"
-              onClick={guardarAnticipo}
-              disabled={enviando || (Number(anticipo) || 0) === factura.anticipoCliente}
-            >
-              Guardar anticipo
+            <div>
+              <label className="dato-sec">Fecha en que transfirio</label>
+              <input type="date" value={fechaAnticipo} onChange={(e) => setFechaAnticipo(e.target.value)} />
+            </div>
+            <button className="btn-secondary" onClick={guardarAnticipo} disabled={enviando || !(Number(anticipo) > 0) || !fechaAnticipo}>
+              Registrar anticipo
             </button>
           </div>
         </section>
@@ -596,9 +639,7 @@ function DetalleFactura({
         <section className="detalle-seccion">
           <h4>Contacto de cobro</h4>
           {plazo && (plazo.contacto || plazo.telefono || plazo.correo) ? (
-            <div className="dato-sec">
-              {[plazo.contacto, plazo.telefono, plazo.correo].filter(Boolean).join(" · ")}
-            </div>
+            <div className="dato-sec">{[plazo.contacto, plazo.telefono, plazo.correo].filter(Boolean).join(" · ")}</div>
           ) : (
             <div className="dato-sec">Sin contacto anotado. Se agrega en "Plazos de clientes".</div>
           )}
@@ -607,8 +648,8 @@ function DetalleFactura({
         <section className="detalle-seccion">
           <h4>Gestiones de cobro</h4>
           <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
-            Pasada la fecha pago cliente, la factura avisa todos los dias para llamar y cobrar hasta que se registra el
-            pago. Anotar una gestion apaga su alerta hasta el dia siguiente.
+            Pasada la fecha pago cliente, la factura avisa todos los dias para llamar y cobrar hasta que se registra el pago. Anotar una gestion apaga su alerta
+            hasta el dia siguiente.
           </div>
           <div className="nota-nueva">
             <textarea rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Llame a tesoreria, dicen que pagan el viernes..." />
@@ -666,10 +707,9 @@ function DetalleFactura({
 function PlazosClientes({ datos, alCerrar, alCambiar }: { datos: DatosCartera; alCerrar: () => void; alCambiar: () => void }) {
   const inicial = () => {
     const empresas = new Set([...datos.plazos.map((p) => p.empresa), ...datos.clientes.map((c) => c.empresa)]);
-    return [...empresas].sort().map(
-      (empresa) =>
-        datos.plazos.find((p) => p.empresa === empresa) ?? { empresa, diasCredito: 30, contacto: null, telefono: null, correo: null }
-    );
+    return [...empresas]
+      .sort()
+      .map((empresa) => datos.plazos.find((p) => p.empresa === empresa) ?? { empresa, diasCredito: 30, contacto: null, telefono: null, correo: null });
   };
   const [filas, setFilas] = useState<PlazoCliente[]>(inicial);
   const [nueva, setNueva] = useState("");
@@ -704,8 +744,8 @@ function PlazosClientes({ datos, alCerrar, alCambiar }: { datos: DatosCartera; a
       }
     >
       <div className="section-desc" style={{ marginBottom: "0.8rem" }}>
-        Una factura vence en la fecha pago cliente escrita en el cuadro pagos. Si no la tiene, vence a los dias de
-        credito de su cliente contados desde la fecha de la factura (30 dias si el cliente no tiene plazo guardado).
+        Una factura vence en la fecha pago cliente escrita en el cuadro pagos. Si no la tiene, vence a los dias de credito de su cliente contados desde la fecha
+        de la factura (30 dias si el cliente no tiene plazo guardado).
       </div>
       {error && <div className="alert danger">{error}</div>}
       <table className="tabla tabla-compacta">
@@ -724,7 +764,14 @@ function PlazosClientes({ datos, alCerrar, alCambiar }: { datos: DatosCartera; a
             <tr key={p.empresa}>
               <td>{p.empresa}</td>
               <td>
-                <input type="number" min={0} max={365} style={{ width: "6rem" }} value={p.diasCredito} onChange={(e) => cambiar(p.empresa, "diasCredito", e.target.value)} />
+                <input
+                  type="number"
+                  min={0}
+                  max={365}
+                  style={{ width: "6rem" }}
+                  value={p.diasCredito}
+                  onChange={(e) => cambiar(p.empresa, "diasCredito", e.target.value)}
+                />
               </td>
               <td>
                 <input value={p.contacto ?? ""} onChange={(e) => cambiar(p.empresa, "contacto", e.target.value)} />
