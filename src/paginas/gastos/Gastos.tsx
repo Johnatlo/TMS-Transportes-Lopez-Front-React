@@ -16,7 +16,7 @@
  */
 import { useMemo, useState } from "react";
 import { apiGastos, hoyColombia, moneda } from "../../api/cliente";
-import type { Gasto, OpcionesGastos } from "../../api/cliente";
+import type { DestinoGasto, Gasto, OpcionesGastos } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { useSesion } from "../../ganchos/useSesion";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
@@ -45,6 +45,10 @@ function resumenDestino(g: Gasto): string {
 }
 
 type Vista = "libro" | "vehiculos" | "recurrentes" | "facturas" | "creditos";
+
+/** El gasto va solo a vehiculos visibles para todos (XGJ-197): M&C lo puede cambiar aunque sea de T. Lopez. */
+const deVehiculosDeTodos = (destinos: DestinoGasto[], opciones: OpcionesGastos) =>
+  destinos.length > 0 && destinos.every((d) => d.tipo === "VEHICULO" && opciones.vehiculos.some((v) => v.id === d.id && v.visibleTodos));
 
 /** Pantalla de gastos. */
 export default function Gastos() {
@@ -225,7 +229,7 @@ export default function Gastos() {
             detalle={(g) => (
               <DetalleGasto
                 g={g}
-                soloLectura={usuario?.rol === "MYC" && g.empresa !== "MYC"}
+                soloLectura={usuario?.rol === "MYC" && g.empresa !== "MYC" && !deVehiculosDeTodos(g.destinos, opciones)}
                 cerrados={opciones.cerrados}
                 alEditar={() => setFormulario({ gasto: g, base: null })}
                 alDuplicar={() => setFormulario({ gasto: null, base: g })}

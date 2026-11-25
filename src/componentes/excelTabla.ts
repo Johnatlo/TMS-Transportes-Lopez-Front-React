@@ -57,8 +57,25 @@ const letra = (n: number): string => (n <= 26 ? String.fromCharCode(64 + n) : le
 
 /** Arma y descarga el Excel: una hoja con las filas que se pasan (las que estan en pantalla con los filtros). */
 export async function descargarTabla(columnas: ColumnaTabla[], nombreHoja: string, nombreArchivo: string): Promise<void> {
+  await descargarLibro([{ nombre: nombreHoja, columnas }], nombreArchivo);
+}
+
+/** Arma y descarga un Excel de varias hojas (cada una con el estilo de descargarTabla). */
+export async function descargarLibro(hojas: Array<{ nombre: string; columnas: ColumnaTabla[] }>, nombreArchivo: string): Promise<void> {
   const { default: ExcelJS } = await import("exceljs");
   const libro = new ExcelJS.Workbook();
+  for (const h of hojas) agregarHoja(libro, h.columnas, h.nombre);
+  const buffer = await libro.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${nombreArchivo}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Agrega al libro una hoja con las columnas (encabezado, filas y totales). */
+function agregarHoja(libro: import("exceljs").Workbook, columnas: ColumnaTabla[], nombreHoja: string): void {
   const hoja = libro.addWorksheet((nombreHoja || "Datos").replace(/[\\/*?:[\]]/g, " ").slice(0, 31), {
     pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
   });
@@ -103,7 +120,7 @@ export async function descargarTabla(columnas: ColumnaTabla[], nombreHoja: strin
         if (tipo !== "pesos" && tipo !== "numero") return null;
         const suma = c.valores.reduce<number>((s, v) => s + (typeof v === "number" ? v : 0), 0);
         return { formula: `SUBTOTAL(9,${letra(i + 1)}2:${letra(i + 1)}${ultima})`, result: suma };
-      })
+      }),
     );
     total.eachCell({ includeEmpty: true }, (c: Cell, col: number) => {
       c.font = { bold: true, size: 10 };
@@ -114,12 +131,4 @@ export async function descargarTabla(columnas: ColumnaTabla[], nombreHoja: strin
       if (tipo === "numero") c.numFmt = "#,##0.###";
     });
   }
-
-  const buffer = await libro.xlsx.writeBuffer();
-  const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${nombreArchivo}.xlsx`;
-  a.click();
-  URL.revokeObjectURL(url);
 }

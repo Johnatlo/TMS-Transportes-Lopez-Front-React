@@ -55,7 +55,7 @@ export default function Login() {
     <PantallaAcceso>
       <form className="tarjeta-acceso" onSubmit={enviar}>
         <h1>Bienvenido</h1>
-        <p className="acceso-subtitulo">Ingresa con tu correo y contrasena para gestionar los despachos.</p>
+        <p className="acceso-subtitulo">Ingresa con tu correo y contrasena para entrar a SOFI.</p>
 
         {aviso && <div className="alert success">{aviso}</div>}
         {error && <div className="alert danger">{error}</div>}

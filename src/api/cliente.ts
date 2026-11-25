@@ -2012,7 +2012,8 @@ export interface DatosRecurrente {
 
 /** Lo que necesita el formulario de gastos. */
 export interface OpcionesGastos {
-  vehiculos: Array<{ id: number; placa: string; empresa: EmpresaGasto; dueno: string | null; activo: boolean }>;
+  /** visibleTodos: lo ven todos los socios (XGJ-197); M&C puede cambiar sus gastos. */
+  vehiculos: Array<{ id: number; placa: string; empresa: EmpresaGasto; dueno: string | null; activo: boolean; visibleTodos?: boolean }>;
   socios: Array<{ id: number; nombre: string }>;
   categorias: string[];
   /** Fecha desde la que se registran gastos. */
@@ -2573,10 +2574,29 @@ export interface CuentaSocio extends SocioUtilidad {
   saldo: number;
 }
 
-/** Utilidades: cascada, fondos, reparto, participaciones y socios. */
+/** Lo de un grupo en un mes de la tendencia de la rentabilidad. */
+export interface GrupoTendencia {
+  ingresos: number;
+  costos: number;
+  utilidad: number;
+}
+
+/** Un mes de la tendencia de la rentabilidad: los carros de cada empresa, la empresa y el total. */
+export interface MesTendencia {
+  mes: string;
+  aprobado: boolean;
+  carrosLopez: GrupoTendencia;
+  carrosMyc: GrupoTendencia;
+  empresa: GrupoTendencia;
+  total: number;
+}
+
+/** Rentabilidad y Reparto a socios: cascada, empresa, tendencia, fondos, reparto, participaciones y socios. */
 export const apiUtilidades = {
   /** Cascada, fondos y reparto del mes ("AAAA-MM"). */
   mes: (mes: string) => get<UtilidadesMes>(`/utilidades/${mes}`),
+  /** Lo que dejaron los carros y la empresa en los ultimos meses hasta `hasta`. */
+  tendencia: (hasta: string, meses = 6) => get<MesTendencia[]>(`/utilidades/tendencia/${hasta}?meses=${meses}`),
   /** La cuenta de cada vehiculo del mes (viajes, descuentos, conductor y lo que queda). */
   cuentasVehiculos: (mes: string) =>
     get<{ mes: string; aprobado: boolean; cerrado: boolean; vehiculos: CuentaVehiculo[] }>(`/utilidades/cuentas-vehiculos/${encodeURIComponent(mes)}`),

@@ -244,7 +244,10 @@ export default function Shell() {
       <aside className={`sidebar ${menuAbierto ? "abierto" : ""}`}>
         <div className="brand">
           <img className="brand-logo" src={logoPequeno} alt="" />
-          <span className="solo-expandido">Transportes Lopez</span>
+          <span className="solo-expandido marca-sofi">
+            <strong>SOFI</strong>
+            <span>por Transportes López</span>
+          </span>
         </div>
         <nav>
           {GRUPOS.map((g) => {
@@ -296,7 +299,7 @@ export default function Shell() {
             <IconoMenu />
           </button>
           <h1>
-            {actual?.etiqueta ?? "TMS"}
+            {actual?.etiqueta ?? "SOFI"}
             <span className="crumb"> · {nombreEmpresa}</span>
           </h1>
           <div className="actions">

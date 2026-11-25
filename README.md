@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_770 funciones, componentes, métodos y rutas en 121 archivos._
+_782 funciones, componentes, métodos y rutas en 123 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (251)
+- [`src/api/cliente.ts`](#srcapiclientets) (252)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -210,7 +210,7 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
 - [`src/componentes/clicFuera.ts`](#srccomponentesclicfuerats) (1)
 - [`src/componentes/excelConsecutivos.ts`](#srccomponentesexcelconsecutivosts) (9)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
-- [`src/componentes/excelTabla.ts`](#srccomponentesexceltablats) (5)
+- [`src/componentes/excelTabla.ts`](#srccomponentesexceltablats) (7)
 - [`src/componentes/mesDeFecha.ts`](#srccomponentesmesdefechats) (1)
 - [`src/componentes/periodos.ts`](#srccomponentesperiodosts) (4)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
@@ -251,7 +251,7 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
 - [`src/paginas/estadosViaje.ts`](#srcpaginasestadosviajets) (1)
 - [`src/paginas/gastos/Creditos.tsx`](#srcpaginasgastoscreditostsx) (5)
 - [`src/paginas/gastos/FormularioGasto.tsx`](#srcpaginasgastosformulariogastotsx) (1)
-- [`src/paginas/gastos/Gastos.tsx`](#srcpaginasgastosgastostsx) (5)
+- [`src/paginas/gastos/Gastos.tsx`](#srcpaginasgastosgastostsx) (6)
 - [`src/paginas/gastos/Recurrentes.tsx`](#srcpaginasgastosrecurrentestsx) (2)
 - [`src/paginas/gastos/ReporteFacturas.tsx`](#srcpaginasgastosreportefacturastsx) (1)
 - [`src/paginas/gastos/SelectorDestinos.tsx`](#srcpaginasgastosselectordestinostsx) (1)
@@ -287,9 +287,11 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
 - [`src/paginas/utilidades/Empresa.tsx`](#srcpaginasutilidadesempresatsx) (3)
 - [`src/paginas/utilidades/FondosReparto.tsx`](#srcpaginasutilidadesfondosrepartotsx) (2)
 - [`src/paginas/utilidades/Participaciones.tsx`](#srcpaginasutilidadesparticipacionestsx) (2)
-- [`src/paginas/utilidades/Rentabilidad.tsx`](#srcpaginasutilidadesrentabilidadtsx) (3)
+- [`src/paginas/utilidades/Rentabilidad.tsx`](#srcpaginasutilidadesrentabilidadtsx) (5)
 - [`src/paginas/utilidades/RepartoSocios.tsx`](#srcpaginasutilidadesrepartosociostsx) (1)
+- [`src/paginas/utilidades/ReporteSocio.tsx`](#srcpaginasutilidadesreportesociotsx) (3)
 - [`src/paginas/utilidades/Socios.tsx`](#srcpaginasutilidadessociostsx) (3)
+- [`src/paginas/utilidades/excelReporteSocio.ts`](#srcpaginasutilidadesexcelreportesociots) (3)
 - [`src/paginas/utilidades/excelUtilidades.ts`](#srcpaginasutilidadesexcelutilidadests) (4)
 - [`src/paginas/utilidades/pasos.ts`](#srcpaginasutilidadespasosts) (3)
 - [`src/paginas/vehiculos/PerfilVehiculo.tsx`](#srcpaginasvehiculosperfilvehiculotsx) (1)
@@ -1016,10 +1018,13 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
     Los viajes del sistema que suman el producido de una linea.
 
 - **`apiUtilidades`** · _módulo_
-  Utilidades: cascada, fondos, reparto, participaciones y socios.
+  Rentabilidad y Reparto a socios: cascada, empresa, tendencia, fondos, reparto, participaciones y socios.
 
   - **`apiUtilidades.mes(mes)`** · _método_
     Cascada, fondos y reparto del mes ("AAAA-MM").
+
+  - **`apiUtilidades.tendencia(hasta, meses)`** · _método_
+    Lo que dejaron los carros y la empresa en los ultimos meses hasta `hasta`.
 
   - **`apiUtilidades.cuentasVehiculos(mes)`** · _método_
     La cuenta de cada vehiculo del mes (viajes, descuentos, conductor y lo que queda).
@@ -1837,6 +1842,12 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
 
 - **`descargarTabla(columnas, nombreHoja, nombreArchivo)`** · _función_
   Arma y descarga el Excel: una hoja con las filas que se pasan (las que estan en pantalla con los filtros).
+
+- **`descargarLibro(hojas, nombreArchivo)`** · _función_
+  Arma y descarga un Excel de varias hojas (cada una con el estilo de descargarTabla).
+
+- **`agregarHoja(libro, columnas, nombreHoja)`** · _función_
+  Agrega al libro una hoja con las columnas (encabezado, filas y totales).
 
 ### `src/componentes/mesDeFecha.ts`
 
@@ -2988,6 +2999,9 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
 - **`resumenDestino(g)`** · _función_
   A quien va el gasto, en pocas palabras ("CELSO + 13 vehiculos").
 
+- **`deVehiculosDeTodos(destinos, opciones)`** · _función_
+  El gasto va solo a vehiculos visibles para todos (XGJ-197): M&C lo puede cambiar aunque sea de T. Lopez.
+
 - **`Gastos()`** · _componente React_
   Pantalla de gastos.
 
@@ -3844,7 +3858,7 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
 >
 > - Consolidado: los carros de T. Lopez, los de T. M&C y la empresa, con el
 >   total del mes (lo de los carros es de sus duenos y socios; lo de la
->   empresa no se reparte).
+>   empresa no se reparte), y como vienen los ultimos 6 meses.
 > - Empresa: el estado de resultados (terceros + reconocidos + T. Lopez -
 >   gastos de la empresa) y el anticipo de renta aparte (ver Empresa.tsx).
 > - Vehiculos: la cascada de cada carro (fletes, descuentos, directos,
@@ -3863,6 +3877,12 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
 - **`Consolidado({...})`** · _componente React_
   Los carros de T. Lopez, los de T. M&C y la empresa, con el total del mes.
 
+- **`Variacion({...})`** · _componente React_
+  Variacion contra el mes anterior: flecha y valor, verde si sube y rojo si baja.
+
+- **`Tendencia({...})`** · _componente React_
+  Como vienen los ultimos 6 meses: la utilidad de los carros de cada empresa, la de la empresa y el total.
+
 - **`Vehiculos({...})`** · _componente React_
   Cascada por vehiculo (filtrada por empresa).
 
@@ -3875,11 +3895,38 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
 >   le toca a cada socio; aprobar el mes (ver FondosReparto.tsx).
 > - Participaciones: quien es dueno de cada vehiculo (sociedades).
 > - Socios: la cuenta de cada socio (saldo, netos de cada mes y pagos).
+> - Reporte por socio: lo de un socio en el mes (sus carros, su reparto y su
+>   cuenta) para mostrarselo o descargarlo en Excel (ver ReporteSocio.tsx).
 > Las administrativas solo ven las participaciones (el reparto es del area
 > REPARTO). Aprobar y cambiar fondos, participaciones y socios: rol total.
 
 - **`RepartoSocios()`** · _componente React_
   Pantalla del reparto a socios.
+
+### `src/paginas/utilidades/ReporteSocio.tsx`
+
+> Reporte del mes para un socio (Reparto a socios > Reporte por socio): lo
+> que produjeron sus carros, lo que le toca, el reparto y su cuenta, para
+> mostrarselo o mandarselo en Excel.
+>
+> - Sus carros: los que tiene en Participaciones en el mes, con su parte
+>   (ponderada por los dias), la cascada de cada uno (fletes, descuentos,
+>   gastos, utilidad) y su parte de la utilidad, y el fondo del carro.
+> - El reparto del mes: su parte de lo repartido - 4 x 1000 + su parte de lo
+>   liquidado - lo que el recibio - sus gastos propios = neto.
+> - Su cuenta: mes a mes, saldo anterior + neto - pagos = saldo.
+> - El Excel trae ademas los viajes de sus carros (como el cuadro SWK-973) y
+>   los gastos de cada carro.
+> Todo sale de Rentabilidad y del reparto (si el mes esta aprobado, la foto).
+
+- **`Renglon({...})`** · _componente React_
+  Un renglon del desglose: "+" suma, "-" resta, "=" total.
+
+- **`sociosDelMes(u)`** · _función_
+  Los socios del mes: los que tienen parte en algun carro (con su nombre).
+
+- **`ReporteSocio({...})`** · _componente React_
+  El reporte de un socio en el mes.
 
 ### `src/paginas/utilidades/Socios.tsx`
 
@@ -3900,6 +3947,22 @@ _770 funciones, componentes, métodos y rutas en 121 archivos._
 
 - **`FormularioSocio({...})`** · _componente React_
   Formulario para crear o cambiar un socio.
+
+### `src/paginas/utilidades/excelReporteSocio.ts`
+
+> Excel del reporte de un socio en el mes (Reparto a socios > Reporte por
+> socio): una hoja con el resumen (sus carros y su reparto), otra con los
+> viajes de sus carros (como el cuadro SWK-973), otra con los gastos de cada
+> carro y otra con su cuenta mes a mes.
+
+- **`col(titulo, valores, derecha)`** · _función_
+  Una columna del Excel.
+
+- **`pesos(v)`** · _función_
+  Pesos enteros (el Excel les pone separador de miles y total).
+
+- **`exportarReporteSocio(d)`** · _función_
+  Descarga el reporte del socio en el mes.
 
 ### `src/paginas/utilidades/excelUtilidades.ts`
 

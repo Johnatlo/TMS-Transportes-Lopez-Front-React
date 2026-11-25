@@ -484,6 +484,10 @@ textarea { width: 100%; font: inherit; padding: 0.55rem 0.7rem; border: 1px soli
 .sidebar .brand { color: #111827; font-size: 1.05rem; padding: 0.2rem 0.5rem 1.4rem; }
 /* Logo pequeno (el sello redondo): el logo ancho no se lee a este tamano. */
 .sidebar .brand-logo { width: 36px; height: 36px; flex: none; border-radius: 50%; }
+/* Nombre de la aplicacion: SOFI, y debajo "por Transportes Lopez". */
+.sidebar .marca-sofi { display: flex; flex-direction: column; line-height: 1.1; }
+.sidebar .marca-sofi strong { font-size: 1.25rem; letter-spacing: 0.06em; }
+.sidebar .marca-sofi span { font-size: 0.72rem; font-weight: 500; color: var(--color-text-muted); }
 .empresa-logo { width: 30px; height: 30px; flex: none; border-radius: 50%; }
 .sidebar a { color: #374151; font-size: 0.9rem; padding: 0.62rem 0.8rem; border-radius: 10px; }
 .sidebar a:hover { background: #f3f5f9; color: #111827; }

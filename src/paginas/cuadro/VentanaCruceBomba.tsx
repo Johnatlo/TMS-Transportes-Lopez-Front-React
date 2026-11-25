@@ -35,7 +35,7 @@ import { leerHojas } from "../seguimiento/cargaExcel";
 const ESTADO_VALE: Record<EstadoVale, { etiqueta: string; tono: TonoPastilla }> = {
   COINCIDE: { etiqueta: "Coincide", tono: "ok" },
   DIFERENCIA: { etiqueta: "Valor distinto", tono: "aviso" },
-  SIN_TANQUEO: { etiqueta: "No esta en el TMS", tono: "error" },
+  SIN_TANQUEO: { etiqueta: "No esta en SOFI", tono: "error" },
 };
 
 /** Diferencia de valor que se toma como la misma (redondeos de la bomba). */
@@ -562,7 +562,7 @@ function NuevaRelacion({
         <>
           {vales && (
             <span className="dato-sec" style={{ marginRight: "auto" }}>
-              Relacion <strong>{moneda(totalRelacion)}</strong> · registrado en el TMS <strong>{moneda(totalTms)}</strong>
+              Relacion <strong>{moneda(totalRelacion)}</strong> · registrado en SOFI <strong>{moneda(totalTms)}</strong>
               {totalRelacion !== totalTms && <span className="texto-vencido"> · diferencia {moneda(totalRelacion - totalTms)}</span>}
             </span>
           )}
@@ -641,7 +641,7 @@ function NuevaRelacion({
               <th>EDS</th>
               <th className="num">Galones</th>
               <th className="num">Valor de la bomba</th>
-              <th>Tanqueo del TMS</th>
+              <th>Tanqueo en SOFI</th>
               <th className="num">Registrado</th>
               <th>Estado</th>
               <th />
@@ -662,9 +662,9 @@ function NuevaRelacion({
                       {v.agregado && (
                         <span
                           className="dato-sec"
-                          title="La relacion de la bomba no trae el efectivo, pero la factura lo cobra: lo agrega el TMS con lo registrado"
+                          title="La relacion de la bomba no trae el efectivo, pero la factura lo cobra: lo agrega SOFI con lo registrado"
                         >
-                          efectivo del TMS
+                          efectivo de SOFI
                         </span>
                       )}
                     </td>
@@ -898,7 +898,7 @@ function CorregirVale({
         </div>
         {vale.tramoId && (
           <div>
-            <label>Registrado en el TMS ({que})</label>
+            <label>Registrado en SOFI ({que})</label>
             <div className="linea-abono" style={{ margin: 0 }}>
               <input type="number" min={0} value={valorTms} onChange={(e) => setValorTms(e.target.value)} />
               <button
@@ -910,7 +910,7 @@ function CorregirVale({
                   setGuardando(false);
                 }}
               >
-                {guardando ? "Guardando..." : "Guardar en el TMS"}
+                {guardando ? "Guardando..." : "Guardar en SOFI"}
               </button>
               <button className="btn-link" onClick={() => setValorTms(String(vale.valor))}>
                 Usar el de la bomba
@@ -921,7 +921,7 @@ function CorregirVale({
       </div>
       <div className="dato-sec">
         {vale.tramoId
-          ? `Si el valor de la bomba esta bien y en el TMS se registro mal, corrige lo registrado (se guarda de una vez en el tanqueo). Si el vale es de otro tanqueo, eligelo en la lista.`
+          ? `Si el valor de la bomba esta bien y en SOFI se registro mal, corrige lo registrado (se guarda de una vez en el tanqueo). Si el vale es de otro tanqueo, eligelo en la lista.`
           : `Este vale no tiene tanqueo: eligelo en la lista (misma placa) o dejalo sin tanqueo para reclamarlo o registrarlo en el viaje.`}
       </div>
     </div>

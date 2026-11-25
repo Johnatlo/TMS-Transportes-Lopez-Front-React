@@ -5,7 +5,7 @@
  *
  * - Consolidado: los carros de T. Lopez, los de T. M&C y la empresa, con el
  *   total del mes (lo de los carros es de sus duenos y socios; lo de la
- *   empresa no se reparte).
+ *   empresa no se reparte), y como vienen los ultimos 6 meses.
  * - Empresa: el estado de resultados (terceros + reconocidos + T. Lopez -
  *   gastos de la empresa) y el anticipo de renta aparte (ver Empresa.tsx).
  * - Vehiculos: la cascada de cada carro (fletes, descuentos, directos,
@@ -20,7 +20,7 @@
  */
 import { useState } from "react";
 import { apiUtilidades, hoyColombia, moneda } from "../../api/cliente";
-import type { UtilidadesMes } from "../../api/cliente";
+import type { MesTendencia, UtilidadesMes } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
 import { useSesion } from "../../ganchos/useSesion";
 import { Cargando, ErrorCarga } from "../../componentes/Estado";
@@ -199,7 +199,86 @@ function Consolidado({ u, verTerceros }: { u: UtilidadesMes; verTerceros: boolea
           Empresa).
         </div>
       </div>
+      <Tendencia hasta={u.mes} />
     </>
+  );
+}
+
+/** Variacion contra el mes anterior: flecha y valor, verde si sube y rojo si baja. */
+function Variacion({ actual, anterior }: { actual: number; anterior: number | null }) {
+  if (anterior === null) return null;
+  const d = actual - anterior;
+  if (Math.abs(d) < 1) return <span className="dato-sec">=</span>;
+  return (
+    <span className={d > 0 ? "texto-ok" : "texto-vencido"} style={{ display: "block", fontSize: "0.8em" }}>
+      {d > 0 ? "▲" : "▼"} {moneda(Math.abs(d))}
+    </span>
+  );
+}
+
+/** Como vienen los ultimos 6 meses: la utilidad de los carros de cada empresa, la de la empresa y el total. */
+function Tendencia({ hasta }: { hasta: string }) {
+  const carga = useDatos(() => apiUtilidades.tendencia(hasta, 6), [hasta]);
+  if (carga.cargando && !carga.datos) return <Cargando que="los ultimos meses" />;
+  if (carga.error || !carga.datos) return <ErrorCarga mensaje={carga.error ?? "Sin datos"} alReintentar={carga.recargar} />;
+  const meses = carga.datos;
+  const grupos: Array<[string, string, (m: MesTendencia) => number]> = [
+    ["Carros T. Lopez", "desglose-empresa", (m) => m.carrosLopez.utilidad],
+    ["Carros T. M&C", "desglose-dueno", (m) => m.carrosMyc.utilidad],
+    ["Empresa", "desglose-anticipo", (m) => m.empresa.utilidad],
+  ];
+  return (
+    <div className="panel" style={{ marginTop: "1rem" }}>
+      <h4 style={{ margin: "0.8rem 0.9rem 0.4rem" }}>Como vienen los ultimos meses (utilidad)</h4>
+      <div style={{ overflowX: "auto" }}>
+        <table className="tabla tabla-compacta desglose">
+          <thead>
+            <tr>
+              <th />
+              {meses.map((m) => (
+                <th key={m.mes} className="num">
+                  {nombreMes(m.mes)}
+                  {!m.aprobado && (
+                    <span className="dato-sec" style={{ display: "block" }}>
+                      sin aprobar
+                    </span>
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          {grupos.map(([nombre, tono, valor]) => (
+            <tbody key={nombre} className={tono}>
+              <tr>
+                <td>
+                  <strong>{nombre}</strong>
+                </td>
+                {meses.map((m, i) => (
+                  <td key={m.mes} className="num">
+                    <span className={valor(m) < 0 ? "texto-vencido" : undefined}>{moneda(valor(m))}</span>
+                    <Variacion actual={valor(m)} anterior={i > 0 ? valor(meses[i - 1]) : null} />
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          ))}
+          <tbody className="desglose-resultado">
+            <tr className="desglose-total">
+              <td>Total</td>
+              {meses.map((m, i) => (
+                <td key={m.mes} className="num">
+                  {moneda(m.total)}
+                  <Variacion actual={m.total} anterior={i > 0 ? meses[i - 1].total : null} />
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="dato-sec" style={{ padding: "0.5rem 0.8rem" }}>
+        La flecha compara con el mes anterior. Los meses sin aprobar en Reparto a socios pueden cambiar si se registran viajes, pagos o gastos.
+      </div>
+    </div>
   );
 }
 

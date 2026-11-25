@@ -28,8 +28,11 @@ export default function PantallaAcceso({ children }: { children: ReactNode }) {
         </section>
         <aside className="acceso-foto" aria-hidden="true">
           <div className="acceso-foto-texto">
-            <h2>Despachos en regla, viaje a viaje</h2>
-            <p>Remesas y manifiestos expedidos ante el RNDC, con el seguimiento de toda la flota en un solo lugar.</p>
+            <h2>SOFI</h2>
+            <p>
+              Sistema de Operacion de Fletes e Ingresos, por Transportes López: despachos ante el RNDC, pagos, cuentas de los vehiculos y rentabilidad en un
+              solo lugar.
+            </p>
           </div>
         </aside>
       </div>
