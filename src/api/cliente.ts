@@ -901,6 +901,22 @@ export interface ValePropuesto extends ValeBomba {
   agregado?: boolean;
 }
 
+/** Una nota credito: anula una factura y dice cual la reemplaza. */
+export interface NotaCredito {
+  id: number;
+  /** Consecutivo de la nota credito. */
+  numero: string;
+  fecha: string;
+  /** Cliente de la factura (como en la cartera). */
+  empresa: string;
+  facturaAnulada: string;
+  facturaReemplazo: string | null;
+  valor: number | null;
+  motivo: string | null;
+  registradoPor: string | null;
+  creadoEn: string;
+}
+
 /** Un anticipo del cliente de una factura de la cartera: lo que transfirio y cuando. */
 export interface RegistroAnticipoCliente {
   id: number;
@@ -1704,6 +1720,23 @@ export const apiSeguimiento = {
   /** La empresa pago el anticipo de esos viajes. */
   pagarAnticiposEmpresa: (ids: number[], fecha: string) =>
     post<{ pagados: number }>("/seguimiento/anticipos-empresas/pago", { ids, fecha }),
+  /** Las notas credito (todas, o las de una factura). */
+  notasCredito: (filtro: { facturaNumero?: string; empresa?: string } = {}) =>
+    get<NotaCredito[]>(
+      `/seguimiento/notas-credito${filtro.facturaNumero ? `?facturaNumero=${encodeURIComponent(filtro.facturaNumero)}&empresa=${encodeURIComponent(filtro.empresa ?? "")}` : ""}`,
+    ),
+  /** Registra la nota credito de una factura anulada. */
+  agregarNotaCredito: (d: {
+    numero: string;
+    fecha: string;
+    empresa: string;
+    facturaAnulada: string;
+    facturaReemplazo: string;
+    valor: number | null;
+    motivo: string;
+  }) => post<NotaCredito[]>("/seguimiento/notas-credito", d),
+  /** Borra una nota credito (si se digito mal). */
+  borrarNotaCredito: (id: number) => del<NotaCredito[]>(`/seguimiento/notas-credito/${id}`),
   /** Los anticipos del cliente de una factura (uno por transferencia). */
   anticiposCliente: (facturaNumero: string, empresa: string) =>
     get<RegistroAnticipoCliente[]>(

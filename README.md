@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_782 funciones, componentes, métodos y rutas en 123 archivos._
+_789 funciones, componentes, métodos y rutas en 124 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (252)
+- [`src/api/cliente.ts`](#srcapiclientets) (255)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -272,6 +272,7 @@ _782 funciones, componentes, métodos y rutas en 123 archivos._
 - [`src/paginas/seguimiento/ImportarCartera.tsx`](#srcpaginasseguimientoimportarcarteratsx) (3)
 - [`src/paginas/seguimiento/ImportarNombresTerceros.tsx`](#srcpaginasseguimientoimportarnombrestercerostsx) (1)
 - [`src/paginas/seguimiento/LiquidarDueno.tsx`](#srcpaginasseguimientoliquidarduenotsx) (6)
+- [`src/paginas/seguimiento/NotasCredito.tsx`](#srcpaginasseguimientonotascreditotsx) (4)
 - [`src/paginas/seguimiento/PagoTerceros.tsx`](#srcpaginasseguimientopagotercerostsx) (5)
 - [`src/paginas/seguimiento/Papeles.tsx`](#srcpaginasseguimientopapelestsx) (7)
 - [`src/paginas/seguimiento/Rentabilidad.tsx`](#srcpaginasseguimientorentabilidadtsx) (12)
@@ -833,6 +834,15 @@ _782 funciones, componentes, métodos y rutas en 123 archivos._
 
   - **`apiSeguimiento.pagarAnticiposEmpresa(ids, fecha)`** · _método_
     La empresa pago el anticipo de esos viajes.
+
+  - **`apiSeguimiento.notasCredito(filtro)`** · _método_
+    Las notas credito (todas, o las de una factura).
+
+  - **`apiSeguimiento.agregarNotaCredito(d)`** · _método_
+    Registra la nota credito de una factura anulada.
+
+  - **`apiSeguimiento.borrarNotaCredito(id)`** · _método_
+    Borra una nota credito (si se digito mal).
 
   - **`apiSeguimiento.anticiposCliente(facturaNumero, empresa)`** · _método_
     Los anticipos del cliente de una factura (uno por transferencia).
@@ -3335,6 +3345,11 @@ _782 funciones, componentes, métodos y rutas en 123 archivos._
 > septiembre cargados sin viaje, y se puede ver solo lo de un dueno. Vence en la fecha pago cliente (o, si
 > no esta escrita, a los dias de credito del cliente); pasada, avisa para
 > llamar y cobrar.
+>
+> Notas credito: cada factura anulada se reemplaza con una nota credito
+> (consecutivo, fecha y la factura que la reemplaza). Se registra desde el
+> detalle de la factura y todas quedan en la pestana Notas credito, con su
+> reporte (ver NotasCredito.tsx).
 
 - **`totalFactura(f)`** · _función_
   Lo que debe el cliente en total (sin filtro por dueno).
@@ -3418,6 +3433,27 @@ _782 funciones, componentes, métodos y rutas en 123 archivos._
 
 - **`LiquidarDueno({...})`** · _componente React_
   Ventana de la liquidacion a un dueno.
+
+### `src/paginas/seguimiento/NotasCredito.tsx`
+
+> Notas credito (Cartera > Notas credito): por ley, cada factura anulada se
+> reemplaza con una nota credito. Aqui estan todas, con su consecutivo,
+> fecha, cliente, la factura que anulan y la que la reemplaza, para
+> consultarlas y descargar el reporte en Excel. Tambien se registran (para
+> una factura que ya no este en la cartera) y se borran si se digitaron mal.
+> Desde el detalle de una factura de la cartera se registra la suya.
+
+- **`FormularioNotaCredito({...})`** · _componente React_
+  Formulario de una nota credito. Con factura (desde la cartera), el cliente y la factura anulada ya vienen.
+
+- **`NotasDeFactura({...})`** · _componente React_
+  Las notas credito de una factura de la cartera (en su detalle), con el formulario para registrar la suya.
+
+- **`BorrarNota({...})`** · _componente React_
+  Boton para borrar una nota credito (si se digito mal).
+
+- **`NotasCredito()`** · _componente React_
+  La pestana de las notas credito: todas, con su reporte en Excel.
 
 ### `src/paginas/seguimiento/PagoTerceros.tsx`
 

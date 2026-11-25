@@ -5,6 +5,11 @@
  * septiembre cargados sin viaje, y se puede ver solo lo de un dueno. Vence en la fecha pago cliente (o, si
  * no esta escrita, a los dias de credito del cliente); pasada, avisa para
  * llamar y cobrar.
+ *
+ * Notas credito: cada factura anulada se reemplaza con una nota credito
+ * (consecutivo, fecha y la factura que la reemplaza). Se registra desde el
+ * detalle de la factura y todas quedan en la pestana Notas credito, con su
+ * reporte (ver NotasCredito.tsx).
  */
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -30,6 +35,7 @@ import DetalleCuadro from "../cuadro/DetalleCuadro";
 import { fechaCorta, hoyColombia } from "../cuadro/estadosCuadro";
 import ImportarCartera from "./ImportarCartera";
 import AnticiposEmpresas from "./AnticiposEmpresas";
+import NotasCredito, { NotasDeFactura } from "./NotasCredito";
 import LinksViaje from "../../componentes/LinksViaje";
 import ListaMotivos from "../../componentes/ListaMotivos";
 
@@ -190,7 +196,7 @@ export default function Cartera() {
   const { recargarSeguimiento } = usarShell();
   const [parametros, setParametros] = useSearchParams();
   const [abierta, setAbierta] = useState<{ numero: string; empresa: string } | null>(null);
-  const [vista, setVista] = useState<"facturas" | "clientes" | "sinDatos" | "anticipos">("facturas");
+  const [vista, setVista] = useState<"facturas" | "clientes" | "sinDatos" | "anticipos" | "notas">("facturas");
   /** Viaje cuyo anticipo de la empresa se abre (desde la alerta de la campana). */
   const [anticipoViaje, setAnticipoViaje] = useState<number | null>(null);
   const [viajeCuadro, setViajeCuadro] = useState<number | null>(null);
@@ -249,8 +255,21 @@ export default function Cartera() {
       <button className={vista === "anticipos" ? "activa" : ""} onClick={() => setVista("anticipos")}>
         Anticipos de empresas
       </button>
+      <button className={vista === "notas" ? "activa" : ""} onClick={() => setVista("notas")}>
+        Notas credito
+      </button>
     </div>
   );
+
+  // Notas credito: vista aparte, con su reporte.
+  if (vista === "notas") {
+    return (
+      <>
+        {pestanasVista}
+        <NotasCredito />
+      </>
+    );
+  }
 
   // Anticipos de empresas: vista aparte, con sus propios totales.
   if (vista === "anticipos") {
@@ -634,6 +653,15 @@ function DetalleFactura({
               Registrar anticipo
             </button>
           </div>
+        </section>
+
+        <section className="detalle-seccion">
+          <h4>Nota credito (factura anulada)</h4>
+          <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
+            Si esta factura se anulo, por ley se reemplaza con una nota credito: registra su consecutivo, la fecha y la factura que la reemplaza. Queda en la
+            pestana Notas credito.
+          </div>
+          <NotasDeFactura numero={factura.facturaNumero} empresa={factura.empresa} valor={factura.valorBruto} alCambiar={alCambiar} />
         </section>
 
         <section className="detalle-seccion">
