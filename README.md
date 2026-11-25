@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_789 funciones, componentes, métodos y rutas en 124 archivos._
+_790 funciones, componentes, métodos y rutas en 124 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (255)
+- [`src/api/cliente.ts`](#srcapiclientets) (256)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -589,6 +589,9 @@ _789 funciones, componentes, métodos y rutas en 124 archivos._
 
   - **`api.urlPdfManifiesto(viajeId, original)`** · _método_
     PDF oficial del RNDC; por defecto con el logo de la empresa estampado.
+
+  - **`api.resolverContingencia(viajeId)`** · _método_
+    Ya se imprimio el manifiesto oficial por fuera de SOFI: quita la contingencia pendiente.
 
   - **`api.urlManifiestoContingencia(viajeId, motivo)`** · _método_
     Manifiesto de contingencia (HTML para imprimir) cuando el RNDC no deja expedir o imprimir el oficial.

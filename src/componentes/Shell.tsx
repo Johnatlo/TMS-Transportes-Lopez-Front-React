@@ -385,6 +385,7 @@ export default function Shell() {
           resumen={seguimiento.datos}
           grupoInicial={typeof verSeguimiento === "string" ? verSeguimiento : undefined}
           alCerrar={() => setVerSeguimiento(false)}
+          alCambiar={seguimiento.recargar}
         />
       )}
 

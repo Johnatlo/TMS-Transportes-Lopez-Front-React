@@ -591,6 +591,8 @@ export const api = {
   /** PDF oficial del RNDC; por defecto con el logo de la empresa estampado. */
   urlPdfManifiesto: (viajeId: number, original = false) =>
     `${BASE}/despacho/${viajeId}/manifiesto.pdf${original ? "?original=1" : ""}`,
+  /** Ya se imprimio el manifiesto oficial por fuera de SOFI: quita la contingencia pendiente. */
+  resolverContingencia: (viajeId: number) => post<{ ok: true }>(`/despacho/${viajeId}/contingencia/resuelta`, {}),
   /** Manifiesto de contingencia (HTML para imprimir) cuando el RNDC no deja expedir o imprimir el oficial. */
   urlManifiestoContingencia: (viajeId: number, motivo: string | null) =>
     `${BASE}/despacho/${viajeId}/manifiesto-contingencia${motivo ? `?motivo=${encodeURIComponent(motivo)}` : ""}`,

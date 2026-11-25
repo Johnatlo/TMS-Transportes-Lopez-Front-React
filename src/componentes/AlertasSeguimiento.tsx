@@ -5,6 +5,7 @@
  * esa factura abiertos.
  */
 import { useState } from "react";
+import { api } from "../api/cliente";
 import { useNavigate } from "react-router-dom";
 import type { AlertaSeguimiento, ResumenAlertasSeguimiento, TipoAlerta } from "../api/cliente";
 import Modal from "./Modal";
@@ -56,10 +57,13 @@ export default function AlertasSeguimiento({
   resumen,
   alCerrar,
   grupoInicial,
+  alCambiar,
 }: {
   resumen: ResumenAlertasSeguimiento;
   alCerrar: () => void;
   grupoInicial?: TipoAlerta;
+  /** Refresca las alertas (al quitar una contingencia). */
+  alCambiar?: () => void;
 }) {
   const navegar = useNavigate();
   const cuantas = (t: TipoAlerta) => resumen.alertas.filter((a) => a.tipo === t).length;
@@ -88,9 +92,21 @@ export default function AlertasSeguimiento({
                 navegar(rutaDe(a));
               }}
             >
-              <Pastilla tono={a.nivel === "urgente" ? "error" : "aviso"}>{a.nivel === "urgente" ? "Urgente" : "Atencion"}</Pastilla>{" "}
-              <strong>{a.titulo}</strong>
+              <Pastilla tono={a.nivel === "urgente" ? "error" : "aviso"}>{a.nivel === "urgente" ? "Urgente" : "Atencion"}</Pastilla> <strong>{a.titulo}</strong>
               <ListaMotivos motivos={a.motivos} tono={a.nivel === "urgente" ? "error" : "aviso"} />
+              {a.tipo === "CONTINGENCIA" && a.viajeId && (
+                <button
+                  className="btn-link"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!window.confirm("¿Ya se imprimio el manifiesto oficial? Se quita la alerta de contingencia.")) return;
+                    await api.resolverContingencia(a.viajeId!);
+                    alCambiar?.();
+                  }}
+                >
+                  Ya se imprimio el oficial
+                </button>
+              )}
             </li>
           ))}
         </ul>

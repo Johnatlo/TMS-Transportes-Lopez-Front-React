@@ -4,7 +4,9 @@
  * el manifiesto de contingencia.
  */
 import { useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { api, fechaHora } from "../api/cliente";
+import type { ContextoShell } from "./Shell";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "./Estado";
 import Modal from "./Modal";
@@ -25,6 +27,8 @@ import type { Viaje } from "../api/tipos";
  */
 export function DocumentosViaje({ viaje, alCambiar }: { viaje: Viaje; alCambiar?: () => void }) {
   const remesas = useDatos(() => api.getRemesasDeViaje(viaje.id), [viaje.id]);
+  // Las alertas de la barra (para refrescarlas al imprimir); fuera del Shell no hay.
+  const shell = useOutletContext<ContextoShell | undefined>();
   const abrir = (url: string) => window.open(url, "_blank");
   /** Error del RNDC al pedir el PDF oficial (se ofrece la contingencia). */
   const [errorPdf, setErrorPdf] = useState<string | null>(null);
@@ -50,8 +54,11 @@ export function DocumentosViaje({ viaje, alCambiar }: { viaje: Viaje; alCambiar?
       const url = URL.createObjectURL(await r.blob());
       if (pestana) pestana.location.href = url;
       else window.open(url, "_blank");
-      // Con el oficial impreso, la contingencia (si la habia) deja de estar pendiente.
-      if (viaje.contingenciaEn) alCambiar?.();
+      // Con el oficial impreso, la contingencia (si la habia) deja de estar pendiente: se refresca la alerta de una vez.
+      if (viaje.contingenciaEn) {
+        alCambiar?.();
+        shell?.recargarSeguimiento();
+      }
     } catch (exc) {
       pestana?.close();
       setErrorPdf(exc instanceof Error ? exc.message : "No se pudo traer el PDF del RNDC.");
@@ -64,12 +71,29 @@ export function DocumentosViaje({ viaje, alCambiar }: { viaje: Viaje; alCambiar?
   function imprimirContingencia(motivo: string | null) {
     abrir(api.urlManifiestoContingencia(viaje.id, motivo));
     alCambiar?.();
+    // La alerta de contingencia aparece de una vez (el servidor marca el viaje al abrirlo).
+    window.setTimeout(() => shell?.recargarSeguimiento(), 1500);
+  }
+
+  /** Se imprimio el oficial por fuera de SOFI (p. ej. desde el portal del RNDC): quita la contingencia. */
+  async function yaImpresoOficial() {
+    if (!window.confirm("¿Ya se imprimio el manifiesto oficial? Se quita la alerta de contingencia.")) return;
+    try {
+      await api.resolverContingencia(viaje.id);
+      alCambiar?.();
+      shell?.recargarSeguimiento();
+    } catch (exc) {
+      setErrorPdf(exc instanceof Error ? exc.message : "No se pudo quitar la contingencia.");
+    }
   }
 
   const avisoContingencia = viaje.contingenciaEn && (
     <div className="alert warning">
       Se imprimio un manifiesto de contingencia el {fechaHora(viaje.contingenciaEn)}
-      {viaje.contingenciaMotivo ? ` (${viaje.contingenciaMotivo})` : ""}. Sigue con alerta hasta que se imprima el oficial.
+      {viaje.contingenciaMotivo ? ` (${viaje.contingenciaMotivo})` : ""}. Sigue con alerta hasta que se imprima el oficial.{" "}
+      <button className="btn-link" onClick={yaImpresoOficial}>
+        Ya se imprimio el oficial
+      </button>
     </div>
   );
 
@@ -103,20 +127,13 @@ export function DocumentosViaje({ viaje, alCambiar }: { viaje: Viaje; alCambiar?
       <div className="documento-fila">
         <div>
           <strong>Manifiesto electronico de carga {viaje.consecutivoManifiesto}</strong>
-          <span className="dato-sec">
-            PDF oficial del RNDC · radicado {viaje.numeroManifiestoRndc} · con el logo de la empresa
-          </span>
+          <span className="dato-sec">PDF oficial del RNDC · radicado {viaje.numeroManifiestoRndc} · con el logo de la empresa</span>
         </div>
         <div className="documento-acciones">
           <button className="btn-primary" disabled={pidiendo} onClick={() => imprimirOficial()}>
             {pidiendo ? "Pidiendo al RNDC..." : "🖨 Imprimir manifiesto"}
           </button>
-          <button
-            className="btn-link"
-            title="El PDF tal como lo entrega el RNDC, sin el logo"
-            disabled={pidiendo}
-            onClick={() => imprimirOficial(true)}
-          >
+          <button className="btn-link" title="El PDF tal como lo entrega el RNDC, sin el logo" disabled={pidiendo} onClick={() => imprimirOficial(true)}>
             sin logo
           </button>
         </div>
@@ -161,8 +178,7 @@ export function DocumentosViaje({ viaje, alCambiar }: { viaje: Viaje; alCambiar?
         ))}
 
       <p className="section-desc" style={{ marginBottom: 0 }}>
-        Al imprimir, revisa que el codigo QR del manifiesto salga completo y nitido: es lo que
-        escanea la policia para verificar el documento.
+        Al imprimir, revisa que el codigo QR del manifiesto salga completo y nitido: es lo que escanea la policia para verificar el documento.
       </p>
     </div>
   );
