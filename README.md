@@ -3441,7 +3441,9 @@ _789 funciones, componentes, métodos y rutas en 124 archivos._
 > fecha, cliente, la factura que anulan y la que la reemplaza, para
 > consultarlas y descargar el reporte en Excel. Tambien se registran (para
 > una factura que ya no este en la cartera) y se borran si se digitaron mal.
-> Desde el detalle de una factura de la cartera se registra la suya.
+> Desde el detalle de una factura de la cartera se registra la suya. La
+> factura con nota credito sale de la cartera: se entiende que otra la
+> reemplazo.
 
 - **`FormularioNotaCredito({...})`** · _componente React_
   Formulario de una nota credito. Con factura (desde la cartera), el cliente y la factura anulada ya vienen.

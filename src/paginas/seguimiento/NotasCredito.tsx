@@ -4,7 +4,9 @@
  * fecha, cliente, la factura que anulan y la que la reemplaza, para
  * consultarlas y descargar el reporte en Excel. Tambien se registran (para
  * una factura que ya no este en la cartera) y se borran si se digitaron mal.
- * Desde el detalle de una factura de la cartera se registra la suya.
+ * Desde el detalle de una factura de la cartera se registra la suya. La
+ * factura con nota credito sale de la cartera: se entiende que otra la
+ * reemplazo.
  */
 import { useState } from "react";
 import { apiSeguimiento, moneda } from "../../api/cliente";

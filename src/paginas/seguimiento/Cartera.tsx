@@ -658,8 +658,8 @@ function DetalleFactura({
         <section className="detalle-seccion">
           <h4>Nota credito (factura anulada)</h4>
           <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
-            Si esta factura se anulo, por ley se reemplaza con una nota credito: registra su consecutivo, la fecha y la factura que la reemplaza. Queda en la
-            pestana Notas credito.
+            Si esta factura se anulo, por ley se reemplaza con una nota credito: registra su consecutivo, la fecha y la factura que la reemplaza. Al
+            registrarla, esta factura sale de la cartera (otra la reemplazo) y la nota queda en la pestana Notas credito.
           </div>
           <NotasDeFactura numero={factura.facturaNumero} empresa={factura.empresa} valor={factura.valorBruto} alCambiar={alCambiar} />
         </section>
