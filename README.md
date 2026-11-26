@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_790 funciones, componentes, métodos y rutas en 124 archivos._
+_805 funciones, componentes, métodos y rutas en 126 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (256)
+- [`src/api/cliente.ts`](#srcapiclientets) (263)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -193,6 +193,7 @@ _790 funciones, componentes, métodos y rutas en 124 archivos._
 - [`src/componentes/EstadoSincronizacion.tsx`](#srccomponentesestadosincronizaciontsx) (3)
 - [`src/componentes/FiltrosTabla.tsx`](#srccomponentesfiltrostablatsx) (2)
 - [`src/componentes/FormularioGenerico.tsx`](#srccomponentesformulariogenericotsx) (2)
+- [`src/componentes/HistorialCambios.tsx`](#srccomponenteshistorialcambiostsx) (6)
 - [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (31)
 - [`src/componentes/Indicador.tsx`](#srccomponentesindicadortsx) (1)
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
@@ -230,6 +231,7 @@ _790 funciones, componentes, métodos y rutas en 124 archivos._
 - [`src/paginas/conductores/LiquidacionConductores.tsx`](#srcpaginasconductoresliquidacionconductorestsx) (1)
 - [`src/paginas/conductores/Prestamos.tsx`](#srcpaginasconductoresprestamostsx) (2)
 - [`src/paginas/conductores/calculos.ts`](#srcpaginasconductorescalculosts) (8)
+- [`src/paginas/control/ControlInterno.tsx`](#srcpaginascontrolcontrolinternotsx) (2)
 - [`src/paginas/cuadro/CampoValorAnticipo.tsx`](#srcpaginascuadrocampovaloranticipotsx) (1)
 - [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (10)
 - [`src/paginas/cuadro/CuadroCentral.tsx`](#srcpaginascuadrocuadrocentraltsx) (4)
@@ -1138,6 +1140,27 @@ _790 funciones, componentes, métodos y rutas en 124 archivos._
   - **`apiConductores.quitarPago(empleadoId, mes)`** · _método_
     Quita la marca de pagada.
 
+- **`consultaDe(f)`** · _función_
+  Arma la consulta (?a=1&b=2) con los filtros que tienen valor.
+
+- **`apiControl`** · _módulo_
+  Control interno: bitacora de cambios, historial de un registro y papelera (solo acceso total).
+
+  - **`apiControl.estado()`** · _método_
+    Si la bitacora esta activa en la base (o por que no).
+
+  - **`apiControl.bitacora(f)`** · _método_
+    Los cambios con los filtros, los mas recientes primero.
+
+  - **`apiControl.historial(tabla, id)`** · _método_
+    Los cambios de un registro y de lo que cuelga de el.
+
+  - **`apiControl.papelera(f)`** · _método_
+    Lo borrado con los filtros.
+
+  - **`apiControl.restaurar(id)`** · _método_
+    Vuelve a crear un registro borrado (solo los simples).
+
 ### `src/componentes/AccesoGps.tsx`
 
 > Acceso a la plataforma GPS del vehiculo elegido en el despacho: link (abre
@@ -1429,6 +1452,34 @@ _790 funciones, componentes, métodos y rutas en 124 archivos._
 - **`Campo({...})`** · _componente React_
   Un campo segun su tipo: casilla, lista desplegable o caja de texto, numero o
   fecha, con su ayuda debajo si la tiene.
+
+### `src/componentes/HistorialCambios.tsx`
+
+> Historial de cambios de un registro (un viaje del cuadro, un gasto...):
+> quien cambio que y cuando, con el valor de antes y el de despues, incluidos
+> los cambios de lo que cuelga de el (los anticipos y notas de un viaje). Lo
+> guarda la bitacora de Control interno. Solo lo ve el rol de acceso total.
+>
+> Tambien exporta lo que usan las pantallas de Control interno para mostrar
+> los cambios: el nombre de un campo, un valor y la lista de cambios.
+
+- **`nombreCampo(campo)`** · _función_
+  "valorFlete" -> "Valor flete"; "facturaFechaPago" -> "Factura fecha pago".
+
+- **`valorTexto(v)`** · _función_
+  Un valor guardado, legible: vacio, numeros con miles, fechas dd/mm/aaaa.
+
+- **`ListaCambios({...})`** · _componente React_
+  Los campos de un registro de la bitacora: "Campo: antes -> despues" (al crear o borrar, el valor).
+
+- **`cuandoTexto(iso)`** · _función_
+  Fecha y hora de un registro, en hora de Colombia.
+
+- **`VentanaHistorial({...})`** · _componente React_
+  Ventana con el historial de un registro.
+
+- **`HistorialCambios({...})`** · _componente React_
+  Boton "Historial de cambios" (solo acceso total) que abre el historial del registro.
 
 ### `src/componentes/Iconos.tsx`
 
@@ -2364,6 +2415,28 @@ _790 funciones, componentes, métodos y rutas en 124 archivos._
 
 - **`mesAnterior(mes)`** · _función_
   "2026-11" -> "2026-10".
+
+### `src/paginas/control/ControlInterno.tsx`
+
+> Control interno (solo acceso total): que se cambio en SOFI, quien y cuando.
+>
+> - Bitacora: cada creacion, cambio y borrado de lo sensible (viajes del
+>   cuadro, anticipos, bomba, cartera, notas credito, gastos, nomina,
+>   prestamos, socios, repartos, usuarios, vehiculos...), con el valor de antes
+>   y el de despues, quien lo hizo y desde que pantalla. Se filtra por fecha,
+>   por que, por usuario y por accion, y se descarga en Excel.
+> - Papelera: lo borrado, con todos sus datos. Lo simple (notas, anticipos
+>   del cliente, notas credito, pagos a socios, fletes conductor,
+>   participaciones) se puede restaurar; lo demas se borro con otros datos
+>   relacionados y queda para consultarlo.
+> Lo guarda la base (triggers), asi que tambien queda lo que hacen las
+> importaciones y los procesos automaticos ("Sistema").
+
+- **`haceDias(n)`** · _función_
+  Fecha "AAAA-MM-DD" de hace n dias.
+
+- **`ControlInterno()`** · _componente React_
+  Pantalla de Control interno.
 
 ### `src/paginas/cuadro/CampoValorAnticipo.tsx`
 
@@ -4155,7 +4228,8 @@ _790 funciones, componentes, métodos y rutas en 124 archivos._
 > Que puede ver cada rol en el navegador (igual que backend/src/roles.ts; el
 > backend es el que de verdad lo hace cumplir).
 >
-> - TOTAL: todo (aprobar el reparto y cambiar fondos, participaciones y socios).
+> - TOTAL: todo (aprobar el reparto y cambiar fondos, participaciones y socios;
+>   Control interno: bitacora de cambios y papelera).
 > - ADMINISTRATIVO: todo menos el reparto de los socios y el cambio de roles.
 > - MYC: Transportes M&C. Todo menos la rentabilidad de los terceros (la
 >   filtra el servidor) y el cambio de roles.

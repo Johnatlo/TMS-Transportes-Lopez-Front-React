@@ -2,7 +2,8 @@
  * Que puede ver cada rol en el navegador (igual que backend/src/roles.ts; el
  * backend es el que de verdad lo hace cumplir).
  *
- * - TOTAL: todo (aprobar el reparto y cambiar fondos, participaciones y socios).
+ * - TOTAL: todo (aprobar el reparto y cambiar fondos, participaciones y socios;
+ *   Control interno: bitacora de cambios y papelera).
  * - ADMINISTRATIVO: todo menos el reparto de los socios y el cambio de roles.
  * - MYC: Transportes M&C. Todo menos la rentabilidad de los terceros (la
  *   filtra el servidor) y el cambio de roles.
@@ -15,10 +16,11 @@
 import type { Rol } from "./api/tipos";
 
 /** Areas del aplicativo. */
-export type Area = "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "REPARTO" | "RENTABILIDAD" | "GASTOS" | "CONDUCTORES" | "ADMINISTRACION" | "USUARIOS";
+export type Area =
+  "RNDC" | "OPERACION" | "CUENTAS" | "LIQUIDACION" | "REPARTO" | "RENTABILIDAD" | "GASTOS" | "CONDUCTORES" | "ADMINISTRACION" | "USUARIOS" | "CONTROL";
 
 const AREAS: Record<Rol, Area[]> = {
-  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "RENTABILIDAD", "GASTOS", "CONDUCTORES", "ADMINISTRACION", "USUARIOS"],
+  TOTAL: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "RENTABILIDAD", "GASTOS", "CONDUCTORES", "ADMINISTRACION", "USUARIOS", "CONTROL"],
   ADMINISTRATIVO: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "GASTOS", "CONDUCTORES", "ADMINISTRACION"],
   MYC: ["RNDC", "OPERACION", "CUENTAS", "LIQUIDACION", "REPARTO", "RENTABILIDAD", "GASTOS", "CONDUCTORES", "ADMINISTRACION"],
 };
@@ -63,6 +65,7 @@ const AREA_RUTA: Array<[string, Area]> = [
   ["/conductores", "RNDC"],
   ["/configuracion", "ADMINISTRACION"],
   ["/usuarios", "USUARIOS"],
+  ["/control-interno", "CONTROL"],
 ];
 
 /** El rol puede abrir esa ruta (las que no estan en la lista se dejan pasar). */

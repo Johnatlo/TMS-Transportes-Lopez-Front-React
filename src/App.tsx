@@ -36,6 +36,7 @@ const PerfilVehiculo = lazy(() => import("./paginas/vehiculos/PerfilVehiculo"));
 const Plantillas = lazy(() => import("./paginas/Plantillas"));
 const Catalogo = lazy(() => import("./paginas/Catalogo"));
 const Usuarios = lazy(() => import("./paginas/Usuarios"));
+const ControlInterno = lazy(() => import("./paginas/control/ControlInterno"));
 
 /** Deja ver la pantalla solo si el rol puede abrir esa ruta (si no, al inicio). */
 function ConPermiso({ ruta, children }: { ruta: string; children: ReactNode }) {
@@ -225,6 +226,14 @@ export default function App() {
           element={
             <ConPermiso ruta="/usuarios">
               <Usuarios />
+            </ConPermiso>
+          }
+        />
+        <Route
+          path="/control-interno"
+          element={
+            <ConPermiso ruta="/control-interno">
+              <ControlInterno />
             </ConPermiso>
           }
         />

@@ -862,3 +862,9 @@ ul.lista-motivos.error li::before { background: var(--color-danger-text); }
 .pago-quincena-resumen label { margin-top: 0.5rem; font-size: 0.85rem; color: var(--color-text-muted); }
 .pago-quincena-total td { font-size: 1.15rem; }
 .pago-quincena-botones { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 0.8rem; flex-wrap: wrap; }
+
+/* Control interno: los campos de un cambio (antes -> despues). */
+.lista-cambios { list-style: none; margin: 0.2rem 0 0; padding: 0; font-size: 0.85rem; line-height: 1.45; }
+.lista-cambios li { margin: 0.05rem 0; word-break: break-word; }
+.lista-cambios .valor-antes { text-decoration: line-through; color: var(--color-text-muted); }
+.lista-cambios .nombre-campo { color: var(--color-text-muted); }

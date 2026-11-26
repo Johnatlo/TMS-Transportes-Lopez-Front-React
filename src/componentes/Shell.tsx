@@ -112,6 +112,7 @@ const GRUPOS: Array<{ id: string; titulo: string | null; secciones: Seccion[] }>
     secciones: [
       { ruta: "/configuracion", etiqueta: "Configuracion", icono: <IconoConfiguracion /> },
       { ruta: "/usuarios", etiqueta: "Usuarios y roles", icono: <IconoUsuarios /> },
+      { ruta: "/control-interno", etiqueta: "Control interno", icono: <IconoCheck /> },
     ],
   },
 ];

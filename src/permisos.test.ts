@@ -2,17 +2,40 @@ import { describe, expect, test } from "vitest";
 import { puede, puedeRuta } from "./permisos";
 
 /** Todas las pantallas del menu. */
-const RUTAS = ["/dashboard", "/despacho", "/historial", "/cuadro", "/anticipos", "/cartera", "/terceros", "/liquidacion-viajes", "/gastos", "/nomina", "/cuentas-conductores", "/rentabilidad", "/reparto", "/preoperacional", "/vehiculos", "/plantillas", "/clientes", "/flota", "/conductores", "/configuracion", "/usuarios"];
+const RUTAS = [
+  "/dashboard",
+  "/despacho",
+  "/historial",
+  "/cuadro",
+  "/anticipos",
+  "/cartera",
+  "/terceros",
+  "/liquidacion-viajes",
+  "/gastos",
+  "/nomina",
+  "/cuentas-conductores",
+  "/rentabilidad",
+  "/reparto",
+  "/preoperacional",
+  "/vehiculos",
+  "/plantillas",
+  "/clientes",
+  "/flota",
+  "/conductores",
+  "/configuracion",
+  "/usuarios",
+  "/control-interno",
+];
 
 describe("permisos por rol (17/11/2026)", () => {
   test("administrativo: todo menos el reparto de los socios y el cambio de roles", () => {
     // La liquidacion de conductores es solo de total y M&C (21/11/2026).
-    expect(RUTAS.filter((r) => !puedeRuta("ADMINISTRATIVO", r))).toEqual(["/rentabilidad", "/usuarios"]);
+    expect(RUTAS.filter((r) => !puedeRuta("ADMINISTRATIVO", r))).toEqual(["/rentabilidad", "/usuarios", "/control-interno"]);
     expect([puede("ADMINISTRATIVO", "REPARTO"), puede("ADMINISTRATIVO", "LIQUIDACION")]).toEqual([false, true]);
   });
 
   test("M&C: todo menos el cambio de roles (la rentabilidad de terceros la quita el servidor)", () => {
-    expect(RUTAS.filter((r) => !puedeRuta("MYC", r))).toEqual(["/usuarios"]);
+    expect(RUTAS.filter((r) => !puedeRuta("MYC", r))).toEqual(["/usuarios", "/control-interno"]);
     expect(puede("MYC", "REPARTO")).toBe(true);
   });
 

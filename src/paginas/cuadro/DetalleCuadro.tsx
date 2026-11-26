@@ -2,6 +2,7 @@
  * Ventana de un viaje del cuadro pagos: papeles, datos, flete, factura, pago
  * al dueno, revisiones, anticipos (efectivo y combustible) y notas.
  */
+import HistorialCambios from "../../componentes/HistorialCambios";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiCuadro, fechaHora, moneda } from "../../api/cliente";
@@ -12,14 +13,7 @@ import CampoFecha from "../../componentes/CampoFecha";
 import Modal from "../../componentes/Modal";
 import Seccion from "../../componentes/Seccion";
 import { Pastilla } from "../../componentes/TablaDatos";
-import {
-  ETIQUETA_FLOTA,
-  ETIQUETA_PAPELES,
-  fechaCorta,
-  hoyColombia,
-  pasosPapeles,
-  saldoVencido,
-} from "./estadosCuadro";
+import { ETIQUETA_FLOTA, ETIQUETA_PAPELES, fechaCorta, hoyColombia, pasosPapeles, saldoVencido } from "./estadosCuadro";
 import PastillasEstado from "./PastillasEstado";
 import CampoValorAnticipo from "./CampoValorAnticipo";
 import { combustibleDelTramo } from "./tanqueos";
@@ -27,9 +21,30 @@ import type { TramoCombustible } from "./tanqueos";
 
 /** Campos del formulario: todo como texto, igual que los inputs. */
 const CAMPOS = [
-  "fecha", "placa", "empresa", "conductor", "rutaManual", "manifiesto", "remision", "remisionUrl", "pesoKg", "fechaDescargue",
-  "pesoFacturadoKg", "notaFactura",
-  "tipoFlete", "tarifaKilo", "valorFijo", "fleteAdicional", "anticipoEmpresa", "anticipoEmpresaFechaPago", "facturaNumero", "facturaFecha", "facturaVence", "facturaFechaPago", "facturaUrl", "fechaPagoSaldo",
+  "fecha",
+  "placa",
+  "empresa",
+  "conductor",
+  "rutaManual",
+  "manifiesto",
+  "remision",
+  "remisionUrl",
+  "pesoKg",
+  "fechaDescargue",
+  "pesoFacturadoKg",
+  "notaFactura",
+  "tipoFlete",
+  "tarifaKilo",
+  "valorFijo",
+  "fleteAdicional",
+  "anticipoEmpresa",
+  "anticipoEmpresaFechaPago",
+  "facturaNumero",
+  "facturaFecha",
+  "facturaVence",
+  "facturaFechaPago",
+  "facturaUrl",
+  "fechaPagoSaldo",
 ] as const;
 type Campo = (typeof CAMPOS)[number];
 type Formulario = Record<Campo, string>;
@@ -150,6 +165,7 @@ export default function DetalleCuadro({
               Borrar viaje
             </button>
           )}
+          {d && <HistorialCambios tabla="cuadro_viajes" id={id} titulo={`${d.placa} · ${d.empresa}`} />}
           <button className="btn-secondary" onClick={cerrar}>
             Cerrar
           </button>
@@ -196,11 +212,7 @@ export default function DetalleCuadro({
               })}
             </div>
             <label className="check-linea">
-              <input
-                type="checkbox"
-                checked={d.flujoCorame}
-                onChange={(e) => aplicar(() => apiCuadro.actualizar(id, { flujoCorame: e.target.checked }))}
-              />
+              <input type="checkbox" checked={d.flujoCorame} onChange={(e) => aplicar(() => apiCuadro.actualizar(id, { flujoCorame: e.target.checked }))} />
               Pasa por parqueadero y oficina de Don Alexander (CORAME / Cartones America)
             </label>
             {d.fechaRadicado && <div className="dato-sec">Listo para facturar desde el {fechaCorta(d.fechaRadicado)}</div>}
@@ -267,9 +279,10 @@ export default function DetalleCuadro({
                   <option value="FIJO">Valor fijo</option>
                 </select>
               </div>
-              {f.tipoFlete === "KILO" ? campo("tarifaKilo", "Tarifa ($ por kilo)", "number", { min: 0, max: 1000, step: "0.01" }) : campo("valorFijo", "Valor fijo", "number", { min: 0 })}
-              {f.tipoFlete === "KILO" &&
-                campo("pesoFacturadoKg", "Peso facturado (kg)", "number", { min: 0, placeholder: f.pesoKg || "Igual al real" })}
+              {f.tipoFlete === "KILO"
+                ? campo("tarifaKilo", "Tarifa ($ por kilo)", "number", { min: 0, max: 1000, step: "0.01" })
+                : campo("valorFijo", "Valor fijo", "number", { min: 0 })}
+              {f.tipoFlete === "KILO" && campo("pesoFacturadoKg", "Peso facturado (kg)", "number", { min: 0, placeholder: f.pesoKg || "Igual al real" })}
               {/* POR (2 clientes) suma 300.000 y POR3 (3 clientes) 600.000. */}
               {f.tipoFlete === "KILO" && campo("fleteAdicional", "Adicional por clientes", "number", { min: 0, step: "300000", placeholder: "0" })}
               <div>
@@ -277,9 +290,7 @@ export default function DetalleCuadro({
                 <div className="valor-calculado">
                   {f.tipoFlete === "KILO"
                     ? (f.pesoFacturadoKg || f.pesoKg) && f.tarifaKilo
-                      ? moneda(
-                          Math.round(Number(f.pesoFacturadoKg || f.pesoKg) * Number(f.tarifaKilo)) + Number(f.fleteAdicional || 0)
-                        )
+                      ? moneda(Math.round(Number(f.pesoFacturadoKg || f.pesoKg) * Number(f.tarifaKilo)) + Number(f.fleteAdicional || 0))
                       : "Falta peso o tarifa"
                     : f.valorFijo
                       ? moneda(Number(f.valorFijo))
@@ -290,12 +301,7 @@ export default function DetalleCuadro({
             </div>
             <div style={{ marginTop: "0.6rem" }}>
               <label>Nota de la factura (para la contadora)</label>
-              <textarea
-                rows={2}
-                style={{ width: "100%" }}
-                value={f.notaFactura}
-                onChange={(e) => setF({ ...f, notaFactura: e.target.value })}
-              />
+              <textarea rows={2} style={{ width: "100%" }} value={f.notaFactura} onChange={(e) => setF({ ...f, notaFactura: e.target.value })} />
               {d.enviadoFacturarEn && <div className="dato-sec">Enviado a facturacion el {fechaHora(d.enviadoFacturarEn)}.</div>}
             </div>
           </Seccion>
@@ -318,17 +324,16 @@ export default function DetalleCuadro({
               {campoLink("facturaUrl", "factura")}
             </div>
             <div className="dato-sec">
-              Queda "Facturado" con consecutivo y fecha de factura. La fecha pago cliente es cuando vence: si pasa sin
-              pago, la cartera avisa para llamar y cobrar. Con la fecha pago factura queda "Todo pagado" (fila verde).
+              Queda "Facturado" con consecutivo y fecha de factura. La fecha pago cliente es cuando vence: si pasa sin pago, la cartera avisa para llamar y
+              cobrar. Con la fecha pago factura queda "Todo pagado" (fila verde).
             </div>
           </Seccion>
 
           {(d.estadoAnticipoEmpresa !== "NO_APLICA" || d.anticipoEmpresaNoAplica) && (
             <Seccion titulo="Anticipo de la empresa">
               <div className="dato-sec" style={{ marginBottom: "0.4rem" }}>
-                Lo que da el cliente en este viaje (clientes del Zorro, Aburra Limpio y viajes sin manifiesto). Es aparte
-                de los anticipos de la bomba: la empresa lo debe hasta que se escribe la fecha en que lo pago. Se cobra
-                desde Cartera &gt; Anticipos de empresas.
+                Lo que da el cliente en este viaje (clientes del Zorro, Aburra Limpio y viajes sin manifiesto). Es aparte de los anticipos de la bomba: la
+                empresa lo debe hasta que se escribe la fecha en que lo pago. Se cobra desde Cartera &gt; Anticipos de empresas.
               </div>
               {!d.anticipoEmpresaNoAplica && (
                 <div className="campos-cuadro">
@@ -354,20 +359,19 @@ export default function DetalleCuadro({
               <>
                 {!d.fechaPagoSaldo && d.venceSaldo && (
                   <div className={saldoVencido(d) ? "texto-vencido" : "dato-sec"}>
-                    Se le paga el viernes {fechaCorta(d.venceSaldo)} (descargue lunes o martes: el viernes de esa
-                    semana; de miercoles en adelante: el de la siguiente).
+                    Se le paga el viernes {fechaCorta(d.venceSaldo)} (descargue lunes o martes: el viernes de esa semana; de miercoles en adelante: el de la
+                    siguiente).
                   </div>
                 )}
                 <div className="dato-sec">
-                  El valor pactado, los anticipos y las retenciones se llevan en{" "}
-                  <Link to={`/terceros?viaje=${d.id}`}>Pago a terceros</Link>.
+                  El valor pactado, los anticipos y las retenciones se llevan en <Link to={`/terceros?viaje=${d.id}`}>Pago a terceros</Link>.
                 </div>
                 {!d.fechaDescargue && <div className="dato-sec">Escribe la fecha de descargue para calcular el vencimiento.</div>}
               </>
             ) : (
               <div className="dato-sec">
-                {d.dueno ? `Vehiculo de ${d.dueno} (socio)` : `Vehiculo de la flota propia (${ETIQUETA_FLOTA[d.flota]})`}: la fecha en que se
-                le pago o se le repartio lo del viaje. Lo que le toca se ve en <Link to="/liquidacion-viajes">Liquidacion de viajes</Link>.
+                {d.dueno ? `Vehiculo de ${d.dueno} (socio)` : `Vehiculo de la flota propia (${ETIQUETA_FLOTA[d.flota]})`}: la fecha en que se le pago o se le
+                repartio lo del viaje. Lo que le toca se ve en <Link to="/liquidacion-viajes">Liquidacion de viajes</Link>.
               </div>
             )}
           </Seccion>
@@ -526,151 +530,148 @@ function Anticipos({ d, aplicar, enfocar }: { d: Detalle; aplicar: Aplicar; enfo
       </>
     );
   };
-  const listo =
-    !!nuevo.fecha && totalIda > 0 && (!nuevo.idaYVuelta || totalVuelta > 0) && (!hayCombustible || !!nuevo.bombaId);
+  const listo = !!nuevo.fecha && totalIda > 0 && (!nuevo.idaYVuelta || totalVuelta > 0) && (!hayCombustible || !!nuevo.bombaId);
 
   return (
     <div ref={seccion}>
-    <Seccion titulo="Anticipos" extra={d.totalAnticipos ? <span className="dato-sec"> · total {moneda(d.totalAnticipos)}</span> : null}>
-      {d.anticipos.length > 0 && (
-        <table className="tabla tabla-compacta">
-          <thead>
-            <tr>
-              <th>Tramo</th>
-              <th>Fecha</th>
-              <th className="num">Efectivo</th>
-              <th className="num">Combustible</th>
-              <th className="num">Total</th>
-              <th>Bomba / factura</th>
-              <th>Pagado a la bomba</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {d.anticipos.map((a) => (
-              <tr key={a.id}>
-                <td>
-                  <Pastilla tono={a.tramo === "VUELTA" ? "info" : "neutro"}>{a.tramo === "VUELTA" ? "Vuelta" : "Ida"}</Pastilla>
-                  {a.tramo === "VUELTA" && <span className="dato-sec">De un anticipo de ida y vuelta</span>}
-                  {a.nota && <span className="dato-sec">{a.nota}</span>}
-                </td>
-                <td>{fechaCorta(a.fecha)}</td>
-                {/* Se reemplazan ahi mismo (el vale llego con otro valor): cambia tambien en el cuadro de anticipos. */}
-                <td className="num">
-                  <CampoValorAnticipo t={a} campo="efectivo" alGuardar={(datos) => void reemplazar(a.id, datos)} />
-                </td>
-                <td className="num">
-                  <CampoValorAnticipo t={a} campo="combustible" alGuardar={(datos) => void reemplazar(a.id, datos)} />
-                  {a.galones != null && <span className="dato-sec">{a.galones} gal</span>}
-                </td>
-                <td className="num">{moneda(a.valor)}</td>
-                <td>
-                  {a.bomba ?? "Solo efectivo"}
-                  {a.facturaBomba && <span className="dato-sec">Factura {a.facturaBomba}</span>}
-                </td>
-                <td>
-                  <CampoFecha valor={a.fechaPago} alGuardar={(f) => aplicar(() => apiCuadro.actualizarAnticipo(d.id, a.id, { fechaPago: f }))} />
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="btn-link"
-                    onClick={() =>
-                      window.confirm(
-                        a.tramo === "IDA" && a.idaYVuelta
-                          ? "¿Quitar este anticipo? Si su vuelta aun no se asigno a otro viaje, tambien se quita."
-                          : "¿Quitar este anticipo?"
-                      ) && aplicar(() => apiCuadro.borrarAnticipo(d.id, a.id))
-                    }
-                  >
-                    Quitar
-                  </button>
-                </td>
+      <Seccion titulo="Anticipos" extra={d.totalAnticipos ? <span className="dato-sec"> · total {moneda(d.totalAnticipos)}</span> : null}>
+        {d.anticipos.length > 0 && (
+          <table className="tabla tabla-compacta">
+            <thead>
+              <tr>
+                <th>Tramo</th>
+                <th>Fecha</th>
+                <th className="num">Efectivo</th>
+                <th className="num">Combustible</th>
+                <th className="num">Total</th>
+                <th>Bomba / factura</th>
+                <th>Pagado a la bomba</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <div className="campos-cuadro" style={{ marginTop: "0.5rem" }}>
-        <div>
-          <label>Efectivo</label>
-          <input type="number" min="0" value={nuevo.efectivo} onChange={(e) => fijar({ efectivo: e.target.value })} />
+            </thead>
+            <tbody>
+              {d.anticipos.map((a) => (
+                <tr key={a.id}>
+                  <td>
+                    <Pastilla tono={a.tramo === "VUELTA" ? "info" : "neutro"}>{a.tramo === "VUELTA" ? "Vuelta" : "Ida"}</Pastilla>
+                    {a.tramo === "VUELTA" && <span className="dato-sec">De un anticipo de ida y vuelta</span>}
+                    {a.nota && <span className="dato-sec">{a.nota}</span>}
+                  </td>
+                  <td>{fechaCorta(a.fecha)}</td>
+                  {/* Se reemplazan ahi mismo (el vale llego con otro valor): cambia tambien en el cuadro de anticipos. */}
+                  <td className="num">
+                    <CampoValorAnticipo t={a} campo="efectivo" alGuardar={(datos) => void reemplazar(a.id, datos)} />
+                  </td>
+                  <td className="num">
+                    <CampoValorAnticipo t={a} campo="combustible" alGuardar={(datos) => void reemplazar(a.id, datos)} />
+                    {a.galones != null && <span className="dato-sec">{a.galones} gal</span>}
+                  </td>
+                  <td className="num">{moneda(a.valor)}</td>
+                  <td>
+                    {a.bomba ?? "Solo efectivo"}
+                    {a.facturaBomba && <span className="dato-sec">Factura {a.facturaBomba}</span>}
+                  </td>
+                  <td>
+                    <CampoFecha valor={a.fechaPago} alGuardar={(f) => aplicar(() => apiCuadro.actualizarAnticipo(d.id, a.id, { fechaPago: f }))} />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn-link"
+                      onClick={() =>
+                        window.confirm(
+                          a.tramo === "IDA" && a.idaYVuelta
+                            ? "¿Quitar este anticipo? Si su vuelta aun no se asigno a otro viaje, tambien se quita."
+                            : "¿Quitar este anticipo?",
+                        ) && aplicar(() => apiCuadro.borrarAnticipo(d.id, a.id))
+                      }
+                    >
+                      Quitar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <div className="campos-cuadro" style={{ marginTop: "0.5rem" }}>
+          <div>
+            <label>Efectivo</label>
+            <input type="number" min="0" value={nuevo.efectivo} onChange={(e) => fijar({ efectivo: e.target.value })} />
+          </div>
+          <div>
+            <label>Bomba</label>
+            <select value={nuevo.bombaId} onChange={(e) => fijar({ bombaId: e.target.value })}>
+              <option value="">{hayCombustible ? "Elige la bomba..." : "Ninguna (solo efectivo)"}</option>
+              {activas.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.nombre}
+                  {b.ciudad ? ` (${b.ciudad})` : ""}
+                </option>
+              ))}
+            </select>
+            {bombas.datos && activas.length === 0 && <span className="dato-sec">Agrega las bombas con el boton "Bombas" del cuadro.</span>}
+          </div>
+          <div>
+            <label>Fecha</label>
+            <input type="date" value={nuevo.fecha} onChange={(e) => fijar({ fecha: e.target.value })} />
+          </div>
+          {camposCombustible("", ida)}
+          <div>
+            <label>N° factura de la bomba (opcional)</label>
+            <input value={nuevo.facturaBomba} maxLength={40} onChange={(e) => fijar({ facturaBomba: e.target.value })} />
+          </div>
+          <div>
+            <label>Nota (opcional)</label>
+            <input value={nuevo.nota} maxLength={200} onChange={(e) => fijar({ nota: e.target.value })} />
+          </div>
         </div>
-        <div>
-          <label>Bomba</label>
-          <select value={nuevo.bombaId} onChange={(e) => fijar({ bombaId: e.target.value })}>
-            <option value="">{hayCombustible ? "Elige la bomba..." : "Ninguna (solo efectivo)"}</option>
-            {activas.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.nombre}
-                {b.ciudad ? ` (${b.ciudad})` : ""}
-              </option>
-            ))}
-          </select>
-          {bombas.datos && activas.length === 0 && <span className="dato-sec">Agrega las bombas con el boton "Bombas" del cuadro.</span>}
+        <div className="dato-sec">
+          Combustible = galones x precio por galon - descuento (el descuento por galon es el de la bomba elegida). Si escribes el combustible, manda ese valor.
         </div>
-        <div>
-          <label>Fecha</label>
-          <input type="date" value={nuevo.fecha} onChange={(e) => fijar({ fecha: e.target.value })} />
-        </div>
-        {camposCombustible("", ida)}
-        <div>
-          <label>N° factura de la bomba (opcional)</label>
-          <input value={nuevo.facturaBomba} maxLength={40} onChange={(e) => fijar({ facturaBomba: e.target.value })} />
-        </div>
-        <div>
-          <label>Nota (opcional)</label>
-          <input value={nuevo.nota} maxLength={200} onChange={(e) => fijar({ nota: e.target.value })} />
-        </div>
-      </div>
-      <div className="dato-sec">
-        Combustible = galones x precio por galon - descuento (el descuento por galon es el de la bomba elegida). Si escribes el combustible, manda ese
-        valor.
-      </div>
 
-      <div className="pregunta-recorrido">
-        <strong>¿El anticipo es de ida y vuelta o de un solo recorrido?</strong>
-        <label className="check-linea">
-          <input type="radio" name={`recorrido-${d.id}`} checked={!nuevo.idaYVuelta} onChange={() => fijar({ idaYVuelta: false })} />
-          Un solo recorrido
-        </label>
-        <label className="check-linea">
-          <input type="radio" name={`recorrido-${d.id}`} checked={nuevo.idaYVuelta} onChange={() => fijar({ idaYVuelta: true })} />
-          Ida y vuelta
-        </label>
-      </div>
-      {nuevo.idaYVuelta && (
-        <>
-          <div className="campos-cuadro">
-            <div>
-              <label>Efectivo de vuelta</label>
-              <input type="number" min="0" value={nuevo.efectivoVuelta} onChange={(e) => fijar({ efectivoVuelta: e.target.value })} />
+        <div className="pregunta-recorrido">
+          <strong>¿El anticipo es de ida y vuelta o de un solo recorrido?</strong>
+          <label className="check-linea">
+            <input type="radio" name={`recorrido-${d.id}`} checked={!nuevo.idaYVuelta} onChange={() => fijar({ idaYVuelta: false })} />
+            Un solo recorrido
+          </label>
+          <label className="check-linea">
+            <input type="radio" name={`recorrido-${d.id}`} checked={nuevo.idaYVuelta} onChange={() => fijar({ idaYVuelta: true })} />
+            Ida y vuelta
+          </label>
+        </div>
+        {nuevo.idaYVuelta && (
+          <>
+            <div className="campos-cuadro">
+              <div>
+                <label>Efectivo de vuelta</label>
+                <input type="number" min="0" value={nuevo.efectivoVuelta} onChange={(e) => fijar({ efectivoVuelta: e.target.value })} />
+              </div>
+              {camposCombustible("Vuelta", vuelta)}
             </div>
-            {camposCombustible("Vuelta", vuelta)}
-          </div>
-          <div className="dato-sec">
-            El anticipo de vuelta ({moneda(totalVuelta)}) se guarda con la misma bomba y fecha y se suma solo al
-            proximo viaje de {d.placa}.
-          </div>
-        </>
-      )}
-      <button
-        type="button"
-        className="btn-primary"
-        style={{ marginTop: "0.5rem" }}
-        disabled={!listo}
-        onClick={async () => {
-          // Antes de guardar: avisa si se repite con otro anticipo de la placa ese dia.
-          const datos = datosAnticipo();
-          const { avisos } = await apiCuadro.revisarAnticipo(d.id, datos).catch(() => ({ avisos: [] as string[] }));
-          if (avisos.length && !window.confirm(`Revisa antes de guardar:\n\n- ${avisos.join("\n- ")}\n\n¿Guardar el anticipo de todas formas?`)) return;
-          await aplicar(() => apiCuadro.agregarAnticipo(d.id, datos), "Anticipo agregado.");
-          setNuevo(anticipoVacio());
-        }}
-      >
-        Agregar anticipo{totalIda ? ` (${moneda(totalIda + (nuevo.idaYVuelta ? totalVuelta : 0))})` : ""}
-      </button>
-    </Seccion>
+            <div className="dato-sec">
+              El anticipo de vuelta ({moneda(totalVuelta)}) se guarda con la misma bomba y fecha y se suma solo al proximo viaje de {d.placa}.
+            </div>
+          </>
+        )}
+        <button
+          type="button"
+          className="btn-primary"
+          style={{ marginTop: "0.5rem" }}
+          disabled={!listo}
+          onClick={async () => {
+            // Antes de guardar: avisa si se repite con otro anticipo de la placa ese dia.
+            const datos = datosAnticipo();
+            const { avisos } = await apiCuadro.revisarAnticipo(d.id, datos).catch(() => ({ avisos: [] as string[] }));
+            if (avisos.length && !window.confirm(`Revisa antes de guardar:\n\n- ${avisos.join("\n- ")}\n\n¿Guardar el anticipo de todas formas?`)) return;
+            await aplicar(() => apiCuadro.agregarAnticipo(d.id, datos), "Anticipo agregado.");
+            setNuevo(anticipoVacio());
+          }}
+        >
+          Agregar anticipo{totalIda ? ` (${moneda(totalIda + (nuevo.idaYVuelta ? totalVuelta : 0))})` : ""}
+        </button>
+      </Seccion>
     </div>
   );
 }

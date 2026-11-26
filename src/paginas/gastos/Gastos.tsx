@@ -14,6 +14,7 @@
  * - El rol total cierra meses (sus gastos ya no cambian) y fija la fecha
  *   desde la que se registran. Transportes M&C solo ve lo de su empresa.
  */
+import HistorialCambios from "../../componentes/HistorialCambios";
 import { useMemo, useState } from "react";
 import { apiGastos, hoyColombia, moneda } from "../../api/cliente";
 import type { DestinoGasto, Gasto, OpcionesGastos } from "../../api/cliente";
@@ -322,6 +323,9 @@ function DetalleGasto({
           Gasto de Transportes Lopez: solo se consulta.
         </div>
       )}
+      <div style={{ marginTop: "0.4rem" }}>
+        <HistorialCambios tabla="gastos" id={g.id} titulo={g.descripcion} />
+      </div>
       {!g.anulado && !soloLectura && (
         <div className="detalle-tanqueo-pie">
           <label>

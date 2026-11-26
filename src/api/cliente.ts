@@ -2883,3 +2883,56 @@ export const apiConductores = {
   /** Quita la marca de pagada. */
   quitarPago: (empleadoId: number, mes: string) => del<LiquidacionMes>(`/conductores/liquidacion/${empleadoId}/${mes}/pago`),
 };
+
+/** Un registro de la bitacora de Control interno: que se creo, cambio o borro, quien y cuando. */
+export interface RegistroBitacora {
+  id: number;
+  en: string;
+  tabla: string;
+  /** Nombre de la tabla en pantalla ("Viaje del cuadro pagos", "Gasto"...). */
+  que: string;
+  registroId: string;
+  /** Algo que identifica el registro (placa, numero, nombre...). */
+  descripcion: string | null;
+  accion: "CREAR" | "CAMBIAR" | "BORRAR";
+  /** Al cambiar, solo los campos que cambiaron; al crear o borrar, todos sus datos. */
+  cambios: Array<{ campo: string; antes: unknown; despues: unknown }>;
+  usuarioId: number | null;
+  /** null = el sistema (procesos automaticos). */
+  usuario: string | null;
+  /** Metodo y ruta desde donde se hizo. */
+  origen: string | null;
+  relacionado: string | null;
+  restaurable: boolean;
+  restauradoEn: string | null;
+  restauradoPor: string | null;
+}
+
+/** Filtros de la bitacora y la papelera. */
+export interface FiltroBitacora {
+  desde?: string;
+  hasta?: string;
+  tabla?: string;
+  usuarioId?: string;
+  accion?: string;
+}
+
+/** Arma la consulta (?a=1&b=2) con los filtros que tienen valor. */
+const consultaDe = (f: FiltroBitacora) => {
+  const p = Object.entries(f).filter(([, v]) => v !== undefined && v !== null && v !== "");
+  return p.length ? `?${p.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&")}` : "";
+};
+
+/** Control interno: bitacora de cambios, historial de un registro y papelera (solo acceso total). */
+export const apiControl = {
+  /** Si la bitacora esta activa en la base (o por que no). */
+  estado: () => get<{ activa: boolean; error: string | null; tablas: number }>("/control/estado"),
+  /** Los cambios con los filtros, los mas recientes primero. */
+  bitacora: (f: FiltroBitacora) => get<RegistroBitacora[]>(`/control/bitacora${consultaDe(f)}`),
+  /** Los cambios de un registro y de lo que cuelga de el. */
+  historial: (tabla: string, id: number | string) => get<RegistroBitacora[]>(`/control/historial/${tabla}/${id}`),
+  /** Lo borrado con los filtros. */
+  papelera: (f: FiltroBitacora) => get<RegistroBitacora[]>(`/control/papelera${consultaDe(f)}`),
+  /** Vuelve a crear un registro borrado (solo los simples). */
+  restaurar: (id: number) => post<{ ok: true }>(`/control/papelera/${id}/restaurar`, {}),
+};
