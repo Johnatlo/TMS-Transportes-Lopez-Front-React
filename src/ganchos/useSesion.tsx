@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { ReactNode } from "react";
 import { auth, EVENTO_SESION_VENCIDA } from "../api/cliente";
 import type { Usuario } from "../api/tipos";
+import { aplicarPreferencia, pintarAutomatico, preferenciaValida } from "../modoPantalla";
 
 type EstadoSesion = "cargando" | "anonimo" | "conectado";
 
@@ -31,7 +32,14 @@ const Contexto = createContext<ContextoSesion | null>(null);
  */
 export function ProveedorSesion({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<EstadoSesion>("cargando");
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [usuario, setUsuarioBase] = useState<Usuario | null>(null);
+  // Al saber quien entro, se pinta con el modo que eligio (o automatico por la hora).
+  // Sin sesion (login) siempre es automatico.
+  const setUsuario = useCallback((u: Usuario | null) => {
+    if (u) aplicarPreferencia(preferenciaValida(u.tema));
+    else pintarAutomatico();
+    setUsuarioBase(u);
+  }, []);
 
   useEffect(() => {
     auth
@@ -48,13 +56,16 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     };
     window.addEventListener(EVENTO_SESION_VENCIDA, alVencer);
     return () => window.removeEventListener(EVENTO_SESION_VENCIDA, alVencer);
-  }, []);
+  }, [setUsuario]);
 
-  const entrar = useCallback(async (email: string, clave: string) => {
-    const u = await auth.login(email, clave);
-    setUsuario(u);
-    setEstado("conectado");
-  }, []);
+  const entrar = useCallback(
+    async (email: string, clave: string) => {
+      const u = await auth.login(email, clave);
+      setUsuario(u);
+      setEstado("conectado");
+    },
+    [setUsuario],
+  );
 
   const salir = useCallback(async () => {
     try {
@@ -63,13 +74,9 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
       setUsuario(null);
       setEstado("anonimo");
     }
-  }, []);
+  }, [setUsuario]);
 
-  return (
-    <Contexto.Provider value={{ estado, usuario, entrar, salir, actualizarUsuario: setUsuario }}>
-      {children}
-    </Contexto.Provider>
-  );
+  return <Contexto.Provider value={{ estado, usuario, entrar, salir, actualizarUsuario: setUsuario }}>{children}</Contexto.Provider>;
 }
 
 /** Sesion actual (estado, usuario, entrar, salir). Debe usarse dentro de <ProveedorSesion>. */

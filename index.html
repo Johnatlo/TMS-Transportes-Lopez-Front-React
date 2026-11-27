@@ -4,12 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <!-- Modo de la pantalla (src/modoPantalla.ts): se aplica antes de pintar
+         para no ver un destello del otro modo. Automatico: claro de 5 a.m. a
+         5 p.m. (hora de Colombia) y oscuro de noche. -->
+    <script>
+      (function () {
+        var p = "auto";
+        try {
+          var g = localStorage.getItem("sofi-tema");
+          if (g === "claro" || g === "oscuro") p = g;
+        } catch (e) {}
+        var h = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Bogota", hour: "numeric", hourCycle: "h23" }).format(new Date())) % 24;
+        var raiz = document.documentElement;
+        raiz.dataset.preferenciaTema = p;
+        raiz.dataset.tema = p !== "auto" ? p : h >= 5 && h < 17 ? "claro" : "oscuro";
+      })();
+    </script>
     <!-- Fuentes del tema (GUIA-UI.md). Si no cargan, se usa la del sistema. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
     />
     <title>SOFI por Transportes López</title>
   </head>

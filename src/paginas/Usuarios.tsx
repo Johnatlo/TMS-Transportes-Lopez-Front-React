@@ -44,7 +44,7 @@ export default function Usuarios() {
   /** Muestra como se entrego la clave: por correo, o en pantalla si no se pudo. */
   function mostrarEntrega(email: string, r: EntregaClave) {
     if (r.enviadoPorCorreo) {
-      setExito(`Se envio la contrasena temporal a ${email}.`);
+      setExito(`Se envio la contraseña temporal a ${email}.`);
     } else if (r.claveTemporal) {
       setClaveMostrada({ email, clave: r.claveTemporal, aviso: r.avisoCorreo });
     }
@@ -76,7 +76,7 @@ export default function Usuarios() {
   }
 
   async function restablecer(u: Usuario) {
-    if (!window.confirm(`¿Restablecer la contrasena de ${u.nombre}? Se cerraran sus sesiones abiertas.`)) return;
+    if (!window.confirm(`¿Restablecer la contraseña de ${u.nombre}? Se cerraran sus sesiones abiertas.`)) return;
     setError(null);
     try {
       setExito(null);
@@ -170,7 +170,7 @@ export default function Usuarios() {
                     Cambiar nombre
                   </button>
                   <button className="boton-suave" style={{ marginLeft: 8 }} onClick={() => restablecer(u)}>
-                    Restablecer contrasena
+                    Restablecer contraseña
                   </button>
                   {u.id !== yo?.id && (
                     <button className="btn-link" style={{ marginLeft: 8 }} onClick={() => cambiarEstado(u)}>
@@ -258,7 +258,7 @@ function NuevoUsuario({ alCerrar, alCrear }: { alCerrar: () => void; alCrear: (e
           ))}
         </select>
         <p className="section-desc">
-          El sistema genera una contrasena temporal y se la envia por correo. Si el correo no esta configurado, la veras aqui una sola vez. El usuario la
+          El sistema genera una contraseña temporal y se la envia por correo. Si el correo no esta configurado, la veras aqui una sola vez. El usuario la
           cambiara en su primer ingreso.
         </p>
         <div className="acciones-formulario">
@@ -328,7 +328,7 @@ function ClaveTemporal({ email, clave, aviso, alCerrar }: { email: string; clave
   }
   return (
     <Modal
-      titulo="Contrasena temporal"
+      titulo="Contraseña temporal"
       alCerrar={alCerrar}
       pie={
         <button className="btn-primary" onClick={alCerrar}>
@@ -338,7 +338,7 @@ function ClaveTemporal({ email, clave, aviso, alCerrar }: { email: string; clave
     >
       {aviso && <div className="alert warning">{aviso}</div>}
       <p>
-        Entrega esta contrasena a <strong>{email}</strong>. <strong>No se volvera a mostrar.</strong> Al entrar, el sistema le pedira crear una propia.
+        Entrega esta contraseña a <strong>{email}</strong>. <strong>No se volvera a mostrar.</strong> Al entrar, el sistema le pedira crear una propia.
       </p>
       <div className="clave-temporal">
         <code>{clave}</code>

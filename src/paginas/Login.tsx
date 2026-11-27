@@ -55,7 +55,7 @@ export default function Login() {
     <PantallaAcceso>
       <form className="tarjeta-acceso" onSubmit={enviar}>
         <h1>Bienvenido</h1>
-        <p className="acceso-subtitulo">Ingresa con tu correo y contrasena para entrar a SOFI.</p>
+        <p className="acceso-subtitulo">Ingresa con tu correo y contraseña para entrar a SOFI.</p>
 
         {aviso && <div className="alert success">{aviso}</div>}
         {error && <div className="alert danger">{error}</div>}
@@ -73,9 +73,9 @@ export default function Login() {
         />
 
         <div className="fila-etiqueta">
-          <label htmlFor="clave">Contrasena</label>
+          <label htmlFor="clave">Contraseña</label>
           <button type="button" className="enlace-pequeno" onClick={() => setRecuperando(true)}>
-            ¿Olvidaste tu contrasena?
+            ¿Olvidaste tu contraseña?
           </button>
         </div>
         <CampoClave
@@ -124,8 +124,8 @@ function CampoClave({
         type="button"
         className="boton-ojo"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? "Ocultar contrasena" : "Mostrar contrasena"}
-        title={visible ? "Ocultar contrasena" : "Mostrar contrasena"}
+        aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+        title={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
       >
         {visible ? <IconoOjoTachado /> : <IconoOjo />}
       </button>
@@ -134,8 +134,8 @@ function CampoClave({
 }
 
 /**
- * Recuperar la contrasena en dos pasos: pedir un codigo al correo y luego,
- * con ese codigo, crear la contrasena nueva.
+ * Recuperar la contraseña en dos pasos: pedir un codigo al correo y luego,
+ * con ese codigo, crear la contraseña nueva.
  */
 function Recuperar({ emailInicial, alVolver }: { emailInicial: string; alVolver: (mensaje?: string) => void }) {
   const [paso, setPaso] = useState<"pedir" | "confirmar">("pedir");
@@ -166,15 +166,15 @@ function Recuperar({ emailInicial, alVolver }: { emailInicial: string; alVolver:
     e.preventDefault();
     setError(null);
     if (nueva !== repetida) {
-      setError("Las dos contrasenas no coinciden.");
+      setError("Las dos contraseñas no coinciden.");
       return;
     }
     setEnviando(true);
     try {
       await auth.confirmarRecuperacion(email, codigo, nueva);
-      alVolver("Contrasena actualizada. Ya puedes entrar con la nueva.");
+      alVolver("Contraseña actualizada. Ya puedes entrar con la nueva.");
     } catch (exc) {
-      setError(exc instanceof Error ? exc.message : "No se pudo cambiar la contrasena");
+      setError(exc instanceof Error ? exc.message : "No se pudo cambiar la contraseña");
     } finally {
       setEnviando(false);
     }
@@ -182,7 +182,7 @@ function Recuperar({ emailInicial, alVolver }: { emailInicial: string; alVolver:
 
   return (
     <form className="tarjeta-acceso" onSubmit={paso === "pedir" ? pedir : confirmar}>
-      <h1>Recuperar contrasena</h1>
+      <h1>Recuperar contraseña</h1>
       {error && <div className="alert danger">{error}</div>}
 
       {paso === "pedir" ? (
@@ -211,13 +211,13 @@ function Recuperar({ emailInicial, alVolver }: { emailInicial: string; alVolver:
             value={codigo}
             onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
           />
-          <label htmlFor="rec-nueva">Contrasena nueva</label>
+          <label htmlFor="rec-nueva">Contraseña nueva</label>
           <input id="rec-nueva" type="password" autoComplete="new-password" required value={nueva} onChange={(e) => setNueva(e.target.value)} />
           <p className="section-desc">Minimo 8 caracteres, con letras y numeros.</p>
-          <label htmlFor="rec-repetida">Repite la contrasena nueva</label>
+          <label htmlFor="rec-repetida">Repite la contraseña nueva</label>
           <input id="rec-repetida" type="password" autoComplete="new-password" required value={repetida} onChange={(e) => setRepetida(e.target.value)} />
           <button className="btn-primary boton-ancho" type="submit" disabled={enviando}>
-            {enviando ? "Guardando..." : "Guardar contrasena"}
+            {enviando ? "Guardando..." : "Guardar contraseña"}
           </button>
           <button type="button" className="btn-link boton-ancho" onClick={() => setPaso("pedir")}>
             No me llego: pedir otro codigo

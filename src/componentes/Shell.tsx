@@ -5,7 +5,7 @@
 import { Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";
-import { api, apiSeguimiento } from "../api/cliente";
+import { api, apiSeguimiento, auth } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import AlertasDocumentos from "./AlertasDocumentos";
 import AlertasSeguimiento, { ETIQUETA_CORTA, TIPOS_ALERTA } from "./AlertasSeguimiento";
@@ -13,6 +13,8 @@ import CambiarClave from "./CambiarClave";
 import Modal from "./Modal";
 import { Cargando } from "./Estado";
 import { useSesion } from "../ganchos/useSesion";
+import { aplicarPreferencia, otroTema, useTema } from "../modoPantalla";
+import type { PreferenciaTema } from "../modoPantalla";
 import { NOMBRE_ROL, puedeRuta } from "../permisos";
 import {
   IconoCampana,
@@ -35,6 +37,8 @@ import {
   IconoViajes,
   IconoUsuarios,
   IconoChevron,
+  IconoLuna,
+  IconoSol,
   IconoNomina,
   IconoRecibo,
   IconoTorta,
@@ -204,7 +208,18 @@ export default function Shell() {
    * "Celular").
    */
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const { usuario, salir } = useSesion();
+  const { usuario, salir, actualizarUsuario } = useSesion();
+  const { tema, preferencia } = useTema();
+  /** Cambia el modo al instante y lo guarda en el usuario. */
+  const elegirTema = (nuevo: PreferenciaTema) => {
+    aplicarPreferencia(nuevo);
+    auth
+      .guardarTema(nuevo)
+      .then(actualizarUsuario)
+      .catch(() => {
+        // Sin conexion: queda en este navegador y se guarda la proxima vez.
+      });
+  };
   const [menuUsuario, setMenuUsuario] = useState(false);
   const [cambiandoClave, setCambiandoClave] = useState(false);
   const iniciales = (usuario?.nombre ?? "TL")
@@ -334,6 +349,14 @@ export default function Shell() {
                 );
               })}
             </div>
+            <button
+              className="boton-redondo"
+              title={tema === "oscuro" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              aria-label={tema === "oscuro" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              onClick={() => elegirTema(otroTema(tema))}
+            >
+              {tema === "oscuro" ? <IconoSol /> : <IconoLuna />}
+            </button>
             <button className="boton-redondo" title="Documentos vencidos o por vencer" onClick={() => setVerAlertas(true)} disabled={!alertas.datos}>
               <IconoCampana />
               {pendientes > 0 && <span className="punto-contador">{pendientes > 99 ? "99+" : pendientes}</span>}
@@ -358,8 +381,19 @@ export default function Shell() {
                         setCambiandoClave(true);
                       }}
                     >
-                      Cambiar contrasena
+                      Cambiar contraseña
                     </button>
+                    {preferencia !== "auto" && (
+                      <button
+                        onClick={() => {
+                          setMenuUsuario(false);
+                          elegirTema("auto");
+                        }}
+                        title="Claro de 5 a.m. a 5 p.m. y oscuro de noche"
+                      >
+                        Modo automatico (dia / noche)
+                      </button>
+                    )}
                     <button onClick={() => salir()}>Cerrar sesion</button>
                   </div>
                 </>
@@ -376,7 +410,7 @@ export default function Shell() {
       </div>
 
       {cambiandoClave && (
-        <Modal titulo="Cambiar contrasena" alCerrar={() => setCambiandoClave(false)}>
+        <Modal titulo="Cambiar contraseña" alCerrar={() => setCambiandoClave(false)}>
           <CambiarClave alTerminar={() => setCambiandoClave(false)} />
         </Modal>
       )}

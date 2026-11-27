@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_805 funciones, componentes, métodos y rutas en 126 archivos._
+_821 funciones, componentes, métodos y rutas en 127 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (263)
+- [`src/api/cliente.ts`](#srcapiclientets) (264)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -194,7 +194,7 @@ _805 funciones, componentes, métodos y rutas en 126 archivos._
 - [`src/componentes/FiltrosTabla.tsx`](#srccomponentesfiltrostablatsx) (2)
 - [`src/componentes/FormularioGenerico.tsx`](#srccomponentesformulariogenericotsx) (2)
 - [`src/componentes/HistorialCambios.tsx`](#srccomponenteshistorialcambiostsx) (6)
-- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (31)
+- [`src/componentes/Iconos.tsx`](#srccomponentesiconostsx) (33)
 - [`src/componentes/Indicador.tsx`](#srccomponentesindicadortsx) (1)
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
 - [`src/componentes/LinksViaje.tsx`](#srccomponenteslinksviajetsx) (3)
@@ -203,7 +203,7 @@ _805 funciones, componentes, métodos y rutas en 126 archivos._
 - [`src/componentes/MenuMas.tsx`](#srccomponentesmenumastsx) (1)
 - [`src/componentes/MiniTabla.tsx`](#srccomponentesminitablatsx) (1)
 - [`src/componentes/Modal.tsx`](#srccomponentesmodaltsx) (1)
-- [`src/componentes/PantallaAcceso.tsx`](#srccomponentespantallaaccesotsx) (1)
+- [`src/componentes/PantallaAcceso.tsx`](#srccomponentespantallaaccesotsx) (2)
 - [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (3)
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (4)
@@ -217,6 +217,7 @@ _805 funciones, componentes, métodos y rutas en 126 archivos._
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
 - [`src/ganchos/useSesion.tsx`](#srcganchosusesesiontsx) (2)
+- [`src/modoPantalla.ts`](#srcmodopantallats) (12)
 - [`src/paginas/Catalogo.tsx`](#srcpaginascatalogotsx) (21)
 - [`src/paginas/Dashboard.tsx`](#srcpaginasdashboardtsx) (14)
 - [`src/paginas/Despacho.tsx`](#srcpaginasdespachotsx) (7)
@@ -380,6 +381,9 @@ _805 funciones, componentes, métodos y rutas en 126 archivos._
 
   - **`auth.cambiarClave(actual, nueva)`** · _método_
     Cambia la clave propia (pide la actual).
+
+  - **`auth.guardarTema(tema)`** · _método_
+    Guarda el modo de la pantalla del usuario conectado.
 
   - **`auth.listarUsuarios()`** · _método_
     Usuarios del sistema.
@@ -1576,6 +1580,12 @@ _805 funciones, componentes, métodos y rutas en 126 archivos._
 - **`IconoVolante()`** · _componente React_
   Icono del menu Vehiculos (volante).
 
+- **`IconoSol()`** · _componente React_
+  Sol: pasar a modo claro.
+
+- **`IconoLuna()`** · _componente React_
+  Luna: pasar a modo oscuro.
+
 - **`IconoChevron({...})`** · _componente React_
   Flecha pequena de los grupos del menu (abierto: hacia abajo).
 
@@ -1701,18 +1711,26 @@ _805 funciones, componentes, métodos y rutas en 126 archivos._
 ### `src/componentes/PantallaAcceso.tsx`
 
 > Marco de las pantallas sin sesion: tarjeta con logo y formulario a la
-> izquierda y foto a la derecha.
+> izquierda y video (de dia o de noche) a la derecha.
+
+- **`conVideo()`** · _función_
+  Si se muestra el video: solo en pantallas anchas (en el celular la mitad de
+  la foto se oculta y asi no se gastan datos) y si el computador no pide
+  reducir el movimiento.
 
 - **`PantallaAcceso({...})`** · _componente React_
   Marco de las pantallas sin sesion (login, recuperar contrasena y el cambio
   obligatorio de la clave temporal).
 
-  Una tarjeta centrada sobre la foto de fondo, partida en dos: a la izquierda
-  el logo y el formulario que llegue como `children`; a la derecha una foto
-  con el nombre del sistema. Las dos fotos van en el CSS (.pantalla-acceso y
-  .acceso-foto), asi se cambian sin tocar el componente.
+  Una tarjeta centrada sobre una imagen del video (desenfocada, con degradado), partida en dos: a la izquierda
+  el logo de SOFI y el formulario que llegue como `children`; a la derecha un
+  video de un vehiculo en carretera, con el nombre del sistema encima.
 
-  En pantallas angostas la mitad de la foto se oculta y queda solo el formulario.
+  Siempre va en modo automatico: claro de dia y oscuro de noche (a las 5 a.m.
+  y a las 5 p.m., ver modoPantalla.ts). Con el modo cambian el logo y el video
+  (solo se descarga el que toca). Mientras carga se ve su primera imagen.
+
+  En pantallas angostas la mitad del video se oculta y queda solo el formulario.
 
 ### `src/componentes/ReintentarViaje.tsx`
 
@@ -1993,6 +2011,57 @@ _805 funciones, componentes, métodos y rutas en 126 archivos._
 
 - **`useSesion()`** · _función_
   Sesion actual (estado, usuario, entrar, salir). Debe usarse dentro de <ProveedorSesion>.
+
+### `src/modoPantalla.ts`
+
+> Modo de la pantalla: claro u oscuro (tema.css define los colores de cada uno
+> sobre el atributo data-tema de <html>).
+>
+> Por defecto es AUTOMATICO segun la hora de Colombia: de dia (5:00 a.m. a
+> 4:59 p.m.) claro y de noche (5:00 p.m. a 4:59 a.m.) oscuro. El cambio pasa
+> solo, aunque la aplicacion este abierta. El login siempre va en automatico.
+>
+> Cada usuario puede fijar uno con el boton sol/luna (o volver a automatico
+> desde su menu): se guarda en su usuario (PUT /auth/preferencias) y lo sigue
+> a cualquier computador. El navegador recuerda la ultima eleccion para pintar
+> bien desde el primer instante (index.html usa la misma clave y la misma regla).
+
+- **`temaValido(t)`** · _función_
+  El texto si es un modo fijo valido; si no, null.
+
+- **`preferenciaValida(p)`** · _función_
+  La preferencia guardada; cualquier otra cosa (o nada) es automatico.
+
+- **`otroTema(t)`** · _función_
+  El otro modo (lo que hace el boton sol/luna).
+
+- **`horaColombia(fecha)`** · _función_
+  Hora (0 a 23) en Colombia, sin importar la zona del computador.
+
+- **`temaPorHora(fecha)`** · _función_
+  El modo que toca a esa hora: claro de 5 a.m. a 5 p.m., oscuro el resto.
+
+- **`temaDe(p, fecha)`** · _función_
+  El modo que se ve con una preferencia, en ese momento.
+
+- **`preferenciaActual()`** · _función_
+  Lo que eligio el usuario (o automatico).
+
+- **`temaActual()`** · _función_
+  El modo que se ve ahora.
+
+- **`aplicarPreferencia(p)`** · _función_
+  Pinta la aplicacion con esa preferencia y la recuerda en este navegador.
+
+- **`pintarAutomatico()`** · _función_
+  Pinta en automatico (por la hora) SIN cambiar lo que recuerda el navegador:
+  lo usa el login, que siempre va con el dia y la noche.
+
+- **`vigilarHora()`** · _función_
+  En automatico, revisa la hora cada minuto: a las 5 cambia solo.
+
+- **`useTema()`** · _función_
+  El modo que se ve y la preferencia; se vuelve a pintar cuando cambian (o cuando llega la hora).
 
 ### `src/paginas/Catalogo.tsx`
 

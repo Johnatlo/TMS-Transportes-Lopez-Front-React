@@ -18,10 +18,7 @@ export interface PuntoMapa {
 
 /** Colombia continental, aproximado: descarta coordenadas de relleno (999...). */
 export function coordenadaValida(lat: number | null | undefined, lon: number | null | undefined): boolean {
-  return (
-    typeof lat === "number" && typeof lon === "number" &&
-    lat > -5 && lat < 14 && lon > -80 && lon < -66
-  );
+  return typeof lat === "number" && typeof lon === "number" && lat > -5 && lat < 14 && lon > -80 && lon < -66;
 }
 
 /**
@@ -71,13 +68,10 @@ export default function MapaSeguimiento({ puntos }: { puntos: PuntoMapa[] }) {
     const limites: L.LatLngExpression[] = [];
 
     for (const p of puntos) {
-      const pos: [number, number] = [
-        p.origen[0] + (p.destino[0] - p.origen[0]) * p.avance,
-        p.origen[1] + (p.destino[1] - p.origen[1]) * p.avance,
-      ];
+      const pos: [number, number] = [p.origen[0] + (p.destino[0] - p.origen[0]) * p.avance, p.origen[1] + (p.destino[1] - p.origen[1]) * p.avance];
       L.polyline([p.origen, p.destino], { color: "#94a3b8", weight: 2, dashArray: "4 6" }).addTo(g);
       L.circleMarker(p.destino, { radius: 4, color: "#64748b", weight: 2, fillColor: "#fff", fillOpacity: 1 }).addTo(g);
-      L.circleMarker(pos, { radius: 8, color: "#fff", weight: 2, fillColor: "#2563eb", fillOpacity: 1 })
+      L.circleMarker(pos, { radius: 8, color: "#fff", weight: 2, fillColor: "#af50ff", fillOpacity: 1 }) // violeta de SOFI: se ve en los dos modos
         .bindTooltip(`<strong>${p.etiqueta}</strong><br>${p.detalle}`, { direction: "top" })
         .addTo(g);
       limites.push(p.origen, p.destino);

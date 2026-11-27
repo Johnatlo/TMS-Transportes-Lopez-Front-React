@@ -1,4 +1,4 @@
-# Guía de interfaz — TMS Transportes López
+# Guía de interfaz — SOFI por Transportes López
 
 Reglas globales de la interfaz: fuentes, colores, tablas y estados. Todo lo que
 aquí se define vive en **`src/tema.css`**. Cualquier pantalla nueva usa esas
@@ -8,12 +8,25 @@ variables y nunca escribe un color o un tamaño a mano.
 
 ## 1. Identidad
 
-- **Sobria y operativa.** Es una herramienta de trabajo diario: primero se lee
-  el dato, después la decoración.
-- **El azul del logo es el color de la marca.** Se usa para lo que se puede
-  hacer (botones primarios, enlaces, pestaña activa, página actual) y nada más.
-- **Fondo gris muy claro, tarjetas blancas.** Los bordes son finos y las sombras
-  casi imperceptibles.
+- **SOFI tiene dos modos: oscuro y claro.** El oscuro: casi negro, violeta
+  eléctrico y durazno (inspirado en dope.security). El claro: la misma paleta
+  invertida, con fondo blanco hueso, tinta casi negra y el mismo violeta.
+- **Por defecto el modo es automático, con el día y la noche** (hora de
+  Colombia): claro de 5:00 a.m. a 4:59 p.m. y oscuro de 5:00 p.m. a 4:59 a.m.
+  Cambia solo, aunque la aplicación esté abierta. El login siempre va así.
+- **Cada usuario puede fijar uno** con el botón sol/luna de la barra superior,
+  y volver a automático desde su menú. Se guarda en su usuario
+  (`PUT /auth/preferencias`: `oscuro`, `claro` o `auto`) y lo sigue a
+  cualquier computador. El navegador recuerda la última elección para pintar
+  bien desde el primer instante (`src/modoPantalla.ts` e `index.html`).
+- **Logo:** `src/assets/logo-sofi.png` (día) y `logo-sofi-noche.png` (noche);
+  el emblema solo: `emblema-sofi.png` y `emblema-sofi-noche.png`. Sobre una
+  foto oscura va siempre la versión de noche.
+- **Ninguna pantalla escribe un color a mano.** Todo color sale de las
+  variables de `src/tema.css`: así cambia solo con el modo. Si hace falta un
+  tono nuevo, se agrega a los dos modos.
+- **El violeta es el color de la marca.** Se usa para lo que se puede hacer
+  (botones primarios, enlaces, pestaña activa, página actual).
 - **El color comunica estado.** Verde, ámbar y rojo solo aparecen cuando dicen
   algo: cumplido, por vencer, error.
 
@@ -23,11 +36,14 @@ variables y nunca escribe un color o un tamaño a mano.
 
 | Uso | Fuente | Variable |
 |---|---|---|
-| Toda la interfaz | **Plus Jakarta Sans** (400, 500, 600, 700) | `--fuente-ui` |
-| Códigos y radicados (manifiesto, remesa, NIT, etiquetas del RNDC) | **JetBrains Mono** (400, 500) | `--fuente-codigo` |
+| Toda la interfaz | **Inter** (300, 400, 500, 600, 700) | `--fuente-ui` |
+| Códigos y radicados (manifiesto, remesa, NIT, etiquetas del RNDC) | **Space Mono** (400, 700) | `--fuente-codigo` |
 
 Se cargan desde Google Fonts en `index.html`. Si no cargan (sin internet), cae a
 Segoe UI y Consolas, que tienen medidas parecidas.
+
+Las palabras destacadas de un título (el nombre en "Buenas tardes, Principal")
+van en Inter, con el color `--durazno`.
 
 **Números:** las columnas de dinero y cantidades usan cifras tabulares
 (`font-variant-numeric: tabular-nums`, ya incluido en la clase `num`), así los
@@ -54,45 +70,54 @@ al tocarlo.
 
 ## 3. Colores
 
-### Marca (azul del logo)
+Cada variable tiene un valor en modo claro (`:root`) y otro en modo oscuro
+(`:root[data-tema="oscuro"]`). Se usa siempre la variable, nunca el valor.
 
-| Variable | Color | Uso |
-|---|---|---|
-| `--marca-50` | `#eef4ff` | Fondo de elemento seleccionado, hover de fila clicable |
-| `--marca-100` | `#dce8fd` | Bordes sobre fondo de marca |
-| `--marca-200` | `#b9d1fa` | Foco de campos |
-| `--marca-400` | `#4f8de6` | Gráficas (serie secundaria) |
-| `--marca-500` | `#2b6fd6` | Gráficas (serie principal), íconos activos |
-| **`--marca-600`** | **`#1a56c2`** | **Primario**: botones, enlaces, pestaña activa, página actual |
-| `--marca-700` | `#154397` | Hover del primario, texto sobre `--marca-50` |
-| `--marca-900` | `#0d2654` | Texto fuerte sobre fondos de marca |
-| `--cielo-400` | `#5aa9e6` | Acento secundario (curvas del logo); uso escaso |
+### Marca (violeta)
+
+| Variable | Claro | Oscuro | Uso |
+|---|---|---|---|
+| `--marca-50` | `#f5edff` | `#1f1630` | Fondo de elemento seleccionado, hover de fila clicable |
+| `--marca-100` | `#ecdcfd` | `#2a1d42` | Bordes sobre fondo de marca |
+| `--marca-200` | `#d9bcfb` | `#43296b` | Foco de campos |
+| **`--marca-600`** | **`#7a2fd0`** | **`#af50ff`** | **Primario**: botones, enlaces, pestaña activa, página actual |
+| `--marca-700` | `#6a25b8` | `#c88aff` | Hover del primario, texto sobre `--marca-50` |
+| `--marca-900` | `#3b1470` | `#ecdcff` | Texto fuerte sobre fondos de marca |
+| `--durazno` | `#b4534c` | `#fa9e98` | Palabras destacadas de los títulos |
+| `--color-sobre-acento` | `#ffffff` | `#090909` | Letra sobre el violeta o un color de estado |
 
 ### Neutros
 
-| Variable | Color | Uso |
-|---|---|---|
-| `--gris-0` | `#ffffff` | Tarjetas, tablas, ventanas |
-| `--gris-25` | `#fbfcfe` | Hover de fila, barra de filtros |
-| `--gris-50` | `#f5f7fa` | **Fondo de la aplicación**, encabezado de tabla |
-| `--gris-100` | `#eef1f5` | Líneas entre filas, contadores |
-| `--gris-200` | `#e3e7ee` | Bordes de tarjetas, campos y botones |
-| `--gris-300` | `#cdd4df` | Bordes de campos deshabilitados |
-| `--gris-500` | `#6b7486` | Texto secundario, encabezados de columna |
-| `--gris-700` | `#374151` | Texto de las tablas |
-| `--gris-900` | `#111827` | Texto principal, títulos, dato principal de la fila |
+| Variable | Claro | Oscuro | Uso |
+|---|---|---|---|
+| `--gris-0` | `#ffffff` | `#141212` | Tarjetas, tablas, ventanas |
+| `--gris-25` | `#fcfcfd` | `#171515` | Hover de fila, barra de filtros |
+| `--gris-50` | `#f7f9fa` | `#090909` | **Fondo de la aplicación** |
+| `--gris-100` | `#eeeef2` | `#1d1b1b` | Líneas entre filas, encabezados de tabla |
+| `--gris-200` | `#e3e3ea` | `#2a2727` | Bordes de tarjetas, campos y botones |
+| `--gris-300` | `#c9c9d3` | `#474747` | Bordes fuertes, campos deshabilitados |
+| `--gris-500` | `#5c5c66` | `#a5a5a5` | Texto secundario, encabezados de columna |
+| `--gris-700` | `#2e2e36` | `#d4d4d8` | Texto de las tablas |
+| `--gris-900` | `#090909` | `#f7f9fa` | Texto principal, títulos, dato principal de la fila |
+
+Un botón "oscuro" (fondo `--gris-900`, letra `--gris-0`) se invierte solo en
+modo oscuro: queda claro con letra oscura.
 
 ### Estados
 
-Cada estado tiene texto (`-700`), fondo (`-50`) y un punto o borde (`-500`).
+Cada estado tiene texto (`-700`), fondo (`-50`) y un punto o borde (`-500`), en
+los dos modos.
 
-| Estado | Texto | Fondo | Punto | Cuándo |
-|---|---|---|---|---|
-| `ok` | `#11734f` | `#e8f6ef` | `#19a46c` | Cumplido, activo, al día |
-| `aviso` | `#a8590a` | `#fdf4e4` | `#f0a020` | Por vencer, clave temporal, en proceso |
-| `error` | `#c0262d` | `#fdeced` | `#e5484d` | Rechazo del RNDC, vencido |
-| `info` | `#154397` | `#eef4ff` | `#2b6fd6` | Expedido o vigente, información |
-| `neutro` | `#4b5563` | `#f1f3f6` | `#9aa3b2` | Anulado, inactivo |
+| Estado | Cuándo |
+|---|---|
+| `ok` | Cumplido, activo, al día |
+| `aviso` | Por vencer, clave temporal, en proceso |
+| `error` | Rechazo del RNDC, vencido |
+| `info` | Expedido o vigente, información |
+| `neutro` | Anulado, inactivo |
+
+Tonos de las pastillas y desgloses: `--morado-*`, `--turquesa-*`, `--rosa-*`
+(también con `-700` y `-50`).
 
 **Regla:** nunca solo color. Todo estado lleva también texto (la pastilla dice
 "Cumplido", no solo es verde).

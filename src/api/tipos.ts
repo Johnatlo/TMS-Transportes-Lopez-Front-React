@@ -503,4 +503,6 @@ export interface Usuario {
   rol: Rol;
   ultimoAcceso: string | null;
   creadoEn: string;
+  /** Modo de la pantalla que eligio: fijo o 'auto' por la hora (null = automatico). */
+  tema?: "oscuro" | "claro" | "auto" | null;
 }

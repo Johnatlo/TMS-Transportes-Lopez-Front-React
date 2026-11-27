@@ -32,7 +32,8 @@ import type {
   ViajeRemesa,
   PreviaAnulacion,
   SugerenciaVehiculo,
-  Rol, Usuario,
+  Rol,
+  Usuario,
 } from "./tipos";
 
 const BASE = "/api";
@@ -52,7 +53,7 @@ export class ErrorApi extends Error {
   constructor(
     mensaje: string,
     public readonly estado: number,
-    public readonly cuerpo: any
+    public readonly cuerpo: any,
   ) {
     super(mensaje);
     this.name = "ErrorApi";
@@ -81,11 +82,7 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
       ...opciones,
     });
   } catch (exc) {
-    throw new ErrorApi(
-      "No se pudo contactar el servidor. Revisa que el backend este corriendo.",
-      0,
-      null
-    );
+    throw new ErrorApi("No se pudo contactar el servidor. Revisa que el backend este corriendo.", 0, null);
   }
 
   // 204 y respuestas vacias no traen JSON que parsear.
@@ -98,8 +95,7 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
     if (respuesta.status === 401 && cuerpo?.sesion === false) {
       window.dispatchEvent(new Event(EVENTO_SESION_VENCIDA));
     }
-    const mensaje =
-      cuerpo?.mensajeError ?? cuerpo?.error ?? `Error ${respuesta.status} del servidor`;
+    const mensaje = cuerpo?.mensajeError ?? cuerpo?.error ?? `Error ${respuesta.status} del servidor`;
     throw new ErrorApi(mensaje, respuesta.status, cuerpo);
   }
   return cuerpo as T;
@@ -108,11 +104,9 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
 /** GET a la API. */
 const get = <T>(ruta: string) => pedir<T>(ruta);
 /** POST a la API con el cuerpo en JSON. */
-const post = <T>(ruta: string, datos: unknown) =>
-  pedir<T>(ruta, { method: "POST", body: JSON.stringify(datos) });
+const post = <T>(ruta: string, datos: unknown) => pedir<T>(ruta, { method: "POST", body: JSON.stringify(datos) });
 /** PUT a la API con el cuerpo en JSON. */
-const put = <T>(ruta: string, datos: unknown) =>
-  pedir<T>(ruta, { method: "PUT", body: JSON.stringify(datos) });
+const put = <T>(ruta: string, datos: unknown) => pedir<T>(ruta, { method: "PUT", body: JSON.stringify(datos) });
 /** DELETE a la API. */
 const del = <T>(ruta: string) => pedir<T>(ruta, { method: "DELETE" });
 
@@ -182,7 +176,14 @@ export interface DetalleViaje {
   tipoManifiesto: string | null;
   origen: string | null;
   destino: string | null;
-  vehiculo: { placa: string; marca: string | null; configuracion: string | null; titular: string | null; titularId: string | null; titularTipoId: string | null } | null;
+  vehiculo: {
+    placa: string;
+    marca: string | null;
+    configuracion: string | null;
+    titular: string | null;
+    titularId: string | null;
+    titularTipoId: string | null;
+  } | null;
   remolque: { placa: string } | null;
   conductor: { nombre: string; cedula: string; licencia: string | null } | null;
   conductor2: { nombre: string; cedula: string } | null;
@@ -304,8 +305,9 @@ export const auth = {
   /** Cierra la sesion y borra la cookie. */
   logout: () => post<void>("/auth/logout", {}),
   /** Cambia la clave propia (pide la actual). */
-  cambiarClave: (actual: string, nueva: string) =>
-    post<Usuario>("/auth/cambiar-clave", { actual, nueva }),
+  cambiarClave: (actual: string, nueva: string) => post<Usuario>("/auth/cambiar-clave", { actual, nueva }),
+  /** Guarda el modo de la pantalla del usuario conectado. */
+  guardarTema: (tema: "oscuro" | "claro" | "auto") => put<Usuario>("/auth/preferencias", { tema }),
 
   /** Usuarios del sistema. */
   listarUsuarios: () => get<Usuario[]>("/usuarios"),
@@ -313,19 +315,16 @@ export const auth = {
    * La clave temporal se envia por correo. Solo si el correo no esta
    * configurado o falla, llega en la respuesta (una sola vez).
    */
-  crearUsuario: (email: string, nombre: string, rol: Rol) =>
-    post<Usuario & EntregaClave>("/usuarios", { email, nombre, rol }),
+  crearUsuario: (email: string, nombre: string, rol: Rol) => post<Usuario & EntregaClave>("/usuarios", { email, nombre, rol }),
   /** Cambia nombre, estado activo y/o rol de un usuario. */
-  actualizarUsuario: (id: number, datos: { nombre?: string; activo?: boolean; rol?: Rol }) =>
-    put<Usuario>(`/usuarios/${id}`, datos),
+  actualizarUsuario: (id: number, datos: { nombre?: string; activo?: boolean; rol?: Rol }) => put<Usuario>(`/usuarios/${id}`, datos),
   /** Genera una clave temporal nueva para un usuario (por correo, o en la respuesta). */
   restablecerClave: (id: number) => post<EntregaClave>(`/usuarios/${id}/restablecer-clave`, {}),
 
-  /** "Olvide mi contrasena": envia un codigo de 6 digitos al correo. */
+  /** "Olvide mi contraseña": envia un codigo de 6 digitos al correo. */
   recuperar: (email: string) => post<{ ok: boolean; minutos: number }>("/auth/recuperar", { email }),
   /** Crea la clave nueva con el codigo de 6 digitos que llego al correo. */
-  confirmarRecuperacion: (email: string, codigo: string, nueva: string) =>
-    post<{ ok: boolean }>("/auth/recuperar/confirmar", { email, codigo, nueva }),
+  confirmarRecuperacion: (email: string, codigo: string, nueva: string) => post<{ ok: boolean }>("/auth/recuperar/confirmar", { email, codigo, nueva }),
 };
 
 /**
@@ -336,11 +335,9 @@ export const api = {
   /** Vehiculos del catalogo (activos e inactivos; sin los eliminados). */
   getVehiculos: () => get<Vehiculo[]>("/catalogo/vehiculos"),
   /** Crea un vehiculo (o recupera uno eliminado con la misma placa). */
-  crearVehiculo: (datos: Partial<Vehiculo>) =>
-    post<Vehiculo>("/catalogo/vehiculos", datos),
+  crearVehiculo: (datos: Partial<Vehiculo>) => post<Vehiculo>("/catalogo/vehiculos", datos),
   /** Lo que no se mande conserva su valor actual. */
-  actualizarVehiculo: (id: number, datos: Partial<Vehiculo>) =>
-    put<Vehiculo>(`/catalogo/vehiculos/${id}`, datos),
+  actualizarVehiculo: (id: number, datos: Partial<Vehiculo>) => put<Vehiculo>(`/catalogo/vehiculos/${id}`, datos),
   /**
    * Borrado logico: el vehiculo sale de todas las listas pero se conserva
    * para los viajes que ya lo usaron. Crear otra vez la misma placa lo recupera.
@@ -354,8 +351,7 @@ export const api = {
   /** Empresas de monitoreo de flota (GPS) activas. */
   getEmpresasMonitoreo: () => get<EmpresaMonitoreo[]>("/catalogo/monitoreo"),
   /** Registra una empresa de monitoreo de flota (GPS). */
-  crearEmpresaMonitoreo: (datos: { nit: string; nombre: string; urlPlataforma?: string | null }) =>
-    post<EmpresaMonitoreo>("/catalogo/monitoreo", datos),
+  crearEmpresaMonitoreo: (datos: { nit: string; nombre: string; urlPlataforma?: string | null }) => post<EmpresaMonitoreo>("/catalogo/monitoreo", datos),
   /** Cambia NIT y/o nombre de una empresa de monitoreo. */
   actualizarEmpresaMonitoreo: (id: number, datos: { nit?: string; nombre?: string; urlPlataforma?: string | null }) =>
     put<EmpresaMonitoreo>(`/catalogo/monitoreo/${id}`, datos),
@@ -368,29 +364,23 @@ export const api = {
   /** Conductores del catalogo. */
   getConductores: () => get<Conductor[]>("/catalogo/conductores"),
   /** Crea un conductor. */
-  crearConductor: (datos: Partial<Conductor>) =>
-    post<Conductor>("/catalogo/conductores", datos),
+  crearConductor: (datos: Partial<Conductor>) => post<Conductor>("/catalogo/conductores", datos),
   /** Edita un conductor; lo que no se mande no cambia. */
-  actualizarConductor: (id: number, datos: Partial<Conductor>) =>
-    put<Conductor>(`/catalogo/conductores/${id}`, datos),
+  actualizarConductor: (id: number, datos: Partial<Conductor>) => put<Conductor>(`/catalogo/conductores/${id}`, datos),
 
   /** Remolques del catalogo. */
   getRemolques: () => get<Remolque[]>("/catalogo/remolques"),
   /** Crea un remolque. */
-  crearRemolque: (datos: Partial<Remolque>) =>
-    post<Remolque>("/catalogo/remolques", datos),
+  crearRemolque: (datos: Partial<Remolque>) => post<Remolque>("/catalogo/remolques", datos),
   /** Edita un remolque; lo que no se mande no cambia. */
-  actualizarRemolque: (id: number, datos: Partial<Remolque>) =>
-    put<Remolque>(`/catalogo/remolques/${id}`, datos),
+  actualizarRemolque: (id: number, datos: Partial<Remolque>) => put<Remolque>(`/catalogo/remolques/${id}`, datos),
 
   /** Clientes, remitentes y destinatarios. */
   getTerceros: () => get<Tercero[]>("/catalogo/terceros"),
   /** Crea un tercero. avisoCoordenada trae el problema de su coordenada, si hay. */
-  crearTercero: (datos: Partial<Tercero>) =>
-    post<Tercero & { avisoCoordenada?: string | null }>("/catalogo/terceros", datos),
+  crearTercero: (datos: Partial<Tercero>) => post<Tercero & { avisoCoordenada?: string | null }>("/catalogo/terceros", datos),
   /** Edita un tercero. avisoCoordenada trae el problema de su coordenada, si hay. */
-  actualizarTercero: (id: number, datos: Partial<Tercero>) =>
-    put<Tercero & { avisoCoordenada?: string | null }>(`/catalogo/terceros/${id}`, datos),
+  actualizarTercero: (id: number, datos: Partial<Tercero>) => put<Tercero & { avisoCoordenada?: string | null }>(`/catalogo/terceros/${id}`, datos),
 
   /**
    * Crea o actualiza en el RNDC un tercero, conductor, vehiculo o remolque con
@@ -402,11 +392,9 @@ export const api = {
   /** Plantillas de viaje activas, con sus terceros. */
   getPlantillas: () => get<PlantillaViaje[]>("/catalogo/plantillas"),
   /** Crea una plantilla de viaje. */
-  crearPlantilla: (datos: Partial<PlantillaViaje>) =>
-    post<PlantillaViaje>("/catalogo/plantillas", datos),
+  crearPlantilla: (datos: Partial<PlantillaViaje>) => post<PlantillaViaje>("/catalogo/plantillas", datos),
   /** Lo que no se mande conserva su valor actual. */
-  actualizarPlantilla: (id: number, datos: Partial<PlantillaViaje>) =>
-    put<PlantillaViaje>(`/catalogo/plantillas/${id}`, datos),
+  actualizarPlantilla: (id: number, datos: Partial<PlantillaViaje>) => put<PlantillaViaje>(`/catalogo/plantillas/${id}`, datos),
   /** "Elimina" (desactiva) una plantilla que ya no se usa. */
   eliminarPlantilla: (id: number) => del<void>(`/catalogo/plantillas/${id}`),
 
@@ -416,8 +404,7 @@ export const api = {
   // ---------- Vias y SICETAC ----------
 
   /** Ultimo resultado guardado, sin consultar al Ministerio. */
-  getVias: (origen: string, destino: string) =>
-    get<Via[]>(`/catalogo/vias?origen=${origen}&destino=${destino}`),
+  getVias: (origen: string, destino: string) => get<Via[]>(`/catalogo/vias?origen=${origen}&destino=${destino}`),
 
   /**
    * Vias consultadas en linea a SICETAC, con el piso de cada una.
@@ -425,8 +412,7 @@ export const api = {
    */
   getViasSicetac: (origen: string, destino: string, configuracion: string, horas: number) =>
     get<RespuestaViasSicetac>(
-      `/catalogo/vias/sicetac?origen=${origen}&destino=${destino}` +
-        `&configuracion=${encodeURIComponent(configuracion)}&horas=${horas}`
+      `/catalogo/vias/sicetac?origen=${origen}&destino=${destino}` + `&configuracion=${encodeURIComponent(configuracion)}&horas=${horas}`,
     ),
 
   // ---------- Tarifas por ruta ----------
@@ -439,9 +425,7 @@ export const api = {
 
   /** Plantillas que cambiarian al actualizar el flete base de una ruta, con su valor actual. */
   previsualizarTarifa: (origen: string, destino: string) =>
-    get<Array<{ id: number; nombre: string; valorFleteBase: number | null }>>(
-      `/catalogo/tarifas/previsualizar?origen=${origen}&destino=${destino}`
-    ),
+    get<Array<{ id: number; nombre: string; valorFleteBase: number | null }>>(`/catalogo/tarifas/previsualizar?origen=${origen}&destino=${destino}`),
 
   /** Fija el flete base de todas las plantillas de una ruta. Devuelve cuantas cambiaron. */
   actualizarTarifaRuta: (origen: string, destino: string, valorFleteBase: number) =>
@@ -454,14 +438,12 @@ export const api = {
   // ---------- Alertas y parametros ----------
 
   /** `inactivos` agrega los documentos de vehiculos, remolques y conductores inactivos. */
-  getAlertas: (dias = 30, inactivos = false) =>
-    get<ResumenAlertas>(`/catalogo/alertas?dias=${dias}${inactivos ? "&inactivos=1" : ""}`),
+  getAlertas: (dias = 30, inactivos = false) => get<ResumenAlertas>(`/catalogo/alertas?dias=${dias}${inactivos ? "&inactivos=1" : ""}`),
 
   /** Parametros de la empresa (poliza, retencion...) y aviso de vigencia de la poliza. */
   getParametros: () => get<ParametrosEmpresa>("/catalogo/parametros"),
   /** Guarda los parametros enviados; los demas no cambian. */
-  guardarParametros: (datos: Partial<ParametrosEmpresa>) =>
-    put<ParametrosEmpresa>("/catalogo/parametros", datos),
+  guardarParametros: (datos: Partial<ParametrosEmpresa>) => put<ParametrosEmpresa>("/catalogo/parametros", datos),
 
   // ---------- Despacho ----------
 
@@ -484,8 +466,7 @@ export const api = {
   getDetalleViaje: (viajeId: number) => get<DetalleViaje>(`/despacho/${viajeId}/detalle`),
 
   /** Remolque y conductor que suele usar el vehiculo (historial o catalogo). */
-  getSugerencias: (vehiculoId: number) =>
-    get<SugerenciaVehiculo>(`/despacho/sugerencias/${vehiculoId}`),
+  getSugerencias: (vehiculoId: number) => get<SugerenciaVehiculo>(`/despacho/sugerencias/${vehiculoId}`),
 
   /** Siguiente numero de manifiesto disponible. Es una sugerencia, no una reserva. */
   getSiguienteConsecutivo: () => get<{ base: string }>("/despacho/siguiente-consecutivo"),
@@ -496,24 +477,19 @@ export const api = {
    * conductor, remolque, EMF, valores, numero). Si el RNDC vuelve a rechazar,
    * lanza ErrorApi con el viaje actualizado en `cuerpo`.
    */
-  reintentarViaje: (viajeId: number, cambios: Record<string, unknown>) =>
-    post<Viaje>(`/despacho/${viajeId}/reintentar`, cambios),
+  reintentarViaje: (viajeId: number, cambios: Record<string, unknown>) => post<Viaje>(`/despacho/${viajeId}/reintentar`, cambios),
 
   /** Que se anularia y en que orden, con los motivos validos y el tope mensual. */
-  getPreviaAnulacion: (viajeId: number) =>
-    get<PreviaAnulacion>(`/despacho/${viajeId}/anulacion`),
+  getPreviaAnulacion: (viajeId: number) => get<PreviaAnulacion>(`/despacho/${viajeId}/anulacion`),
   /**
    * Anula en el RNDC: cumplido inicial (54), manifiesto (32) y remesas (9).
    * Si un paso falla, lanza ErrorApi con el viaje actualizado en `cuerpo`.
    */
-  anularViaje: (
-    viajeId: number,
-    datos: { motivoManifiesto?: string; motivoCumplido: string; motivoRemesa: string; observaciones: string }
-  ) => post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/anular`, datos),
+  anularViaje: (viajeId: number, datos: { motivoManifiesto?: string; motivoCumplido: string; motivoRemesa: string; observaciones: string }) =>
+    post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/anular`, datos),
 
   /** Remesas de un viaje, en orden. */
-  getRemesasDeViaje: (viajeId: number) =>
-    get<ViajeRemesa[]>(`/despacho/${viajeId}/remesas`),
+  getRemesasDeViaje: (viajeId: number) => get<ViajeRemesa[]>(`/despacho/${viajeId}/remesas`),
 
   /** Un viaje con sus remesas. */
   getViaje: (viajeId: number) => get<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}`),
@@ -525,11 +501,9 @@ export const api = {
    * intento anterior. Se toma ese radicado, despues de que la persona confirma
    * que es el mismo documento.
    */
-  usarRemesaExistente: (remesaId: number) =>
-    post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/usar-existente`, {}),
+  usarRemesaExistente: (remesaId: number) => post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/usar-existente`, {}),
   /** Toma el radicado de un manifiesto que el RNDC reporto como ya existente. */
-  usarManifiestoExistente: (viajeId: number) =>
-    post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/usar-manifiesto-existente`, {}),
+  usarManifiestoExistente: (viajeId: number) => post<Viaje & { remesas: ViajeRemesa[] }>(`/despacho/${viajeId}/usar-manifiesto-existente`, {}),
 
   /** Cumplido normal de una remesa (proceso 5). Fechas en ISO. */
   cumplirRemesa: (
@@ -542,17 +516,15 @@ export const api = {
       llegadaDescargue: string;
       entradaDescargue: string;
       salidaDescargue: string;
-    }
-  ) =>
-    post<{ viaje: Viaje; remesas: ViajeRemesa[]; adoptados?: string[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
+    },
+  ) => post<{ viaje: Viaje; remesas: ViajeRemesa[]; adoptados?: string[] }>(`/despacho/remesas/${remesaId}/cumplir`, datos),
   /**
    * Tiempos que ya reporto el GPS (cumplido inicial, proceso 45). En el
    * formulario vienen puestos y se pueden corregir.
    */
   getGpsRemesa: (remesaId: number) => get<TiemposGps>(`/despacho/remesas/${remesaId}/gps`),
   /** Lo que quedo registrado en el cumplido de una remesa (leido del RNDC). */
-  getCumplidoRemesa: (remesaId: number) =>
-    get<CumplidoRegistrado>(`/despacho/remesas/${remesaId}/cumplido`),
+  getCumplidoRemesa: (remesaId: number) => get<CumplidoRegistrado>(`/despacho/remesas/${remesaId}/cumplido`),
   /** Anula el cumplido de una remesa (proceso 28) para corregirlo. */
   anularCumplidoRemesa: (remesaId: number, motivo: string, observaciones: string) =>
     post<{ viaje: Viaje; remesas: ViajeRemesa[] }>(`/despacho/remesas/${remesaId}/anular-cumplido`, {
@@ -561,14 +533,10 @@ export const api = {
     }),
 
   /** Valores de partida para la ventana de cumplido del manifiesto. */
-  getPreviaCumplidoManifiesto: (viajeId: number) =>
-    get<PreviaCumplidoManifiesto>(`/despacho/${viajeId}/cumplir/previa`),
+  getPreviaCumplidoManifiesto: (viajeId: number) => get<PreviaCumplidoManifiesto>(`/despacho/${viajeId}/cumplir/previa`),
   /** Adopta los cumplidos hechos en el portal del RNDC (solo lectura alla). */
   sincronizarCumplido: (viajeId: number) =>
-    post<{ adoptados: string[]; error?: string; viaje?: Viaje; remesas?: ViajeRemesa[] }>(
-      `/despacho/${viajeId}/cumplir/sincronizar`,
-      {}
-    ),
+    post<{ adoptados: string[]; error?: string; viaje?: Viaje; remesas?: ViajeRemesa[] }>(`/despacho/${viajeId}/cumplir/sincronizar`, {}),
 
   /**
    * Cumple el manifiesto (proceso 6) con la fecha de entrega, adicionales,
@@ -579,18 +547,14 @@ export const api = {
     post<Viaje & { remesas: ViajeRemesa[]; adoptados?: string[] }>(`/despacho/${viajeId}/cumplir`, datos),
 
   /** FOPAT causado y pendiente de pago, por mes. */
-  getResumenFopat: () =>
-    get<Array<{ mes: string; manifiestos: number; causado: number; pendiente: number }>>(
-      "/despacho/fopat"
-    ),
+  getResumenFopat: () => get<Array<{ mes: string; manifiestos: number; causado: number; pendiente: number }>>("/despacho/fopat"),
 
   // ---------- Documentos para imprimir ----------
   // Son URL y no peticiones: se abren en otra pestaña para que el navegador
   // muestre el PDF con su propio visor.
 
   /** PDF oficial del RNDC; por defecto con el logo de la empresa estampado. */
-  urlPdfManifiesto: (viajeId: number, original = false) =>
-    `${BASE}/despacho/${viajeId}/manifiesto.pdf${original ? "?original=1" : ""}`,
+  urlPdfManifiesto: (viajeId: number, original = false) => `${BASE}/despacho/${viajeId}/manifiesto.pdf${original ? "?original=1" : ""}`,
   /** Ya se imprimio el manifiesto oficial por fuera de SOFI: quita la contingencia pendiente. */
   resolverContingencia: (viajeId: number) => post<{ ok: true }>(`/despacho/${viajeId}/contingencia/resuelta`, {}),
   /** Manifiesto de contingencia (HTML para imprimir) cuando el RNDC no deja expedir o imprimir el oficial. */
@@ -613,10 +577,7 @@ const FORMATO_MONEDA = new Intl.NumberFormat("es-CO");
  */
 export function aInputLocal(fecha: Date): string {
   const dos = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}` +
-    `T${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`
-  );
+  return `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}` + `T${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
 }
 
 /** Valor en pesos con punto de miles (4.019.761); "-" sin valor. */
@@ -1177,15 +1138,13 @@ export const apiCuadro = {
   /** Avisos si el anticipo se repite con los de la misma placa ese dia (no guarda). */
   revisarAnticipo: (id: number, datos: Record<string, unknown>) => post<{ avisos: string[] }>(`/cuadro/${id}/anticipos/revisar`, datos),
   /** Cambia la fecha de pago a la bomba o la nota de un anticipo. */
-  actualizarAnticipo: (id: number, anticipoId: number, datos: Record<string, unknown>) =>
-    put<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`, datos),
+  actualizarAnticipo: (id: number, anticipoId: number, datos: Record<string, unknown>) => put<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`, datos),
   /** Quita un anticipo. */
   borrarAnticipo: (id: number, anticipoId: number) => del<DetalleCuadro>(`/cuadro/${id}/anticipos/${anticipoId}`),
   /** Cuadro de anticipos: todos los tramos (ida y vuelta), lo mas reciente primero. */
   cuadroAnticipos: () => get<AnticipoBomba[]>("/cuadro/anticipos"),
   /** Cambia fecha de pago, nota o viaje de un tramo; devuelve el cuadro de anticipos. */
-  actualizarTramo: (anticipoId: number, datos: Record<string, unknown>) =>
-    put<AnticipoBomba[]>(`/cuadro/anticipos/${anticipoId}`, datos),
+  actualizarTramo: (anticipoId: number, datos: Record<string, unknown>) => put<AnticipoBomba[]>(`/cuadro/anticipos/${anticipoId}`, datos),
   /** Borra un tramo de anticipo (sale tambien del Cuadro pagos y de Rentabilidad); devuelve el cuadro de anticipos. */
   borrarTramo: (anticipoId: number) => del<AnticipoBomba[]>(`/cuadro/anticipos/${anticipoId}`),
   /** Cuentas con la bomba: deuda, pagado, abonado por el socio, pendiente y cupo disponible. */
@@ -1206,11 +1165,9 @@ export const apiCuadro = {
     fechaVencimiento: string;
     nota: string;
     vales: Array<ValeBomba & { tramoId: number | null }>;
-  }) =>
-    post<RelacionBomba[]>("/cuadro/relaciones-bomba", datos),
+  }) => post<RelacionBomba[]>("/cuadro/relaciones-bomba", datos),
   /** Fecha de vencimiento de la factura de la bomba (vacia la quita). */
-  vencimientoRelacionBomba: (id: number, fechaVencimiento: string) =>
-    put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/vencimiento`, { fechaVencimiento }),
+  vencimientoRelacionBomba: (id: number, fechaVencimiento: string) => put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/vencimiento`, { fechaVencimiento }),
   /** Fecha en que se le pago a la bomba la factura (vacia la quita). */
   pagarRelacionBomba: (id: number, fechaPago: string) => put<RelacionBomba[]>(`/cuadro/relaciones-bomba/${id}/pago`, { fechaPago }),
   /** Reporte de la bomba entre dos fechas: estado de cuenta, lo prestado y lo pagado. */
@@ -1218,8 +1175,7 @@ export const apiCuadro = {
   /** Pagos a la bomba registrados. */
   pagosBomba: () => get<PagoBomba[]>("/cuadro/pagos-bomba"),
   /** Registra el pago de la quincena: facturas elegidas menos los abonos elegidos. */
-  registrarPagoBomba: (datos: { relaciones: number[]; abonos: number[]; fecha: string; referencia: string }) =>
-    post<PagoBomba[]>("/cuadro/pagos-bomba", datos),
+  registrarPagoBomba: (datos: { relaciones: number[]; abonos: number[]; fecha: string; referencia: string }) => post<PagoBomba[]>("/cuadro/pagos-bomba", datos),
   /** Deshace un pago a la bomba. */
   borrarPagoBomba: (id: number) => del<PagoBomba[]>(`/cuadro/pagos-bomba/${id}`),
   /** Borra la relacion y deshace el cruce. */
@@ -1241,8 +1197,7 @@ export const apiCuadro = {
   /** Borra un abono del socio; devuelve los que quedan. */
   borrarAbono: (id: number) => del<AbonoSocio[]>(`/cuadro/abonos-socio/${id}`),
   /** Factura de la bomba (numero, fecha) o bomba de un tanqueo; devuelve el cuadro de anticipos. */
-  actualizarTanqueo: (tanqueoId: number, datos: Record<string, unknown>) =>
-    put<AnticipoBomba[]>(`/cuadro/tanqueos/${tanqueoId}`, datos),
+  actualizarTanqueo: (tanqueoId: number, datos: Record<string, unknown>) => put<AnticipoBomba[]>(`/cuadro/tanqueos/${tanqueoId}`, datos),
   /** La matriz de fletes. */
   tarifas: () => get<TarifaFlete[]>("/cuadro/tarifas"),
   /** Reemplaza la matriz completa con la importada del Excel. */
@@ -1377,9 +1332,28 @@ export interface RetencionCliente {
 /** Un viaje en la liquidacion a un dueno (la foto que guarda el backend). */
 export type FilaLiquidacionDueno = Pick<
   FilaRentabilidad,
-  | "id" | "fecha" | "placa" | "empresa" | "remision" | "remisionUrl" | "facturaUrl" | "manifiesto" | "facturaNumero" | "facturaFecha" | "valorEmpresa"
-  | "retencion" | "reteIca" | "anticipoRenta" | "bancaria" | "supertransporte" | "comision" | "tLopez" | "descargue"
-  | "poliza" | "anticipo" | "fechaPagoEmpresa"
+  | "id"
+  | "fecha"
+  | "placa"
+  | "empresa"
+  | "remision"
+  | "remisionUrl"
+  | "facturaUrl"
+  | "manifiesto"
+  | "facturaNumero"
+  | "facturaFecha"
+  | "valorEmpresa"
+  | "retencion"
+  | "reteIca"
+  | "anticipoRenta"
+  | "bancaria"
+  | "supertransporte"
+  | "comision"
+  | "tLopez"
+  | "descargue"
+  | "poliza"
+  | "anticipo"
+  | "fechaPagoEmpresa"
 > & {
   /** Saldo del viaje sin sus otros descuentos (esos van como conceptos). */
   saldo: number;
@@ -1565,10 +1539,10 @@ export interface FacturaCartera {
     placa: string;
     manifiesto: string | null;
     remision: string | null;
-  /** Link (Drive) de la remision escaneada. */
-  remisionUrl?: string | null;
-  /** Link (Drive) de la factura. */
-  facturaUrl?: string | null;
+    /** Link (Drive) de la remision escaneada. */
+    remisionUrl?: string | null;
+    /** Link (Drive) de la factura. */
+    facturaUrl?: string | null;
     valorFlete: number | null;
     dueno: GrupoDueno;
   }[];
@@ -1689,8 +1663,7 @@ export const apiSeguimiento = {
   /** Registra lo que se supo de los papeles; devuelve el viaje del cuadro. */
   registrarPapeles: (id: number, datos: Record<string, unknown>) => post<DetalleCuadro>(`/seguimiento/papeles/${id}`, datos),
   /** Facturas por cobrar, totales por cliente y facturados sin datos (solo de un dueno, si se pide). */
-  cartera: (dueno?: GrupoDueno | null) =>
-    get<Cartera>(`/seguimiento/cartera${dueno ? `?dueno=${encodeURIComponent(dueno)}` : ""}`),
+  cartera: (dueno?: GrupoDueno | null) => get<Cartera>(`/seguimiento/cartera${dueno ? `?dueno=${encodeURIComponent(dueno)}` : ""}`),
   /** Viajes con anticipo que da la empresa y lo que debe cada cliente. */
   anticiposEmpresas: () => get<{ viajes: FilaCuadro[]; empresas: ResumenAnticipoEmpresa[] }>("/seguimiento/anticipos-empresas"),
   /** Viajes de vehiculos terceros con lo que se les paga, y el resumen por tercero. */
@@ -1711,17 +1684,13 @@ export const apiSeguimiento = {
   guardarMatricesRentabilidad: (d: { vigenteDesde?: string; comisiones?: ComisionCliente[]; retenciones?: RetencionCliente[] }) =>
     put<{ comisiones: ComisionCliente[]; retenciones: RetencionCliente[] }>("/seguimiento/rentabilidad/matrices", d),
   /** Propone a que vehiculos se le pone cada nombre de la Matriz Terceros (no guarda). */
-  previaNombresTerceros: (terceros: NombreTerceroImportado[]) =>
-    post<NombreTerceroPropuesto[]>("/seguimiento/terceros/nombres/previa", { terceros }),
+  previaNombresTerceros: (terceros: NombreTerceroImportado[]) => post<NombreTerceroPropuesto[]>("/seguimiento/terceros/nombres/previa", { terceros }),
   /** Pone los nombres de la matriz como titular de los vehiculos. */
-  importarNombresTerceros: (terceros: NombreTerceroImportado[]) =>
-    post<{ actualizados: number }>("/seguimiento/terceros/nombres", { terceros }),
+  importarNombresTerceros: (terceros: NombreTerceroImportado[]) => post<{ actualizados: number }>("/seguimiento/terceros/nombres", { terceros }),
   /** Se le pago al tercero esos viajes (con el numero de su cuenta de cobro, si se escribe). */
-  pagarTerceros: (ids: number[], fecha: string, cuentaCobro: string) =>
-    post<{ pagados: number }>("/seguimiento/terceros/pago", { ids, fecha, cuentaCobro }),
+  pagarTerceros: (ids: number[], fecha: string, cuentaCobro: string) => post<{ pagados: number }>("/seguimiento/terceros/pago", { ids, fecha, cuentaCobro }),
   /** La empresa pago el anticipo de esos viajes. */
-  pagarAnticiposEmpresa: (ids: number[], fecha: string) =>
-    post<{ pagados: number }>("/seguimiento/anticipos-empresas/pago", { ids, fecha }),
+  pagarAnticiposEmpresa: (ids: number[], fecha: string) => post<{ pagados: number }>("/seguimiento/anticipos-empresas/pago", { ids, fecha }),
   /** Las notas credito (todas, o las de una factura). */
   notasCredito: (filtro: { facturaNumero?: string; empresa?: string } = {}) =>
     get<NotaCredito[]>(
@@ -1741,9 +1710,7 @@ export const apiSeguimiento = {
   borrarNotaCredito: (id: number) => del<NotaCredito[]>(`/seguimiento/notas-credito/${id}`),
   /** Los anticipos del cliente de una factura (uno por transferencia). */
   anticiposCliente: (facturaNumero: string, empresa: string) =>
-    get<RegistroAnticipoCliente[]>(
-      `/seguimiento/cartera/anticipos?facturaNumero=${encodeURIComponent(facturaNumero)}&empresa=${encodeURIComponent(empresa)}`,
-    ),
+    get<RegistroAnticipoCliente[]>(`/seguimiento/cartera/anticipos?facturaNumero=${encodeURIComponent(facturaNumero)}&empresa=${encodeURIComponent(empresa)}`),
   /** Registra un anticipo del cliente: valor y fecha en que transfirio. */
   agregarAnticipoCliente: (facturaNumero: string, empresa: string, valor: number, fecha: string) =>
     post<RegistroAnticipoCliente[]>("/seguimiento/cartera/anticipos", { facturaNumero, empresa, valor, fecha }),
@@ -1752,15 +1719,12 @@ export const apiSeguimiento = {
   /** Propone como cargar las facturas del Excel "Cartera Total" (no guarda). */
   previaCartera: (facturas: FacturaImportada[]) => post<FacturaPropuesta[]>("/seguimiento/cartera/importar/previa", { facturas }),
   /** Carga las facturas confirmadas. */
-  importarCartera: (facturas: FacturaConfirmada[]) =>
-    post<{ saldos: number; facturas: number; viajes: number }>("/seguimiento/cartera/importar", { facturas }),
+  importarCartera: (facturas: FacturaConfirmada[]) => post<{ saldos: number; facturas: number; viajes: number }>("/seguimiento/cartera/importar", { facturas }),
   /** Guarda el plazo y el contacto de cobro de un cliente; devuelve todos. */
   guardarPlazo: (datos: Partial<PlazoCliente>) => put<PlazoCliente[]>("/seguimiento/cartera/plazos", datos),
   /** Gestiones de cobro de una factura. */
   gestiones: (facturaNumero: string, empresa: string) =>
-    get<GestionCobro[]>(
-      `/seguimiento/cartera/gestiones?factura=${encodeURIComponent(facturaNumero)}&empresa=${encodeURIComponent(empresa)}`
-    ),
+    get<GestionCobro[]>(`/seguimiento/cartera/gestiones?factura=${encodeURIComponent(facturaNumero)}&empresa=${encodeURIComponent(empresa)}`),
   /** Anota una gestion de cobro; devuelve las de esa factura. */
   agregarGestion: (datos: { facturaNumero: string; empresa: string; texto: string; compromisoPago?: string | null }) =>
     post<GestionCobro[]>("/seguimiento/cartera/gestiones", datos),
@@ -1851,8 +1815,7 @@ export const apiPreoperacional = {
   /** Guarda una inspeccion (si el viaje ya tenia una, la reemplaza). */
   guardar: (viajeId: number | null, respuestas: Record<string, string>) => post<Preoperacional>("/preoperacional", { viajeId, respuestas }),
   /** Corrige una inspeccion. */
-  actualizar: (id: number, viajeId: number | null, respuestas: Record<string, string>) =>
-    put<Preoperacional>(`/preoperacional/${id}`, { viajeId, respuestas }),
+  actualizar: (id: number, viajeId: number | null, respuestas: Record<string, string>) => put<Preoperacional>(`/preoperacional/${id}`, { viajeId, respuestas }),
   /** Borra una inspeccion. */
   borrar: (id: number) => del<{ ok: boolean }>(`/preoperacional/${id}`),
   /** Reemplaza la base de respuestas importada de la Matriz Control Integral. */
@@ -2128,7 +2091,8 @@ export const apiGastos = {
   /** Borra un credito sin cuotas pagadas. */
   borrarCredito: (id: number) => del<{ ok: boolean }>(`/gastos/creditos/${id}`),
   /** Registra el pago de una cuota (crea su gasto con el reparto del credito). */
-  pagarCuota: (id: number, numero: number, d: { fechaPago: string; valor?: number | null; soporteUrl?: string | null }) => post<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`, d),
+  pagarCuota: (id: number, numero: number, d: { fechaPago: string; valor?: number | null; soporteUrl?: string | null }) =>
+    post<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`, d),
   /** Quita el pago de una cuota y borra su gasto. */
   quitarPagoCuota: (id: number, numero: number) => del<Credito>(`/gastos/creditos/${id}/cuotas/${numero}/pago`),
   /** Gastos ya guardados que pueden ser el mismo (misma factura, o mismo valor y fecha con descripcion parecida). */
@@ -2324,7 +2288,8 @@ export interface ViajeProducidoNomina {
 /** Empleados, parametros y nominas. */
 export const apiNomina = {
   /** Lo que se descuenta de un prestamo en un mes (vacio = no se descuenta); el mismo dato que en Conductores. */
-  descontarPrestamo: (prestamoId: number, mes: string, valor: number | null) => put<{ ok: boolean }>(`/nomina/prestamos/${prestamoId}/descuento`, { mes, valor }),
+  descontarPrestamo: (prestamoId: number, mes: string, valor: number | null) =>
+    put<{ ok: boolean }>(`/nomina/prestamos/${prestamoId}/descuento`, { mes, valor }),
   /** Parametros por ano. */
   parametros: () => get<ParametrosNomina[]>("/nomina/parametros"),
   /** Crea o cambia los parametros de un ano (solo rol total). */
@@ -2361,8 +2326,7 @@ export const apiNomina = {
       reparto?: Array<{ vehiculoId: number; porcentaje: number }> | null;
       upcs?: Array<{ cedula: string; nombre: string; valor: number; vehiculoId: number }>;
     },
-  ) =>
-    put<Nomina>(`/nomina/${id}/lineas/${linea}`, d),
+  ) => put<Nomina>(`/nomina/${id}/lineas/${linea}`, d),
   /** Quita a un empleado de la nomina. */
   quitarLinea: (id: number, linea: number) => del<Nomina>(`/nomina/${id}/lineas/${linea}`),
   /** Cambia de donde sale el producido. */
@@ -2418,16 +2382,7 @@ export interface ViajeUtilidad {
 
 /** Claves de los descuentos del viaje. */
 export type ClaveDescuentoUtilidad =
-  | "retencion"
-  | "reteIca"
-  | "anticipoRenta"
-  | "bancaria"
-  | "supertransporte"
-  | "comision"
-  | "tLopez"
-  | "descargue"
-  | "poliza"
-  | "otrosDescuentos";
+  "retencion" | "reteIca" | "anticipoRenta" | "bancaria" | "supertransporte" | "comision" | "tLopez" | "descargue" | "poliza" | "otrosDescuentos";
 
 /** La cascada de un vehiculo en el mes. */
 export interface CascadaVehiculo {
@@ -2646,7 +2601,8 @@ export const apiUtilidades = {
   /** Base y saldo inicial del fondo de cada vehiculo. */
   fondos: () => get<ConfigFondo[]>("/utilidades/fondos"),
   /** Cambia la base y el saldo inicial del fondo de un vehiculo. */
-  guardarFondo: (vehiculoId: number, d: { base: number; saldoInicial: number; nota: string | null }) => put<ConfigFondo[]>(`/utilidades/fondos/${vehiculoId}`, d),
+  guardarFondo: (vehiculoId: number, d: { base: number; saldoInicial: number; nota: string | null }) =>
+    put<ConfigFondo[]>(`/utilidades/fondos/${vehiculoId}`, d),
   /** Cambia el 4 x 1000 que se descuenta al repartir. */
   guardarGmf: (gmfPorMil: number) => put<{ ok: boolean }>("/utilidades/gmf", { gmfPorMil }),
   /** Vehiculos con su participacion. */
@@ -2674,7 +2630,8 @@ export const apiUtilidades = {
 // ---------- Conductores: fletes conductor, cuentas de viaje, prestamos y liquidacion ----------
 
 /** Conceptos de la hoja de cuenta de viaje. */
-export type ConceptoCuenta = "acpm" | "peajes" | "cargue" | "descargue" | "parqueo" | "llantas" | "lavada" | "comision" | "engrase" | "propinas" | "arreglos" | "accesorios" | "otros";
+export type ConceptoCuenta =
+  "acpm" | "peajes" | "cargue" | "descargue" | "parqueo" | "llantas" | "lavada" | "comision" | "engrase" | "propinas" | "arreglos" | "accesorios" | "otros";
 
 /** Una tarifa de la empresa con su flete conductor vigente y su historial. */
 export interface TarifaConductor {
