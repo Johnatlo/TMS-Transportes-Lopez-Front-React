@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_833 funciones, componentes, métodos y rutas en 127 archivos._
+_835 funciones, componentes, métodos y rutas en 127 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (266)
@@ -231,7 +231,7 @@ _833 funciones, componentes, métodos y rutas en 127 archivos._
 - [`src/paginas/conductores/Liquidacion.tsx`](#srcpaginasconductoresliquidaciontsx) (5)
 - [`src/paginas/conductores/LiquidacionConductores.tsx`](#srcpaginasconductoresliquidacionconductorestsx) (1)
 - [`src/paginas/conductores/Prestamos.tsx`](#srcpaginasconductoresprestamostsx) (2)
-- [`src/paginas/conductores/calculos.ts`](#srcpaginasconductorescalculosts) (8)
+- [`src/paginas/conductores/calculos.ts`](#srcpaginasconductorescalculosts) (10)
 - [`src/paginas/control/ControlInterno.tsx`](#srcpaginascontrolcontrolinternotsx) (2)
 - [`src/paginas/cuadro/CampoValorAnticipo.tsx`](#srcpaginascuadrocampovaloranticipotsx) (1)
 - [`src/paginas/cuadro/CuadroAnticipos.tsx`](#srcpaginascuadrocuadroanticipostsx) (10)
@@ -2546,6 +2546,12 @@ _833 funciones, componentes, métodos y rutas en 127 archivos._
 
 - **`mesAnterior(mes)`** · _función_
   "2026-11" -> "2026-10".
+
+- **`periodoConductores(mes)`** · _función_
+  Fechas del periodo de un mes ("AAAA-MM"), para mostrarlas.
+
+- **`textoPeriodo(mes)`** · _función_
+  "del 27/10 al 26/11"
 
 ### `src/paginas/control/ControlInterno.tsx`
 

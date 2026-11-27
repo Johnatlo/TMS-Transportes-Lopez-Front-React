@@ -30,6 +30,7 @@ import { fechaCorta } from "../cuadro/estadosCuadro";
 import { placaConGuion } from "../cuadro/facturacion";
 import { nombreMes } from "../gastos/nombres";
 import { Saldo } from "./CuentasViaje";
+import { textoPeriodo } from "./calculos";
 import type { FiltroEmpresa } from "./LiquidacionConductores";
 
 /** Liquidacion de todos los conductores de un mes. */
@@ -390,7 +391,9 @@ function HojaConductor({ c, mes, viajes, alCerrar }: { c: LiquidacionConductor; 
       <header className="hoja-conductor-cabeza">
         <div>
           <strong>{c.nombre}</strong>
-          <span className="dato-sec">Liquidacion de {nombreMes(mes)}</span>
+          <span className="dato-sec">
+            Liquidacion de {nombreMes(mes)} ({textoPeriodo(mes)})
+          </span>
         </div>
         <span className="dato-sec">{c.pagada ? `Liquidado el ${fechaCorta(c.pagada.fechaPago)}` : "Sin liquidar aun"}</span>
       </header>

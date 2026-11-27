@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { ConceptoCuenta } from "../../api/cliente";
-import { CONCEPTOS, leerMatrizConductor, mesAnterior, totalesCuenta } from "./calculos";
+import { CONCEPTOS, leerMatrizConductor, mesAnterior, periodoConductores, textoPeriodo, totalesCuenta } from "./calculos";
 
 const vacio = Object.fromEntries(CONCEPTOS.map(([k]) => [k, ""])) as Record<ConceptoCuenta, string>;
 
@@ -38,5 +38,12 @@ describe("matriz de fletes conductor del Excel (hoja TABLAS de SWK-973)", () => 
     ).toEqual([{ nombre: "ECOPLAST", valor: 3_900_000, tipo: "TON", desde: null }]);
     expect(leerMatrizConductor([["Otra cosa"]])).toEqual([]);
     expect(mesAnterior("2026-01")).toBe("2025-12");
+  });
+});
+
+describe("corte de las cuentas de los conductores", () => {
+  test("noviembre va del 27 de octubre al 26 de noviembre", () => {
+    expect(periodoConductores("2026-11")).toEqual({ desde: "2026-10-27", hasta: "2026-11-26" });
+    expect(textoPeriodo("2026-01")).toBe("del 27/12 al 26/01");
   });
 });

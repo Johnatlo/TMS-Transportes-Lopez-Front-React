@@ -111,3 +111,23 @@ export function mesAnterior(mes: string): string {
   const [a, m] = mes.split("-").map(Number);
   return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
 }
+
+/**
+ * Corte de las cuentas de los conductores (igual que el backend,
+ * calculoConductores.ts): el "mes" va del 27 del mes anterior al 26.
+ */
+export const DIA_CORTE = 26;
+
+/** Fechas del periodo de un mes ("AAAA-MM"), para mostrarlas. */
+export function periodoConductores(mes: string): { desde: string; hasta: string } {
+  const [a, m] = mes.split("-").map(Number);
+  const anterior = m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`;
+  return { desde: `${anterior}-${DIA_CORTE + 1}`, hasta: `${mes}-${DIA_CORTE}` };
+}
+
+/** "del 27/10 al 26/11" */
+export function textoPeriodo(mes: string): string {
+  const p = periodoConductores(mes);
+  const corta = (f: string) => `${f.slice(8, 10)}/${f.slice(5, 7)}`;
+  return `del ${corta(p.desde)} al ${corta(p.hasta)}`;
+}

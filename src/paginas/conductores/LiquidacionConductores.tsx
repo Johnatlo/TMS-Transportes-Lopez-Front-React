@@ -24,6 +24,7 @@ import CuentasViaje from "./CuentasViaje";
 import FletesConductor from "./FletesConductor";
 import Liquidacion from "./Liquidacion";
 import Prestamos from "./Prestamos";
+import { textoPeriodo } from "./calculos";
 
 type Vista = "cuentas" | "liquidacion" | "prestamos" | "fletes";
 
@@ -77,7 +78,9 @@ export default function LiquidacionConductores() {
           <label className="selector-mes">
             <span className="dato-sec">Mes de los viajes</span>
             <input type="month" value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} />
-            <span className="dato-sec">{nombreMes(mes)}</span>
+            <span className="dato-sec" title="El cierre es el 26: cada mes va del 27 del mes anterior al 26">
+              {nombreMes(mes)} · {textoPeriodo(mes)}
+            </span>
           </label>
         )}
       </div>
