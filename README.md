@@ -399,7 +399,7 @@ _821 funciones, componentes, métodos y rutas en 127 archivos._
     Genera una clave temporal nueva para un usuario (por correo, o en la respuesta).
 
   - **`auth.recuperar(email)`** · _método_
-    "Olvide mi contrasena": envia un codigo de 6 digitos al correo.
+    "Olvide mi contraseña": envia un codigo de 6 digitos al correo.
 
   - **`auth.confirmarRecuperacion(email, codigo, nueva)`** · _método_
     Crea la clave nueva con el codigo de 6 digitos que llego al correo.
@@ -2303,8 +2303,8 @@ _821 funciones, componentes, métodos y rutas en 127 archivos._
   `type` del input entre "password" y "text"; el valor es el mismo.
 
 - **`Recuperar({...})`** · _componente React_
-  Recuperar la contrasena en dos pasos: pedir un codigo al correo y luego,
-  con ese codigo, crear la contrasena nueva.
+  Recuperar la contraseña en dos pasos: pedir un codigo al correo y luego,
+  con ese codigo, crear la contraseña nueva.
 
 ### `src/paginas/Plantillas.tsx`
 

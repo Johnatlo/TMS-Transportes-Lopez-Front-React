@@ -48,6 +48,8 @@ import {
 import type { ResumenAlertas } from "../api/tipos";
 import type { TipoAlerta } from "../api/cliente";
 import logoPequeno from "../assets/logo-pequeno.png";
+import emblemaDia from "../assets/emblema-sofi.png";
+import emblemaNoche from "../assets/emblema-sofi-noche.png";
 
 /** Una opcion del menu. */
 interface Seccion {
@@ -121,6 +123,8 @@ const GRUPOS: Array<{ id: string; titulo: string | null; secciones: Seccion[] }>
   },
 ];
 const SECCIONES: Seccion[] = GRUPOS.flatMap((g) => g.secciones);
+/** Grupo (titulo) de cada pantalla, para las migas de pan. */
+const GRUPO_DE = new Map(GRUPOS.flatMap((g) => g.secciones.map((s) => [s.ruta, g.titulo] as const)));
 
 /** Grupos del menu que el usuario dejo plegados. Solo es comodidad: si falla, se ignora. */
 function leerPlegados(): string[] {
@@ -250,8 +254,12 @@ export default function Shell() {
     recargarSeguimiento,
   };
   const urgentesSeguimiento = seguimiento.datos?.urgentes ?? 0;
+  const totalSeguimiento = seguimiento.datos?.alertas.length ?? 0;
+  /** Lista de alertas del reloj desplegada. */
+  const [verTipos, setVerTipos] = useState(false);
   /** Alertas de cada tipo: un boton aparte para cada uno (antes un solo reloj con "+99"). */
   const porTipo = (t: TipoAlerta) => seguimiento.datos?.alertas.filter((a) => a.tipo === t) ?? [];
+  const grupoActual = actual ? GRUPO_DE.get(actual.ruta) : null;
 
   return (
     <div className={`app-shell ${contraido ? "menu-contraido" : ""}`}>
@@ -259,7 +267,7 @@ export default function Shell() {
       {menuAbierto && <div className="capa-menu" onClick={() => setMenuAbierto(false)} />}
       <aside className={`sidebar ${menuAbierto ? "abierto" : ""}`}>
         <div className="brand">
-          <img className="brand-logo" src={logoPequeno} alt="" />
+          <img className="brand-logo" src={tema === "oscuro" ? emblemaNoche : emblemaDia} alt="" />
           <span className="solo-expandido marca-sofi">
             <strong>SOFI</strong>
             <span>por Transportes López</span>
@@ -282,13 +290,17 @@ export default function Shell() {
                     </span>
                   </button>
                 )}
-                {(abierto || contraido) &&
-                  visibles.map((s) => (
-                    <NavLink key={s.ruta} to={s.ruta} title={s.etiqueta} className={({ isActive }) => (isActive ? "active" : undefined)}>
-                      <span className="icon">{s.icono}</span>
-                      <span className="solo-expandido">{s.etiqueta}</span>
-                    </NavLink>
-                  ))}
+                {/* Siempre en la pagina: se abre y se cierra con una animacion (alto de 0 a su tamano). */}
+                <div className={`menu-grupo-items ${abierto || contraido ? "abierto" : ""}`}>
+                  <div>
+                    {visibles.map((s) => (
+                      <NavLink key={s.ruta} to={s.ruta} title={s.etiqueta} className={({ isActive }) => (isActive ? "active" : undefined)}>
+                        <span className="icon">{s.icono}</span>
+                        <span className="solo-expandido">{s.etiqueta}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -314,40 +326,71 @@ export default function Shell() {
           <button className="boton-redondo boton-menu" title="Menu" aria-label="Abrir menu" onClick={() => setMenuAbierto(true)}>
             <IconoMenu />
           </button>
-          <h1>
-            {actual?.etiqueta ?? "SOFI"}
-            <span className="crumb"> · {nombreEmpresa}</span>
-          </h1>
+          <div className="titulo-pagina">
+            {/* Migas de pan: el grupo del menu y la pantalla. */}
+            {grupoActual && <span className="crumb">{grupoActual}</span>}
+            <h1>{actual?.etiqueta ?? "SOFI"}</h1>
+          </div>
           <div className="actions">
             <button className="btn-primary boton-con-texto" onClick={() => navegar("/despacho")}>
               Nuevo despacho
             </button>
-            <button
-              className="boton-redondo"
-              title={`Seguimiento: papeles, facturacion y cartera${urgentesSeguimiento ? ` (${urgentesSeguimiento} urgentes)` : ""}`}
-              onClick={() => setVerSeguimiento(true)}
-              disabled={!seguimiento.datos}
-            >
-              <IconoReloj />
-            </button>
-            {/* Un boton por tipo de alerta, con su numero; rojo si tiene algo urgente. */}
-            <div className="alertas-tipos">
-              {TIPOS_ALERTA.map((t) => {
-                const lista = porTipo(t);
-                if (lista.length === 0) return null;
-                const urgentes = lista.filter((a) => a.nivel === "urgente").length;
-                return (
-                  <button
-                    key={t}
-                    className={`chip-alerta ${urgentes ? "urgente" : ""}`}
-                    title={`${ETIQUETA_CORTA[t]}: ${lista.length} alerta(s)${urgentes ? `, ${urgentes} urgente(s)` : ""}`}
-                    onClick={() => setVerSeguimiento(t)}
-                  >
-                    {ETIQUETA_CORTA[t]}
-                    <span className="chip-contador">{lista.length > 99 ? "99+" : lista.length}</span>
-                  </button>
-                );
-              })}
+            {/* Alertas de seguimiento recogidas en el reloj: el numero es el total (rojo si hay urgentes);
+                al hacer clic se despliega un boton por tipo, con su numero. */}
+            <div className="menu-alertas-contenedor">
+              <button
+                className="boton-redondo"
+                title={`Seguimiento: papeles, facturacion, cartera y anticipos${urgentesSeguimiento ? ` (${urgentesSeguimiento} urgentes)` : ""}`}
+                aria-label="Alertas de seguimiento"
+                aria-expanded={verTipos}
+                onClick={() => setVerTipos(!verTipos)}
+                disabled={!seguimiento.datos}
+              >
+                <IconoReloj />
+                {totalSeguimiento > 0 && (
+                  <span className={`punto-contador ${urgentesSeguimiento ? "" : "contador-aviso"}`}>{totalSeguimiento > 99 ? "99+" : totalSeguimiento}</span>
+                )}
+              </button>
+              {verTipos && (
+                <>
+                  {/* Capa invisible: un clic fuera lo cierra. */}
+                  <div className="capa-cierre" onClick={() => setVerTipos(false)} />
+                  <div className="menu-alertas">
+                    {TIPOS_ALERTA.map((t) => {
+                      const lista = porTipo(t);
+                      if (lista.length === 0) return null;
+                      const urgentes = lista.filter((a) => a.nivel === "urgente").length;
+                      return (
+                        <button
+                          key={t}
+                          className={`chip-alerta ${urgentes ? "urgente" : ""}`}
+                          title={`${ETIQUETA_CORTA[t]}: ${lista.length} alerta(s)${urgentes ? `, ${urgentes} urgente(s)` : ""}`}
+                          onClick={() => {
+                            setVerTipos(false);
+                            setVerSeguimiento(t);
+                          }}
+                        >
+                          <span>
+                            {ETIQUETA_CORTA[t]}
+                            {urgentes > 0 && <small> · {urgentes} urgente(s)</small>}
+                          </span>
+                          <span className="chip-contador">{lista.length > 99 ? "99+" : lista.length}</span>
+                        </button>
+                      );
+                    })}
+                    {totalSeguimiento === 0 && <span className="dato-sec">Sin alertas de seguimiento.</span>}
+                    <button
+                      className="btn-link"
+                      onClick={() => {
+                        setVerTipos(false);
+                        setVerSeguimiento(true);
+                      }}
+                    >
+                      Ver todo el seguimiento
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
             <button
               className="boton-redondo"
@@ -404,7 +447,10 @@ export default function Shell() {
         <div className="content">
           {/* Las pantallas se cargan bajo demanda (ver App.tsx): el menu sigue visible. */}
           <Suspense fallback={<Cargando que="la pantalla" />}>
-            <Outlet context={contexto} />
+            {/* key: al cambiar de pantalla el contenido entra en cascada (ver .pagina-entra en tema.css). */}
+            <div key={ubicacion.pathname} className="pagina-entra">
+              <Outlet context={contexto} />
+            </div>
           </Suspense>
         </div>
       </div>

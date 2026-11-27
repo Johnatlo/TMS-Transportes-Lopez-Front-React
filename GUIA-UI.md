@@ -124,6 +124,24 @@ Tonos de las pastillas y desgloses: `--morado-*`, `--turquesa-*`, `--rosa-*`
 
 ---
 
+## 3b. Barra lateral, cabecera y movimiento
+
+- **Barra lateral** (`componentes/Shell.tsx`): emblema de SOFI arriba y los
+  grupos del menú (se abren y cierran con una
+  animación; el de la pantalla actual siempre abierto). Cada pantalla es un
+  botón grande en pastilla con su ícono; la actual va en violeta. "Contraer"
+  la deja en solo íconos (círculos). Solo aparece lo que el rol puede ver.
+- **Cabecera:** migas de pan (el grupo en pequeño y la pantalla como título),
+  "Nuevo despacho" (en el celular se oculta: está en el menú), el reloj con las
+  alertas de seguimiento recogidas (el número es el total; al hacer clic se
+  despliega un botón por tipo), sol/luna, la campana y el menú del usuario.
+- **Movimiento:** al cambiar de pantalla el contenido entra en cascada, de
+  arriba abajo (`.pagina-entra`). Las animaciones son cortas (0,15 a 0,4 s) y
+  quien pidió "reducir movimiento" en su equipo no las ve. Las ventanas y los
+  filtros tienen su propia animación.
+
+---
+
 ## 4. Forma
 
 | Variable | Valor | Uso |
