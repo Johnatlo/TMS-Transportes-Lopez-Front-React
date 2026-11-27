@@ -2686,6 +2686,8 @@ export interface ViajeConductor {
   efectivo: number;
   combustible: number;
   transferencia: number;
+  /** Transferencias del gerente para completar el anticipo (no van al Cuadro pagos). */
+  transferenciasGerente?: Array<{ id: number; fecha: string; valor: number; nota: string | null }>;
   recibido: number;
   cuenta: CuentaViaje | null;
 }
@@ -2706,7 +2708,9 @@ export interface PrestamoEmpleado {
 
 /** Lo de la nomina de un conductor que entra a su liquidacion. */
 export interface NominaLiquidacion {
-  nominaId: number;
+  /** null: calculo provisional (aun no hay nomina del mes). */
+  nominaId: number | null;
+  provisional?: boolean;
   estado: string;
   desde: string;
   hasta: string;
@@ -2821,6 +2825,11 @@ export const apiConductores = {
     put<ViajeConductor | null>(`/conductores/viajes/${cuadroViajeId}/cuenta`, { ...d, mes }),
   /** Borra la cuenta de viaje (y su gasto del libro). */
   borrarCuenta: (cuadroViajeId: number) => del<{ ok: boolean }>(`/conductores/viajes/${cuadroViajeId}/cuenta`),
+  /** Transferencia del gerente para completar el anticipo; devuelve el viaje como queda. */
+  agregarTransferencia: (cuadroViajeId: number, d: { fecha: string; valor: number; nota?: string }) =>
+    post<ViajeConductor>(`/conductores/viajes/${cuadroViajeId}/transferencias`, d),
+  /** Borra una transferencia del gerente; devuelve el viaje como queda. */
+  borrarTransferencia: (id: number) => del<ViajeConductor>(`/conductores/viajes/transferencias/${id}`),
   /** Prestamos. */
   prestamos: () => get<PrestamoEmpleado[]>("/conductores/prestamos"),
   /** Registra un prestamo. */

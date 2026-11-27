@@ -1154,3 +1154,33 @@ table.tabla .col-ver-fila { width: 1%; padding-left: 0.3rem; padding-right: 0.6r
 @media (prefers-reduced-motion: reduce) {
   .esqueleto > span, .menu-columnas { animation: none !important; }
 }
+
+/* ---------- Cuentas conductores: transferencia del gerente y hoja para el conductor ---------- */
+.transferencia-nueva { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.8rem; padding: 0.7rem; border: 1px dashed var(--gris-300); border-radius: var(--radio-md); }
+.transferencia-campos { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.transferencia-campos input[type="date"] { flex: 0 0 9.5rem; }
+.transferencia-campos input[type="number"] { flex: 1 1 7rem; min-width: 0; }
+.transferencia-campos input:not([type]) { flex: 1 1 100%; }
+.transferencia-campos button { flex: 1 1 100%; }
+.transferencia-campos input { margin: 0; }
+
+.hoja-conductor { display: flex; flex-direction: column; gap: 0.9rem; }
+.hoja-conductor-cabeza { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+.hoja-conductor-cabeza strong { display: block; font-size: 1.2rem; }
+.hoja-conductor table.tabla td, .hoja-conductor table.tabla th { white-space: normal; max-width: none; }
+.hoja-conductor tfoot td { border-top: 2px solid var(--gris-300); font-weight: 600; }
+/* El resumen: la parte gris del cuadro. */
+.hoja-conductor-resumen { max-width: 440px; margin-left: auto; background: var(--gris-100); border-radius: var(--radio-md); }
+.hoja-conductor-resumen td { border-bottom-color: var(--gris-200); }
+.hoja-conductor-resumen .hoja-conductor-total td { font-weight: 700; font-size: 1rem; color: var(--gris-900); border-top: 2px solid var(--gris-300); }
+
+/* Imprimir la hoja: solo la copia suelta en la pagina, en negro sobre blanco (tambien en modo oscuro). */
+.hoja-impresion { display: none; }
+@media print {
+  html, body { background: #fff !important; }
+  body > *:not(.hoja-impresion) { display: none !important; }
+  .hoja-impresion { display: block; padding: 0.5cm; }
+  .hoja-impresion, .hoja-impresion * { color: #000 !important; background: transparent !important; box-shadow: none !important; animation: none !important; }
+  .hoja-impresion .hoja-conductor-resumen { border: 1px solid #999; }
+  .hoja-impresion td, .hoja-impresion th { border-color: #bbb !important; }
+}

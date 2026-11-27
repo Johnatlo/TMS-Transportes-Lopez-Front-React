@@ -5,14 +5,16 @@
  * gastos (la que llena el conductor). El rol total filtra por empresa (Lopez
  * o M&C) para las cuentas de cada dueno; M&C solo ve sus carros. Clic en un viaje
  * abre la hoja: lo que recibio (anticipo de la bomba y transferencia, del
- * Cuadro pagos) y lo que gasto por concepto. El ACPM sale del combustible del
+ * Cuadro pagos, y las transferencias del gerente que se agregan aqui para
+ * completar el anticipo) y lo que gasto por concepto. El rojo de cada viaje es
+ * gastos - lo recibido (como en el cuadro SWK-973). El ACPM sale del combustible del
  * anticipo y se puede corregir. Al guardar, los gastos quedan en el libro de
  * gastos (gasto del vehiculo) y en Utilidades el viaje cuenta lo gastado.
  */
 import { useState } from "react";
 import { useSesion } from "../../ganchos/useSesion";
 import { soloGastosConductores } from "../../permisos";
-import { apiConductores, moneda } from "../../api/cliente";
+import { apiConductores, hoyColombia, moneda } from "../../api/cliente";
 import type { ConceptoCuenta, EmpresaGasto, ViajeConductor } from "../../api/cliente";
 import type { FiltroEmpresa } from "./LiquidacionConductores";
 import { useDatos } from "../../ganchos/useDatos";
@@ -139,9 +141,12 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
     { id: "recibido", titulo: "Recibio", alinear: "derecha", valor: (v) => v.recibido, celda: (v) => (v.recibido ? moneda(v.recibido) : "-") },
     { id: "gastos", titulo: "Gastos", alinear: "derecha", valor: (v) => v.cuenta?.total ?? 0, celda: (v) => (v.cuenta ? moneda(v.cuenta.total) : "-") },
     {
+      // El "rojo" del cuadro: gastos - lo recibido (+ se le debe al conductor, - el debe).
       id: "saldo",
-      titulo: "Saldo con el conductor",
+      titulo: "Rojo",
       alinear: "derecha",
+      prioridad: 0,
+      sumar: "pesos",
       valor: (v) => v.cuenta?.saldo ?? 0,
       celda: (v) => (v.cuenta ? <Saldo valor={v.cuenta.saldo} /> : <Pastilla tono="aviso">Sin cuenta</Pastilla>),
     },
@@ -200,7 +205,7 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
         {verPagos && (
           <Indicador
             dinero
-            titulo="Saldo con los conductores"
+            titulo="Rojo de los conductores"
             valor={moneda(conCuenta.reduce((s, v) => s + (v.cuenta?.saldo ?? 0), 0))}
             detalle="+ se les debe / - deben"
           />
@@ -231,6 +236,10 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
             setAbierto(null);
             carga.recargar();
           }}
+          alCambiarViaje={(v) => {
+            setAbierto(v);
+            carga.recargar();
+          }}
         />
       )}
     </>
@@ -244,6 +253,7 @@ function FormularioCuenta({
   verPagos,
   alCerrar,
   alGuardar,
+  alCambiarViaje,
 }: {
   viaje: ViajeConductor;
   mes: string;
@@ -251,6 +261,8 @@ function FormularioCuenta({
   verPagos: boolean;
   alCerrar: () => void;
   alGuardar: () => void;
+  /** El viaje cambio sin cerrar la hoja (se agrego o quito una transferencia). */
+  alCambiarViaje: (v: ViajeConductor) => void;
 }) {
   const c = viaje.cuenta;
   const [valores, setValores] = useState<Record<ConceptoCuenta, string>>(
@@ -262,6 +274,22 @@ function FormularioCuenta({
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const t = totalesCuenta(valores, viaje.combustible, viaje.recibido);
+  // Transferencia nueva del gerente.
+  const [trFecha, setTrFecha] = useState(hoyColombia());
+  const [trValor, setTrValor] = useState("");
+  const [trNota, setTrNota] = useState("");
+
+  /** Agrega o quita una transferencia del gerente (queda guardada al instante). */
+  async function transferencia(fn: () => Promise<ViajeConductor>) {
+    setError(null);
+    try {
+      alCambiarViaje(await fn());
+      setTrValor("");
+      setTrNota("");
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : "No se pudo guardar la transferencia.");
+    }
+  }
 
   async function guardar() {
     setGuardando(true);
@@ -358,9 +386,27 @@ function FormularioCuenta({
                 <td className="num">{moneda(viaje.combustible)}</td>
               </tr>
               <tr className={viaje.transferencia ? "" : "desglose-cero"}>
-                <td>Transferencia</td>
+                <td>Transferencia (Cuadro pagos)</td>
                 <td className="num">{moneda(viaje.transferencia)}</td>
               </tr>
+              {(viaje.transferenciasGerente ?? []).map((tr) => (
+                <tr key={tr.id}>
+                  <td>
+                    Transferencia del {fechaCorta(tr.fecha)}
+                    {tr.nota && <span className="dato-sec">{tr.nota}</span>}
+                    <button
+                      className="btn-link texto-vencido"
+                      style={{ marginLeft: "0.4rem" }}
+                      onClick={() =>
+                        window.confirm(`¿Quitar la transferencia de ${moneda(tr.valor)}?`) && transferencia(() => apiConductores.borrarTransferencia(tr.id))
+                      }
+                    >
+                      Quitar
+                    </button>
+                  </td>
+                  <td className="num">{moneda(tr.valor)}</td>
+                </tr>
+              ))}
               <tr className="desglose-total">
                 <td>Total recibido</td>
                 <td className="num">{moneda(viaje.recibido)}</td>
@@ -386,6 +432,40 @@ function FormularioCuenta({
               </tbody>
             )}
           </table>
+          {/* Transferencia del gerente: completa el anticipo de la bomba. No va al Cuadro pagos ni a la bomba. */}
+          <div className="transferencia-nueva">
+            <span className="dato-sec">Transferencia para completar el anticipo (no va al Cuadro pagos ni a la bomba)</span>
+            <div className="transferencia-campos">
+              <input type="date" aria-label="Fecha de la transferencia" value={trFecha} onChange={(e) => setTrFecha(e.target.value)} />
+              <input
+                type="number"
+                min={0}
+                step="any"
+                aria-label="Valor de la transferencia"
+                placeholder="Valor"
+                value={trValor}
+                onChange={(e) => setTrValor(e.target.value)}
+              />
+              <input
+                aria-label="Nota de la transferencia"
+                placeholder="Nota (opcional)"
+                maxLength={300}
+                value={trNota}
+                onChange={(e) => setTrNota(e.target.value)}
+              />
+              <button
+                className="btn-secondary"
+                disabled={!trValor || Number(trValor) <= 0 || !trFecha}
+                onClick={() =>
+                  transferencia(() =>
+                    apiConductores.agregarTransferencia(viaje.cuadroViajeId, { fecha: trFecha, valor: Number(trValor), nota: trNota || undefined }),
+                  )
+                }
+              >
+                Agregar transferencia
+              </button>
+            </div>
+          </div>
           {verPagos && (
             <>
               <label className="campo-ancho" style={{ marginTop: "0.8rem" }}>

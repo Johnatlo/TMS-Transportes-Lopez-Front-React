@@ -1,14 +1,21 @@
 /**
- * Liquidacion de los conductores del mes: por conductor, el producido
- * conductor de sus viajes (sobre el que van el 4 % salarial y el 5 % de
- * viaticos), lo de la nomina que cubre ese producido (sueldo, % y aportes),
- * el saldo de sus cuentas de viaje y lo que se descuenta de sus prestamos.
- * Total a pagar = neto de la nomina + saldo de las cuentas - prestamos. Lo
- * descontado de los prestamos es el mismo dato que en la nomina. Una
- * liquidacion pagada se muestra como se pago (la foto guardada), y sus cuentas
- * de viaje y prestamos de ese mes no cambian sin quitar antes la marca.
+ * Liquidacion de los conductores del mes (la que hace el gerente general):
+ * por conductor, el producido conductor de sus viajes (sobre el que van el %
+ * salarial y el de viaticos), lo de la nomina (sueldo, % y salud y pension),
+ * el rojo de sus cuentas de viaje y lo que se descuenta de sus prestamos.
+ * Total a pagar = neto de la nomina + rojo - prestamos.
+ *
+ * No espera la nomina: si la del mes aun no existe, SOFI hace el calculo
+ * provisional con las mismas reglas (ver nomina.provisional en el backend).
+ * "Liquidar" guarda la fecha en que el gerente lo liquida, aparte de la
+ * nomina. La "Hoja para el conductor" es lo que se le envia: sus viajes con
+ * anticipo, gastos y rojo, y el resumen (la parte gris del cuadro SWK-973);
+ * se imprime o se guarda en PDF. Una liquidacion hecha se muestra como quedo
+ * (la foto guardada), y sus cuentas de viaje y prestamos de ese mes no cambian
+ * sin quitarla antes.
  */
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { apiConductores, hoyColombia, moneda } from "../../api/cliente";
 import type { LiquidacionConductor, PrestamoLinea, ViajeConductor } from "../../api/cliente";
 import { useDatos } from "../../ganchos/useDatos";
@@ -16,6 +23,7 @@ import { Cargando, ErrorCarga } from "../../componentes/Estado";
 import Indicador from "../../componentes/Indicador";
 import LinksViaje from "../../componentes/LinksViaje";
 import MiniTabla from "../../componentes/MiniTabla";
+import Modal from "../../componentes/Modal";
 import TablaDatos, { Pastilla } from "../../componentes/TablaDatos";
 import type { Columna } from "../../componentes/TablaDatos";
 import { fechaCorta } from "../cuadro/estadosCuadro";
@@ -80,9 +88,23 @@ export default function Liquidacion({ mes, empresa, irACuentas }: { mes: string;
       titulo: "Neto nomina",
       alinear: "derecha",
       valor: (c) => c.netoNomina ?? 0,
-      celda: (c) => (c.netoNomina === null ? <span className="texto-aviso">Sin nomina</span> : moneda(c.netoNomina)),
+      celda: (c) =>
+        c.netoNomina === null ? (
+          <span className="texto-aviso" title="Faltan los parametros de nomina del ano (Nomina > Parametros)">
+            Sin parametros
+          </span>
+        ) : (
+          <>
+            {moneda(c.netoNomina)}
+            {c.nomina?.provisional && (
+              <span className="dato-sec" title="Aun no hay nomina del mes: calculo de SOFI con su sueldo y su producido">
+                provisional
+              </span>
+            )}
+          </>
+        ),
     },
-    { id: "cuentas", titulo: "Cuentas de viaje", alinear: "derecha", valor: (c) => c.saldoCuentas, celda: (c) => <Saldo valor={c.saldoCuentas} /> },
+    { id: "cuentas", titulo: "Rojo (cuentas de viaje)", alinear: "derecha", valor: (c) => c.saldoCuentas, celda: (c) => <Saldo valor={c.saldoCuentas} /> },
     { id: "prestamos", titulo: "Prestamos", alinear: "derecha", valor: (c) => c.prestamos, celda: (c) => (c.prestamos ? `- ${moneda(c.prestamos)}` : "-") },
     {
       id: "total",
@@ -102,15 +124,15 @@ export default function Liquidacion({ mes, empresa, irACuentas }: { mes: string;
       id: "estado",
       titulo: "Estado",
       filtrable: true,
-      valor: (c) => (c.pagada ? "Pagada" : "Por pagar"),
+      valor: (c) => (c.pagada ? "Liquidada" : "Por liquidar"),
       celda: (c) =>
         c.pagada ? (
           <>
-            <Pastilla tono="ok">Pagada</Pastilla>
+            <Pastilla tono="ok">Liquidada</Pastilla>
             <span className="dato-sec">{fechaCorta(c.pagada.fechaPago)}</span>
           </>
         ) : (
-          <Pastilla tono="aviso">Por pagar</Pastilla>
+          <Pastilla tono="aviso">Por liquidar</Pastilla>
         ),
     },
   ];
@@ -124,8 +146,8 @@ export default function Liquidacion({ mes, empresa, irACuentas }: { mes: string;
           valor={moneda(total((c) => c.producido))}
           detalle={`${filas.length} conductor(es)`}
         />
-        <Indicador dinero titulo="Saldo de cuentas de viaje" valor={moneda(total((c) => c.saldoCuentas))} detalle="+ se les debe / - deben" />
-        <Indicador dinero titulo="Total a pagar" valor={moneda(total((c) => c.totalAPagar))} detalle={`${filas.filter((c) => c.pagada).length} pagada(s)`} />
+        <Indicador dinero titulo="Rojo de las cuentas de viaje" valor={moneda(total((c) => c.saldoCuentas))} detalle="+ se les debe / - deben" />
+        <Indicador dinero titulo="Total a pagar" valor={moneda(total((c) => c.totalAPagar))} detalle={`${filas.filter((c) => c.pagada).length} liquidado(s)`} />
         <Indicador
           titulo="Viajes sin conductor"
           valor={liq.viajesSinConductor}
@@ -180,12 +202,14 @@ function DetalleLiquidacion({
   accion: (fn: () => Promise<unknown>) => Promise<void>;
 }) {
   const [fechaPago, setFechaPago] = useState(hoyColombia());
+  const [verHoja, setVerHoja] = useState(false);
   const n = c.nomina;
   return (
     <div className="detalle-tanqueo" onClick={(e) => e.stopPropagation()}>
       {c.congelada && (
         <div className="alert info" style={{ marginBottom: "0.6rem" }}>
-          Pagada: estos son los valores del momento del pago. Para cambiar sus cuentas de viaje o prestamos de este mes, quita primero la marca de pagada.
+          Liquidada: estos son los valores del momento en que se liquido. Para cambiar sus cuentas de viaje o prestamos de este mes, quita primero la
+          liquidacion.
         </div>
       )}
       <div className="desglose-cascada">
@@ -209,7 +233,11 @@ function DetalleLiquidacion({
           <tbody className="desglose-dueno">
             <tr className="desglose-titulo">
               <th colSpan={2}>
-                {n ? `Nomina ${fechaCorta(n.desde)} - ${fechaCorta(n.hasta)} (${n.estado === "APROBADA" ? "aprobada" : "borrador"})` : "Nomina"}
+                {n
+                  ? n.provisional
+                    ? `Nomina provisional de ${nombreMes(mes)} (calculo de SOFI, 30 dias)`
+                    : `Nomina ${fechaCorta(n.desde)} - ${fechaCorta(n.hasta)} (${n.estado === "APROBADA" ? "aprobada" : "borrador"})`
+                  : "Nomina"}
               </th>
             </tr>
             {n ? (
@@ -224,7 +252,7 @@ function DetalleLiquidacion({
             ) : (
               <tr>
                 <td colSpan={2} className="texto-aviso">
-                  Aun no hay nomina que cubra el producido de {nombreMes(mes)}: creala en Nomina.
+                  Faltan los parametros de nomina de {mes.slice(0, 4)}: agregalos en Nomina &gt; Parametros.
                 </td>
               </tr>
             )}
@@ -233,7 +261,7 @@ function DetalleLiquidacion({
         <table className="tabla tabla-compacta desglose">
           <tbody className="desglose-anticipo">
             <tr className="desglose-titulo">
-              <th colSpan={2}>Cuentas de viaje</th>
+              <th colSpan={2}>Rojo (cuentas de viaje)</th>
             </tr>
             <tr className="desglose-total">
               <td>{c.saldoCuentas >= 0 ? "Se le debe (gastos - lo recibido)" : "Debe (recibio mas de lo que gasto)"}</td>
@@ -266,7 +294,7 @@ function DetalleLiquidacion({
           </tbody>
           <tbody className="desglose-resultado">
             <tr className="desglose-total">
-              <td>Total a pagar (neto + cuentas - prestamos)</td>
+              <td>Total a pagar (neto + rojo - prestamos)</td>
               <td className="num">{c.totalAPagar === null ? "-" : moneda(c.totalAPagar)}</td>
             </tr>
           </tbody>
@@ -276,31 +304,38 @@ function DetalleLiquidacion({
         {c.pagada ? (
           <>
             <Pastilla tono="ok">
-              Pagada el {fechaCorta(c.pagada.fechaPago)} por {moneda(c.pagada.total)}
+              Liquidado el {fechaCorta(c.pagada.fechaPago)} por {moneda(c.pagada.total)}
             </Pastilla>
+            <button className="btn-secondary" onClick={() => setVerHoja(true)}>
+              Hoja para el conductor
+            </button>
             <button
               className="btn-link"
-              onClick={() => window.confirm("¿Quitar la marca de pagada?") && accion(() => apiConductores.quitarPago(c.empleadoId, mes))}
+              onClick={() => window.confirm("¿Quitar la liquidacion?") && accion(() => apiConductores.quitarPago(c.empleadoId, mes))}
             >
-              Quitar pago
+              Quitar liquidacion
             </button>
           </>
         ) : (
           <>
+            <button className="btn-secondary" onClick={() => setVerHoja(true)} disabled={c.totalAPagar === null}>
+              Hoja para el conductor
+            </button>
             <label>
-              <span className="dato-sec">Fecha de pago</span> <input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} />
+              <span className="dato-sec">Fecha de liquidacion</span> <input type="date" value={fechaPago} onChange={(e) => setFechaPago(e.target.value)} />
             </label>
             <button
               className="btn-primary"
               disabled={c.totalAPagar === null}
-              title={c.totalAPagar === null ? "Falta la nomina del mes" : undefined}
+              title={c.totalAPagar === null ? "Faltan los parametros de nomina del ano" : "Guarda la liquidacion con esta fecha (aparte de la nomina)"}
               onClick={() => accion(() => apiConductores.pagar(c.empleadoId, mes, fechaPago))}
             >
-              Marcar pagada
+              Liquidar
             </button>
           </>
         )}
       </div>
+      {verHoja && <HojaConductor c={c} mes={mes} viajes={viajes} alCerrar={() => setVerHoja(false)} />}
       {viajes.length > 0 && (
         <div style={{ marginTop: "0.8rem" }}>
           <h5 style={{ margin: "0 0 0.3rem" }}>Sus viajes</h5>
@@ -336,6 +371,134 @@ function DetalleLiquidacion({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * La hoja que se le envia al conductor (la parte gris del cuadro SWK-973):
+ * sus viajes con el flete conductor, lo que recibio (anticipos y
+ * transferencias), lo que gasto y el rojo; y el resumen de su liquidacion: el
+ * %, el rojo, el sueldo, el seguro (salud y pension), los prestamos y el total.
+ * "Imprimir" la imprime o la guarda en PDF (solo la hoja, en blanco y negro).
+ */
+function HojaConductor({ c, mes, viajes, alCerrar }: { c: LiquidacionConductor; mes: string; viajes: ViajeConductor[]; alCerrar: () => void }) {
+  const n = c.nomina;
+  const suma = (f: (v: ViajeConductor) => number) => viajes.reduce((s, v) => s + f(v), 0);
+  const rojo = (v: ViajeConductor) => v.cuenta?.saldo ?? 0;
+  const hoja = (
+    <div className="hoja-conductor">
+      <header className="hoja-conductor-cabeza">
+        <div>
+          <strong>{c.nombre}</strong>
+          <span className="dato-sec">Liquidacion de {nombreMes(mes)}</span>
+        </div>
+        <span className="dato-sec">{c.pagada ? `Liquidado el ${fechaCorta(c.pagada.fechaPago)}` : "Sin liquidar aun"}</span>
+      </header>
+      <table className="tabla tabla-compacta">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Placa</th>
+            <th>Cliente</th>
+            <th>Remision</th>
+            <th className="num">Flete conductor</th>
+            <th className="num">Anticipos</th>
+            <th className="num">Gastos</th>
+            <th className="num">Rojo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {viajes.map((v) => (
+            <tr key={v.cuadroViajeId}>
+              <td>{fechaCorta(v.fecha)}</td>
+              <td>{placaConGuion(v.placa)}</td>
+              <td>{v.cliente}</td>
+              <td>{v.remision ?? v.manifiesto ?? "-"}</td>
+              <td className="num">{v.producido === null ? "-" : moneda(v.producido)}</td>
+              <td className="num">{moneda(v.recibido)}</td>
+              <td className="num">{v.cuenta ? moneda(v.cuenta.total) : "Sin cuenta"}</td>
+              <td className="num">{v.cuenta ? moneda(rojo(v)) : "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={4}>
+              <strong>Total ({viajes.length} viajes)</strong>
+            </td>
+            <td className="num">{moneda(suma((v) => v.producido ?? 0))}</td>
+            <td className="num">{moneda(suma((v) => v.recibido))}</td>
+            <td className="num">{moneda(suma((v) => v.cuenta?.total ?? 0))}</td>
+            <td className="num">
+              <strong>{moneda(suma(rojo))}</strong>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+      <table className="tabla tabla-compacta hoja-conductor-resumen">
+        <tbody>
+          <tr>
+            <td>
+              % del flete conductor ({c.pctSalarial} % salarial + {c.pctViaticos} % viaticos)
+              {(c.integro ?? 0) > 0 && " y viajes integros"}
+            </td>
+            <td className="num">{moneda(c.salarial + c.viaticos)}</td>
+          </tr>
+          <tr>
+            <td>Rojo (gastos - anticipos)</td>
+            <td className="num">{moneda(c.saldoCuentas)}</td>
+          </tr>
+          <tr>
+            <td>Sueldo{n?.provisional ? " (provisional)" : ""}</td>
+            <td className="num">{moneda(n?.basico ?? 0)}</td>
+          </tr>
+          {(n?.auxilio ?? 0) > 0 && (
+            <tr>
+              <td>Auxilio de transporte</td>
+              <td className="num">{moneda(n?.auxilio ?? 0)}</td>
+            </tr>
+          )}
+          <tr>
+            <td>Seguro (salud y pension)</td>
+            <td className="num">- {moneda((n?.salud ?? 0) + (n?.pension ?? 0))}</td>
+          </tr>
+          {c.prestamos > 0 && (
+            <tr>
+              <td>Prestamo</td>
+              <td className="num">- {moneda(c.prestamos)}</td>
+            </tr>
+          )}
+          <tr className="hoja-conductor-total">
+            <td>Total a pagar</td>
+            <td className="num">{c.totalAPagar === null ? "-" : moneda(c.totalAPagar)}</td>
+          </tr>
+        </tbody>
+      </table>
+      {c.viajesSinCuenta > 0 && <p className="texto-aviso">{c.viajesSinCuenta} viaje(s) sin cuenta de viaje: su rojo aun no cuenta.</p>}
+    </div>
+  );
+  return (
+    <>
+      <Modal
+        titulo={`Hoja para el conductor · ${c.nombre}`}
+        ancho="wide"
+        alCerrar={alCerrar}
+        pie={
+          <>
+            <button className="btn-secondary" onClick={alCerrar}>
+              Cerrar
+            </button>
+            <button className="btn-primary" onClick={() => window.print()}>
+              Imprimir o guardar PDF
+            </button>
+          </>
+        }
+      >
+        {hoja}
+      </Modal>
+      {/* Copia para imprimir: suelta en la pagina (la ventana la recortaria); al imprimir sale solo ella, en blanco y negro. */}
+      {createPortal(<div className="hoja-impresion">{hoja}</div>, document.body)}
+    </>
   );
 }
 

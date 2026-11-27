@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_830 funciones, componentes, métodos y rutas en 127 archivos._
+_833 funciones, componentes, métodos y rutas en 127 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (264)
+- [`src/api/cliente.ts`](#srcapiclientets) (266)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -228,7 +228,7 @@ _830 funciones, componentes, métodos y rutas en 127 archivos._
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
 - [`src/paginas/conductores/CuentasViaje.tsx`](#srcpaginasconductorescuentasviajetsx) (4)
 - [`src/paginas/conductores/FletesConductor.tsx`](#srcpaginasconductoresfletesconductortsx) (4)
-- [`src/paginas/conductores/Liquidacion.tsx`](#srcpaginasconductoresliquidaciontsx) (4)
+- [`src/paginas/conductores/Liquidacion.tsx`](#srcpaginasconductoresliquidaciontsx) (5)
 - [`src/paginas/conductores/LiquidacionConductores.tsx`](#srcpaginasconductoresliquidacionconductorestsx) (1)
 - [`src/paginas/conductores/Prestamos.tsx`](#srcpaginasconductoresprestamostsx) (2)
 - [`src/paginas/conductores/calculos.ts`](#srcpaginasconductorescalculosts) (8)
@@ -1119,6 +1119,12 @@ _830 funciones, componentes, métodos y rutas en 127 archivos._
 
   - **`apiConductores.borrarCuenta(cuadroViajeId)`** · _método_
     Borra la cuenta de viaje (y su gasto del libro).
+
+  - **`apiConductores.agregarTransferencia(cuadroViajeId, d)`** · _método_
+    Transferencia del gerente para completar el anticipo; devuelve el viaje como queda.
+
+  - **`apiConductores.borrarTransferencia(id)`** · _método_
+    Borra una transferencia del gerente; devuelve el viaje como queda.
 
   - **`apiConductores.prestamos()`** · _método_
     Prestamos.
@@ -2398,7 +2404,9 @@ _830 funciones, componentes, métodos y rutas en 127 archivos._
 > gastos (la que llena el conductor). El rol total filtra por empresa (Lopez
 > o M&C) para las cuentas de cada dueno; M&C solo ve sus carros. Clic en un viaje
 > abre la hoja: lo que recibio (anticipo de la bomba y transferencia, del
-> Cuadro pagos) y lo que gasto por concepto. El ACPM sale del combustible del
+> Cuadro pagos, y las transferencias del gerente que se agregan aqui para
+> completar el anticipo) y lo que gasto por concepto. El rojo de cada viaje es
+> gastos - lo recibido (como en el cuadro SWK-973). El ACPM sale del combustible del
 > anticipo y se puede corregir. Al guardar, los gastos quedan en el libro de
 > gastos (gasto del vehiculo) y en Utilidades el viaje cuenta lo gastado.
 
@@ -2437,14 +2445,20 @@ _830 funciones, componentes, métodos y rutas en 127 archivos._
 
 ### `src/paginas/conductores/Liquidacion.tsx`
 
-> Liquidacion de los conductores del mes: por conductor, el producido
-> conductor de sus viajes (sobre el que van el 4 % salarial y el 5 % de
-> viaticos), lo de la nomina que cubre ese producido (sueldo, % y aportes),
-> el saldo de sus cuentas de viaje y lo que se descuenta de sus prestamos.
-> Total a pagar = neto de la nomina + saldo de las cuentas - prestamos. Lo
-> descontado de los prestamos es el mismo dato que en la nomina. Una
-> liquidacion pagada se muestra como se pago (la foto guardada), y sus cuentas
-> de viaje y prestamos de ese mes no cambian sin quitar antes la marca.
+> Liquidacion de los conductores del mes (la que hace el gerente general):
+> por conductor, el producido conductor de sus viajes (sobre el que van el %
+> salarial y el de viaticos), lo de la nomina (sueldo, % y salud y pension),
+> el rojo de sus cuentas de viaje y lo que se descuenta de sus prestamos.
+> Total a pagar = neto de la nomina + rojo - prestamos.
+>
+> No espera la nomina: si la del mes aun no existe, SOFI hace el calculo
+> provisional con las mismas reglas (ver nomina.provisional en el backend).
+> "Liquidar" guarda la fecha en que el gerente lo liquida, aparte de la
+> nomina. La "Hoja para el conductor" es lo que se le envia: sus viajes con
+> anticipo, gastos y rojo, y el resumen (la parte gris del cuadro SWK-973);
+> se imprime o se guarda en PDF. Una liquidacion hecha se muestra como quedo
+> (la foto guardada), y sus cuentas de viaje y prestamos de ese mes no cambian
+> sin quitarla antes.
 
 - **`Liquidacion({...})`** · _componente React_
   Liquidacion de todos los conductores de un mes.
@@ -2454,6 +2468,13 @@ _830 funciones, componentes, métodos y rutas en 127 archivos._
 
 - **`DetalleLiquidacion({...})`** · _componente React_
   El desglose de la liquidacion de un conductor, sus prestamos y sus viajes.
+
+- **`HojaConductor({...})`** · _componente React_
+  La hoja que se le envia al conductor (la parte gris del cuadro SWK-973):
+  sus viajes con el flete conductor, lo que recibio (anticipos y
+  transferencias), lo que gasto y el rojo; y el resumen de su liquidacion: el
+  %, el rojo, el sueldo, el seguro (salud y pension), los prestamos y el total.
+  "Imprimir" la imprime o la guarda en PDF (solo la hoja, en blanco y negro).
 
 - **`FilaPrestamo({...})`** · _componente React_
   Un prestamo: saldo y cuanto se descuenta este mes (vacio = no se descuenta).
