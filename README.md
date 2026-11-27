@@ -175,7 +175,7 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_821 funciones, componentes, métodos y rutas en 127 archivos._
+_830 funciones, componentes, métodos y rutas en 127 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
 - [`src/api/cliente.ts`](#srcapiclientets) (264)
@@ -207,7 +207,7 @@ _821 funciones, componentes, métodos y rutas en 127 archivos._
 - [`src/componentes/ReintentarViaje.tsx`](#srccomponentesreintentarviajetsx) (3)
 - [`src/componentes/Seccion.tsx`](#srccomponentessecciontsx) (1)
 - [`src/componentes/Shell.tsx`](#srccomponentesshelltsx) (4)
-- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (12)
+- [`src/componentes/TablaDatos.tsx`](#srccomponentestabladatostsx) (21)
 - [`src/componentes/clicFuera.ts`](#srccomponentesclicfuerats) (1)
 - [`src/componentes/excelConsecutivos.ts`](#srccomponentesexcelconsecutivosts) (9)
 - [`src/componentes/excelReporte.ts`](#srccomponentesexcelreportets) (2)
@@ -1393,7 +1393,9 @@ _821 funciones, componentes, métodos y rutas en 127 archivos._
 > "cargando", el de error y el de lista vacia.
 
 - **`Cargando({...})`** · _componente React_
-  Mensaje "Cargando ..." mientras llegan los datos.
+  Mientras llegan los datos: un esqueleto gris que brilla (la forma de una
+  tabla: barra, encabezado y filas), en vez de un texto. Los lectores de
+  pantalla oyen "Cargando ...".
 
 - **`ErrorCarga({...})`** · _componente React_
   Mensaje de error al cargar datos, con boton "Reintentar" si se da alReintentar.
@@ -1799,6 +1801,27 @@ _821 funciones, componentes, métodos y rutas en 127 archivos._
   true si el texto contiene lo buscado (ya pasado por sinTildes). Tambien sin
   guiones de ningun lado: "SPS-199" encuentra "SPS199" y al reves.
 
+- **`esEsencial(c, i, fijas)`** · _función_
+  Columna que nunca se oculta sola (ver Columna.prioridad).
+
+- **`ordenParaOcultar(columnas, fijas)`** · _función_
+  Orden en que se ocultan las columnas cuando la tabla no cabe: primero la de mayor prioridad (sin darla, la de mas a la derecha).
+
+- **`sumaColumna(filas, c)`** · _función_
+  Suma de una columna en las filas dadas (solo valores numericos).
+
+- **`formatoTotal(n, tipo)`** · _función_
+  Total con formato: "$1.234.567" (pesos) o "1.234,5" (numero).
+
+- **`usarDensidad()`** · _función_
+  Altura de las filas que eligio el usuario (la misma para todas las tablas). Solo comodidad del navegador.
+
+- **`usarColumnasOcultas(clave)`** · _función_
+  Columnas que el usuario oculto en esta tabla (se recuerdan en el navegador, por tabla).
+
+- **`esComputador()`** · _función_
+  true en el computador (en el celular las filas son tarjetas: ahi no se oculta nada).
+
 - **`TablaDatos({...})`** · _componente React_
   Tabla de listados con pestanas, busqueda, filtros, orden, exportacion y paginas.
 
@@ -1812,8 +1835,20 @@ _821 funciones, componentes, métodos y rutas en 127 archivos._
   La tabla no tiene scroll vertical propio: crece con la pagina (una sola
   barra). Los textos largos se cortan con "..." y se leen completos al pasar
   el mouse (title con el valor de la columna).
+  6. Cabe en el ancho: si no, se ocultan solas las columnas menos importantes
+     (ver ordenParaOcultar; el estado, los documentos y los botones nunca) y
+     se ven en el panel de la fila (clic en la fila, o el boton "..." si la
+     fila ya abre otra cosa). "Columnas" deja elegir que ver (se recuerda).
+  7. El encabezado queda fijo arriba y la barra de abajo (paginas, totales de
+     las columnas que suman, Comoda / Compacta) fija abajo, al desplazar.
+  8. Los filtros puestos se ven encima de la tabla, cada uno con su X.
   Exportar descarga un Excel organizado (ver excelTabla.ts: encabezado azul,
   pesos, fechas y totales) con todo lo filtrado, no solo la pagina visible.
+
+- **`PanelFila({...})`** · _componente React_
+  Panel de la derecha con la fila completa: todas las columnas (tambien las
+  que no caben en la tabla), cada una con su titulo y como se pinta en la
+  tabla (pastillas, links de remision y factura, botones).
 
 - **`Paginacion({...})`** · _componente React_
   Pie de la tabla: "Filas por pagina", "1-15 de 312" y los botones de pagina
@@ -1833,6 +1868,9 @@ _821 funciones, componentes, métodos y rutas en 127 archivos._
 
 - **`IconoFiltro()`** · _componente React_
   Icono del boton Filtros.
+
+- **`IconoColumnas()`** · _componente React_
+  Icono del boton Columnas.
 
 - **`IconoExportar()`** · _componente React_
   Icono del boton Exportar.
@@ -2078,8 +2116,11 @@ _821 funciones, componentes, métodos y rutas en 127 archivos._
   se ven todas.
 
 - **`Tabla({...})`** · _componente React_
-  Tabla simple del catalogo con paginas de 50: muestra "Cargando" o el error
-  mientras corresponde, y vuelve a la primera pagina cuando cambia la lista.
+  Tabla simple del catalogo con paginas de 15 (o las elegidas): muestra
+  "Cargando" o el error mientras corresponde, y vuelve a la primera pagina
+  cuando cambia la lista. Cabe en el ancho como TablaDatos: si no cabe, se
+  ocultan columnas desde la derecha (nunca la primera, Estado ni RNDC); al
+  hacer clic en la fila se ve todo en el formulario.
 
 - **`EstadoRndc({...})`** · _componente React_
   Estado del registro en el RNDC: registrado (con radicado), rechazado (con el

@@ -182,9 +182,9 @@ export default function CuadroAnticipos() {
         ),
     },
     { id: "eds", titulo: "EDS", filtrable: true, valor: (g) => g.bomba ?? "Solo efectivo", celda: (g) => <Bomba nombre={g.bomba} /> },
-    { id: "efectivo", titulo: "Efectivo", alinear: "derecha", valor: (g) => g.efectivo, celda: (g) => moneda(g.efectivo) },
-    { id: "combustible", titulo: "Combust.", alinear: "derecha", valor: (g) => g.combustible, celda: (g) => moneda(g.combustible) },
-    { id: "total", titulo: "Total", alinear: "derecha", valor: (g) => g.total, celda: (g) => <strong>{moneda(g.total)}</strong> },
+    { id: "efectivo", titulo: "Efectivo", alinear: "derecha", sumar: "pesos", valor: (g) => g.efectivo, celda: (g) => moneda(g.efectivo) },
+    { id: "combustible", titulo: "Combust.", alinear: "derecha", sumar: "pesos", valor: (g) => g.combustible, celda: (g) => moneda(g.combustible) },
+    { id: "total", titulo: "Total", alinear: "derecha", sumar: "pesos", valor: (g) => g.total, celda: (g) => <strong>{moneda(g.total)}</strong> },
     {
       id: "factura",
       titulo: "Factura bomba",

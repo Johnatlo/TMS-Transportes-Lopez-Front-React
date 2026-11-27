@@ -34,6 +34,16 @@ export interface Columna<T> {
   claseCelda?: string | ((fila: T) => string);
   /** Titulo del dato en la vista de tarjetas. null = sin titulo. Por defecto, `titulo`. */
   etiquetaMovil?: string | null;
+  /**
+   * Si la tabla no cabe en el ancho, las columnas se ocultan solas (y se ven en
+   * el panel de la fila). 0 = nunca se oculta; mayor = se oculta antes. Sin
+   * darla: la(s) primera(s) columna(s), el estado, los documentos (remision,
+   * factura, soportes) y los botones nunca se ocultan; las demas, de derecha a
+   * izquierda. Con 50 o mas tampoco se muestra en las tarjetas del celular.
+   */
+  prioridad?: number;
+  /** Suma la columna (lo filtrado) en la barra de abajo: "pesos" con $, "numero" sin. */
+  sumar?: "pesos" | "numero";
 }
 
 /** Filtro que no tiene columna en la tabla (por ejemplo el mes, si ya se ve la fecha). */
@@ -92,6 +102,77 @@ export const contieneBusqueda = (texto: string, q: string) => {
   return t.includes(q) || t.replace(/-/g, "").includes(q.replace(/-/g, ""));
 };
 
+/** Columna que nunca se oculta sola (ver Columna.prioridad). */
+export function esEsencial<T>(c: Columna<T>, i: number, fijas: number): boolean {
+  if (c.prioridad !== undefined) return c.prioridad === 0;
+  const doc = /^(estado|remisi[oó]n|factura|soportes?|documentos?|links?|acciones?|cruce)$/i;
+  return i < Math.max(1, fijas) || !c.titulo.trim() || doc.test(c.id) || doc.test(c.titulo.trim());
+}
+
+/** Orden en que se ocultan las columnas cuando la tabla no cabe: primero la de mayor prioridad (sin darla, la de mas a la derecha). */
+export function ordenParaOcultar<T>(columnas: Columna<T>[], fijas: number): string[] {
+  return columnas
+    .map((c, i) => ({ c, i }))
+    .filter(({ c, i }) => !esEsencial(c, i, fijas))
+    .sort((a, b) => (b.c.prioridad ?? b.i) - (a.c.prioridad ?? a.i) || b.i - a.i)
+    .map(({ c }) => c.id);
+}
+
+/** Suma de una columna en las filas dadas (solo valores numericos). */
+export function sumaColumna<T>(filas: T[], c: Columna<T>): number {
+  return filas.reduce((s, f) => {
+    const v = c.valor?.(f);
+    return typeof v === "number" && Number.isFinite(v) ? s + v : s;
+  }, 0);
+}
+
+/** Total con formato: "$1.234.567" (pesos) o "1.234,5" (numero). */
+export const formatoTotal = (n: number, tipo: "pesos" | "numero") =>
+  tipo === "pesos" ? `$${Math.round(n).toLocaleString("es-CO")}` : n.toLocaleString("es-CO", { maximumFractionDigits: 2 });
+
+/** Altura de las filas que eligio el usuario (la misma para todas las tablas). Solo comodidad del navegador. */
+function usarDensidad(): ["comoda" | "compacta", (d: "comoda" | "compacta") => void] {
+  const [d, setD] = useState<"comoda" | "compacta">(() => {
+    try {
+      return localStorage.getItem("densidadTablas") === "compacta" ? "compacta" : "comoda";
+    } catch {
+      return "comoda";
+    }
+  });
+  const cambiar = (v: "comoda" | "compacta") => {
+    setD(v);
+    try {
+      localStorage.setItem("densidadTablas", v);
+    } catch {
+      // Sin almacenamiento solo se pierde la preferencia.
+    }
+  };
+  return [d, cambiar];
+}
+
+/** Columnas que el usuario oculto en esta tabla (se recuerdan en el navegador, por tabla). */
+function usarColumnasOcultas(clave: string): [Set<string>, (s: Set<string>) => void] {
+  const [s, setS] = useState<Set<string>>(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(`tablaColumnas:${clave}`) ?? "[]"));
+    } catch {
+      return new Set();
+    }
+  });
+  const cambiar = (v: Set<string>) => {
+    setS(v);
+    try {
+      localStorage.setItem(`tablaColumnas:${clave}`, JSON.stringify([...v]));
+    } catch {
+      // Sin almacenamiento solo se pierde la preferencia.
+    }
+  };
+  return [s, cambiar];
+}
+
+/** true en el computador (en el celular las filas son tarjetas: ahi no se oculta nada). */
+const esComputador = () => typeof window.matchMedia !== "function" || window.matchMedia("(min-width: 821px)").matches;
+
 /**
  * Tabla de listados con pestanas, busqueda, filtros, orden, exportacion y paginas.
  *
@@ -105,6 +186,13 @@ export const contieneBusqueda = (texto: string, q: string) => {
  * La tabla no tiene scroll vertical propio: crece con la pagina (una sola
  * barra). Los textos largos se cortan con "..." y se leen completos al pasar
  * el mouse (title con el valor de la columna).
+ * 6. Cabe en el ancho: si no, se ocultan solas las columnas menos importantes
+ *    (ver ordenParaOcultar; el estado, los documentos y los botones nunca) y
+ *    se ven en el panel de la fila (clic en la fila, o el boton "..." si la
+ *    fila ya abre otra cosa). "Columnas" deja elegir que ver (se recuerda).
+ * 7. El encabezado queda fijo arriba y la barra de abajo (paginas, totales de
+ *    las columnas que suman, Comoda / Compacta) fija abajo, al desplazar.
+ * 8. Los filtros puestos se ven encima de la tabla, cada uno con su X.
  * Exportar descarga un Excel organizado (ver excelTabla.ts: encabezado azul,
  * pesos, fechas y totales) con todo lo filtrado, no solo la pagina visible.
  */
@@ -193,6 +281,51 @@ export default function TablaDatos<T>({
   // Cualquier cambio de criterio vuelve a la primera pagina.
   useEffect(() => setPagina(0), [pestana, busqueda, filtros, orden, porPagina]);
 
+  const [densidad, setDensidad] = usarDensidad();
+  /** Columnas que el usuario oculto ("Columnas"), y las que se ocultaron solas porque no cabian. */
+  const [ocultasUsuario, setOcultasUsuario] = usarColumnasOcultas(nombreArchivo ?? columnas.map((c) => c.id).join(","));
+  const [ocultasAuto, setOcultasAuto] = useState<string[]>([]);
+  /** Aun ocultando todo lo que se puede, la tabla no cabe: se desplaza de lado dentro de su recuadro. */
+  const [desborda, setDesborda] = useState(false);
+  const [verColumnas, setVerColumnas] = useState(false);
+  /** Fila abierta en el panel de la derecha (con todas sus columnas, tambien las ocultas). */
+  const [filaPanel, setFilaPanel] = useState<T | null>(null);
+  const caja = useRef<HTMLDivElement>(null);
+  const cols = columnas.filter((c) => !ocultasUsuario.has(c.id) && !ocultasAuto.includes(c.id));
+  const hayOcultas = cols.length < columnas.length;
+
+  // Que la tabla quepa en el ancho: si es mas ancha que su recuadro, se oculta
+  // la siguiente columna (ver ordenParaOcultar) y se vuelve a medir. Al cambiar
+  // el ancho de la ventana se empieza de nuevo (puede caber mas).
+  useLayoutEffect(() => {
+    const t = tabla.current;
+    const c = caja.current;
+    if (!t || !c) return;
+    if (!esComputador()) {
+      if (ocultasAuto.length) setOcultasAuto([]);
+      if (desborda) setDesborda(false);
+      return;
+    }
+    if (t.offsetWidth > c.clientWidth + 1) {
+      const siguiente = ordenParaOcultar(columnas, columnasFijas).find((id) => !ocultasAuto.includes(id) && !ocultasUsuario.has(id));
+      if (siguiente) setOcultasAuto([...ocultasAuto, siguiente]);
+      else if (!desborda) setDesborda(true);
+    } else if (desborda && t.offsetWidth <= c.clientWidth) setDesborda(false);
+  });
+  useEffect(() => {
+    const c = caja.current;
+    if (!c) return;
+    let ancho = c.clientWidth;
+    const observador = new ResizeObserver(() => {
+      if (Math.abs(c.clientWidth - ancho) < 2) return;
+      ancho = c.clientWidth;
+      setOcultasAuto([]);
+      setDesborda(false);
+    });
+    observador.observe(c);
+    return () => observador.disconnect();
+  }, []);
+
   const conValor = columnas.filter((c) => c.valor);
   const conBuscar = columnas.filter((c) => c.buscar);
   // Filtro "Mes" en todas las tablas con fecha (sin mostrar la columna).
@@ -212,14 +345,17 @@ export default function TablaDatos<T>({
     return m;
   }, [filas, pestanas]);
 
-  const base = pestanas ? porPestana.get(pestana) ?? filas : filas;
+  const base = pestanas ? (porPestana.get(pestana) ?? filas) : filas;
 
   /** Valores distintos de cada columna filtrable (dentro de la pestana actual). */
   const opcionesFiltro = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const c of filtrables) {
       const set = new Set(base.map((f) => texto(c.valor(f))).filter(Boolean));
-      m.set(c.id, [...set].sort((a, b) => a.localeCompare(b, "es")));
+      m.set(
+        c.id,
+        [...set].sort((a, b) => a.localeCompare(b, "es")),
+      );
     }
     return m;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -232,23 +368,17 @@ export default function TablaDatos<T>({
         if (!v?.length) return true;
         const filtro = filtrables.find((c) => c.id === id);
         return filtro ? v.includes(texto(filtro.valor(f))) : true;
-      })
+      }),
     );
     if (q)
-      r = r.filter(
-        (f) =>
-          conValor.some((c) => contieneBusqueda(texto(c.valor!(f)), q)) || conBuscar.some((c) => contieneBusqueda(texto(c.buscar!(f)), q))
-      );
+      r = r.filter((f) => conValor.some((c) => contieneBusqueda(texto(c.valor!(f)), q)) || conBuscar.some((c) => contieneBusqueda(texto(c.buscar!(f)), q)));
     if (orden) {
       const col = columnas.find((c) => c.id === orden.id);
       if (col?.valor) {
         r = [...r].sort((a, b) => {
           const va = col.valor!(a);
           const vb = col.valor!(b);
-          const cmp =
-            typeof va === "number" && typeof vb === "number"
-              ? va - vb
-              : texto(va).localeCompare(texto(vb), "es", { numeric: true });
+          const cmp = typeof va === "number" && typeof vb === "number" ? va - vb : texto(va).localeCompare(texto(vb), "es", { numeric: true });
           return orden.asc ? cmp : -cmp;
         });
       }
@@ -295,7 +425,19 @@ export default function TablaDatos<T>({
     const observador = new ResizeObserver(medir);
     observador.observe(t);
     return () => observador.disconnect();
-  }, [columnasFijas, columnas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnasFijas, columnas, cols.length]);
+
+  /** Totales de las columnas que suman (todo lo filtrado, no solo la pagina). */
+  const totales = columnas
+    .filter((c) => c.sumar && c.valor)
+    .map((c) => ({ id: c.id, titulo: c.titulo, texto: formatoTotal(sumaColumna(visibles, c), c.sumar!) }));
+  /** Filtros puestos, para mostrarlos encima de la tabla (con su X). */
+  const chipsFiltros = Object.entries(filtros)
+    .filter(([, v]) => v?.length)
+    .map(([id, v]) => ({ id, titulo: filtrables.find((c) => c.id === id)?.titulo ?? id, valores: v }));
+  /** Clic en la fila: lo de la pantalla; si no tiene nada y hay columnas ocultas, el panel con la fila completa. */
+  const alClic = (f: T, k: string | number) => (detalle ? alternar(k) : alClicFila ? alClicFila(f) : hayOcultas ? setFilaPanel(f) : undefined);
 
   /** Clase y posicion de la columna i si es fija (la ultima lleva la sombra). */
   const fija = (i: number) =>
@@ -303,8 +445,13 @@ export default function TablaDatos<T>({
       ? { clase: i === columnasFijas - 1 ? "col-fija col-fija-ultima" : "col-fija", estilo: { left: izquierdas[i] } }
       : { clase: "", estilo: undefined };
 
+  // Prioridad 50 o mas: en el celular (tarjetas) no se muestra; se ve al abrir la fila.
   const clase = (c: Columna<T>, f: T) =>
-    [typeof c.claseCelda === "function" ? c.claseCelda(f) : c.claseCelda, c.alinear === "derecha" ? "num" : ""]
+    [
+      typeof c.claseCelda === "function" ? c.claseCelda(f) : c.claseCelda,
+      c.alinear === "derecha" ? "num" : "",
+      (c.prioridad ?? 0) >= 50 ? "opcional-movil" : "",
+    ]
       .filter(Boolean)
       .join(" ");
 
@@ -351,6 +498,64 @@ export default function TablaDatos<T>({
               {filtrosActivos > 0 && <span className="insignia">{filtrosActivos}</span>}
             </button>
           )}
+          <div className="menu-columnas-contenedor">
+            <button
+              type="button"
+              className={`boton-barra ${hayOcultas ? "activo" : ""}`}
+              aria-expanded={verColumnas}
+              title={hayOcultas ? `${columnas.length - cols.length} columna(s) oculta(s): se ven en el panel de cada fila` : "Elegir las columnas"}
+              onClick={() => setVerColumnas(!verColumnas)}
+            >
+              <IconoColumnas /> Columnas
+              {hayOcultas && (
+                <span className="insignia-texto">
+                  {cols.length}/{columnas.length}
+                </span>
+              )}
+            </button>
+            {verColumnas && (
+              <>
+                <div className="capa-cierre" onClick={() => setVerColumnas(false)} />
+                <div className="menu-columnas" role="dialog" aria-label="Columnas">
+                  <p className="dato-sec">Elige que columnas ver. Si no caben todas, las de la derecha se ocultan solas y se ven al abrir la fila.</p>
+                  {columnas
+                    .filter((c) => c.titulo.trim())
+                    .map((c) => {
+                      const porEspacio = ocultasAuto.includes(c.id);
+                      return (
+                        <label key={c.id} className="check-linea">
+                          <input
+                            type="checkbox"
+                            checked={!ocultasUsuario.has(c.id)}
+                            onChange={(e) => {
+                              const n = new Set(ocultasUsuario);
+                              if (e.target.checked) n.delete(c.id);
+                              else n.add(c.id);
+                              setOcultasAuto([]);
+                              setOcultasUsuario(n);
+                            }}
+                          />
+                          {c.titulo}
+                          {porEspacio && <span className="dato-sec"> (no cabe)</span>}
+                        </label>
+                      );
+                    })}
+                  {ocultasUsuario.size > 0 && (
+                    <button
+                      type="button"
+                      className="btn-link"
+                      onClick={() => {
+                        setOcultasAuto([]);
+                        setOcultasUsuario(new Set());
+                      }}
+                    >
+                      Ver todas
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
           {(nombreArchivo || alExportar) && (
             <button
               type="button"
@@ -365,6 +570,31 @@ export default function TablaDatos<T>({
         </div>
       </div>
 
+      {/* Filtros puestos, a la vista (sin desplazar: bajan de linea si no caben). */}
+      {chipsFiltros.length > 0 && (
+        <div className="tabla-filtros-activos">
+          {chipsFiltros.map((c) => (
+            <span key={c.id} className="chip-filtro">
+              <strong>{c.titulo}:</strong> {c.valores.join(", ")}
+              <button
+                type="button"
+                aria-label={`Quitar el filtro ${c.titulo}`}
+                onClick={() => {
+                  const n = { ...filtros };
+                  delete n[c.id];
+                  setFiltros(n);
+                }}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <button type="button" className="btn-link" onClick={() => setFiltros({})}>
+            Limpiar filtros
+          </button>
+        </div>
+      )}
+
       {verFiltros && filtrables.length > 0 && (
         <FiltrosTabla
           filtros={filtrables.map((c) => ({ id: c.id, titulo: c.titulo, opciones: opcionesFiltro.get(c.id) ?? [] }))}
@@ -374,11 +604,11 @@ export default function TablaDatos<T>({
         />
       )}
 
-      <div className="tabla-scroll">
+      <div className={`tabla-scroll ${desborda ? "desborda" : "cabe"} ${densidad === "compacta" ? "compacta" : ""}`} ref={caja}>
         <table className={`tabla ${claseTabla}`} ref={tabla}>
           <thead>
             <tr>
-              {columnas.map((c, i) => (
+              {cols.map((c, i) => (
                 <th
                   key={c.id}
                   className={[c.valor ? "ordenable" : "", c.alinear === "derecha" ? "num" : "", fija(i).clase].join(" ")}
@@ -390,6 +620,11 @@ export default function TablaDatos<T>({
                   {orden?.id === c.id && <span className="flecha-orden">{orden.asc ? "↑" : "↓"}</span>}
                 </th>
               ))}
+              {hayOcultas && (
+                <th className="col-ver-fila" aria-label="Ver la fila completa">
+                  <span className="dato-sec">+{columnas.length - cols.length}</span>
+                </th>
+              )}
             </tr>
           </thead>
           {/* La key cambia con la pestana, los filtros, el orden y la pagina: las
@@ -399,44 +634,60 @@ export default function TablaDatos<T>({
               const k = clave(f);
               const abierta = !!detalle && abiertas.has(k);
               return (
-              <Fragment key={k}>
-              <tr
-                className={
-                  [alClicFila || detalle ? "fila-clic" : "", abierta ? "fila-abierta" : "", claseFila?.(f) ?? ""].filter(Boolean).join(" ") ||
-                  undefined
-                }
-                onClick={detalle ? () => alternar(k) : alClicFila ? () => alClicFila(f) : undefined}
-                aria-expanded={detalle ? abierta : undefined}
-              >
-                {columnas.map((c, i) => {
-                  const etiqueta = c.etiquetaMovil === undefined ? c.titulo : c.etiquetaMovil;
-                  // Texto completo al pasar el mouse (la celda puede ir cortada con "...").
-                  const completo = c.valor ? texto(c.valor(f)) : "";
-                  return (
-                    <td
-                      key={c.id}
-                      className={[clase(c, f), fija(i).clase].filter(Boolean).join(" ")}
-                      // --col: orden de la columna para la animacion de entrada (de izquierda a derecha).
-                      style={{ ...fija(i).estilo, ["--col" as string]: Math.min(i, 12) } as CSSProperties}
-                      data-label={etiqueta || undefined}
-                      title={completo.length > 18 ? completo : undefined}
-                    >
-                      {c.celda(f)}
-                    </td>
-                  );
-                })}
-              </tr>
-              {abierta && (
-                <tr className="fila-detalle">
-                  <td colSpan={columnas.length}>{detalle!(f)}</td>
-                </tr>
-              )}
-              </Fragment>
+                <Fragment key={k}>
+                  <tr
+                    className={
+                      [alClicFila || detalle || hayOcultas ? "fila-clic" : "", abierta ? "fila-abierta" : "", claseFila?.(f) ?? ""].filter(Boolean).join(" ") ||
+                      undefined
+                    }
+                    onClick={alClicFila || detalle || hayOcultas ? () => alClic(f, k) : undefined}
+                    aria-expanded={detalle ? abierta : undefined}
+                  >
+                    {cols.map((c, i) => {
+                      const etiqueta = c.etiquetaMovil === undefined ? c.titulo : c.etiquetaMovil;
+                      // Texto completo al pasar el mouse (la celda puede ir cortada con "...").
+                      const completo = c.valor ? texto(c.valor(f)) : "";
+                      return (
+                        <td
+                          key={c.id}
+                          className={[clase(c, f), fija(i).clase].filter(Boolean).join(" ")}
+                          // --col: orden de la columna para la animacion de entrada (de izquierda a derecha).
+                          style={{ ...fija(i).estilo, ["--col" as string]: Math.min(i, 12) } as CSSProperties}
+                          data-label={etiqueta || undefined}
+                          title={completo.length > 18 ? completo : undefined}
+                        >
+                          {c.celda(f)}
+                        </td>
+                      );
+                    })}
+                    {hayOcultas && (
+                      <td className="col-ver-fila">
+                        <button
+                          type="button"
+                          className="boton-ver-fila"
+                          aria-label="Ver la fila completa"
+                          title="Ver la fila completa (tambien las columnas ocultas)"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFilaPanel(f);
+                          }}
+                        >
+                          ⋯
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                  {abierta && (
+                    <tr className="fila-detalle">
+                      <td colSpan={cols.length + (hayOcultas ? 1 : 0)}>{detalle!(f)}</td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={columnas.length} className="empty-row">
+                <td colSpan={cols.length + (hayOcultas ? 1 : 0)} className="empty-row">
                   {vacio}
                 </td>
               </tr>
@@ -454,7 +705,54 @@ export default function TablaDatos<T>({
         alCambiar={setPagina}
         porPagina={porPagina}
         alCambiarPorPagina={setPorPagina}
+        totales={totales}
+        densidad={densidad}
+        alCambiarDensidad={setDensidad}
       />
+
+      {filaPanel && <PanelFila fila={filaPanel} columnas={columnas} alCerrar={() => setFilaPanel(null)} />}
+    </div>
+  );
+}
+
+/**
+ * Panel de la derecha con la fila completa: todas las columnas (tambien las
+ * que no caben en la tabla), cada una con su titulo y como se pinta en la
+ * tabla (pastillas, links de remision y factura, botones).
+ */
+function PanelFila<T>({ fila, columnas, alCerrar }: { fila: T; columnas: Columna<T>[]; alCerrar: () => void }) {
+  const [cerrando, setCerrando] = useState(false);
+  const cerrar = () => {
+    setCerrando(true);
+    window.setTimeout(alCerrar, 160);
+  };
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => e.key === "Escape" && cerrar();
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const conTitulo = columnas.filter((c) => c.titulo.trim());
+  // Titulo: el primer dato que no sea una fecha (la placa, el nombre, el numero).
+  const titulo = conTitulo.find((c) => !/fecha|^en$|mes|cuando/i.test(`${c.id} ${c.titulo}`)) ?? conTitulo[0];
+  return (
+    <div className={`filtros-capa ${cerrando ? "saliendo" : ""}`} onClick={cerrar}>
+      <aside className="filtros-panel panel-fila" role="dialog" aria-label="Fila completa" onClick={(e) => e.stopPropagation()}>
+        <header className="filtros-cabecera">
+          <h3>{titulo ? texto(titulo.valor?.(fila)) || titulo.titulo : "Detalle"}</h3>
+          <button className="boton-suave" onClick={cerrar}>
+            Cerrar
+          </button>
+        </header>
+        <dl className="filtros-cuerpo panel-fila-datos">
+          {conTitulo.map((c) => (
+            <div key={c.id} className="panel-fila-dato">
+              <dt>{c.titulo}</dt>
+              <dd className={c.alinear === "derecha" ? "num" : undefined}>{c.celda(fila)}</dd>
+            </div>
+          ))}
+        </dl>
+      </aside>
     </div>
   );
 }
@@ -473,6 +771,9 @@ export function Paginacion({
   alCambiar,
   porPagina,
   alCambiarPorPagina,
+  totales,
+  densidad,
+  alCambiarDensidad,
 }: {
   total: number;
   desde: number;
@@ -482,6 +783,11 @@ export function Paginacion({
   alCambiar: (p: number) => void;
   porPagina?: number;
   alCambiarPorPagina?: (n: number) => void;
+  /** Totales de las columnas que suman (ver Columna.sumar). */
+  totales?: Array<{ id: string; titulo: string; texto: string }>;
+  /** Altura de las filas y como cambiarla (boton Comoda / Compacta). */
+  densidad?: "comoda" | "compacta";
+  alCambiarDensidad?: (d: "comoda" | "compacta") => void;
 }) {
   const pie = useRef<HTMLDivElement>(null);
   if (total === 0) return null;
@@ -492,9 +798,7 @@ export function Paginacion({
     tabla?.scrollIntoView({ block: "start", behavior: "smooth" });
   };
   // Paginas a la vista: la primera, la ultima, la actual y una a cada lado.
-  const numeros = [...new Set([0, paginas - 1, pagina - 1, pagina, pagina + 1])]
-    .filter((p) => p >= 0 && p < paginas)
-    .sort((a, b) => a - b);
+  const numeros = [...new Set([0, paginas - 1, pagina - 1, pagina, pagina + 1])].filter((p) => p >= 0 && p < paginas).sort((a, b) => a - b);
   return (
     <div className="tabla-paginacion" ref={pie}>
       <div className="tabla-paginacion-info">
@@ -513,6 +817,21 @@ export function Paginacion({
         <span>
           {desde + 1}–{hasta} de {total}
         </span>
+        {totales?.map((t) => (
+          <span key={t.id} className="tabla-total">
+            {t.titulo} <strong>{t.texto}</strong>
+          </span>
+        ))}
+        {densidad && alCambiarDensidad && (
+          <span className="selector-densidad" role="group" aria-label="Altura de las filas">
+            <button type="button" className={densidad === "comoda" ? "activo" : ""} onClick={() => alCambiarDensidad("comoda")}>
+              Cómoda
+            </button>
+            <button type="button" className={densidad === "compacta" ? "activo" : ""} onClick={() => alCambiarDensidad("compacta")}>
+              Compacta
+            </button>
+          </span>
+        )}
       </div>
       {paginas > 1 && (
         <div className="tabla-paginas">
@@ -525,22 +844,12 @@ export function Paginacion({
           {numeros.map((p, i) => (
             <span key={p}>
               {i > 0 && p - numeros[i - 1] > 1 && <span className="puntos">…</span>}
-              <button
-                type="button"
-                className={p === pagina ? "actual" : ""}
-                onClick={() => ir(p)}
-                aria-current={p === pagina ? "page" : undefined}
-              >
+              <button type="button" className={p === pagina ? "actual" : ""} onClick={() => ir(p)} aria-current={p === pagina ? "page" : undefined}>
                 {p + 1}
               </button>
             </span>
           ))}
-          <button
-            type="button"
-            onClick={() => ir(pagina + 1)}
-            disabled={pagina >= paginas - 1}
-            aria-label="Pagina siguiente"
-          >
+          <button type="button" onClick={() => ir(pagina + 1)} disabled={pagina >= paginas - 1} aria-label="Pagina siguiente">
             ›
           </button>
           <button type="button" onClick={() => ir(paginas - 1)} disabled={pagina >= paginas - 1} aria-label="Ultima pagina">
@@ -554,9 +863,18 @@ export function Paginacion({
 
 /** Colores posibles de una pastilla de estado. */
 export type TonoPastilla =
-  | "ok" | "aviso" | "error" | "info" | "neutro"
+  | "ok"
+  | "aviso"
+  | "error"
+  | "info"
+  | "neutro"
   // Colores del cuadro pagos (los mismos significados del Excel).
-  | "morado" | "verde" | "azul" | "naranja" | "amarillo" | "turquesa";
+  | "morado"
+  | "verde"
+  | "azul"
+  | "naranja"
+  | "amarillo"
+  | "turquesa";
 
 /** Pastilla de estado con punto de color (ver GUIA-UI.md, "Estados"). */
 export function Pastilla({ tono, children }: { tono: TonoPastilla; children: ReactNode }) {
@@ -611,9 +929,26 @@ const IconoFiltro = () => (
     <path d="M4 6h16M7 12h10M10 18h4" />
   </svg>
 );
+/** Icono del boton Columnas. */
+const IconoColumnas = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M9 4v16M15 4v16" />
+  </svg>
+);
 /** Icono del boton Exportar. */
 const IconoExportar = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
     <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
   </svg>
 );

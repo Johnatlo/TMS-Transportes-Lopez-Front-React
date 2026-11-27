@@ -404,9 +404,30 @@ function PorVehiculo({ gastos, opciones }: { gastos: Gasto[]; opciones: Opciones
     { id: "empresa", titulo: "Empresa", filtrable: true, valor: (f) => f.empresa, celda: (f) => f.empresa },
     { id: "dueno", titulo: "Dueno", filtrable: true, valor: (f) => f.dueno, celda: (f) => f.dueno },
     { id: "cantidad", titulo: "Gastos", alinear: "derecha", valor: (f) => f.cantidad, celda: (f) => f.cantidad },
-    { id: "gastos", titulo: "Total gastos", alinear: "derecha", valor: (f) => Math.round(f.gastos), celda: (f) => <strong>{moneda(f.gastos)}</strong> },
-    { id: "ingresos", titulo: "Ingresos", alinear: "derecha", valor: (f) => Math.round(f.ingresos), celda: (f) => (f.ingresos ? moneda(f.ingresos) : "-") },
-    { id: "neto", titulo: "Neto", alinear: "derecha", valor: (f) => Math.round(f.gastos - f.ingresos), celda: (f) => moneda(f.gastos - f.ingresos) },
+    {
+      id: "gastos",
+      titulo: "Total gastos",
+      alinear: "derecha",
+      sumar: "pesos",
+      valor: (f) => Math.round(f.gastos),
+      celda: (f) => <strong>{moneda(f.gastos)}</strong>,
+    },
+    {
+      id: "ingresos",
+      titulo: "Ingresos",
+      alinear: "derecha",
+      sumar: "pesos",
+      valor: (f) => Math.round(f.ingresos),
+      celda: (f) => (f.ingresos ? moneda(f.ingresos) : "-"),
+    },
+    {
+      id: "neto",
+      titulo: "Neto",
+      alinear: "derecha",
+      sumar: "pesos",
+      valor: (f) => Math.round(f.gastos - f.ingresos),
+      celda: (f) => moneda(f.gastos - f.ingresos),
+    },
   ];
 
   return (

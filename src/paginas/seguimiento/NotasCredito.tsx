@@ -192,7 +192,7 @@ export default function NotasCredito() {
       valor: (n) => n.facturaReemplazo ?? "",
       celda: (n) => (n.facturaReemplazo ? <span className="codigo">{n.facturaReemplazo}</span> : <Pastilla tono="aviso">Sin factura nueva</Pastilla>),
     },
-    { id: "valor", titulo: "Valor", alinear: "derecha", valor: (n) => n.valor, celda: (n) => (n.valor === null ? "-" : moneda(n.valor)) },
+    { id: "valor", titulo: "Valor", alinear: "derecha", sumar: "pesos", valor: (n) => n.valor, celda: (n) => (n.valor === null ? "-" : moneda(n.valor)) },
     { id: "motivo", titulo: "Motivo", valor: (n) => n.motivo ?? "", celda: (n) => n.motivo ?? <span className="dato-sec">-</span> },
     { id: "registro", titulo: "Registro", valor: (n) => n.registradoPor ?? "", celda: (n) => <span className="dato-sec">{n.registradoPor ?? "-"}</span> },
     { id: "borrar", titulo: "", celda: (n) => <BorrarNota nota={n} alBorrar={carga.recargar} /> },

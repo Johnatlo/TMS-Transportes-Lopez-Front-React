@@ -3,7 +3,7 @@
  * Conductores, Clientes (terceros) y Configuracion (parametros de la
  * empresa). Listas con su estado de documentos y formularios de crear/editar.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useSesion } from "../ganchos/useSesion";
 import { puede } from "../permisos";
 import { BuscadorLupa, Paginacion, usarFilasPorPagina } from "../componentes/TablaDatos";
@@ -13,20 +13,11 @@ import { api, fechaHora, hoyColombia, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import Modal from "../componentes/Modal";
-import FormularioGenerico, {
-  type Modelo,
-  type SeccionFormulario,
-} from "../componentes/FormularioGenerico";
+import FormularioGenerico, { type Modelo, type SeccionFormulario } from "../componentes/FormularioGenerico";
 import ComboBuscable from "../componentes/ComboBuscable";
 import type { EmpresaMonitoreo, ParametrosEmpresa, RegistroRndc, Vehiculo } from "../api/tipos";
 
-export type Pestana =
-  | "vehiculos"
-  | "remolques"
-  | "conductores"
-  | "terceros"
-  | "monitoreo"
-  | "empresa";
+export type Pestana = "vehiculos" | "remolques" | "conductores" | "terceros" | "monitoreo" | "empresa";
 
 const PESTANAS: Array<{ id: Pestana; etiqueta: string }> = [
   { id: "vehiculos", etiqueta: "Vehiculos" },
@@ -55,10 +46,7 @@ const CAMPOS_RNDC: Partial<Record<Pestana, readonly string[]>> = {
   vehiculos: ["placa", "pesoVehiculoVacio", "codTipoIdTenedor", "numIdTenedor"],
   remolques: ["placa", "pesoVehiculoVacio"],
   conductores: ["codTipoId", "cedula", "nombre", "direccion", "codMunicipioRndc"],
-  terceros: [
-    "codTipoId", "nit", "nombre", "direccion", "telefono", "codSede", "nombreSede",
-    "codMunicipioRndc", "latitud", "longitud",
-  ],
+  terceros: ["codTipoId", "nit", "nombre", "direccion", "telefono", "codSede", "nombreSede", "codMunicipioRndc", "latitud", "longitud"],
 };
 
 /** "Vehiculo SKN250", "Conductor PEDRO PEREZ"... para los avisos del registro. */
@@ -129,8 +117,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
     setErrorGuardar(null);
   }
 
-  const cambiosPendientes =
-    edicion?.modo === "editar" ? soloCambios(edicion.original, modelo) : modelo;
+  const cambiosPendientes = edicion?.modo === "editar" ? soloCambios(edicion.original, modelo) : modelo;
   const hayCambios = Object.keys(cambiosPendientes).length > 0;
   /** Campos de esta pestana que van al RNDC (undefined si no se registra alla). */
   const camposRndc = CAMPOS_RNDC[pestana];
@@ -168,7 +155,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
               ? `${tituloRegistro(pestana, guardado)}: el RNDC ya lo tenia con estos mismos datos (radicado ${r.radicado}).`
               : `${tituloRegistro(pestana, guardado)} registrado en el RNDC. Radicado ${r.radicado}.`,
             ...(r.avisos ?? []),
-          ].join("\n")
+          ].join("\n"),
         );
         setEdicion(null);
       } else {
@@ -205,7 +192,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
 
 ` +
         "Desaparece del catalogo, del despacho y de las alertas. Los viajes que ya hizo se conservan. " +
-        "Si mas adelante lo vuelves a crear con la misma placa, se recupera."
+        "Si mas adelante lo vuelves a crear con la misma placa, se recupera.",
     );
     if (!confirmado) return;
     setGuardando(true);
@@ -292,23 +279,13 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
   const listaVehiculos = (vehiculos.datos ?? [])
     .filter((v) => visibleSegunEstado(v.activo))
     .filter((v) => !soloTitularEmpresa || titularEsEmpresa(v, nitEmpresa))
-    .filter((v) =>
-      coincide(texto, v.placa, v.marca, v.numIdTenedor, v.nombreTenedor, v.placaRemolque)
-    );
-  const listaRemolques = (remolques.datos ?? [])
-    .filter((r) => visibleSegunEstado(r.activo))
-    .filter((r) => coincide(texto, r.placa));
-  const listaConductores = (conductores.datos ?? [])
-    .filter((c) => visibleSegunEstado(c.activo))
-    .filter((c) => coincide(texto, c.nombre, c.cedula, c.licencia));
-  const listaTerceros = (terceros.datos ?? []).filter((t) =>
-    coincide(texto, t.nombre, t.nit, t.ciudad, t.codSede, t.direccion)
-  );
+    .filter((v) => coincide(texto, v.placa, v.marca, v.numIdTenedor, v.nombreTenedor, v.placaRemolque));
+  const listaRemolques = (remolques.datos ?? []).filter((r) => visibleSegunEstado(r.activo)).filter((r) => coincide(texto, r.placa));
+  const listaConductores = (conductores.datos ?? []).filter((c) => visibleSegunEstado(c.activo)).filter((c) => coincide(texto, c.nombre, c.cedula, c.licencia));
+  const listaTerceros = (terceros.datos ?? []).filter((t) => coincide(texto, t.nombre, t.nit, t.ciudad, t.codSede, t.direccion));
   const listaMonitoreo = empresasGps.filter((e) => coincide(texto, e.nombre, e.nit));
 
-  const conTitularEmpresa = (vehiculos.datos ?? []).filter(
-    (v) => v.activo && titularEsEmpresa(v, nitEmpresa)
-  ).length;
+  const conTitularEmpresa = (vehiculos.datos ?? []).filter((v) => v.activo && titularEsEmpresa(v, nitEmpresa)).length;
 
   return (
     <>
@@ -357,7 +334,14 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                   activo={verInactivos || soloTitularEmpresa}
                   opciones={[
                     ...(CON_ESTADO.includes(pestana)
-                      ? [{ etiqueta: "Mostrar inactivos", activa: verInactivos, extra: verInactivos ? "Sí" : "No", alElegir: () => setVerInactivos(!verInactivos) }]
+                      ? [
+                          {
+                            etiqueta: "Mostrar inactivos",
+                            activa: verInactivos,
+                            extra: verInactivos ? "Sí" : "No",
+                            alElegir: () => setVerInactivos(!verInactivos),
+                          },
+                        ]
                       : []),
                     ...(pestana === "vehiculos" && conTitularEmpresa > 0
                       ? [
@@ -390,9 +374,8 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
           <>
             {conTitularEmpresa > 0 && (
               <div className="alert warning">
-                {conTitularEmpresa} vehiculo(s) activo(s) tienen como titular del manifiesto el NIT
-                de la empresa. Con ese titular el RNDC exige valor a pagar 0 (MAN006). Si son
-                flota propia, pon la cedula del propietario como titular.
+                {conTitularEmpresa} vehiculo(s) activo(s) tienen como titular del manifiesto el NIT de la empresa. Con ese titular el RNDC exige valor a pagar 0
+                (MAN006). Si son flota propia, pon la cedula del propietario como titular.
               </div>
             )}
             <Tabla
@@ -413,11 +396,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                 "RNDC",
               ]}
               filas={listaVehiculos.map((v) => (
-                <tr
-                  key={v.id}
-                  className={`fila-clic ${v.activo ? "" : "fila-inactiva"}`}
-                  onClick={() => abrirEdicion(v)}
-                >
+                <tr key={v.id} className={`fila-clic ${v.activo ? "" : "fila-inactiva"}`} onClick={() => abrirEdicion(v)}>
                   <td>
                     <strong>{v.placa}</strong>
                   </td>
@@ -448,11 +427,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                   {/* El combo edita en linea: sin stopPropagation, abrir el
                       desplegable tambien abriria la ventana de edicion. */}
                   <td style={{ minWidth: 220 }} onClick={(e) => e.stopPropagation()}>
-                    <SelectorGps
-                      vehiculo={v}
-                      empresas={empresasGps}
-                      alGuardar={vehiculos.recargar}
-                    />
+                    <SelectorGps vehiculo={v} empresas={empresasGps} alGuardar={vehiculos.recargar} />
                   </td>
                   <td>
                     <Vencimiento fecha={v.fechaVencSoat} />
@@ -461,10 +436,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                     <Vencimiento fecha={v.fechaVencTecnomecanica} />
                   </td>
                   <td>
-                    <EstadoRegistro
-                      activo={v.activo}
-                      vigente={vigente(v.fechaVencSoat) && vigente(v.fechaVencTecnomecanica)}
-                    />
+                    <EstadoRegistro activo={v.activo} vigente={vigente(v.fechaVencSoat) && vigente(v.fechaVencTecnomecanica)} />
                   </td>
                   <td>
                     <EstadoRndc registro={v} />
@@ -481,11 +453,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
             estado={remolques}
             columnas={["Placa", "Ejes", "Capacidad", "Peso vacio", "Estado", "RNDC"]}
             filas={listaRemolques.map((r) => (
-              <tr
-                key={r.id}
-                className={`fila-clic ${r.activo ? "" : "fila-inactiva"}`}
-                onClick={() => abrirEdicion(r)}
-              >
+              <tr key={r.id} className={`fila-clic ${r.activo ? "" : "fila-inactiva"}`} onClick={() => abrirEdicion(r)}>
                 <td>
                   <strong>{r.placa}</strong>
                 </td>
@@ -510,17 +478,10 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
             estado={conductores}
             columnas={["Conductor", "Identificacion", "Licencia", "Categoria", "Vence licencia", "Estado", "RNDC"]}
             filas={listaConductores.map((c) => (
-              <tr
-                key={c.id}
-                className={`fila-clic ${c.activo ? "" : "fila-inactiva"}`}
-                onClick={() => abrirEdicion(c)}
-              >
+              <tr key={c.id} className={`fila-clic ${c.activo ? "" : "fila-inactiva"}`} onClick={() => abrirEdicion(c)}>
                 <td>
                   <span style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                    <span
-                      className="avatar-circle"
-                      style={{ width: 28, height: 28, fontSize: "0.68rem" }}
-                    >
+                    <span className="avatar-circle" style={{ width: 28, height: 28, fontSize: "0.68rem" }}>
                       {iniciales(c.nombre)}
                     </span>
                     {c.nombre}
@@ -593,8 +554,8 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
         {pestana === "monitoreo" && (
           <>
             <p className="section-desc" style={{ margin: "0 0 0.8rem" }}>
-              Son las empresas del desplegable "Empresa de Monitoreo para este manifiesto" del
-              portal del RNDC. El manifiesto exige una, y su NIT debe estar registrado alla.
+              Son las empresas del desplegable "Empresa de Monitoreo para este manifiesto" del portal del RNDC. El manifiesto exige una, y su NIT debe estar
+              registrado alla.
             </p>
             <Tabla
               estado={monitoreo}
@@ -603,9 +564,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                 <tr key={e.id} className="fila-clic" onClick={() => abrirEdicion(e)}>
                   <td>{e.nit}</td>
                   <td>{e.nombre}</td>
-                  <td>
-                    {(vehiculos.datos ?? []).filter((v) => v.activo && v.nitMonitoreoFlota === e.nit).length}
-                  </td>
+                  <td>{(vehiculos.datos ?? []).filter((v) => v.activo && v.nitMonitoreoFlota === e.nit).length}</td>
                   <td>
                     <button
                       className="btn-link"
@@ -640,12 +599,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
               {/* Solo vehiculos, y solo al editar uno existente. Va a la
                   izquierda, separado de Guardar, para no pulsarlo por error. */}
               {pestana === "vehiculos" && edicion.modo === "editar" && (
-                <button
-                  className="btn-danger-outline"
-                  onClick={eliminarVehiculo}
-                  disabled={guardando}
-                  style={{ marginRight: "auto" }}
-                >
+                <button className="btn-danger-outline" onClick={eliminarVehiculo} disabled={guardando} style={{ marginRight: "auto" }}>
                   Eliminar vehiculo
                 </button>
               )}
@@ -659,11 +613,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                     Solo guardar
                   </button>
                   <button className="btn-primary" onClick={() => guardar(true)} disabled={guardando}>
-                    {guardando
-                      ? "Enviando..."
-                      : edicion.modo === "crear"
-                        ? "Guardar y registrar en el RNDC"
-                        : "Guardar y actualizar en el RNDC"}
+                    {guardando ? "Enviando..." : edicion.modo === "crear" ? "Guardar y registrar en el RNDC" : "Guardar y actualizar en el RNDC"}
                   </button>
                 </>
               ) : camposRndc && !hayCambios ? (
@@ -677,16 +627,8 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
                   </button>
                 </>
               ) : (
-                <button
-                  className="btn-primary"
-                  onClick={() => guardar(false)}
-                  disabled={guardando || (edicion.modo === "editar" && !hayCambios)}
-                >
-                  {guardando
-                    ? "Guardando..."
-                    : edicion.modo === "editar"
-                      ? "Guardar cambios"
-                      : "Guardar"}
+                <button className="btn-primary" onClick={() => guardar(false)} disabled={guardando || (edicion.modo === "editar" && !hayCambios)}>
+                  {guardando ? "Guardando..." : edicion.modo === "editar" ? "Guardar cambios" : "Guardar"}
                 </button>
               )}
             </>
@@ -697,13 +639,11 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
               {errorGuardar}
             </div>
           )}
-          {edicion.modo === "editar" && camposRndc && (
-            <EstadoRndc registro={edicion.original as RegistroRndc} detallado />
-          )}
+          {edicion.modo === "editar" && camposRndc && <EstadoRndc registro={edicion.original as RegistroRndc} detallado />}
           {camposRndc && (
             <div className="section-desc" style={{ marginBottom: "0.6rem" }}>
-              Los campos marcados <span className="marca-rndc">RNDC</span> se envian al RNDC cuando se registra. El
-              resto{pestana === "vehiculos" ? " (como el acceso al GPS)" : ""} solo se guarda en la aplicacion.
+              Los campos marcados <span className="marca-rndc">RNDC</span> se envian al RNDC cuando se registra. El resto
+              {pestana === "vehiculos" ? " (como el acceso al GPS)" : ""} solo se guarda en la aplicacion.
             </div>
           )}
           {edicion.modo === "editar" && hayCambios && camposRndc && !cambiaAlgoDelRndc && (
@@ -711,8 +651,7 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
           )}
           {pestana === "vehiculos" && titularEsEmpresa(modelo as Vehiculo, nitEmpresa) && (
             <div className="alert warning">
-              El titular es el NIT de la empresa: el RNDC exigira valor a pagar 0 (MAN006). Para
-              flota propia usa la cedula del propietario.
+              El titular es el NIT de la empresa: el RNDC exigira valor a pagar 0 (MAN006). Para flota propia usa la cedula del propietario.
             </div>
           )}
           <FormularioGenerico
@@ -732,8 +671,11 @@ export default function Catalogo({ pestanas = PESTANAS.map((p) => p.id) }: { pes
 // ---------------------------------------------------------------------------
 
 /**
- * Tabla simple del catalogo con paginas de 50: muestra "Cargando" o el error
- * mientras corresponde, y vuelve a la primera pagina cuando cambia la lista.
+ * Tabla simple del catalogo con paginas de 15 (o las elegidas): muestra
+ * "Cargando" o el error mientras corresponde, y vuelve a la primera pagina
+ * cuando cambia la lista. Cabe en el ancho como TablaDatos: si no cabe, se
+ * ocultan columnas desde la derecha (nunca la primera, Estado ni RNDC); al
+ * hacer clic en la fila se ve todo en el formulario.
  */
 function Tabla({
   estado,
@@ -749,6 +691,35 @@ function Tabla({
   const [porPagina, setPorPagina] = usarFilasPorPagina();
   const [pagina, setPagina] = useState(0);
   useEffect(() => setPagina(0), [filas.length, porPagina]);
+  // Columnas ocultas porque no caben (indices desde 0).
+  const [ocultas, setOcultas] = useState<number[]>([]);
+  const caja = useRef<HTMLDivElement>(null);
+  const tabla = useRef<HTMLTableElement>(null);
+  const clase = `tabla-cat-${useId().replace(/:/g, "")}`;
+  useLayoutEffect(() => {
+    const t = tabla.current;
+    const c = caja.current;
+    if (!t || !c || !window.matchMedia?.("(min-width: 821px)").matches) return;
+    if (t.offsetWidth > c.clientWidth + 1) {
+      const siguiente = columnas
+        .map((titulo, i) => ({ titulo, i }))
+        .reverse()
+        .find(({ titulo, i }) => i > 0 && !/^(estado|rndc|)$/i.test(titulo.trim()) && !ocultas.includes(i));
+      if (siguiente) setOcultas([...ocultas, siguiente.i]);
+    }
+  });
+  useEffect(() => {
+    const c = caja.current;
+    if (!c) return;
+    let ancho = c.clientWidth;
+    const observador = new ResizeObserver(() => {
+      if (Math.abs(c.clientWidth - ancho) < 2) return;
+      ancho = c.clientWidth;
+      setOcultas([]);
+    });
+    observador.observe(c);
+    return () => observador.disconnect();
+  }, [estado.cargando]);
 
   if (estado.cargando) return <Cargando />;
   if (estado.error) return <ErrorCarga mensaje={estado.error} alReintentar={estado.recargar} />;
@@ -759,8 +730,16 @@ function Tabla({
 
   return (
     <>
-      <div className="tabla-scroll">
-        <table className="modern tabla">
+      {ocultas.length > 0 && (
+        <>
+          <style>{ocultas.map((i) => `.${clase} tr > :nth-child(${i + 1}) { display: none; }`).join(" ")}</style>
+          <p className="dato-sec" style={{ margin: "0 1rem 0.4rem" }}>
+            {ocultas.length} columna(s) no caben ({ocultas.map((i) => columnas[i]).join(", ")}): abre la fila para verlas.
+          </p>
+        </>
+      )}
+      <div className={`tabla-scroll ${ocultas.length ? "cabe" : ""}`} ref={caja}>
+        <table className={`modern tabla ${clase}`} ref={tabla}>
           <thead>
             <tr>
               {columnas.map((c) => (
@@ -836,21 +815,13 @@ function EstadoRndc({ registro, detallado = false }: { registro: RegistroRndc; d
 /** Insignia del registro: Inactivo, Al dia o Revisar (documento vencido). */
 function EstadoRegistro({ activo, vigente }: { activo: boolean; vigente: boolean }) {
   if (!activo) return <span className="badge badge-neutral">Inactivo</span>;
-  return (
-    <span className={`badge ${vigente ? "badge-ok" : "badge-danger"}`}>
-      {vigente ? "Al dia" : "Revisar"}
-    </span>
-  );
+  return <span className={`badge ${vigente ? "badge-ok" : "badge-danger"}`}>{vigente ? "Al dia" : "Revisar"}</span>;
 }
 
 /** Fecha de vencimiento, en rojo si ya paso. */
 function Vencimiento({ fecha }: { fecha: string | null }) {
   if (!fecha) return <span className="dato-sec">-</span>;
-  return (
-    <span style={vigente(fecha) ? undefined : { color: "var(--color-danger-text)", fontWeight: 600 }}>
-      {soloDia(fecha)}
-    </span>
-  );
+  return <span style={vigente(fecha) ? undefined : { color: "var(--color-danger-text)", fontWeight: 600 }}>{soloDia(fecha)}</span>;
 }
 
 /**
@@ -892,8 +863,7 @@ function PanelEmpresa() {
         <div>
           <div className="section-title">Identificacion</div>
           <div className="section-desc">
-            Vienen de la configuracion del servidor (.env), no se editan aqui. El NIT es el que
-            se envia al RNDC en cada documento.
+            Vienen de la configuracion del servidor (.env), no se editan aqui. El NIT es el que se envia al RNDC en cada documento.
           </div>
         </div>
         <div>
@@ -910,8 +880,7 @@ function PanelEmpresa() {
         <div>
           <div className="section-title">Poliza, FOPAT y retenciones</div>
           <div className="section-desc">
-            Se aplican a todas las plantillas y a todos los viajes. Solo hay que tocarlos cuando
-            se renueve la poliza o cambie la normativa.
+            Se aplican a todas las plantillas y a todos los viajes. Solo hay que tocarlos cuando se renueve la poliza o cambie la normativa.
           </div>
         </div>
         <div>
@@ -919,22 +888,13 @@ function PanelEmpresa() {
           {guardado && <div className="alert success">Parametros guardados.</div>}
 
           <label>Tomador de la poliza de carga</label>
-          <input
-            value={p.tomadorPolizaCarga}
-            onChange={(e) => fijar({ tomadorPolizaCarga: e.target.value })}
-          />
+          <input value={p.tomadorPolizaCarga} onChange={(e) => fijar({ tomadorPolizaCarga: e.target.value })} />
 
           <label>Numero de poliza</label>
-          <input
-            value={p.numeroPolizaTransporte ?? ""}
-            onChange={(e) => fijar({ numeroPolizaTransporte: e.target.value })}
-          />
+          <input value={p.numeroPolizaTransporte ?? ""} onChange={(e) => fijar({ numeroPolizaTransporte: e.target.value })} />
 
           <label>Compania aseguradora</label>
-          <input
-            value={p.companiaSeguro ?? ""}
-            onChange={(e) => fijar({ companiaSeguro: e.target.value })}
-          />
+          <input value={p.companiaSeguro ?? ""} onChange={(e) => fijar({ companiaSeguro: e.target.value })} />
 
           <label>Vencimiento de la poliza</label>
           <input
@@ -942,23 +902,14 @@ function PanelEmpresa() {
             value={(p.fechaVencimientoPolizaCarga ?? "").slice(0, 10)}
             onChange={(e) => fijar({ fechaVencimientoPolizaCarga: e.target.value })}
           />
-          <p className="section-desc">
-            La poliza no se envia al RNDC. Se guarda para tu control, y el sistema avisa 30 dias
-            antes del vencimiento.
-          </p>
+          <p className="section-desc">La poliza no se envia al RNDC. Se guarda para tu control, y el sistema avisa 30 dias antes del vencimiento.</p>
 
           <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              style={{ width: "auto" }}
-              checked={p.aplicaFopat}
-              onChange={(e) => fijar({ aplicaFopat: e.target.checked })}
-            />
+            <input type="checkbox" style={{ width: "auto" }} checked={p.aplicaFopat} onChange={(e) => fijar({ aplicaFopat: e.target.checked })} />
             Toda la flota supera 10,5 toneladas (aplica FOPAT)
           </label>
           <p className="section-desc">
-            El FOPAT es el 0,1% del valor a pagar de cada manifiesto. Si algun vehiculo no llega a
-            ese peso, desmarca esto y ajusta ese vehiculo en particular.
+            El FOPAT es el 0,1% del valor a pagar de cada manifiesto. Si algun vehiculo no llega a ese peso, desmarca esto y ajusta ese vehiculo en particular.
           </p>
 
           <label>Retencion en la fuente por defecto (%)</label>
@@ -969,9 +920,7 @@ function PanelEmpresa() {
             value={p.tarifaRetencionFuente * 100}
             onChange={(e) => fijar({ tarifaRetencionFuente: Number(e.target.value) / 100 })}
           />
-          <p className="section-desc">
-            Se usa al crear plantillas nuevas. Confirmala con tu contador.
-          </p>
+          <p className="section-desc">Se usa al crear plantillas nuevas. Confirmala con tu contador.</p>
 
           <button className="btn-primary" onClick={guardar} disabled={guardando}>
             {guardando ? "Guardando..." : "Guardar parametros"}
@@ -1119,12 +1068,7 @@ function seccionEstado(que: string): SeccionFormulario {
  * Secciones del formulario segun la pestana. Al editar se agrega la seccion
  * de estado (activo/inactivo), que al crear no tiene sentido.
  */
-function seccionesDe(
-  p: Pestana,
-  empresas: EmpresaMonitoreo[],
-  edicion: boolean,
-  administra: boolean
-): SeccionFormulario[] {
+function seccionesDe(p: Pestana, empresas: EmpresaMonitoreo[], edicion: boolean, administra: boolean): SeccionFormulario[] {
   switch (p) {
     case "vehiculos":
       return [...seccionesVehiculo(empresas, administra), ...(edicion ? [seccionEstado("vehiculo")] : [])];
@@ -1157,8 +1101,7 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[], administra: boolean): S
           key: "placaRemolque",
           label: "Remolque habitual (placa)",
           tipo: "text",
-          ayuda:
-            "Se sugiere al despachar mientras el vehiculo no tenga historial propio; se puede cambiar en cada despacho.",
+          ayuda: "Se sugiere al despachar mientras el vehiculo no tenga historial propio; se puede cambiar en cada despacho.",
         },
         {
           key: "cedulaConductorHabitual",
@@ -1170,8 +1113,7 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[], administra: boolean): S
     },
     {
       titulo: "Configuracion y pesos",
-      descripcion:
-        "La configuracion combinada (cabezote + remolque) la usa SICETAC para las vias y el piso. No es el codigo del RUNT (50-55).",
+      descripcion: "La configuracion combinada (cabezote + remolque) la usa SICETAC para las vias y el piso. No es el codigo del RUNT (50-55).",
       campos: [
         {
           key: "configuracion",
@@ -1225,8 +1167,7 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[], administra: boolean): S
     },
     {
       titulo: "Documentos",
-      descripcion:
-        "El RNDC los valida contra la fecha de descargue del manifiesto, no contra hoy.",
+      descripcion: "El RNDC los valida contra la fecha de descargue del manifiesto, no contra hoy.",
       campos: [
         { key: "fechaVencSoat", label: "Vencimiento SOAT", tipo: "date" },
         { key: "fechaVencTecnomecanica", label: "Vencimiento tecnomecanica", tipo: "date" },
@@ -1280,8 +1221,7 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[], administra: boolean): S
     },
     {
       titulo: "Monitoreo",
-      descripcion:
-        "Proveedor de GPS del vehiculo. Se precarga en cada despacho y se puede cambiar para un viaje puntual.",
+      descripcion: "Proveedor de GPS del vehiculo. Se precarga en cada despacho y se puede cambiar para un viaje puntual.",
       campos: [
         {
           key: "nitMonitoreoFlota",
@@ -1318,8 +1258,7 @@ function seccionesVehiculo(empresas: EmpresaMonitoreo[], administra: boolean): S
 const SECCIONES_REMOLQUE: SeccionFormulario[] = [
   {
     titulo: "Datos del remolque",
-    descripcion:
-      "Los vehiculos intercambian de remolque entre viajes, por eso es un catalogo aparte.",
+    descripcion: "Los vehiculos intercambian de remolque entre viajes, por eso es un catalogo aparte.",
     campos: [
       { key: "placa", label: "Placa del remolque", tipo: "text", placeholder: "R37108" },
       { key: "numEjes", label: "Numero de ejes", tipo: "number", placeholder: "3" },
@@ -1349,8 +1288,7 @@ const SECCIONES_CONDUCTOR: SeccionFormulario[] = [
   },
   {
     titulo: "Direccion",
-    descripcion:
-      "En el RNDC el conductor se registra como tercero, y para eso exige direccion y municipio. El nombre lo toma el RNDC del registro oficial.",
+    descripcion: "En el RNDC el conductor se registra como tercero, y para eso exige direccion y municipio. El nombre lo toma el RNDC del registro oficial.",
     campos: [
       { key: "direccion", label: "Direccion", tipo: "text" },
       { key: "ciudad", label: "Municipio", tipo: "text" },
@@ -1364,8 +1302,7 @@ const SECCIONES_CONDUCTOR: SeccionFormulario[] = [
   },
   {
     titulo: "Licencia",
-    descripcion:
-      "Debe estar vigente en una fecha posterior al descargue de los viajes que vaya a hacer.",
+    descripcion: "Debe estar vigente en una fecha posterior al descargue de los viajes que vaya a hacer.",
     campos: [
       { key: "licencia", label: "Numero de licencia", tipo: "text" },
       { key: "categoriaLicencia", label: "Categoria", tipo: "text", placeholder: "C3" },
@@ -1395,8 +1332,7 @@ const SECCIONES_TERCERO: SeccionFormulario[] = [
   },
   {
     titulo: "Sede",
-    descripcion:
-      "Cada sede es un sitio de cargue o descargue distinto. Si el cliente tiene varias, se crea una entrada por cada una.",
+    descripcion: "Cada sede es un sitio de cargue o descargue distinto. Si el cliente tiene varias, se crea una entrada por cada una.",
     campos: [
       {
         key: "codSede",
@@ -1417,8 +1353,7 @@ const SECCIONES_TERCERO: SeccionFormulario[] = [
         label: "Cod. municipio (DIVIPOLA, 8 digitos)",
         tipo: "text",
         placeholder: "11001000",
-        ayuda:
-          "Con este codigo se precarga la ruta de las plantillas. Cambiarlo no toca las plantillas ya creadas.",
+        ayuda: "Con este codigo se precarga la ruta de las plantillas. Cambiarlo no toca las plantillas ya creadas.",
       },
     ],
   },
@@ -1436,8 +1371,7 @@ const SECCIONES_TERCERO: SeccionFormulario[] = [
 const SECCIONES_MONITOREO: SeccionFormulario[] = [
   {
     titulo: "Empresa de monitoreo de flota",
-    descripcion:
-      "Copia el nombre y el NIT tal como aparecen en el desplegable del portal del RNDC.",
+    descripcion: "Copia el nombre y el NIT tal como aparecen en el desplegable del portal del RNDC.",
     campos: [
       { key: "nombre", label: "Nombre", tipo: "text", placeholder: "SAT CONTROL S.A.S" },
       {
@@ -1462,15 +1396,7 @@ const SECCIONES_MONITOREO: SeccionFormulario[] = [
  * Cambia en linea el proveedor de GPS de un vehiculo ya registrado. Es lo que
  * permite completar la flota que ya estaba cargada sin reimportarla.
  */
-function SelectorGps({
-  vehiculo,
-  empresas,
-  alGuardar,
-}: {
-  vehiculo: Vehiculo;
-  empresas: EmpresaMonitoreo[];
-  alGuardar: () => void;
-}) {
+function SelectorGps({ vehiculo, empresas, alGuardar }: { vehiculo: Vehiculo; empresas: EmpresaMonitoreo[]; alGuardar: () => void }) {
   const actual = empresas.find((e) => e.nit === vehiculo.nitMonitoreoFlota) ?? null;
   return (
     <ComboBuscable

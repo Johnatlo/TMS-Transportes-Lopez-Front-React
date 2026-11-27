@@ -135,7 +135,7 @@ export default function AnticiposEmpresas({
   const porCobrar = empresas.reduce((s, e) => s + e.porCobrar, 0);
   const faltan = empresas.reduce((s, e) => s + e.faltaRegistrar, 0);
   const pagado = empresas.reduce((s, e) => s + e.pagado, 0);
-  const viaje = editando ? viajes.find((v) => v.id === editando) ?? null : null;
+  const viaje = editando ? (viajes.find((v) => v.id === editando) ?? null) : null;
   const cambio = () => {
     datos.recargar();
     alCambiar?.();
@@ -143,10 +143,16 @@ export default function AnticiposEmpresas({
 
   const columnasEmpresas: Columna<ResumenAnticipoEmpresa>[] = [
     { id: "empresa", titulo: "Empresa", valor: (e) => e.empresa, celda: (e) => <span className="principal">{e.empresa}</span> },
-    { id: "faltan", titulo: "Falta registrar", alinear: "derecha", valor: (e) => e.faltaRegistrar, celda: (e) => (e.faltaRegistrar ? <span className="texto-vencido">{e.faltaRegistrar} viaje(s)</span> : "-") },
+    {
+      id: "faltan",
+      titulo: "Falta registrar",
+      alinear: "derecha",
+      valor: (e) => e.faltaRegistrar,
+      celda: (e) => (e.faltaRegistrar ? <span className="texto-vencido">{e.faltaRegistrar} viaje(s)</span> : "-"),
+    },
     { id: "viajes", titulo: "Viajes por cobrar", alinear: "derecha", valor: (e) => e.viajesPorCobrar, celda: (e) => e.viajesPorCobrar || "-" },
-    { id: "porCobrar", titulo: "Debe", alinear: "derecha", valor: (e) => e.porCobrar, celda: (e) => <strong>{moneda(e.porCobrar)}</strong> },
-    { id: "pagado", titulo: "Pagado", alinear: "derecha", valor: (e) => e.pagado, celda: (e) => moneda(e.pagado) },
+    { id: "porCobrar", titulo: "Debe", alinear: "derecha", sumar: "pesos", valor: (e) => e.porCobrar, celda: (e) => <strong>{moneda(e.porCobrar)}</strong> },
+    { id: "pagado", titulo: "Pagado", alinear: "derecha", sumar: "pesos", valor: (e) => e.pagado, celda: (e) => moneda(e.pagado) },
     {
       id: "acciones",
       titulo: "",
@@ -166,7 +172,9 @@ export default function AnticiposEmpresas({
       <div className="tarjeta indicadores" style={{ marginBottom: "0.75rem" }}>
         <Indicador
           dinero
-          titulo={destino === "BOMBA" ? "Por abonar a la bomba (Zorro)" : destino === "NOSOTROS" ? "Anticipos que nos deben" : "Anticipos por cobrar a empresas"}
+          titulo={
+            destino === "BOMBA" ? "Por abonar a la bomba (Zorro)" : destino === "NOSOTROS" ? "Anticipos que nos deben" : "Anticipos por cobrar a empresas"
+          }
           valor={moneda(porCobrar)}
           detalle={`${empresas.filter((e) => e.porCobrar > 0).length} empresas`}
         />
@@ -274,8 +282,7 @@ function EditarAnticipo({ viaje, alCerrar, alGuardar }: { viaje: FilaCuadro; alC
     >
       {error && <div className="alert danger">{error}</div>}
       <div className="dato-sec" style={{ marginBottom: "0.6rem" }}>
-        Viaje del {fechaCorta(viaje.fecha)} · {viaje.manifiesto ? `manifiesto ${viaje.manifiesto}` : `remision ${viaje.remision ?? "-"}`} ·{" "}
-        {motivo(viaje)}
+        Viaje del {fechaCorta(viaje.fecha)} · {viaje.manifiesto ? `manifiesto ${viaje.manifiesto}` : `remision ${viaje.remision ?? "-"}`} · {motivo(viaje)}
       </div>
       <label className="check-linea">
         <input type="checkbox" checked={noAplica} onChange={(e) => setNoAplica(e.target.checked)} />
@@ -299,17 +306,7 @@ function EditarAnticipo({ viaje, alCerrar, alGuardar }: { viaje: FilaCuadro; alC
 }
 
 /** Registra el pago de todos los anticipos por cobrar de una empresa. */
-function PagarEmpresa({
-  resumen,
-  ids,
-  alCerrar,
-  alGuardar,
-}: {
-  resumen: ResumenAnticipoEmpresa;
-  ids: number[];
-  alCerrar: () => void;
-  alGuardar: () => void;
-}) {
+function PagarEmpresa({ resumen, ids, alCerrar, alGuardar }: { resumen: ResumenAnticipoEmpresa; ids: number[]; alCerrar: () => void; alGuardar: () => void }) {
   const [fecha, setFecha] = useState(hoyColombia());
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);

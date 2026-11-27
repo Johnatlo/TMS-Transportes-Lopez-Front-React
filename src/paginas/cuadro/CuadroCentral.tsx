@@ -17,20 +17,12 @@ import { FacturarVarios, NuevoViajeCuadro, VentanaBombas } from "./VentanasCuadr
 import EnvioFacturacion from "./EnvioFacturacion";
 import Modal from "../../componentes/Modal";
 import Papeles from "../seguimiento/Papeles";
-import {
-  ETIQUETA_FLOTA,
-  ETIQUETA_PAPELES,
-  fechaCorta,
-  hoyColombia,
-  saldoVencido,
-  textoEstados,
-} from "./estadosCuadro";
+import { ETIQUETA_FLOTA, ETIQUETA_PAPELES, fechaCorta, hoyColombia, saldoVencido, textoEstados } from "./estadosCuadro";
 import PastillasEstado from "./PastillasEstado";
 import LinksViaje from "../../componentes/LinksViaje";
 
 /** Ya paso la fecha pago cliente y la factura no se ha pagado. */
-const cobroVencido = (f: FilaCuadro) =>
-  !f.anulado && !f.facturaFechaPago && !!f.facturaVence && f.facturaVence < hoyColombia();
+const cobroVencido = (f: FilaCuadro) => !f.anulado && !f.facturaFechaPago && !!f.facturaVence && f.facturaVence < hoyColombia();
 
 /** "ORIGEN → DESTINO" en dos lineas: el origen arriba y el destino debajo. */
 function RutaCuadro({ ruta }: { ruta: string | null }) {
@@ -83,6 +75,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "empresa",
+    prioridad: 10,
     titulo: "Empresa",
     filtrable: true,
     valor: (f) => f.empresa,
@@ -96,6 +89,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "ruta",
+    prioridad: 30,
     titulo: "Ruta",
     filtrable: true,
     valor: (f) => f.ruta,
@@ -103,6 +97,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "manifiesto",
+    prioridad: 20,
     titulo: "Manifiesto",
     // Los reconocidos de Cartones America se buscan por su concepto y su manifiesto de origen.
     valor: (f) => f.manifiesto ?? (f.concepto ? `${f.concepto} ${f.reconocidoDe ?? ""}` : null),
@@ -150,6 +145,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "peso",
+    prioridad: 55,
     titulo: "Peso (kg)",
     alinear: "derecha",
     valor: (f) => f.pesoKg ?? 0,
@@ -157,6 +153,8 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "anticipo",
+    prioridad: 40,
+    sumar: "pesos",
     titulo: "Anticipos",
     alinear: "derecha",
     valor: (f) => f.totalAnticipos,
@@ -172,6 +170,8 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "flete",
+    prioridad: 0,
+    sumar: "pesos",
     titulo: "Flete",
     alinear: "derecha",
     valor: (f) => f.valorFlete ?? 0,
@@ -194,9 +194,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
         ) : (
           "-"
         )}
-        {f.tipoFlete === "KILO" && f.tarifaKilo !== null && (
-          <span className="dato-sec">{f.tarifaKilo.toLocaleString("es-CO")} $/kg</span>
-        )}
+        {f.tipoFlete === "KILO" && f.tarifaKilo !== null && <span className="dato-sec">{f.tarifaKilo.toLocaleString("es-CO")} $/kg</span>}
         {f.tipoFlete === "FIJO" && f.valorFijo !== null && <span className="dato-sec">Fijo</span>}
       </>
     ),
@@ -217,6 +215,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "pagoCliente",
+    prioridad: 60,
     titulo: "Fecha pago cliente",
     valor: (f) => f.facturaVence,
     celda: (f) =>
@@ -229,9 +228,10 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
         "-"
       ),
   },
-  { id: "pagoFactura", titulo: "Fecha pago factura", valor: (f) => f.facturaFechaPago, celda: (f) => fechaCorta(f.facturaFechaPago) },
+  { id: "pagoFactura", prioridad: 65, titulo: "Fecha pago factura", valor: (f) => f.facturaFechaPago, celda: (f) => fechaCorta(f.facturaFechaPago) },
   {
     id: "pagoSaldo",
+    prioridad: 70,
     titulo: "Pago saldo",
     valor: (f) => f.fechaPagoSaldo ?? f.venceSaldo,
     celda: (f) =>
@@ -247,6 +247,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "revision",
+    prioridad: 80,
     titulo: "Revision",
     valor: (f) => (f.revisadoGerenciaPor ? "Gerencia" : f.revisadoContabilidadPor ? "Contabilidad" : ""),
     celda: (f) => (
@@ -259,6 +260,7 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
   },
   {
     id: "notas",
+    prioridad: 90,
     titulo: "Notas",
     valor: (f) => f.ultimaNota,
     celda: (f) =>

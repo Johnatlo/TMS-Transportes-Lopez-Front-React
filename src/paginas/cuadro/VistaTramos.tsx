@@ -90,6 +90,7 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
     },
     {
       id: "tramo",
+      prioridad: 15,
       titulo: "Ida / vuelta",
       filtrable: true,
       valor: (t) => (t.tramo === "VUELTA" ? "Vuelta" : "Ida"),
@@ -108,6 +109,7 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
     },
     {
       id: "empresa",
+      prioridad: 0,
       titulo: "Empresa prov.",
       filtrable: true,
       valor: (t) => t.empresa ?? "Sin viaje",
@@ -125,10 +127,19 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
           <span className="texto-vencido">Sin viaje (vuelta pendiente)</span>
         ),
     },
-    { id: "efectivo", titulo: "Efectivo", alinear: "derecha", valor: (t) => t.efectivo, celda: (t) => moneda(t.efectivo) },
-    { id: "combustible", titulo: "Combust.", alinear: "derecha", valor: (t) => t.combustible, celda: (t) => moneda(t.combustible) },
+    { id: "efectivo", prioridad: 35, sumar: "pesos", titulo: "Efectivo", alinear: "derecha", valor: (t) => t.efectivo, celda: (t) => moneda(t.efectivo) },
+    {
+      id: "combustible",
+      prioridad: 40,
+      sumar: "pesos",
+      titulo: "Combust.",
+      alinear: "derecha",
+      valor: (t) => t.combustible,
+      celda: (t) => moneda(t.combustible),
+    },
     {
       id: "galones",
+      prioridad: 70,
       titulo: "Galones",
       alinear: "derecha",
       valor: (t) => t.galones ?? 0,
@@ -136,12 +147,14 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
     },
     {
       id: "total",
+      prioridad: 0,
+      sumar: "pesos",
       titulo: "Valor total",
       alinear: "derecha",
       valor: (t) => t.efectivo + t.combustible,
       celda: (t) => <strong>{moneda(t.efectivo + t.combustible)}</strong>,
     },
-    { id: "eds", titulo: "EDS", filtrable: true, valor: (t) => t.bomba ?? "Solo efectivo", celda: (t) => <Bomba nombre={t.bomba} /> },
+    { id: "eds", prioridad: 50, titulo: "EDS", filtrable: true, valor: (t) => t.bomba ?? "Solo efectivo", celda: (t) => <Bomba nombre={t.bomba} /> },
     {
       id: "factura",
       titulo: "Factura bomba",
@@ -155,9 +168,10 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
         </>
       ),
     },
-    { id: "flota", titulo: "Empresa del vehiculo", filtrable: true, valor: (t) => flotaTexto(t.flota), celda: (t) => flotaTexto(t.flota) },
+    { id: "flota", prioridad: 60, titulo: "Empresa del vehiculo", filtrable: true, valor: (t) => flotaTexto(t.flota), celda: (t) => flotaTexto(t.flota) },
     {
       id: "pago",
+      prioridad: 30,
       titulo: "Pago a la bomba",
       valor: (t) => t.fechaPago ?? "",
       celda: (t) =>
@@ -172,6 +186,7 @@ export default function VistaTramos({ tramos, tanqueos, cruce, Bomba, flotaTexto
     },
     {
       id: "sugerida",
+      prioridad: 80,
       titulo: "Ida / vuelta sugerida",
       valor: (t) => {
         const s = sugerenciasTramo(t, tramos);

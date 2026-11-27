@@ -186,6 +186,33 @@ Reglas:
 
 ---
 
+### Tablas compactas (rediseño)
+
+Todo esto lo hace `TablaDatos` sola; la pantalla solo afina con dos
+propiedades de la columna:
+
+- **Cabe en el ancho, sin barra de lado.** Si no cabe, se ocultan columnas
+  desde la derecha hasta que quepa. Nunca se ocultan la(s) primera(s)
+  columna(s), Estado, Remisión, Factura, Soportes ni los botones. Las ocultas
+  se ven en el **panel de la fila** (clic en la fila, o el botón "⋯" si la
+  fila ya abre otra cosa). El encabezado muestra cuántas hay ("+8").
+- `prioridad`: 0 = nunca se oculta; mayor = se oculta antes. Con 50 o más
+  tampoco sale en las tarjetas del celular.
+- **"Columnas"** deja elegir qué ver; se recuerda por tabla en ese navegador.
+- **Encabezado fijo** arriba y **barra de abajo fija** (páginas, totales,
+  Cómoda / Compacta) mientras se ve la tabla.
+- `sumar: "pesos" | "numero"`: la columna se suma (todo lo filtrado) en la
+  barra de abajo.
+- **Filtros:** el botón abre la ventana de la derecha (como siempre); los
+  filtros puestos se ven encima de la tabla, cada uno con su ✕, y "Limpiar".
+- **Celular:** cada fila es una tarjeta en dos columnas, con el nombre de
+  cada dato arriba.
+- **Cargando:** esqueleto gris que brilla (`Cargando` de `Estado.tsx`).
+- Ningún contenedor de una tabla usa `overflow: hidden` (se usa `clip`):
+  con `hidden` el encabezado deja de quedar fijo.
+
+---
+
 ## 6. Botones
 
 | Clase | Aspecto | Uso |

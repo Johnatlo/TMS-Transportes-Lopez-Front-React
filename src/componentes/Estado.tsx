@@ -3,9 +3,22 @@
  * "cargando", el de error y el de lista vacia.
  */
 
-/** Mensaje "Cargando ..." mientras llegan los datos. */
+/**
+ * Mientras llegan los datos: un esqueleto gris que brilla (la forma de una
+ * tabla: barra, encabezado y filas), en vez de un texto. Los lectores de
+ * pantalla oyen "Cargando ...".
+ */
 export function Cargando({ que = "datos" }: { que?: string }) {
-  return <p className="section-desc">Cargando {que}...</p>;
+  return (
+    <div className="esqueleto" role="status">
+      <span className="solo-lector">Cargando {que}...</span>
+      <span className="esqueleto-barra" />
+      <span className="esqueleto-cabeza" />
+      {[0.92, 0.78, 0.86, 0.7, 0.82, 0.74].map((ancho, i) => (
+        <span key={i} className="esqueleto-fila" style={{ width: `${ancho * 100}%`, animationDelay: `${i * 80}ms` }} />
+      ))}
+    </div>
+  );
 }
 
 /** Mensaje de error al cargar datos, con boton "Reintentar" si se da alReintentar. */

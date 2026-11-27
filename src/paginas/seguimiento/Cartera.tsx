@@ -169,7 +169,7 @@ const COLUMNAS_CLIENTES: Columna<ResumenCliente>[] = [
   },
   { id: "credito", titulo: "Credito", alinear: "derecha", valor: (c) => c.diasCredito, celda: (c) => `${c.diasCredito} dias` },
   { id: "facturas", titulo: "Facturas", alinear: "derecha", valor: (c) => c.facturas, celda: (c) => c.facturas },
-  { id: "porVencer", titulo: "Por vencer", alinear: "derecha", valor: (c) => c.porVencer, celda: (c) => moneda(c.porVencer) },
+  { id: "porVencer", titulo: "Por vencer", alinear: "derecha", sumar: "pesos", valor: (c) => c.porVencer, celda: (c) => moneda(c.porVencer) },
   { id: "v30", titulo: "1-30 dias", alinear: "derecha", valor: (c) => c.vencido1a30, celda: (c) => moneda(c.vencido1a30) },
   { id: "v60", titulo: "31-60 dias", alinear: "derecha", valor: (c) => c.vencido31a60, celda: (c) => moneda(c.vencido31a60) },
   { id: "v90", titulo: "61-90 dias", alinear: "derecha", valor: (c) => c.vencido61a90, celda: (c) => moneda(c.vencido61a90) },
@@ -180,7 +180,7 @@ const COLUMNAS_CLIENTES: Columna<ResumenCliente>[] = [
     valor: (c) => c.vencidoMas90,
     celda: (c) => <span className={c.vencidoMas90 > 0 ? "texto-vencido" : ""}>{moneda(c.vencidoMas90)}</span>,
   },
-  { id: "total", titulo: "Total", alinear: "derecha", valor: (c) => c.total, celda: (c) => <strong>{moneda(c.total)}</strong> },
+  { id: "total", titulo: "Total", alinear: "derecha", sumar: "pesos", valor: (c) => c.total, celda: (c) => <strong>{moneda(c.total)}</strong> },
 ];
 
 /**

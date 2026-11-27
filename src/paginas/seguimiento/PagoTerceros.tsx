@@ -105,18 +105,18 @@ const COLUMNAS: Columna<ViajeTercero>[] = [
       <>
         <strong>{v.efectivo + v.combustible + v.transferencia ? moneda(v.efectivo + v.combustible + v.transferencia) : "-"}</strong>
         {v.efectivo + v.combustible + v.transferencia > 0 && (
-        <span className="partes-valor">
-          <span>Efectivo</span>
-          <span>{moneda(v.efectivo)}</span>
-          <span>Combustible</span>
-          <span>{moneda(v.combustible)}</span>
-          {v.transferencia > 0 && (
-            <>
-              <span>Transferencia</span>
-              <span>{moneda(v.transferencia)}</span>
-            </>
-          )}
-        </span>
+          <span className="partes-valor">
+            <span>Efectivo</span>
+            <span>{moneda(v.efectivo)}</span>
+            <span>Combustible</span>
+            <span>{moneda(v.combustible)}</span>
+            {v.transferencia > 0 && (
+              <>
+                <span>Transferencia</span>
+                <span>{moneda(v.transferencia)}</span>
+              </>
+            )}
+          </span>
         )}
       </>
     ),
@@ -188,7 +188,7 @@ export default function PagoTerceros() {
   const vencido = terceros.reduce((s, t) => s + t.vencido, 0);
   const faltanDocumentos = terceros.reduce((s, t) => s + t.faltanDocumentos, 0);
   const faltaPactar = terceros.reduce((s, t) => s + t.faltaPactar, 0);
-  const viaje = editando ? viajes.find((v) => v.id === editando) ?? null : null;
+  const viaje = editando ? (viajes.find((v) => v.id === editando) ?? null) : null;
 
   const columnasTerceros: Columna<ResumenTercero>[] = [
     {
@@ -204,10 +204,23 @@ export default function PagoTerceros() {
       ),
     },
     { id: "viajes", titulo: "Viajes", alinear: "derecha", valor: (t) => t.viajes, celda: (t) => t.viajes },
-    { id: "faltaPactar", titulo: "Falta pactar", alinear: "derecha", valor: (t) => t.faltaPactar, celda: (t) => (t.faltaPactar ? <span className="texto-vencido">{t.faltaPactar}</span> : "-") },
+    {
+      id: "faltaPactar",
+      titulo: "Falta pactar",
+      alinear: "derecha",
+      valor: (t) => t.faltaPactar,
+      celda: (t) => (t.faltaPactar ? <span className="texto-vencido">{t.faltaPactar}</span> : "-"),
+    },
     { id: "faltanDocumentos", titulo: "Faltan documentos", alinear: "derecha", valor: (t) => t.faltanDocumentos, celda: (t) => t.faltanDocumentos || "-" },
-    { id: "vencido", titulo: "Vencido", alinear: "derecha", valor: (t) => t.vencido, celda: (t) => (t.vencido ? <span className="texto-vencido">{moneda(t.vencido)}</span> : "-") },
-    { id: "porPagar", titulo: "Por pagar", alinear: "derecha", valor: (t) => t.porPagar, celda: (t) => <strong>{moneda(t.porPagar)}</strong> },
+    {
+      id: "vencido",
+      titulo: "Vencido",
+      alinear: "derecha",
+      sumar: "pesos",
+      valor: (t) => t.vencido,
+      celda: (t) => (t.vencido ? <span className="texto-vencido">{moneda(t.vencido)}</span> : "-"),
+    },
+    { id: "porPagar", titulo: "Por pagar", alinear: "derecha", sumar: "pesos", valor: (t) => t.porPagar, celda: (t) => <strong>{moneda(t.porPagar)}</strong> },
     {
       id: "acciones",
       titulo: "",
@@ -240,9 +253,8 @@ export default function PagoTerceros() {
         <Indicador titulo="Faltan documentos" valor={faltanDocumentos} detalle="el tercero no los ha entregado" />
       </div>
       <div className="dato-sec" style={{ marginBottom: "0.5rem" }}>
-        Viajes de vehiculos terceros. Valor a pagar = valor del tercero - efectivo - combustible - transferencia (y las
-        retenciones, si se marcan). Se le paga el viernes: si descargo lunes o martes, el de esa semana; de miercoles en
-        adelante, el de la siguiente.
+        Viajes de vehiculos terceros. Valor a pagar = valor del tercero - efectivo - combustible - transferencia (y las retenciones, si se marcan). Se le paga
+        el viernes: si descargo lunes o martes, el de esa semana; de miercoles en adelante, el de la siguiente.
       </div>
       <div className="tabla-pestanas selector-vista">
         <button className={vista === "viajes" ? "activa" : ""} onClick={() => setVista("viajes")}>
@@ -333,7 +345,7 @@ function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCer
       icaPorMil,
       cobraPoliza: viaje.cobraPoliza,
     },
-    viaje
+    viaje,
   );
   // Sin fecha escrita a mano: el viernes que calcula el backend con el descargue.
   const viernes = viaje.fechaPagoTerceroProgramada ? null : viaje.venceSaldo;
@@ -469,7 +481,14 @@ function EditarPago({ viaje, alCerrar, alGuardar }: { viaje: ViajeTercero; alCer
       <div className="campos-cuadro">
         <div>
           <label>ICA (por mil)</label>
-          <input type="number" min={0} step="0.01" value={f.icaTerceroPorMil} onChange={cambiar("icaTerceroPorMil")} placeholder={`${viaje.icaSugerido} (sugerido por el cliente)`} />
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            value={f.icaTerceroPorMil}
+            onChange={cambiar("icaTerceroPorMil")}
+            placeholder={`${viaje.icaSugerido} (sugerido por el cliente)`}
+          />
         </div>
       </div>
       <label className="check-linea">
@@ -571,7 +590,12 @@ function LiquidarTercero({
     setEnviando(true);
     setError(null);
     try {
-      if (registrar) await apiSeguimiento.pagarTerceros(elegidos.map((v) => v.id), fecha, cuenta.trim());
+      if (registrar)
+        await apiSeguimiento.pagarTerceros(
+          elegidos.map((v) => v.id),
+          fecha,
+          cuenta.trim(),
+        );
       await descargarLiquidacion(l, `liquidacion-${tercero.split(" ")[0]?.toLowerCase() || "tercero"}-${fecha}`);
       if (registrar) alGuardar();
       else setEnviando(false);
@@ -636,58 +660,58 @@ function LiquidarTercero({
 
       {tercero && (
         <div className="tabla-scroll" style={{ margin: "0.6rem 0" }}>
-        <table className="tabla tabla-compacta">
-          <thead>
-            <tr>
-              <th />
-              <th>Fecha</th>
-              <th>Placa</th>
-              <th>Empresa</th>
-              <th>Remision / manifiesto</th>
-              <th>Cuenta de cobro</th>
-              <th className="num">Toneladas</th>
-              <th className="num">Valor del tercero</th>
-              <th className="num">Anticipos</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {deTercero.map((v) => (
-              <tr key={v.id}>
-                <td>
-                  <input
-                    type="checkbox"
-                    style={{ width: "auto", margin: 0 }}
-                    checked={marcados.has(v.id)}
-                    disabled={v.valorTercero === null}
-                    title={v.valorTercero === null ? "Falta pactar el valor con el tercero" : undefined}
-                    onChange={() => alternar(v.id)}
-                  />
-                </td>
-                <td>{fechaCorta(v.fecha)}</td>
-                <td>{v.placa}</td>
-                <td>{v.empresa}</td>
-                <td>
-                  {v.remision ?? v.manifiesto ?? "-"} <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} />
-                </td>
-                <td>{v.cuentaCobroTercero ?? "-"}</td>
-                <td className="num">{toneladas(v.pesoKg)}</td>
-                <td className="num">{v.valorTercero === null ? "Sin pactar" : moneda(v.valorTercero)}</td>
-                <td className="num">{moneda(v.efectivo + v.combustible + v.transferencia)}</td>
-                <td>
-                  <Pastilla tono={ESTADO[v.estadoPagoTercero].tono}>{ESTADO[v.estadoPagoTercero].etiqueta}</Pastilla>
-                </td>
-              </tr>
-            ))}
-            {deTercero.length === 0 && (
+          <table className="tabla tabla-compacta">
+            <thead>
               <tr>
-                <td colSpan={10} className="empty-row">
-                  Este tercero no tiene viajes por pagar.
-                </td>
+                <th />
+                <th>Fecha</th>
+                <th>Placa</th>
+                <th>Empresa</th>
+                <th>Remision / manifiesto</th>
+                <th>Cuenta de cobro</th>
+                <th className="num">Toneladas</th>
+                <th className="num">Valor del tercero</th>
+                <th className="num">Anticipos</th>
+                <th>Estado</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {deTercero.map((v) => (
+                <tr key={v.id}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      style={{ width: "auto", margin: 0 }}
+                      checked={marcados.has(v.id)}
+                      disabled={v.valorTercero === null}
+                      title={v.valorTercero === null ? "Falta pactar el valor con el tercero" : undefined}
+                      onChange={() => alternar(v.id)}
+                    />
+                  </td>
+                  <td>{fechaCorta(v.fecha)}</td>
+                  <td>{v.placa}</td>
+                  <td>{v.empresa}</td>
+                  <td>
+                    {v.remision ?? v.manifiesto ?? "-"} <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} />
+                  </td>
+                  <td>{v.cuentaCobroTercero ?? "-"}</td>
+                  <td className="num">{toneladas(v.pesoKg)}</td>
+                  <td className="num">{v.valorTercero === null ? "Sin pactar" : moneda(v.valorTercero)}</td>
+                  <td className="num">{moneda(v.efectivo + v.combustible + v.transferencia)}</td>
+                  <td>
+                    <Pastilla tono={ESTADO[v.estadoPagoTercero].tono}>{ESTADO[v.estadoPagoTercero].etiqueta}</Pastilla>
+                  </td>
+                </tr>
+              ))}
+              {deTercero.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="empty-row">
+                    Este tercero no tiene viajes por pagar.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -723,8 +747,8 @@ function LiquidarTercero({
         </table>
       )}
       <div className="dato-sec" style={{ marginTop: "0.5rem" }}>
-        Los viajes sin pactar no se pueden liquidar. "Registrar pago" marca los viajes elegidos como pagados en esta fecha
-        y les anota la cuenta de cobro si no la tienen.
+        Los viajes sin pactar no se pueden liquidar. "Registrar pago" marca los viajes elegidos como pagados en esta fecha y les anota la cuenta de cobro si no
+        la tienen.
       </div>
     </Modal>
   );
