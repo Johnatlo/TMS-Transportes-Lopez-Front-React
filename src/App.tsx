@@ -17,7 +17,7 @@ import { useSesion } from "./ganchos/useSesion";
 // Cada pantalla se descarga al abrirla por primera vez, no toda la aplicacion
 // al entrar: el inicio carga mas rapido (sobre todo en el celular). Shell
 // muestra "Cargando" mientras llega (Suspense alrededor de su Outlet).
-const Dashboard = lazy(() => import("./paginas/Dashboard"));
+const Inicio = lazy(() => import("./paginas/inicio/Inicio"));
 const Despacho = lazy(() => import("./paginas/Despacho"));
 const Historial = lazy(() => import("./paginas/Historial"));
 const CuadroCentral = lazy(() => import("./paginas/cuadro/CuadroCentral"));
@@ -73,7 +73,7 @@ export default function App() {
           path="/dashboard"
           element={
             <ConPermiso ruta="/dashboard">
-              <Dashboard />
+              <Inicio />
             </ConPermiso>
           }
         />

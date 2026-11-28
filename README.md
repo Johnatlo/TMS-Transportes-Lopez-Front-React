@@ -30,7 +30,7 @@ comunicación con el RNDC están en el backend; el frontend llama a su API.
 
 | Menú | Archivo | Para qué sirve |
 |---|---|---|
-| **Inicio** | `paginas/Dashboard.tsx` | Indicadores, documentos más urgentes, viajes de hoy, últimos viajes, viajes por semana y mapa de seguimiento (posición estimada). |
+| **Inicio** | `paginas/inicio/Inicio.tsx` | Inicio personalizable (gridstack.js): cada usuario arrastra, agranda, quita y agrega tarjetas (indicadores, documentos urgentes, viajes por cumplir, hoy, últimos viajes, viajes por semana y la flota en el mapa) y lo guarda en su cuenta; sin guardar ve el inicio de su rol (`catalogoInicio.ts`). En el celular, una columna. |
 | **Despachar** | `paginas/Despacho.tsx` | Asistente de tres pasos (vehículo y conductor, cargas, valores) que expide remesas y manifiesto en el RNDC. También corrige y reintenta un viaje fallido (`/despacho?viaje=N`). |
 | **Viajes** | `paginas/Historial.tsx` | Todos los despachos con su estado y plazo del cumplido, y sus acciones: imprimir, cumplir, corregir y reintentar, anular. Vista "Consecutivos manifiestos y remesas" (una fila por remesa). Clic en una fila: todo lo registrado al despachar. |
 | **Cuadro pagos** | `paginas/cuadro/CuadroCentral.tsx` | Seguimiento de cada viaje, con o sin manifiesto: papeles, radicación, factura, anticipos de bomba, pago al dueño, revisiones y notas. Reemplaza la hoja de Excel "CUADRO CENTRAL". |
@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_835 funciones, componentes, métodos y rutas en 127 archivos._
+_868 funciones, componentes, métodos y rutas en 132 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (266)
+- [`src/api/cliente.ts`](#srcapiclientets) (269)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -199,7 +199,7 @@ _835 funciones, componentes, métodos y rutas en 127 archivos._
 - [`src/componentes/LibroConsecutivos.tsx`](#srccomponenteslibroconsecutivostsx) (6)
 - [`src/componentes/LinksViaje.tsx`](#srccomponenteslinksviajetsx) (3)
 - [`src/componentes/ListaMotivos.tsx`](#srccomponenteslistamotivostsx) (1)
-- [`src/componentes/MapaSeguimiento.tsx`](#srccomponentesmapaseguimientotsx) (2)
+- [`src/componentes/MapaSeguimiento.tsx`](#srccomponentesmapaseguimientotsx) (4)
 - [`src/componentes/MenuMas.tsx`](#srccomponentesmenumastsx) (1)
 - [`src/componentes/MiniTabla.tsx`](#srccomponentesminitablatsx) (1)
 - [`src/componentes/Modal.tsx`](#srccomponentesmodaltsx) (1)
@@ -214,12 +214,12 @@ _835 funciones, componentes, métodos y rutas en 127 archivos._
 - [`src/componentes/excelTabla.ts`](#srccomponentesexceltablats) (7)
 - [`src/componentes/mesDeFecha.ts`](#srccomponentesmesdefechats) (1)
 - [`src/componentes/periodos.ts`](#srccomponentesperiodosts) (4)
+- [`src/ganchos/useContador.ts`](#srcganchosusecontadorts) (2)
 - [`src/ganchos/useDatos.ts`](#srcganchosusedatosts) (1)
 - [`src/ganchos/useMunicipios.ts`](#srcganchosusemunicipiosts) (1)
 - [`src/ganchos/useSesion.tsx`](#srcganchosusesesiontsx) (2)
 - [`src/modoPantalla.ts`](#srcmodopantallats) (12)
 - [`src/paginas/Catalogo.tsx`](#srcpaginascatalogotsx) (21)
-- [`src/paginas/Dashboard.tsx`](#srcpaginasdashboardtsx) (14)
 - [`src/paginas/Despacho.tsx`](#srcpaginasdespachotsx) (7)
 - [`src/paginas/FormularioPlantilla.tsx`](#srcpaginasformularioplantillatsx) (4)
 - [`src/paginas/Historial.tsx`](#srcpaginashistorialtsx) (2)
@@ -261,6 +261,11 @@ _835 funciones, componentes, métodos y rutas en 127 archivos._
 - [`src/paginas/gastos/destinos.ts`](#srcpaginasgastosdestinosts) (4)
 - [`src/paginas/gastos/facturasCredito.ts`](#srcpaginasgastosfacturascreditots) (2)
 - [`src/paginas/gastos/nombres.ts`](#srcpaginasgastosnombrests) (1)
+- [`src/paginas/inicio/DatosInicio.tsx`](#srcpaginasiniciodatosiniciotsx) (2)
+- [`src/paginas/inicio/Inicio.tsx`](#srcpaginasinicioiniciotsx) (3)
+- [`src/paginas/inicio/Tarjetas.tsx`](#srcpaginasiniciotarjetastsx) (19)
+- [`src/paginas/inicio/catalogoInicio.ts`](#srcpaginasiniciocatalogoiniciots) (6)
+- [`src/paginas/inicio/reglasInicio.ts`](#srcpaginasinicioreglasiniciots) (10)
 - [`src/paginas/nomina/Empleados.tsx`](#srcpaginasnominaempleadostsx) (4)
 - [`src/paginas/nomina/GastoLinea.tsx`](#srcpaginasnominagastolineatsx) (1)
 - [`src/paginas/nomina/Nomina.tsx`](#srcpaginasnominanominatsx) (10)
@@ -384,6 +389,15 @@ _835 funciones, componentes, métodos y rutas en 127 archivos._
 
   - **`auth.guardarTema(tema)`** · _método_
     Guarda el modo de la pantalla del usuario conectado.
+
+  - **`auth.inicio()`** · _método_
+    Su inicio personalizado (tarjetas: null = usa el inicio de su rol).
+
+  - **`auth.guardarInicio(tarjetas)`** · _método_
+    Guarda su inicio personalizado.
+
+  - **`auth.borrarInicio()`** · _método_
+    Vuelve al inicio de su rol.
 
   - **`auth.listarUsuarios()`** · _método_
     Usuarios del sistema.
@@ -1605,6 +1619,7 @@ _835 funciones, componentes, métodos y rutas en 127 archivos._
   flecha, no solo color) y un detalle al lado.
 
   `dinero` usa la letra de montos; `alerta` pinta el valor en rojo (mismo tamano).
+  Los valores numericos cuentan hasta su cifra al aparecer (useContador).
 
 ### `src/componentes/LibroConsecutivos.tsx`
 
@@ -1663,6 +1678,14 @@ _835 funciones, componentes, métodos y rutas en 127 archivos._
 
 > Mapa (Leaflet) con la posicion ESTIMADA de los vehiculos en camino: en
 > linea recta entre cargue y descargue segun el tiempo entre las citas.
+
+- **`escapar(t)`** · _función_
+  Escapa texto para meterlo en el HTML de la tarjeta de Leaflet.
+
+- **`tarjetaCarro(p)`** · _función_
+  Tarjeta del carro (al pasar el mouse): placa, ruta, cliente, conductor y una
+  barra con el avance entre la cita de cargue y la de descargue. Sin los datos
+  opcionales queda la placa y el detalle.
 
 - **`coordenadaValida(lat, lon)`** · _función_
   Colombia continental, aproximado: descarta coordenadas de relleno (999...).
@@ -2006,6 +2029,20 @@ _835 funciones, componentes, métodos y rutas en 127 archivos._
 - **`periodosRapidos(hoy)`** · _función_
   Los periodos rapidos a partir de hoy ("AAAA-MM-DD").
 
+### `src/ganchos/useContador.ts`
+
+> Cifra que "cuenta" hasta su valor al aparecer o al cambiar (Inicio y
+> tarjetas de indicadores).
+
+- **`sinMovimiento()`** · _función_
+  Si el computador pide reducir el movimiento (o no hay matchMedia, como en las pruebas).
+
+- **`useContador(valor, ms)`** · _función_
+  Devuelve el numero que se muestra mientras sube (o baja) desde el valor
+  anterior hasta `valor` en `ms` milisegundos, frenando al final. Sin
+  animacion si se pide reducir el movimiento. Los decimales se redondean
+  como el valor final (enteros si el valor es entero).
+
 ### `src/ganchos/useDatos.ts`
 
 > Gancho para cargar datos de la API con estados de carga, error y recarga.
@@ -2191,69 +2228,6 @@ _835 funciones, componentes, métodos y rutas en 127 archivos._
 - **`SelectorGps({...})`** · _componente React_
   Cambia en linea el proveedor de GPS de un vehiculo ya registrado. Es lo que
   permite completar la flota que ya estaba cargada sin reimportarla.
-
-### `src/paginas/Dashboard.tsx`
-
-> Pantalla de inicio: indicadores, documentos mas urgentes, viajes de hoy,
-> ultimos viajes, viajes por semana y mapa de seguimiento.
-
-- **`Dashboard()`** · _componente React_
-  Pantalla de inicio, organizada como docs/template de ejemplo.png:
-  indicadores arriba, los documentos mas urgentes, los viajes de hoy, los
-  ultimos viajes, los viajes por semana y el mapa de seguimiento.
-
-  Todo se calcula en el navegador con listas que ya existen (historial de
-  viajes, vehiculos, conductores y plantillas). Si el volumen crece, conviene
-  mover los conteos al backend.
-
-  Un viaje cumplido es "Finalizado"; los demas toman su estado de las CITAS de
-  cargue y descargue del manifiesto (el sistema no recibe la posicion GPS).
-
-- **`estadoViaje(v, ahora)`** · _función_
-  Estado para el tablero: Anulado, Finalizado (cumplido o ya paso la cita de
-  descargue), Con incidencia (cualquier error), Programado (aun no carga) o En
-  camino (entre la cita de cargue y la de descargue).
-
-- **`claseEstado(e)`** · _función_
-  Clase CSS del color de cada estado del tablero.
-
-- **`avance(v, ahora)`** · _función_
-  Fraccion del viaje recorrida (0 a 1) segun la hora actual entre la cita de
-  cargue y la de descargue. Para la barra de progreso.
-
-- **`claveDia(d)`** · _función_
-  "AAAA-MM-DD" del dia en Colombia.
-
-- **`hora(valor)`** · _función_
-  "HH:MM" en hora de Colombia; vacio sin valor.
-
-- **`diaMes(valor)`** · _función_
-  "DD/MM" en hora de Colombia (no del texto UTC: de noche seria el dia siguiente).
-
-- **`ruta(p)`** · _función_
-  "Ciudad origen -> ciudad destino" de una plantilla, con el municipio corto.
-
-- **`corto(ciudad)`** · _función_
-  "SOACHA CUNDINAMARCA" -> "Soacha": el municipio sin el departamento.
-
-- **`variacion(actual, previo)`** · _función_
-  Variacion porcentual; null si no hay base para comparar.
-
-- **`viajesPorSemana(viajes, ahora)`** · _función_
-  Viajes confirmados por semana (lunes a domingo, hora de Colombia), por fecha
-  de expedicion. Devuelve la semana actual y las 4 anteriores.
-
-- **`AlertaDestacada({...})`** · _componente React_
-  Tarjeta con el documento mas urgente (o un mensaje si no hay): quien, que
-  documento y en cuantos dias vence. Al hacer clic abre todas las alertas.
-
-- **`AvatarConductor({...})`** · _componente React_
-  Circulo con las iniciales del conductor (su nombre completo al pasar el mouse).
-
-- **`GraficaSemana({...})`** · _componente React_
-  Viajes por dia de la semana elegida. Cada dia lleva dos barras: la semana
-  anterior en azul claro (de fondo, para comparar) y la elegida en azul. Una
-  sola metrica, dos periodos: el claro es solo referencia.
 
 ### `src/paginas/Despacho.tsx`
 
@@ -3311,6 +3285,179 @@ _835 funciones, componentes, métodos y rutas en 127 archivos._
 
 - **`nombreMes(mes)`** · _función_
   "2026-11" -> "Noviembre 2026".
+
+### `src/paginas/inicio/DatosInicio.tsx`
+
+> Datos compartidos por las tarjetas del Inicio: se cargan una sola vez
+> (historial de viajes, vehiculos, conductores y plantillas) y cada tarjeta
+> toma lo suyo con useInicio().
+
+- **`useInicio()`** · _función_
+  Los datos del Inicio (dentro de <ProveedorInicio>).
+
+- **`ProveedorInicio({...})`** · _componente React_
+  Carga los datos del Inicio y los calcula una vez para todas las tarjetas.
+  Todo sale de listas que ya existen; si el volumen crece, conviene mover los
+  conteos al backend. El sistema no recibe GPS: el estado y la posicion salen
+  de las citas de cargue y descargue.
+
+### `src/paginas/inicio/Inicio.tsx`
+
+> Pagina de Inicio personalizable: una rejilla de tarjetas que cada usuario
+> acomoda (arrastrar, cambiar tamano, quitar y agregar) y guarda en su cuenta.
+
+- **`useCelular()`** · _función_
+  Si la pantalla es de celular (ahi las tarjetas van en una columna y no se personaliza).
+
+- **`Inicio()`** · _componente React_
+  Inicio de SOFI.
+
+  Arranca con el inicio guardado del usuario o, si no tiene, con el de su rol
+  (catalogoInicio.ts). "Personalizar inicio" (solo en el computador) deja
+  arrastrar las tarjetas, agrandarlas desde la esquina, quitarlas con la X y
+  agregar otras del catalogo; "Guardar mi inicio" lo guarda en su cuenta (lo
+  ve igual en cualquier computador) y "Volver al inicio de mi rol" borra lo
+  guardado. En el celular las tarjetas salen en una columna, en el orden
+  guardado (de arriba a abajo y de izquierda a derecha).
+
+- **`PaginaInicio()`** · _componente React_
+  El contenido del Inicio (dentro del proveedor de datos).
+
+### `src/paginas/inicio/Tarjetas.tsx`
+
+> Las tarjetas del Inicio. Cada una toma sus datos de useInicio() y llena el
+> espacio que le da la rejilla (o su alto natural en el celular).
+
+- **`Marco({...})`** · _componente React_
+  Tarjeta con encabezado (icono, titulo y acciones) y un cuerpo que se desplaza si no cabe.
+
+- **`Esqueleto({...})`** · _componente React_
+  Esqueleto gris mientras llegan los datos.
+
+- **`TarjetaCifra(props)`** · _componente React_
+  Tarjeta de una sola cifra.
+
+- **`Transito()`** · _componente React_
+  Vehiculos en transito (entre la cita de cargue y la de descargue).
+
+- **`Finalizados()`** · _componente React_
+  Viajes finalizados en 30 dias contra los 30 anteriores.
+
+- **`Proximos()`** · _componente React_
+  Viajes programados que aun no cargan.
+
+- **`EstaSemana()`** · _componente React_
+  Viajes expedidos esta semana contra la pasada.
+
+- **`AlertaDestacada({...})`** · _componente React_
+  Tarjeta con el documento mas urgente (o un mensaje si no hay): quien, que
+  documento y en cuantos dias vence. Al hacer clic abre todas las alertas.
+
+- **`DocumentoVehiculo()`** · _componente React_
+  El documento de vehiculo o remolque mas urgente.
+
+- **`DocumentoConductor()`** · _componente React_
+  La licencia de conductor mas urgente.
+
+- **`PorCumplir()`** · _componente React_
+  Viajes entregados que falta cumplir en el RNDC; lleva al historial.
+
+- **`AvatarConductor({...})`** · _componente React_
+  Circulo con las iniciales del conductor (su nombre completo al pasar el mouse).
+
+- **`EtiquetaEstado({...})`** · _componente React_
+  Etiqueta de color con el estado del viaje.
+
+- **`Manifiesto({...})`** · _componente React_
+  Manifiesto con el punto de color de su estado.
+
+- **`Hoy()`** · _componente React_
+  Las citas de hoy: cargues o descargues, por hora.
+
+- **`Ultimos()`** · _componente React_
+  Los ultimos manifiestos con su estado, ruta y llegada.
+
+- **`ViajesPorSemana()`** · _componente React_
+  Grafica de viajes por dia de la semana elegida.
+
+- **`GraficaSemana({...})`** · _componente React_
+  Viajes por dia de la semana elegida. Cada dia lleva dos barras: la semana
+  anterior en claro (de fondo, para comparar) y la elegida en violeta. Una
+  sola metrica, dos periodos: el claro es solo referencia. Las barras crecen
+  al aparecer, una tras otra.
+
+- **`Mapa()`** · _componente React_
+  La flota en el mapa: los vehiculos en camino con su posicion estimada entre
+  cargue y descargue. Al pasar el mouse por un carro sale su tarjeta (placa,
+  ruta, cliente, conductor y avance). Cuando llegue el GPS, los puntos saldran
+  de ahi sin cambiar la tarjeta.
+
+### `src/paginas/inicio/catalogoInicio.ts`
+
+> Catalogo de las tarjetas del Inicio (que hay, su tamano y quien las puede
+> poner) y el inicio por defecto de cada rol. Sin React: se prueba aparte.
+
+- **`definicion(id)`** · _función_
+  La definicion de una tarjeta (undefined si ya no existe).
+
+- **`tarjetasDelRol(rol)`** · _función_
+  Las tarjetas que el rol puede poner en su inicio.
+
+- **`en(id, x, y)`** · _función_
+  Lugar de una tarjeta del catalogo con su tamano por defecto.
+
+- **`inicioDelRol(rol)`** · _función_
+  Inicio por defecto de un rol (el que se ve sin personalizar): los
+  indicadores arriba, los pendientes, y debajo las tablas de hoy y los ultimos
+  viajes con la grafica y el mapa al lado. Hoy es el mismo para los tres roles;
+  las tarjetas de dinero de cada rol llegan con la etapa 4b.
+
+- **`inicioUsable(guardado, rol)`** · _función_
+  El inicio que se pinta: el guardado del usuario (o el de su rol si no tiene
+  uno). Quita las tarjetas que ya no existen o que su rol no puede ver, y
+  corrige tamanos por debajo del minimo o que se salen de la rejilla.
+
+- **`ordenLectura(tarjetas)`** · _función_
+  Orden de lectura (de arriba a abajo y de izquierda a derecha): el del celular.
+
+### `src/paginas/inicio/reglasInicio.ts`
+
+> Reglas del Inicio: estado de cada viaje segun sus citas, avance en el mapa,
+> viajes por semana y formatos de fecha y ruta (hora de Colombia).
+
+- **`estadoViaje(v, ahora)`** · _función_
+  Estado para el Inicio: Anulado, Finalizado (cumplido o ya paso la cita de
+  descargue), Con incidencia (cualquier error), Programado (aun no carga) o En
+  camino (entre la cita de cargue y la de descargue).
+
+- **`claseEstado(e)`** · _función_
+  Clase CSS del color de cada estado.
+
+- **`avance(v, ahora)`** · _función_
+  Fraccion del viaje recorrida (0 a 1) segun la hora actual entre la cita de
+  cargue y la de descargue. Para el mapa y la barra de avance.
+
+- **`claveDia(d)`** · _función_
+  "AAAA-MM-DD" del dia en Colombia.
+
+- **`hora(valor)`** · _función_
+  "HH:MM" en hora de Colombia; vacio sin valor.
+
+- **`diaMes(valor)`** · _función_
+  "DD/MM" en hora de Colombia (no del texto UTC: de noche seria el dia siguiente).
+
+- **`ruta(p)`** · _función_
+  "Ciudad origen -> ciudad destino" de una plantilla, con el municipio corto.
+
+- **`corto(ciudad)`** · _función_
+  "SOACHA CUNDINAMARCA" -> "Soacha": el municipio sin el departamento.
+
+- **`variacion(actual, previo)`** · _función_
+  Variacion porcentual; null si no hay base para comparar.
+
+- **`viajesPorSemana(viajes, ahora)`** · _función_
+  Viajes confirmados por semana (lunes a domingo, hora de Colombia), por fecha
+  de expedicion. Devuelve la semana actual y las 4 anteriores.
 
 ### `src/paginas/nomina/Empleados.tsx`
 

@@ -97,9 +97,17 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
       filtrable: true,
       valor: (v) => v.conductor ?? "Sin asignar",
       celda: (v) =>
-        v.conductor ?? (
-          <span className="texto-aviso" title="Asigna el vehiculo al conductor en Nomina > Empleados">
-            Sin asignar
+        v.conductor ? (
+          <span
+            title={
+              v.conductorPor === "vehiculo" ? "Por la asignacion del vehiculo (el viaje no dice quien lo manejo o no esta en Nomina)" : "Quien manejo el viaje"
+            }
+          >
+            {v.conductor}
+          </span>
+        ) : (
+          <span className="texto-aviso" title={v.motivoSinConductor ?? "Registralo en Nomina > Empleados"}>
+            {v.conductorViaje ? `${v.conductorViaje} (no esta en Nomina)` : "Sin asignar"}
           </span>
         ),
     },
@@ -344,7 +352,7 @@ function FormularioCuenta({
       {error && <div className="alert danger">{error}</div>}
       <div className="dato-sec" style={{ marginBottom: "0.6rem" }}>
         {viaje.cliente} · {[viaje.remision && `remision ${viaje.remision}`, viaje.manifiesto && `manifiesto ${viaje.manifiesto}`].filter(Boolean).join(" · ")} ·{" "}
-        {viaje.conductor ?? "sin conductor asignado"} <LinksViaje remisionUrl={viaje.remisionUrl} facturaUrl={viaje.facturaUrl} />
+        {viaje.conductor ?? viaje.motivoSinConductor ?? "sin conductor"} <LinksViaje remisionUrl={viaje.remisionUrl} facturaUrl={viaje.facturaUrl} />
       </div>
       <div className="cuenta-viaje">
         <div>

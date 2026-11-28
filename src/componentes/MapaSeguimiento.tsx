@@ -14,6 +14,34 @@ export interface PuntoMapa {
   destino: [number, number];
   /** 0 a 1: tiempo transcurrido entre la cita de cargue y la de descargue. */
   avance: number;
+  /** Para la tarjeta del carro al pasar el mouse (opcionales). */
+  ruta?: string;
+  cliente?: string;
+  conductor?: string;
+  /** Hora de la cita de descargue ("HH:MM"). */
+  llegada?: string;
+}
+
+/** Escapa texto para meterlo en el HTML de la tarjeta de Leaflet. */
+function escapar(t: string): string {
+  return t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
+/**
+ * Tarjeta del carro (al pasar el mouse): placa, ruta, cliente, conductor y una
+ * barra con el avance entre la cita de cargue y la de descargue. Sin los datos
+ * opcionales queda la placa y el detalle.
+ */
+export function tarjetaCarro(p: PuntoMapa): string {
+  const pct = Math.round(p.avance * 100);
+  const filas = p.ruta
+    ? [p.ruta, p.cliente, p.conductor && `Conductor: ${p.conductor}`].filter(Boolean).map((t) => `<span>${escapar(String(t))}</span>`)
+    : [`<span>${escapar(p.detalle)}</span>`];
+  return (
+    `<div class="carro-tarjeta"><strong>${escapar(p.etiqueta)}</strong>${filas.join("")}` +
+    `<div class="carro-avance" role="presentation"><i style="width:${pct}%"></i></div>` +
+    `<span class="carro-pie">${pct} % del recorrido${p.llegada ? ` · llega ${escapar(p.llegada)}` : ""}</span></div>`
+  );
 }
 
 /** Colombia continental, aproximado: descarta coordenadas de relleno (999...). */
@@ -71,8 +99,9 @@ export default function MapaSeguimiento({ puntos }: { puntos: PuntoMapa[] }) {
       const pos: [number, number] = [p.origen[0] + (p.destino[0] - p.origen[0]) * p.avance, p.origen[1] + (p.destino[1] - p.origen[1]) * p.avance];
       L.polyline([p.origen, p.destino], { color: "#94a3b8", weight: 2, dashArray: "4 6" }).addTo(g);
       L.circleMarker(p.destino, { radius: 4, color: "#64748b", weight: 2, fillColor: "#fff", fillOpacity: 1 }).addTo(g);
-      L.circleMarker(pos, { radius: 8, color: "#fff", weight: 2, fillColor: "#af50ff", fillOpacity: 1 }) // violeta de SOFI: se ve en los dos modos
-        .bindTooltip(`<strong>${p.etiqueta}</strong><br>${p.detalle}`, { direction: "top" })
+      // Violeta de SOFI (se ve en los dos modos), con un latido suave.
+      L.circleMarker(pos, { radius: 8, color: "#fff", weight: 2, fillColor: "#af50ff", fillOpacity: 1, className: "marcador-carro" })
+        .bindTooltip(tarjetaCarro(p), { direction: "top", className: "tooltip-carro", offset: [0, -6] })
         .addTo(g);
       limites.push(p.origen, p.destino);
     }

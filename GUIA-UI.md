@@ -233,3 +233,10 @@ propiedades de la columna:
 - **Escribe para quien despacha:** "Expedido" y no `CONFIRMADO`, "Error en
   remesa" y no `REMESA_ERROR`.
 - **Revísala a 390 px de ancho.** No debe haber desplazamiento lateral de la página.
+
+## Inicio personalizable (etapa 4a)
+
+- El Inicio es una rejilla de 12 columnas con **gridstack.js** (`paginas/inicio/`). Cada usuario la acomoda con **Personalizar inicio** y se guarda en su cuenta (`GET/PUT/DELETE /api/auth/inicio`, tabla `inicio_usuario`). Sin guardar ve el inicio de su rol.
+- **Agregar una tarjeta:** definirla en `catalogoInicio.ts` (id, titulo, descripcion, grupo, tamano y minimo, y `roles` si no es para todos) y su componente en `Tarjetas.tsx` (en `TARJETAS`, con el mismo id). Los datos compartidos salen de `useInicio()`; si necesita otros, que los cargue la tarjeta.
+- Las tarjetas usan `Marco` (titulo, acciones y cuerpo que se desplaza) y muestran el esqueleto mientras cargan. Deben verse bien en cualquier tamano entre el minimo y el ancho completo, y con su alto natural en el celular.
+- En el celular no se personaliza: las tarjetas van en una columna, en el orden guardado.

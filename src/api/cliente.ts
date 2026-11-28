@@ -296,6 +296,15 @@ export interface EntregaClave {
   avisoCorreo?: string;
 }
 
+/** Una tarjeta del inicio y su lugar en la rejilla de 12 columnas (columna x, fila y, ancho w, alto h). */
+export interface TarjetaInicio {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /** Sesion y usuarios. La cookie de sesion la maneja el navegador solo. */
 export const auth = {
   /** Usuario de la sesion actual (401 si no hay sesion). */
@@ -308,6 +317,12 @@ export const auth = {
   cambiarClave: (actual: string, nueva: string) => post<Usuario>("/auth/cambiar-clave", { actual, nueva }),
   /** Guarda el modo de la pantalla del usuario conectado. */
   guardarTema: (tema: "oscuro" | "claro" | "auto") => put<Usuario>("/auth/preferencias", { tema }),
+  /** Su inicio personalizado (tarjetas: null = usa el inicio de su rol). */
+  inicio: () => get<{ tarjetas: TarjetaInicio[] | null }>("/auth/inicio"),
+  /** Guarda su inicio personalizado. */
+  guardarInicio: (tarjetas: TarjetaInicio[]) => put<{ tarjetas: TarjetaInicio[] }>("/auth/inicio", { tarjetas }),
+  /** Vuelve al inicio de su rol. */
+  borrarInicio: () => del<{ tarjetas: null }>("/auth/inicio"),
 
   /** Usuarios del sistema. */
   listarUsuarios: () => get<Usuario[]>("/usuarios"),
@@ -2676,8 +2691,15 @@ export interface ViajeConductor {
   pesoKg: number | null;
   tarifaFleteId: number | null;
   tarifa: string | null;
+  /** Empleado al que se le cuenta: quien manejo el viaje o, si no esta en Nomina, el asignado al vehiculo. */
   empleadoId: number | null;
   conductor: string | null;
+  /** Como se reconocio: por quien manejo o por la asignacion del vehiculo. */
+  conductorPor?: "conductor" | "vehiculo" | null;
+  /** Quien manejo segun el viaje (puede no ser empleado). */
+  conductorViaje?: string | null;
+  /** Por que no tiene conductor (null si tiene). */
+  motivoSinConductor?: string | null;
   producido: number | null;
   producidoMatriz: number | null;
   producidoManual: boolean;
@@ -2755,6 +2777,8 @@ export interface LiquidacionMes {
   mes: string;
   conductores: LiquidacionConductor[];
   viajesSinConductor: number;
+  /** Por que quedan viajes sin conductor y cuantos por cada motivo. */
+  motivosSinConductor?: Array<{ motivo: string; viajes: number }>;
 }
 
 /** Un viaje en la cuenta del vehiculo (una fila del cuadro SWK-973). */

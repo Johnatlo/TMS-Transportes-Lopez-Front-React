@@ -152,15 +152,25 @@ export default function Liquidacion({ mes, empresa, irACuentas }: { mes: string;
         <Indicador
           titulo="Viajes sin conductor"
           valor={liq.viajesSinConductor}
-          detalle="asigna el vehiculo en Nomina > Empleados"
+          detalle="registralos en Nomina > Empleados"
           alerta={liq.viajesSinConductor > 0}
         />
       </div>
       {error && <div className="alert danger">{error}</div>}
       {liq.viajesSinConductor > 0 && (
         <div className="alert warning">
-          {liq.viajesSinConductor} viaje(s) del mes no tienen conductor: su vehiculo no esta asignado a ningun conductor en esa fecha (Nomina &gt; Empleados).
-          No entran a ninguna liquidacion hasta asignarlo.
+          {liq.viajesSinConductor} viaje(s) del mes no tienen conductor y no entran a ninguna liquidacion. SOFI busca a quien manejo cada viaje (Cuadro o
+          manifiesto) en Nomina &gt; Empleados por cedula o nombre y, si no esta, al asignado al vehiculo en esa fecha.
+          {(liq.motivosSinConductor ?? []).length > 0 && (
+            <ul className="motivos-sin-conductor">
+              {liq.motivosSinConductor!.slice(0, 8).map((m) => (
+                <li key={m.motivo}>
+                  {m.motivo}: {m.viajes} viaje(s)
+                </li>
+              ))}
+              {liq.motivosSinConductor!.length > 8 && <li>y {liq.motivosSinConductor!.length - 8} motivo(s) mas</li>}
+            </ul>
+          )}
         </div>
       )}
       <div className="panel">
