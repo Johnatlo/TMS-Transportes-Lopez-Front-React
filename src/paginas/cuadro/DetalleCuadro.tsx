@@ -296,7 +296,12 @@ export default function DetalleCuadro({
                       ? moneda(Number(f.valorFijo))
                       : "-"}
                 </div>
-                {d.tarifaFlete && <span className="dato-sec">Tarifa de la matriz: {d.tarifaFlete}</span>}
+                {d.tarifaFlete && (
+                  <span className="dato-sec">
+                    Tarifa de la matriz: {d.tarifaFlete}
+                    {d.fleteManual ? " (flete escrito a mano)" : ""}
+                  </span>
+                )}
               </div>
             </div>
             <div style={{ marginTop: "0.6rem" }}>

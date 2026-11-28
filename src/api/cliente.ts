@@ -2691,6 +2691,8 @@ export interface ViajeConductor {
   pesoKg: number | null;
   tarifaFleteId: number | null;
   tarifa: string | null;
+  /** true: el viaje no tiene tarifa en el Cuadro y la del flete conductor es la deducida. */
+  tarifaDeducida?: boolean;
   /** Empleado al que se le cuenta: quien manejo el viaje o, si no esta en Nomina, el asignado al vehiculo. */
   empleadoId: number | null;
   conductor: string | null;
@@ -2827,6 +2829,8 @@ export interface CuentaVehiculo {
 export const apiConductores = {
   /** Matriz de fletes conductor. */
   fletes: () => get<TarifaConductor[]>("/conductores/fletes"),
+  /** Viajes de los ultimos 90 dias sin tarifa (no salen en la matriz ni tienen producido conductor), por cliente. */
+  viajesSinTarifa: () => get<Array<{ cliente: string; viajes: number; placas: string[]; ultimo: string; ids: number[] }>>("/conductores/fletes/sin-tarifa"),
   /** Guarda el flete conductor de una tarifa desde una fecha. */
   guardarFlete: (d: { tarifaFleteId: number; valor: number; tipo: TipoFleteConductor; desde: string }) => put<TarifaConductor[]>("/conductores/fletes", d),
   /** Borra un valor de la matriz. */

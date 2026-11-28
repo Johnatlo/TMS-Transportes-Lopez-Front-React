@@ -131,8 +131,15 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
       valor: (v) => v.producido ?? 0,
       celda: (v) =>
         v.producido === null ? (
-          <span className="texto-aviso" title="Sin valor en la matriz de fletes conductor: escribelo en la cuenta o en Fletes conductor">
-            Sin valor
+          <span
+            className="texto-aviso"
+            title={
+              v.tarifa
+                ? `La tarifa ${v.tarifa} no tiene valor en la matriz de fletes conductor: ponselo en Fletes conductor o escribelo en la cuenta`
+                : "El viaje no tiene tarifa en el Cuadro pagos (y no se pudo deducir): eligela en el Cuadro o escribe el producido en la cuenta"
+            }
+          >
+            {v.tarifa ? "Sin valor" : "Sin tarifa"}
           </span>
         ) : (
           <>
@@ -489,7 +496,7 @@ function FormularioCuenta({
               <div className="dato-sec">
                 {viaje.producidoMatriz === null
                   ? `Sin valor en la matriz${viaje.tarifa ? ` para ${viaje.tarifa}` : " (el viaje no tiene tarifa)"}: escribelo aqui.`
-                  : `De la matriz (${viaje.tarifa}): ${moneda(viaje.producidoMatriz)}. Vacio = ese valor.`}
+                  : `De la matriz (${viaje.tarifa}${viaje.tarifaDeducida ? ", deducida: el viaje no tiene tarifa en el Cuadro" : ""}): ${moneda(viaje.producidoMatriz)}. Vacio = ese valor.`}
               </div>
             </>
           )}

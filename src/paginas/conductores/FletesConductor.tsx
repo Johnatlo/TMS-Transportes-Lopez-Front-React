@@ -25,6 +25,7 @@ const valorTexto = (valor: number, tipo: string) => `${moneda(valor)} ${tipo ===
 /** La matriz de fletes conductor. */
 export default function FletesConductor() {
   const carga = useDatos(() => apiConductores.fletes(), []);
+  const sinTarifa = useDatos(() => apiConductores.viajesSinTarifa(), []);
   const [editando, setEditando] = useState<TarifaConductor | null>(null);
   const [importando, setImportando] = useState(false);
   if (carga.cargando && !carga.datos) return <Cargando que="la matriz de fletes conductor" />;
@@ -80,6 +81,27 @@ export default function FletesConductor() {
         Lo que vale cada viaje para el conductor, por tarifa de la matriz de la empresa. Con este valor se calcula el producido conductor (sobre el van el 4 %
         salarial y el 5 % de viaticos). Clic en una tarifa para cambiar su valor desde una fecha: los viajes anteriores conservan el suyo.
       </div>
+      {(sinTarifa.datos ?? []).length > 0 && (
+        <div className="panel" style={{ marginBottom: "0.8rem", padding: "0.9rem 1rem" }}>
+          <h3 style={{ margin: "0 0 0.3rem" }}>Viajes sin tarifa (ultimos 90 dias)</h3>
+          <p className="dato-sec" style={{ margin: "0 0 0.6rem" }}>
+            No salen en esta matriz y no tienen producido conductor: en el Cuadro pagos no tienen tarifa y SOFI no la pudo deducir (el cliente tiene varias
+            tarifas con distinto flete conductor, o ninguna). Eligeles la tarifa en el Cuadro pagos (abre el viaje y "Elegir tarifa") o escribe el producido a
+            mano en su cuenta de viaje.
+          </p>
+          <MiniTabla
+            filas={sinTarifa.datos!}
+            clave={(x) => x.cliente}
+            nombre="clientes"
+            columnas={[
+              { titulo: "Cliente", celda: (x) => x.cliente },
+              { titulo: "Viajes", num: true, celda: (x) => x.viajes },
+              { titulo: "Placas", celda: (x) => x.placas.join(", ") },
+              { titulo: "Ultimo", celda: (x) => fechaCorta(x.ultimo) },
+            ]}
+          />
+        </div>
+      )}
       <div className="panel">
         <TablaDatos
           filas={tarifas}

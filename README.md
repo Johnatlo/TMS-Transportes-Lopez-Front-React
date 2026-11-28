@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_868 funciones, componentes, métodos y rutas en 132 archivos._
+_869 funciones, componentes, métodos y rutas en 132 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (269)
+- [`src/api/cliente.ts`](#srcapiclientets) (270)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -1115,6 +1115,9 @@ _868 funciones, componentes, métodos y rutas en 132 archivos._
 
   - **`apiConductores.fletes()`** · _método_
     Matriz de fletes conductor.
+
+  - **`apiConductores.viajesSinTarifa()`** · _método_
+    Viajes de los ultimos 90 dias sin tarifa (no salen en la matriz ni tienen producido conductor), por cliente.
 
   - **`apiConductores.guardarFlete(d)`** · _método_
     Guarda el flete conductor de una tarifa desde una fecha.
