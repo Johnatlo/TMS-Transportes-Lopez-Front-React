@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_874 funciones, componentes, métodos y rutas en 132 archivos._
+_876 funciones, componentes, métodos y rutas en 132 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (272)
+- [`src/api/cliente.ts`](#srcapiclientets) (274)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -665,6 +665,12 @@ _874 funciones, componentes, métodos y rutas en 132 archivos._
 
   - **`apiCuadro.actualizar(id, datos)`** · _método_
     Guarda los campos enviados de un viaje.
+
+  - **`apiCuadro.confirmarFlete(id)`** · _método_
+    Deja como revisado el flete que puso SOFI (no cambia el valor).
+
+  - **`apiCuadro.unirConReemplazo(id, nuevaId)`** · _método_
+    Une un viaje anulado con su reemplazo (le pasa lo registrado y borra el anulado).
 
   - **`apiCuadro.aplicarTarifa(id, tarifaFleteId)`** · _método_
     Pone el flete de una tarifa de la matriz elegida a mano.
@@ -2612,7 +2618,8 @@ _874 funciones, componentes, métodos y rutas en 132 archivos._
   "LOPEZ", "M&C" o "TERCERO" para la columna Empresa del vehiculo.
 
 - **`Viaje({...})`** · _componente React_
-  Viaje de un tramo: empresa y manifiesto, o la vuelta que espera el proximo viaje.
+  Viaje de un tramo: empresa y manifiesto, o la vuelta pendiente con el viaje
+  que SOFI sugiere y su boton para asignarla (no se asigna sola).
 
 - **`CuadroAnticipos()`** · _componente React_
   Pantalla Anticipos. Los anticipos se registran en cada viaje del Cuadro

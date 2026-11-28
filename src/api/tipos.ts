@@ -100,8 +100,11 @@ export interface AccesoGps {
 
 /** Remolque y conductor sugeridos para un vehiculo, con el porque. */
 export interface SugerenciaVehiculo {
+  /** Lo que se precarga: el habitual configurado en Flota o, si no hay, el mas usado. */
   remolque: { id: number; origen: string } | null;
   conductor: { id: number; origen: string } | null;
+  /** El mas usado en sus ultimos viajes cuando es distinto de lo configurado (solo sugerencia). */
+  masUsado?: { remolque: { id: number; origen: string } | null; conductor: { id: number; origen: string } | null };
 }
 
 /** Empresa de monitoreo de flota registrada en el RNDC. */

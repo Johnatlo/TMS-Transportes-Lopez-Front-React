@@ -377,6 +377,11 @@ function DetalleLiquidacion({
                     <>
                       {moneda(v.producido)}
                       {v.integro && <span className="dato-sec">integro</span>}
+                      {!v.producidoManual && v.tarifaDeducida && (
+                        <span className="dato-sec" title={`Tarifa deducida por SOFI: ${v.tarifa ?? ""}`}>
+                          automatico
+                        </span>
+                      )}
                     </>
                   ),
               },

@@ -164,6 +164,14 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
               </span>
             )}
             {v.producidoManual && <span className="dato-sec">a mano</span>}
+            {!v.producidoManual && v.tarifaDeducida && (
+              <span
+                className="dato-sec"
+                title={`El viaje no tiene tarifa en el Cuadro pagos: SOFI uso ${v.tarifa ?? "la que dedujo"}. Eligela en el Cuadro para confirmarla.`}
+              >
+                automatico
+              </span>
+            )}
           </>
         ),
     },

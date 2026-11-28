@@ -61,7 +61,6 @@ interface FilaRemesa {
   descargueEditado: boolean;
 }
 
-
 /** Tiempos pactados de una plantilla, para precargarlos en la carga (vacios si no hay plantilla). */
 function tiemposDePlantilla(
   p: Pick<PlantillaViaje, "horasPactoCargue" | "minutosPactoCargue" | "horasPactoDescargue" | "minutosPactoDescargue"> | undefined,
@@ -147,6 +146,9 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
    */
   const [porqueRemolque, setPorqueRemolque] = useState<string | null>(null);
   const [porqueConductor, setPorqueConductor] = useState<string | null>(null);
+  // El mas usado del vehiculo cuando es distinto del configurado en Flota: solo se sugiere.
+  const [otroRemolque, setOtroRemolque] = useState<{ id: number; origen: string } | null>(null);
+  const [otroConductor, setOtroConductor] = useState<{ id: number; origen: string } | null>(null);
   const [remolqueManual, setRemolqueManual] = useState(false);
   const [conductorManual, setConductorManual] = useState(false);
   /** Empresa de monitoreo del viaje (se elige por id, se envia el NIT). */
@@ -202,9 +204,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
    * las remesas que el RNDC ya creo.
    */
   const [viajeEnCurso, setViajeEnCurso] = useState<ViajeEnCurso | null>(null);
-  const remesasEnCurso = (viajeEnCurso?.remesas ?? [])
-    .filter((r) => r.estado !== "ANULADA")
-    .sort((a, b) => a.orden - b.orden);
+  const remesasEnCurso = (viajeEnCurso?.remesas ?? []).filter((r) => r.estado !== "ANULADA").sort((a, b) => a.orden - b.orden);
   /** La carga i ya existe en el RNDC: no se puede cambiar. */
   const cargaCreada = (i: number) => remesasEnCurso[i]?.estado === "CREADA";
   const hayCargasCreadas = remesasEnCurso.some((r) => r.estado === "CREADA");
@@ -231,8 +231,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const nitMonitoreo = listaMonitoreo.find((e) => e.id === monitoreoId)?.nit ?? null;
   const vehiculoElegido = listaVehiculos.find((v) => v.id === vehiculoId) ?? null;
 
-  const plantillaDe = (fila: FilaRemesa): PlantillaViaje | null =>
-    listaPlantillas.find((p) => p.id === fila.plantillaId) ?? null;
+  const plantillaDe = (fila: FilaRemesa): PlantillaViaje | null => listaPlantillas.find((p) => p.id === fila.plantillaId) ?? null;
 
   /** La primera carga define la ruta y los terminos del manifiesto. */
   const plantillaPrincipal = plantillaDe(remesas[0]);
@@ -251,7 +250,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   const tercerosDePlantillas = useMemo(
     () => listaPlantillas.flatMap((p) => [p.remitente, p.destinatario]).filter(Boolean),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [plantillas.datos]
+    [plantillas.datos],
   );
   const municipios = useMunicipios(tercerosDePlantillas);
   const municipioOrigen = plantillaPrincipal?.municipioOrigen ?? null;
@@ -269,17 +268,9 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     const descargues = remesas.map((r) => plantillaDe(r)?.destinatario?.codMunicipioRndc);
     const problemas: string[] = [];
     if (!(mostrarVacios && vacio1Origen) && cargues.every(Boolean) && !cargues.includes(municipioOrigen))
-      problemas.push(
-        `el origen ${municipioOrigen} no es el municipio de cargue de ninguna carga (${[...new Set(cargues)].join(", ")})`
-      );
-    if (
-      !(mostrarVacios && vacio2Destino) &&
-      descargues.every(Boolean) &&
-      !descargues.includes(municipioDestino)
-    )
-      problemas.push(
-        `el destino ${municipioDestino} no es el municipio de descargue de ninguna carga (${[...new Set(descargues)].join(", ")})`
-      );
+      problemas.push(`el origen ${municipioOrigen} no es el municipio de cargue de ninguna carga (${[...new Set(cargues)].join(", ")})`);
+    if (!(mostrarVacios && vacio2Destino) && descargues.every(Boolean) && !descargues.includes(municipioDestino))
+      problemas.push(`el destino ${municipioDestino} no es el municipio de descargue de ninguna carga (${[...new Set(descargues)].join(", ")})`);
     return problemas.length
       ? `La ruta no calza con las cargas: ${problemas.join("; ")}. Lo mas probable es que el RNDC rechace el manifiesto. Corrige la ruta de la plantilla o registra el trayecto en vacio.`
       : null;
@@ -377,6 +368,8 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       .getSugerencias(vehiculoId)
       .then((s) => {
         if (!vigente) return;
+        setOtroRemolque(s.masUsado?.remolque ?? null);
+        setOtroConductor(s.masUsado?.conductor ?? null);
         if (!remolqueManual) {
           setRemolqueId(s.remolque?.id ?? null);
           setPorqueRemolque(s.remolque?.origen ?? null);
@@ -483,16 +476,14 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     if (!tipo) return null;
     if (esMultiparada && tipo === "G")
       return "Este viaje lleva varias cargas pero la plantilla es de tipo General. Si el vehiculo hace paradas intermedias, el tipo correcto es Multiparada.";
-    if (!esMultiparada && tipo === "M")
-      return "La plantilla es Multiparada, que exige mas de una carga. Agrega otra o usa una plantilla de tipo General.";
+    if (!esMultiparada && tipo === "M") return "La plantilla es Multiparada, que exige mas de una carga. Agrega otra o usa una plantilla de tipo General.";
     return null;
   }, [plantillaPrincipal?.tipoManifiesto, esMultiparada]);
 
   const avisoFopat = useMemo(() => {
     if (retencionFopat === null) return null;
     if (retencionFopat === fopatCalculado) return null;
-    if (retencionFopat === 0)
-      return "FOPAT en cero: solo es correcto si el vehiculo no supera las 10,5 toneladas.";
+    if (retencionFopat === 0) return "FOPAT en cero: solo es correcto si el vehiculo no supera las 10,5 toneladas.";
     return `El RNDC exige exactamente ${moneda(fopatCalculado)} (0,1% del flete). Con otro valor rechaza el manifiesto.`;
   }, [retencionFopat, fopatCalculado]);
 
@@ -614,7 +605,10 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       cantidadReal: r.cantidadReal ?? undefined,
       ordenServicioGenerador: r.ordenServicioGenerador || undefined,
       valorFleteRemesa: r.valorFleteRemesa ?? undefined,
-      ...tiemposCambiados(r, listaPlantillas.find((p) => p.id === r.plantillaId)),
+      ...tiemposCambiados(
+        r,
+        listaPlantillas.find((p) => p.id === r.plantillaId),
+      ),
     }));
 
     try {
@@ -638,27 +632,27 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             remesas: cargas,
           })
         : await api.despachar({
-        vehiculoId,
-        conductorId,
-        remolqueId: llevaRemolque ? remolqueId : null,
-        conductor2Id: conductor2Id ?? undefined,
-        plantillaId: remesas[0].plantillaId!,
-        consecutivoBase: consecutivoBase.trim(),
-        remesas: cargas,
-        valorFleteReal: fleteEfectivo,
-        valorAnticipoManifiesto: valorAnticipo ?? undefined,
-        retencionFopat: retencionFopat ?? undefined,
-        codVia: codVia ?? undefined,
-        nitMonitoreoFlota: nitMonitoreo ?? undefined,
-        fechaPagoSaldo: fechaPagoSaldo || undefined,
-        viajesDia: viajesDia ?? undefined,
-        vacio1Origen: vacio1Origen || undefined,
-        vacio1Destino: vacio1Destino || undefined,
-        vacio1Valor: vacio1Valor ?? undefined,
-        vacio2Origen: vacio2Origen || undefined,
-        vacio2Destino: vacio2Destino || undefined,
-        vacio2Valor: vacio2Valor ?? undefined,
-      });
+            vehiculoId,
+            conductorId,
+            remolqueId: llevaRemolque ? remolqueId : null,
+            conductor2Id: conductor2Id ?? undefined,
+            plantillaId: remesas[0].plantillaId!,
+            consecutivoBase: consecutivoBase.trim(),
+            remesas: cargas,
+            valorFleteReal: fleteEfectivo,
+            valorAnticipoManifiesto: valorAnticipo ?? undefined,
+            retencionFopat: retencionFopat ?? undefined,
+            codVia: codVia ?? undefined,
+            nitMonitoreoFlota: nitMonitoreo ?? undefined,
+            fechaPagoSaldo: fechaPagoSaldo || undefined,
+            viajesDia: viajesDia ?? undefined,
+            vacio1Origen: vacio1Origen || undefined,
+            vacio1Destino: vacio1Destino || undefined,
+            vacio1Valor: vacio1Valor ?? undefined,
+            vacio2Origen: vacio2Origen || undefined,
+            vacio2Destino: vacio2Destino || undefined,
+            vacio2Valor: vacio2Valor ?? undefined,
+          });
 
       setAvisos(viaje.avisos ? viaje.avisos.split(" | ") : []);
       setViajeEnCurso(null);
@@ -726,7 +720,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             .map((k) => [k, r[k]]),
         ),
         descargueEditado: true,
-      }))
+      })),
     );
 
     setValorFleteReal(v.valorFleteReal);
@@ -757,13 +751,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
 
   // Se carga cuando ya estan los catalogos: sin ellos no se puede resolver,
   // por ejemplo, la empresa de monitoreo por su NIT.
-  const catalogosListos = !!(
-    plantillas.datos &&
-    vehiculos.datos &&
-    conductores.datos &&
-    remolques.datos &&
-    empresasMonitoreo.datos
-  );
+  const catalogosListos = !!(plantillas.datos && vehiculos.datos && conductores.datos && remolques.datos && empresasMonitoreo.datos);
   useEffect(() => {
     if (!viajeParaEditar || !catalogosListos) return;
     let vigente = true;
@@ -800,7 +788,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
       !window.confirm(
         `El RNDC dice que la remesa ${r.consecutivoRemesa} ya existe (radicado ${radicado}).\n\n` +
           "Usala SOLO si es esta misma remesa, creada en un intento anterior. Si es otra (por " +
-          "ejemplo, expedida desde el portal), cancela y cambia el numero en Valores."
+          "ejemplo, expedida desde el portal), cancela y cambia el numero en Valores.",
       )
     )
       return;
@@ -819,7 +807,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     if (
       !window.confirm(
         `El RNDC dice que el manifiesto ${viajeEnCurso.consecutivoManifiesto} ya existe (radicado ${radicado}).\n\n` +
-          "Usalo SOLO si es este mismo viaje, expedido en un intento anterior."
+          "Usalo SOLO si es este mismo viaje, expedido en un intento anterior.",
       )
     )
       return;
@@ -852,23 +840,17 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         ? remesas.every((r) => r.plantillaId && r.fechaHoraCargue && r.fechaHoraDescargue)
         : true;
 
-  const cargandoCatalogos =
-    plantillas.cargando || vehiculos.cargando || conductores.cargando || remolques.cargando;
+  const cargandoCatalogos = plantillas.cargando || vehiculos.cargando || conductores.cargando || remolques.cargando;
 
   const contenido = (
     <>
-      {mensaje && (
-        <div className={`alert ${mensaje.tipo === "success" ? "success" : "danger"}`}>
-          {mensaje.texto}
-        </div>
-      )}
+      {mensaje && <div className={`alert ${mensaje.tipo === "success" ? "success" : "danger"}`}>{mensaje.texto}</div>}
       {viajeEnCurso && (
         <div className="alert warning viaje-en-curso">
           <strong>
             Este despacho ya quedo guardado como viaje #{viajeEnCurso.id} ({viajeEnCurso.estado}).
           </strong>{" "}
-          Corrige lo que haga falta y vuelve a enviar: se reintenta ESTE mismo viaje, sin repetir el
-          numero ni reenviar lo que ya esta en el RNDC.
+          Corrige lo que haga falta y vuelve a enviar: se reintenta ESTE mismo viaje, sin repetir el numero ni reenviar lo que ya esta en el RNDC.
           <ul>
             {remesasEnCurso.map((r) => {
               const dup = r.estado !== "CREADA" ? radicadoDuplicado(r.mensajeError) : null;
@@ -911,7 +893,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               onClick={() =>
                 window.open(
                   api.urlManifiestoContingencia(viajeEnCurso.id, `No se pudo expedir: ${(viajeEnCurso.mensajeError ?? "error del RNDC").slice(0, 200)}`),
-                  "_blank"
+                  "_blank",
                 )
               }
             >
@@ -951,10 +933,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         <div className="form-section">
           <div>
             <div className="section-title">Vehiculo, remolque y conductor</div>
-            <div className="section-desc">
-              El sistema valida SOAT, tecnomecanica y licencia contra la fecha de descargue mas
-              tardia de todas las cargas.
-            </div>
+            <div className="section-desc">El sistema valida SOAT, tecnomecanica y licencia contra la fecha de descargue mas tardia de todas las cargas.</div>
           </div>
           <div>
             <label>Vehiculo</label>
@@ -981,39 +960,48 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             />
             {vehiculoElegido && !vehiculoElegido.nitMonitoreoFlota && !monitoreoId && (
               <p className="section-desc">
-                Este vehiculo no tiene proveedor de GPS por defecto. Eligelo aqui; si siempre es el
-                mismo, asignaselo en Catalogo → Vehiculos para no repetirlo.
+                Este vehiculo no tiene proveedor de GPS por defecto. Eligelo aqui; si siempre es el mismo, asignaselo en Catalogo → Vehiculos para no repetirlo.
               </p>
             )}
             {listaMonitoreo.length === 0 && !empresasMonitoreo.cargando && (
-              <p className="section-desc">
-                No hay empresas de monitoreo cargadas. Agregalas en Catalogo → Monitoreo.
-              </p>
+              <p className="section-desc">No hay empresas de monitoreo cargadas. Agregalas en Catalogo → Monitoreo.</p>
             )}
 
             {!llevaRemolque ? (
-              <p className="section-desc">
-                Vehiculo rigido (configuracion {configuracion}): va sin remolque.
-              </p>
+              <p className="section-desc">Vehiculo rigido (configuracion {configuracion}): va sin remolque.</p>
             ) : (
-            <>
-            <label>Remolque (trailer) usado en este viaje</label>
-            <ComboBuscable
-              opciones={listaRemolques}
-              valor={remolqueId}
-              alCambiar={(id) => {
-                setRemolqueManual(true);
-                setPorqueRemolque(null);
-                setRemolqueId(id);
-              }}
-              obtenerId={(r) => r.id}
-              obtenerEtiqueta={(r) => r.placa}
-              placeholder="Busca por placa..."
-            />
-            {porqueRemolque && remolqueId && (
-              <p className="section-desc sugerencia">✓ Sugerido: {porqueRemolque}.</p>
-            )}
-            </>
+              <>
+                <label>Remolque (trailer) usado en este viaje</label>
+                <ComboBuscable
+                  opciones={listaRemolques}
+                  valor={remolqueId}
+                  alCambiar={(id) => {
+                    setRemolqueManual(true);
+                    setPorqueRemolque(null);
+                    setRemolqueId(id);
+                  }}
+                  obtenerId={(r) => r.id}
+                  obtenerEtiqueta={(r) => r.placa}
+                  placeholder="Busca por placa..."
+                />
+                {porqueRemolque && remolqueId && <p className="section-desc sugerencia">✓ {porqueRemolque}.</p>}
+                {otroRemolque && otroRemolque.id !== remolqueId && (
+                  <p className="section-desc sugerencia-alterna">
+                    Sugerencia: {listaRemolques.find((r) => r.id === otroRemolque.id)?.placa ?? "otro remolque"} ({otroRemolque.origen}).{" "}
+                    <button
+                      type="button"
+                      className="btn-link"
+                      onClick={() => {
+                        setRemolqueManual(true);
+                        setRemolqueId(otroRemolque.id);
+                        setPorqueRemolque(otroRemolque.origen);
+                      }}
+                    >
+                      Usar este
+                    </button>
+                  </p>
+                )}
+              </>
             )}
 
             <label>Conductor</label>
@@ -1029,8 +1017,22 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               obtenerEtiqueta={(c) => `${c.nombre} (${c.cedula})`}
               placeholder="Busca por nombre o cedula..."
             />
-            {porqueConductor && conductorId && (
-              <p className="section-desc sugerencia">✓ Sugerido: {porqueConductor}.</p>
+            {porqueConductor && conductorId && <p className="section-desc sugerencia">✓ {porqueConductor}.</p>}
+            {otroConductor && otroConductor.id !== conductorId && (
+              <p className="section-desc sugerencia-alterna">
+                Sugerencia: {listaConductores.find((c) => c.id === otroConductor.id)?.nombre ?? "otro conductor"} ({otroConductor.origen}).{" "}
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={() => {
+                    setConductorManual(true);
+                    setConductorId(otroConductor.id);
+                    setPorqueConductor(otroConductor.origen);
+                  }}
+                >
+                  Usar este
+                </button>
+              </p>
             )}
 
             <label>Segundo conductor (opcional)</label>
@@ -1052,8 +1054,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
           <div>
             <div className="section-title">Cargas del viaje</div>
             <div className="section-desc">
-              Una por cada cliente o parada. Cada una genera su propia remesa, y todas quedan
-              amparadas por un solo manifiesto. Maximo {MAX_REMESAS}.
+              Una por cada cliente o parada. Cada una genera su propia remesa, y todas quedan amparadas por un solo manifiesto. Maximo {MAX_REMESAS}.
             </div>
             {esMultiparada && (
               <div className="section-desc" style={{ marginTop: "0.6rem" }}>
@@ -1066,9 +1067,8 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
 
             {hayCargasCreadas && (
               <div className="alert info">
-                Las cargas que ya estan creadas en el RNDC no se pueden cambiar, y no se pueden
-                agregar ni quitar cargas. Si una carga creada tiene un error, anula el viaje desde
-                Viajes y despacha de nuevo.
+                Las cargas que ya estan creadas en el RNDC no se pueden cambiar, y no se pueden agregar ni quitar cargas. Si una carga creada tiene un error,
+                anula el viaje desde Viajes y despacha de nuevo.
               </div>
             )}
             {remesas.map((r, i) => (
@@ -1086,155 +1086,141 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
                 </div>
 
                 <fieldset disabled={cargaCreada(i)}>
-                <label>Plantilla (cliente y mercancia)</label>
-                <ComboBuscable
-                  opciones={listaPlantillas}
-                  valor={r.plantillaId}
-                  alCambiar={(id) => actualizarFila(i, { plantillaId: id, ...tiemposDePlantilla(listaPlantillas.find((p) => p.id === id)) })}
-                  obtenerId={(p) => p.id}
-                  obtenerEtiqueta={(p) => p.nombre}
-                  placeholder="Busca por nombre de la plantilla..."
-                />
+                  <label>Plantilla (cliente y mercancia)</label>
+                  <ComboBuscable
+                    opciones={listaPlantillas}
+                    valor={r.plantillaId}
+                    alCambiar={(id) => actualizarFila(i, { plantillaId: id, ...tiemposDePlantilla(listaPlantillas.find((p) => p.id === id)) })}
+                    obtenerId={(p) => p.id}
+                    obtenerEtiqueta={(p) => p.nombre}
+                    placeholder="Busca por nombre de la plantilla..."
+                  />
 
-                {r.plantillaId && (
-                  <div className="tiempos-pacto">
-                    <div>
-                      <label>Tiempo pactado de cargue</label>
-                      <span className="estado-abono">
-                        <input
-                          type="number"
-                          min={0}
-                          max={99}
-                          aria-label="Horas de cargue"
-                          value={r.horasPactoCargue ?? ""}
-                          onChange={(e) => actualizarFila(i, { horasPactoCargue: e.target.value === "" ? null : Number(e.target.value) })}
-                        />
-                        <span className="dato-sec">h</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={59}
-                          aria-label="Minutos de cargue"
-                          value={r.minutosPactoCargue ?? ""}
-                          onChange={(e) => actualizarFila(i, { minutosPactoCargue: e.target.value === "" ? null : Number(e.target.value) })}
-                        />
-                        <span className="dato-sec">min</span>
-                      </span>
+                  {r.plantillaId && (
+                    <div className="tiempos-pacto">
+                      <div>
+                        <label>Tiempo pactado de cargue</label>
+                        <span className="estado-abono">
+                          <input
+                            type="number"
+                            min={0}
+                            max={99}
+                            aria-label="Horas de cargue"
+                            value={r.horasPactoCargue ?? ""}
+                            onChange={(e) => actualizarFila(i, { horasPactoCargue: e.target.value === "" ? null : Number(e.target.value) })}
+                          />
+                          <span className="dato-sec">h</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={59}
+                            aria-label="Minutos de cargue"
+                            value={r.minutosPactoCargue ?? ""}
+                            onChange={(e) => actualizarFila(i, { minutosPactoCargue: e.target.value === "" ? null : Number(e.target.value) })}
+                          />
+                          <span className="dato-sec">min</span>
+                        </span>
+                      </div>
+                      <div>
+                        <label>Tiempo pactado de descargue</label>
+                        <span className="estado-abono">
+                          <input
+                            type="number"
+                            min={0}
+                            max={99}
+                            aria-label="Horas de descargue"
+                            value={r.horasPactoDescargue ?? ""}
+                            onChange={(e) => actualizarFila(i, { horasPactoDescargue: e.target.value === "" ? null : Number(e.target.value) })}
+                          />
+                          <span className="dato-sec">h</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={59}
+                            aria-label="Minutos de descargue"
+                            value={r.minutosPactoDescargue ?? ""}
+                            onChange={(e) => actualizarFila(i, { minutosPactoDescargue: e.target.value === "" ? null : Number(e.target.value) })}
+                          />
+                          <span className="dato-sec">min</span>
+                        </span>
+                      </div>
+                      <p className="section-desc" style={{ gridColumn: "1 / -1", margin: 0 }}>
+                        {(() => {
+                          const p = listaPlantillas.find((x) => x.id === r.plantillaId);
+                          return p
+                            ? `Los de la plantilla: cargue ${p.horasPactoCargue} h ${p.minutosPactoCargue} min, descargue ${p.horasPactoDescargue} h ${p.minutosPactoDescargue} min. Cambialos si esta vez cargan o descargan mas rapido.`
+                            : "";
+                        })()}
+                      </p>
                     </div>
-                    <div>
-                      <label>Tiempo pactado de descargue</label>
-                      <span className="estado-abono">
-                        <input
-                          type="number"
-                          min={0}
-                          max={99}
-                          aria-label="Horas de descargue"
-                          value={r.horasPactoDescargue ?? ""}
-                          onChange={(e) => actualizarFila(i, { horasPactoDescargue: e.target.value === "" ? null : Number(e.target.value) })}
-                        />
-                        <span className="dato-sec">h</span>
-                        <input
-                          type="number"
-                          min={0}
-                          max={59}
-                          aria-label="Minutos de descargue"
-                          value={r.minutosPactoDescargue ?? ""}
-                          onChange={(e) => actualizarFila(i, { minutosPactoDescargue: e.target.value === "" ? null : Number(e.target.value) })}
-                        />
-                        <span className="dato-sec">min</span>
-                      </span>
-                    </div>
-                    <p className="section-desc" style={{ gridColumn: "1 / -1", margin: 0 }}>
-                      {(() => {
-                        const p = listaPlantillas.find((x) => x.id === r.plantillaId);
-                        return p
-                          ? `Los de la plantilla: cargue ${p.horasPactoCargue} h ${p.minutosPactoCargue} min, descargue ${p.horasPactoDescargue} h ${p.minutosPactoDescargue} min. Cambialos si esta vez cargan o descargan mas rapido.`
-                          : "";
-                      })()}
-                    </p>
-                  </div>
-                )}
+                  )}
 
-                <label>Cita de cargue</label>
-                <input
-                  type="datetime-local"
-                  value={r.fechaHoraCargue}
-                  onChange={(e) => alCambiarCargue(i, e.target.value)}
-                />
+                  <label>Cita de cargue</label>
+                  <input type="datetime-local" value={r.fechaHoraCargue} onChange={(e) => alCambiarCargue(i, e.target.value)} />
 
-                <label>Cita de descargue</label>
-                <input
-                  type="datetime-local"
-                  value={r.fechaHoraDescargue}
-                  onChange={(e) =>
-                    actualizarFila(i, {
-                      fechaHoraDescargue: e.target.value,
-                      descargueEditado: true,
-                    })
-                  }
-                />
+                  <label>Cita de descargue</label>
+                  <input
+                    type="datetime-local"
+                    value={r.fechaHoraDescargue}
+                    onChange={(e) =>
+                      actualizarFila(i, {
+                        fechaHoraDescargue: e.target.value,
+                        descargueEditado: true,
+                      })
+                    }
+                  />
 
-                <label>Peso cargado (kg)</label>
-                <input
-                  type="number"
-                  value={r.pesoReal ?? ""}
-                  onChange={(e) =>
-                    actualizarFila(i, {
-                      pesoReal: e.target.value === "" ? null : Number(e.target.value),
-                    })
-                  }
-                />
+                  <label>Peso cargado (kg)</label>
+                  <input
+                    type="number"
+                    value={r.pesoReal ?? ""}
+                    onChange={(e) =>
+                      actualizarFila(i, {
+                        pesoReal: e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                  />
 
-                {pideCantidadComercial(r) && (
-                  <>
-                    <label>{etiquetaCantidad(r)}</label>
-                    <input
-                      type="number"
-                      value={r.cantidadReal ?? ""}
-                      onChange={(e) =>
-                        actualizarFila(i, {
-                          cantidadReal: e.target.value === "" ? null : Number(e.target.value),
-                        })
-                      }
-                    />
-                  </>
-                )}
+                  {pideCantidadComercial(r) && (
+                    <>
+                      <label>{etiquetaCantidad(r)}</label>
+                      <input
+                        type="number"
+                        value={r.cantidadReal ?? ""}
+                        onChange={(e) =>
+                          actualizarFila(i, {
+                            cantidadReal: e.target.value === "" ? null : Number(e.target.value),
+                          })
+                        }
+                      />
+                    </>
+                  )}
 
-                <label>Orden de servicio del generador (opcional)</label>
-                <input
-                  value={r.ordenServicioGenerador}
-                  onChange={(e) => actualizarFila(i, { ordenServicioGenerador: e.target.value })}
-                />
+                  <label>Orden de servicio del generador (opcional)</label>
+                  <input value={r.ordenServicioGenerador} onChange={(e) => actualizarFila(i, { ordenServicioGenerador: e.target.value })} />
 
-                {esMultiparada && (
-                  <>
-                    <label>Parte del flete de esta carga (opcional)</label>
-                    <input
-                      type="number"
-                      value={r.valorFleteRemesa ?? ""}
-                      onChange={(e) =>
-                        actualizarFila(i, {
-                          valorFleteRemesa:
-                            e.target.value === "" ? null : Number(e.target.value),
-                        })
-                      }
-                    />
-                    <p className="section-desc">
-                      Sirve para repartir la retencion de ICA entre municipios. Si lo dejas vacio,
-                      se reparte proporcional al peso.
-                    </p>
-                  </>
-                )}
+                  {esMultiparada && (
+                    <>
+                      <label>Parte del flete de esta carga (opcional)</label>
+                      <input
+                        type="number"
+                        value={r.valorFleteRemesa ?? ""}
+                        onChange={(e) =>
+                          actualizarFila(i, {
+                            valorFleteRemesa: e.target.value === "" ? null : Number(e.target.value),
+                          })
+                        }
+                      />
+                      <p className="section-desc">
+                        Sirve para repartir la retencion de ICA entre municipios. Si lo dejas vacio, se reparte proporcional al peso.
+                      </p>
+                    </>
+                  )}
                 </fieldset>
               </div>
             ))}
 
-            <button
-              type="button"
-              className="btn-secundario"
-              onClick={agregarRemesa}
-              disabled={remesas.length >= MAX_REMESAS || hayCargasCreadas}
-            >
+            <button type="button" className="btn-secundario" onClick={agregarRemesa} disabled={remesas.length >= MAX_REMESAS || hayCargasCreadas}>
               + Agregar otra carga
             </button>
 
@@ -1256,17 +1242,11 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
           </div>
           <div>
             <label>Numero de remesa y manifiesto</label>
-            <input
-              value={consecutivoBase}
-              onChange={(e) => setConsecutivoBase(e.target.value)}
-              placeholder="00006692"
-            />
+            <input value={consecutivoBase} onChange={(e) => setConsecutivoBase(e.target.value)} placeholder="00006692" />
             <p className="section-desc">
               El manifiesto lleva este numero tal cual.
-              {esMultiparada
-                ? " Las remesas salen del mismo numero con una letra al final."
-                : " La remesa lleva el mismo numero."}{" "}
-              Se sugiere el siguiente libre, pero lo puedes cambiar si hubo un documento anulado.
+              {esMultiparada ? " Las remesas salen del mismo numero con una letra al final." : " La remesa lleva el mismo numero."} Se sugiere el siguiente
+              libre, pero lo puedes cambiar si hubo un documento anulado.
             </p>
 
             <label>Ruta del viaje</label>
@@ -1277,16 +1257,12 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
                     {municipios.nombre(municipioOrigen)} → {municipios.nombre(municipioDestino)}
                   </strong>
                   <div style={{ marginTop: "0.3rem" }}>
-                    Origen de la plantilla "{plantillaPrincipal?.nombre}"
-                    {esMultiparada ? `, destino de "${plantillaUltima?.nombre}" (ultima carga)` : ""}.
-                    Con esta ruta se consultaron las vias y el piso de SICETAC.
+                    Origen de la plantilla "{plantillaPrincipal?.nombre}"{esMultiparada ? `, destino de "${plantillaUltima?.nombre}" (ultima carga)` : ""}. Con
+                    esta ruta se consultaron las vias y el piso de SICETAC.
                   </div>
                 </>
               ) : (
-                <>
-                  La plantilla no tiene la ruta completa, asi que no se pueden consultar las vias.
-                  Completala en Plantillas → Editar.
-                </>
+                <>La plantilla no tiene la ruta completa, asi que no se pueden consultar las vias. Completala en Plantillas → Editar.</>
               )}
             </div>
             {avisoRuta && <div className="alert danger">{avisoRuta}</div>}
@@ -1306,17 +1282,11 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             )}
 
             <label>Via a utilizar</label>
-            <select
-              value={codVia ?? ""}
-              onChange={(e) => setCodVia(e.target.value || null)}
-              disabled={vias.length === 0 && !codVia}
-            >
+            <select value={codVia ?? ""} onChange={(e) => setCodVia(e.target.value || null)} disabled={vias.length === 0 && !codVia}>
               <option value="">Via estandar de SICETAC (el RNDC la asigna)</option>
               {/* Via guardada en el viaje que SICETAC no devolvio ahora: se muestra
                   igual, para que no parezca que se perdio. */}
-              {codVia && !vias.some((v) => v.codVia === codVia) && (
-                <option value={codVia}>Via {codVia} (la que tenia el viaje)</option>
-              )}
+              {codVia && !vias.some((v) => v.codVia === codVia) && <option value={codVia}>Via {codVia} (la que tenia el viaje)</option>}
               {vias.map((v) => (
                 <option key={v.codVia} value={v.codVia}>
                   {v.esEstandar ? "(estandar) " : ""}
@@ -1326,29 +1296,22 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               ))}
             </select>
 
-            {cargandoVias && (
-              <p className="section-desc">Consultando vias y tarifas en SICETAC...</p>
-            )}
-            {periodoSicetac && !viasDesdeCache && (
-              <p className="section-desc">Valores de SICETAC del periodo {periodoSicetac}.</p>
-            )}
+            {cargandoVias && <p className="section-desc">Consultando vias y tarifas en SICETAC...</p>}
+            {periodoSicetac && !viasDesdeCache && <p className="section-desc">Valores de SICETAC del periodo {periodoSicetac}.</p>}
             {viasDesdeCache && vias.length > 0 && (
               <div className="alert warning">
-                No se pudo consultar SICETAC ahora. Se muestran los ultimos valores consultados,
-                que pueden estar desactualizados.
+                No se pudo consultar SICETAC ahora. Se muestran los ultimos valores consultados, que pueden estar desactualizados.
               </div>
             )}
             {!cargandoVias && vias.length === 0 && municipioOrigen && municipioDestino && (
               <p className="section-desc">
-                SICETAC no devolvio vias para {municipios.nombre(municipioOrigen)} →{" "}
-                {municipios.nombre(municipioDestino)}. El manifiesto
-                saldra con la via estandar que asigne el RNDC.
+                SICETAC no devolvio vias para {municipios.nombre(municipioOrigen)} → {municipios.nombre(municipioDestino)}. El manifiesto saldra con la via
+                estandar que asigne el RNDC.
               </p>
             )}
             {viaSeleccionada?.valorSicetac && (
               <p className="section-desc">
-                Piso de esta via: {moneda(viaSeleccionada.valorSicetac)} (movilizacion mas{" "}
-                {horasPactadas.toFixed(2)} horas pactadas).
+                Piso de esta via: {moneda(viaSeleccionada.valorSicetac)} (movilizacion mas {horasPactadas.toFixed(2)} horas pactadas).
               </p>
             )}
             {avisoPisoSicetac && <div className="alert warning">{avisoPisoSicetac}</div>}
@@ -1364,8 +1327,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             />
             {plantillaPrincipal?.valorFleteBase && (
               <p className="section-desc">
-                Tarifa de la plantilla: {moneda(plantillaPrincipal.valorFleteBase)}. Puedes
-                cambiarla para este viaje sin afectar la plantilla.
+                Tarifa de la plantilla: {moneda(plantillaPrincipal.valorFleteBase)}. Puedes cambiarla para este viaje sin afectar la plantilla.
               </p>
             )}
 
@@ -1379,8 +1341,8 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
               }}
             />
             <p className="section-desc">
-              Se calcula solo al escribir el flete. Este es el valor que la empresa le declara a la
-              DIAN el mes siguiente, y queda registrado en el viaje para poder cuadrar el pago.
+              Se calcula solo al escribir el flete. Este es el valor que la empresa le declara a la DIAN el mes siguiente, y queda registrado en el viaje para
+              poder cuadrar el pago.
               {fopatEditado && (
                 <button
                   type="button"
@@ -1397,49 +1359,26 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             {avisoFopat && <div className="alert warning">{avisoFopat}</div>}
 
             <label>Valor del anticipo entregado</label>
-            <input
-              type="number"
-              value={valorAnticipo ?? ""}
-              onChange={(e) =>
-                setValorAnticipo(e.target.value === "" ? null : Number(e.target.value))
-              }
-            />
-            <p className="section-desc">
-              No puede superar el neto a pagar, o sea el flete menos las tres retenciones.
-            </p>
+            <input type="number" value={valorAnticipo ?? ""} onChange={(e) => setValorAnticipo(e.target.value === "" ? null : Number(e.target.value))} />
+            <p className="section-desc">No puede superar el neto a pagar, o sea el flete menos las tres retenciones.</p>
 
             <label>Fecha de pago del saldo</label>
-            <input
-              type="date"
-              value={fechaPagoSaldo}
-              onChange={(e) => setFechaPagoSaldo(e.target.value)}
-            />
+            <input type="date" value={fechaPagoSaldo} onChange={(e) => setFechaPagoSaldo(e.target.value)} />
             <p className="section-desc">
-              Por defecto, 30 dias despues del despacho. Si la borras, se toma la fecha del ultimo
-              descargue. El limite es 30 dias habiles despues de la cita de descargue.
+              Por defecto, 30 dias despues del despacho. Si la borras, se toma la fecha del ultimo descargue. El limite es 30 dias habiles despues de la cita de
+              descargue.
             </p>
 
             {pideViajesDia && (
               <>
                 <label>Cantidad de viajes en el dia</label>
-                <input
-                  type="number"
-                  value={viajesDia ?? ""}
-                  onChange={(e) =>
-                    setViajesDia(e.target.value === "" ? null : Number(e.target.value))
-                  }
-                />
+                <input type="number" value={viajesDia ?? ""} onChange={(e) => setViajesDia(e.target.value === "" ? null : Number(e.target.value))} />
               </>
             )}
 
             <div style={{ marginTop: "0.8rem" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  style={{ width: "auto" }}
-                  checked={mostrarVacios}
-                  onChange={(e) => setMostrarVacios(e.target.checked)}
-                />
+                <input type="checkbox" style={{ width: "auto" }} checked={mostrarVacios} onChange={(e) => setMostrarVacios(e.target.checked)} />
                 Este viaje tiene trayectos en vacio pactados
               </label>
             </div>
@@ -1447,8 +1386,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
             {mostrarVacios && (
               <div style={{ marginTop: "0.6rem" }}>
                 <p className="section-desc">
-                  Solo si le pagas al transportador por recorrer un tramo sin carga. Los municipios
-                  van con el codigo RNDC de 8 digitos.
+                  Solo si le pagas al transportador por recorrer un tramo sin carga. Los municipios van con el codigo RNDC de 8 digitos.
                 </p>
 
                 <label>Vacio 1 - municipio origen (donde arranca sin carga)</label>
@@ -1456,26 +1394,14 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
                 <label>Vacio 1 - municipio destino (donde carga la primera remesa)</label>
                 <input value={vacio1Destino} onChange={(e) => setVacio1Destino(e.target.value)} />
                 <label>Vacio 1 - valor pactado</label>
-                <input
-                  type="number"
-                  value={vacio1Valor ?? ""}
-                  onChange={(e) =>
-                    setVacio1Valor(e.target.value === "" ? null : Number(e.target.value))
-                  }
-                />
+                <input type="number" value={vacio1Valor ?? ""} onChange={(e) => setVacio1Valor(e.target.value === "" ? null : Number(e.target.value))} />
 
                 <label>Vacio 2 - municipio origen (donde descarga la ultima remesa)</label>
                 <input value={vacio2Origen} onChange={(e) => setVacio2Origen(e.target.value)} />
                 <label>Vacio 2 - municipio destino (donde termina el viaje)</label>
                 <input value={vacio2Destino} onChange={(e) => setVacio2Destino(e.target.value)} />
                 <label>Vacio 2 - valor pactado</label>
-                <input
-                  type="number"
-                  value={vacio2Valor ?? ""}
-                  onChange={(e) =>
-                    setVacio2Valor(e.target.value === "" ? null : Number(e.target.value))
-                  }
-                />
+                <input type="number" value={vacio2Valor ?? ""} onChange={(e) => setVacio2Valor(e.target.value === "" ? null : Number(e.target.value))} />
               </div>
             )}
           </div>
@@ -1497,11 +1423,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
         </button>
       ) : (
         <button className="btn-primary" onClick={generarManifiesto} disabled={enviando}>
-          {enviando
-            ? "Enviando al RNDC..."
-            : viajeEnCurso
-              ? `Reintentar viaje #${viajeEnCurso.id}`
-              : "Generar manifiesto"}
+          {enviando ? "Enviando al RNDC..." : viajeEnCurso ? `Reintentar viaje #${viajeEnCurso.id}` : "Generar manifiesto"}
         </button>
       )}
     </>
@@ -1510,14 +1432,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
   // Se puede usar como pagina o dentro de una ventana modal.
   if (alCerrar) {
     return (
-      <Modal
-        titulo="Nuevo despacho"
-        ancho="wide"
-        pasos={PASOS}
-        pasoActual={paso}
-        alCerrar={alCerrar}
-        pie={pie}
-      >
+      <Modal titulo="Nuevo despacho" ancho="wide" pasos={PASOS} pasoActual={paso} alCerrar={alCerrar} pie={pie}>
         {contenido}
       </Modal>
     );
@@ -1527,12 +1442,7 @@ export default function Despacho({ alCerrar }: { alCerrar?: () => void } = {}) {
     <div className="panel">
       <div className="stepper-header">
         {PASOS.map((p, i) => (
-          <div
-            key={p}
-            className={
-              i === paso ? "stepper-step active" : i < paso ? "stepper-step done" : "stepper-step"
-            }
-          >
+          <div key={p} className={i === paso ? "stepper-step active" : i < paso ? "stepper-step done" : "stepper-step"}>
             <span className="dot">{i < paso ? "✓" : i + 1}</span>
             <span>{p}</span>
           </div>

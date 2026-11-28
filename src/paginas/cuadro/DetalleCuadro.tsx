@@ -193,6 +193,32 @@ export default function DetalleCuadro({
           </div>
           {error && <div className="alert danger">{error}</div>}
           {aviso && <div className="alert success">{aviso}</div>}
+          {d.anulado && d.reemplazoSugerido && (
+            <div className="alert info">
+              Este manifiesto se anulo. Parece que se volvio a expedir como el manifiesto <strong>{d.reemplazoSugerido.manifiesto ?? "sin numero"}</strong> del{" "}
+              {fechaCorta(d.reemplazoSugerido.fecha)} (misma placa y cliente).{" "}
+              <button
+                className="btn-link"
+                onClick={async () => {
+                  if (
+                    !window.confirm(
+                      "¿Unir? Al nuevo le pasa lo registrado aqui (anticipos, notas, cuenta de viaje y lo que este vacio alla) y esta fila anulada se borra.",
+                    )
+                  )
+                    return;
+                  try {
+                    await apiCuadro.unirConReemplazo(id, d.reemplazoSugerido!.id);
+                    alCambiar();
+                    alCerrar();
+                  } catch (exc) {
+                    setError(exc instanceof Error ? exc.message : "No se pudo unir.");
+                  }
+                }}
+              >
+                Unir con ese manifiesto
+              </button>
+            </div>
+          )}
 
           <Seccion titulo="Papeles">
             <div className="pasos-papeles">
@@ -300,6 +326,15 @@ export default function DetalleCuadro({
                   <span className="dato-sec">
                     Tarifa de la matriz: {d.tarifaFlete}
                     {d.fleteManual ? " (flete escrito a mano)" : ""}
+                    {d.fleteAutomatico && (
+                      <>
+                        {" "}
+                        (la puso SOFI: revisala){" "}
+                        <button className="btn-link" onClick={() => aplicar(() => apiCuadro.confirmarFlete(id), "Flete confirmado.")}>
+                          Confirmar
+                        </button>
+                      </>
+                    )}
                   </span>
                 )}
               </div>

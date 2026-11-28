@@ -56,6 +56,8 @@ const PESTANAS: PestanaTabla<FilaCuadro>[] = [
   { id: "cobrar", etiqueta: "Cobro vencido", incluye: cobroVencido },
   { id: "saldos", etiqueta: "Saldos vencidos", incluye: saldoVencido },
   { id: "pagados", etiqueta: "Todo pagado", incluye: (f) => f.todoPagado },
+  // Manifiestos anulados que parecen re-expedidos: se unen a mano desde el detalle del viaje.
+  { id: "porUnir", etiqueta: "Anulados por unir", incluye: (f) => f.anulado && !!f.reemplazoSugerido },
   { id: "todos", etiqueta: "Todos", incluye: () => true },
 ];
 
@@ -180,8 +182,9 @@ const COLUMNAS: Columna<FilaCuadro>[] = [
     celda: (f) => (
       <>
         {f.tarifaFlete && (
-          <span className="dato-sec" title="Tarifa de la matriz de fletes">
+          <span className="dato-sec" title={f.fleteAutomatico ? "Tarifa que puso SOFI (deducida): revisala en el viaje" : "Tarifa de la matriz de fletes"}>
             {f.tarifaFlete}
+            {f.fleteAutomatico ? " · automatico" : ""}
           </span>
         )}
         {f.valorFlete !== null ? (

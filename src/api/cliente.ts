@@ -722,11 +722,15 @@ export interface FilaCuadro {
   producto: string | null;
   /** El flete se escribio o se eligio a mano: la deduccion de la matriz no lo toca. */
   fleteManual: boolean;
+  /** El flete lo puso SOFI con la tarifa que dedujo y nadie lo ha revisado. */
+  fleteAutomatico?: boolean;
   /**
    * Sin flete exacto: las tarifas de la matriz que podrian ser, para elegir
    * (las deduce el backend con el destino, el producto y el tipo de carro).
    */
   tarifasPosibles: TarifaPosible[];
+  /** Anulado: el manifiesto que parece reemplazarlo (solo sugerencia; se une con un clic). */
+  reemplazoSugerido?: { id: number; manifiesto: string | null; fecha: string } | null;
   /** Nota de la factura para la contadora. */
   notaFactura: string | null;
   /** Cuando se envio en el cuadro de facturacion. */
@@ -793,6 +797,8 @@ export interface FilaCuadro {
  */
 export interface AnticipoBomba {
   id: number;
+  /** Vuelta pendiente: el viaje que SOFI sugiere (solo sugerencia; se asigna con un clic). */
+  viajeSugerido?: { id: number; fecha: string; empresa: string; manifiesto: string | null } | null;
   /** Tanqueo del que sale (una sola factura de la bomba para ida y vuelta). */
   tanqueoId: number | null;
   tramo: "IDA" | "VUELTA";
@@ -1134,6 +1140,10 @@ export const apiCuadro = {
   crear: (datos: Record<string, unknown>) => post<DetalleCuadro>("/cuadro", datos),
   /** Guarda los campos enviados de un viaje. */
   actualizar: (id: number, datos: Record<string, unknown>) => put<DetalleCuadro>(`/cuadro/${id}`, datos),
+  /** Deja como revisado el flete que puso SOFI (no cambia el valor). */
+  confirmarFlete: (id: number) => post<DetalleCuadro>(`/cuadro/${id}/confirmar-flete`, {}),
+  /** Une un viaje anulado con su reemplazo (le pasa lo registrado y borra el anulado). */
+  unirConReemplazo: (id: number, nuevaId: number) => post<DetalleCuadro>(`/cuadro/${id}/unir`, { nuevaId }),
   /** Pone el flete de una tarifa de la matriz elegida a mano. */
   aplicarTarifa: (id: number, tarifaFleteId: number) => post<DetalleCuadro>(`/cuadro/${id}/tarifa`, { tarifaFleteId }),
   /** Borra un viaje creado a mano. */

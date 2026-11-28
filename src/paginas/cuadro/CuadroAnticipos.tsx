@@ -65,10 +65,33 @@ const CRUCE: Record<EstadoCruce, { etiqueta: string; tono: TonoPastilla }> = {
   SOLO_EFECTIVO: { etiqueta: "Solo efectivo", tono: "info" },
 };
 
-/** Viaje de un tramo: empresa y manifiesto, o la vuelta que espera el proximo viaje. */
-function Viaje({ t }: { t: AnticipoBomba | null }) {
+/**
+ * Viaje de un tramo: empresa y manifiesto, o la vuelta pendiente con el viaje
+ * que SOFI sugiere y su boton para asignarla (no se asigna sola).
+ */
+function Viaje({ t, alAsignar }: { t: AnticipoBomba | null; alAsignar?: (tramoId: number, cuadroViajeId: number) => void }) {
   if (!t) return <span className="dato-sec">-</span>;
-  if (!t.cuadroViajeId) return <span className="texto-vencido">Pendiente: proximo viaje de {placaConGuion(t.placa ?? "")}</span>;
+  if (!t.cuadroViajeId) {
+    const s = t.viajeSugerido;
+    return (
+      <span onClick={(e) => e.stopPropagation()}>
+        <span className="texto-vencido">Vuelta sin viaje</span>
+        {s ? (
+          <span className="dato-sec sugerencia-alterna-linea">
+            Sugerido: {s.empresa}
+            {s.manifiesto ? ` · Manifiesto ${s.manifiesto}` : ""} · {fechaCorta(s.fecha)}{" "}
+            {alAsignar && (
+              <button type="button" className="btn-link" onClick={() => alAsignar(t.id, s.id)}>
+                Asignar
+              </button>
+            )}
+          </span>
+        ) : (
+          <span className="dato-sec">Aun no hay otro viaje de {placaConGuion(t.placa ?? "")} despues de la ida.</span>
+        )}
+      </span>
+    );
+  }
   return (
     <>
       <span className="principal">{t.empresa ?? "-"}</span>
@@ -174,7 +197,7 @@ export default function CuadroAnticipos() {
       buscar: (g) => (g.vuelta ? `${g.vuelta.remision ?? ""} ${g.vuelta.manifiesto ?? ""}` : ""),
       celda: (g) =>
         g.vuelta ? (
-          <Viaje t={g.vuelta} />
+          <Viaje t={g.vuelta} alAsignar={(tramoId, viajeId) => guardar(() => apiCuadro.actualizarTramo(tramoId, { cuadroViajeId: viajeId }))} />
         ) : posiblesVueltas(g, tanqueos).length ? (
           <Pastilla tono="aviso">Posible vuelta</Pastilla>
         ) : (
