@@ -10,8 +10,32 @@ import { ErrorCarga } from "../../componentes/Estado";
 import { ProveedorInicio, useInicio } from "./DatosInicio";
 import RejillaInicio, { type ManejoRejilla } from "./RejillaInicio";
 import { TARJETAS } from "./Tarjetas";
-import { inicioDelRol, inicioUsable, ordenLectura, tarjetasDelRol } from "./catalogoInicio";
+import { TARJETAS_SOFI } from "./TarjetasSofi";
+import { TABLAS_INICIO } from "./TablasInicio";
+import { ProveedorResumen } from "./ResumenInicio";
+import { GRUPOS, inicioDelRol, inicioUsable, ordenLectura, partesDe, tarjetaDeRuta, tarjetasDelRol } from "./catalogoInicio";
 import type { DefinicionTarjeta } from "./catalogoInicio";
+
+/** Todas las tarjetas por id: las de operacion, las del resumen y las tablas. */
+const COMPONENTES: Record<string, () => JSX.Element> = { ...TARJETAS, ...TARJETAS_SOFI, ...TABLAS_INICIO };
+
+/**
+ * La ruta de la app de lo que se arrastra (una pestana de la barra lateral es
+ * un enlace: llega como URL). null si no es de esta app.
+ */
+export function rutaArrastrada(datos: string, origen: string): string | null {
+  const texto = datos
+    .split(/\r?\n/)
+    .find((l) => l.trim() && !l.startsWith("#"))
+    ?.trim();
+  if (!texto) return null;
+  try {
+    const url = new URL(texto, origen);
+    return url.origin === origen ? url.pathname : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Si la pantalla es de celular (ahi las tarjetas van en una columna y no se personaliza). */
 function useCelular(): boolean {
@@ -37,6 +61,11 @@ function useCelular(): boolean {
  * ve igual en cualquier computador) y "Volver al inicio de mi rol" borra lo
  * guardado. En el celular las tarjetas salen en una columna, en el orden
  * guardado (de arriba a abajo y de izquierda a derecha).
+ *
+ * Arrastrar una pestana de la barra lateral (Cuadro pagos, Anticipos,
+ * Cartera, RNDC, Gastos, Cuentas conductores, Rentabilidad, Reparto) y
+ * soltarla en el Inicio agrega su tabla y abre la personalizacion para
+ * acomodarla y guardar.
  */
 export default function Inicio() {
   return (
@@ -61,6 +90,8 @@ function PaginaInicio() {
   const [version, setVersion] = useState(0);
   const [guardando, setGuardando] = useState(false);
   const [aviso, setAviso] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
+  // Arrastrando una pestana de la barra lateral sobre el Inicio.
+  const [soltando, setSoltando] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -106,6 +137,36 @@ function PaginaInicio() {
     setTarjetas((t) => [...(t ?? []), { id: d.id, x: -1, y: 0, w: d.w, h: d.h }]);
   }
 
+  /** Se arrastra un enlace (una pestana de la barra lateral). */
+  const esEnlace = (e: React.DragEvent) => e.dataTransfer.types.includes("text/uri-list") || e.dataTransfer.types.includes("text/plain");
+
+  function alArrastrar(e: React.DragEvent) {
+    if (celular || !esEnlace(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    if (!soltando) setSoltando(true);
+  }
+
+  /** Suelta una pestana: agrega su tarjeta (si el rol la ve y no esta) y abre la personalizacion. */
+  function alSoltar(e: React.DragEvent) {
+    if (celular || !esEnlace(e)) return;
+    e.preventDefault();
+    setSoltando(false);
+    const ruta = rutaArrastrada(e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text/plain"), window.location.origin);
+    const d = ruta ? tarjetaDeRuta(ruta, rol) : undefined;
+    if (!d) {
+      setAviso({ tipo: "error", texto: "Esa pestana no tiene tabla para el Inicio." });
+      return;
+    }
+    if (tarjetas!.some((t) => t.id === d.id)) {
+      setAviso({ tipo: "ok", texto: `"${d.titulo}" ya esta en tu inicio.` });
+      return;
+    }
+    if (!editando) personalizar();
+    agregar(d);
+    setAviso({ tipo: "ok", texto: `Se agrego "${d.titulo}". Acomodala y guarda tu inicio.` });
+  }
+
   function quitar(id: string) {
     rejilla.current?.quitar(id);
     setTarjetas((t) => (t ?? []).filter((x) => x.id !== id));
@@ -144,7 +205,7 @@ function PaginaInicio() {
 
   /** Una tarjeta en su hueco: entra en cascada y, al editar, lleva la X para quitarla. */
   const pintar = (t: TarjetaInicio, i: number) => {
-    const Tarjeta = TARJETAS[t.id];
+    const Tarjeta = COMPONENTES[t.id];
     return (
       <div className="tarjeta-inicio-hueco" style={{ ["--orden" as string]: Math.min(i, 12) }}>
         {editando && (
@@ -161,7 +222,14 @@ function PaginaInicio() {
   const catalogo = tarjetasDelRol(rol);
 
   return (
-    <div className="inicio">
+    <div
+      className={`inicio${soltando ? " inicio-soltando" : ""}`}
+      onDragOver={alArrastrar}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setSoltando(false);
+      }}
+      onDrop={alSoltar}
+    >
       {datos.error && <ErrorCarga mensaje={datos.error} alReintentar={datos.recargar} />}
       {!celular && (
         <div className={`inicio-barra${editando ? " editando" : ""}`}>
@@ -187,58 +255,61 @@ function PaginaInicio() {
         </div>
       )}
 
-      <div className={`inicio-cuerpo${editando ? " con-catalogo" : ""}`}>
-        {celular ? (
-          <div className="lista-inicio">
-            {ordenLectura(tarjetas).map((t, i) => (
-              <div key={t.id} className={`lista-inicio-item alto-${Math.min(t.h, 6)}`}>
-                {pintar(t, i)}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <RejillaInicio key={version} ref={rejilla} tarjetas={tarjetas} editando={editando} pintar={pintar} />
-        )}
-        {tarjetas.length === 0 && !editando && (
-          <div className="inicio-vacio">
-            <p>Tu inicio esta vacio.</p>
-            {!celular && (
-              <button className="btn-primary" onClick={personalizar}>
-                Agregar tarjetas
-              </button>
-            )}
-          </div>
-        )}
+      {soltando && <div className="inicio-soltar-aviso">Suelta aqui para agregar su tabla al inicio</div>}
+      <ProveedorResumen partes={partesDe(tarjetas)}>
+        <div className={`inicio-cuerpo${editando ? " con-catalogo" : ""}`}>
+          {celular ? (
+            <div className="lista-inicio">
+              {ordenLectura(tarjetas).map((t, i) => (
+                <div key={t.id} className={`lista-inicio-item alto-${Math.min(t.h, 6)}`}>
+                  {pintar(t, i)}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <RejillaInicio key={version} ref={rejilla} tarjetas={tarjetas} editando={editando} pintar={pintar} />
+          )}
+          {tarjetas.length === 0 && !editando && (
+            <div className="inicio-vacio">
+              <p>Tu inicio esta vacio.</p>
+              {!celular && (
+                <button className="btn-primary" onClick={personalizar}>
+                  Agregar tarjetas
+                </button>
+              )}
+            </div>
+          )}
 
-        {editando && (
-          <aside className="catalogo-inicio" aria-label="Agregar al inicio">
-            <h2>Agregar al inicio</h2>
-            <p className="dato-sec">Solo ves lo que tu rol puede consultar.</p>
-            {[...new Set(catalogo.map((d) => d.grupo))].map((grupo) => (
-              <div key={grupo} className="catalogo-inicio-grupo">
-                <h3>{grupo === "Operacion" ? "Operacion" : grupo}</h3>
-                {catalogo
-                  .filter((d) => d.grupo === grupo)
-                  .map((d) => (
-                    <div key={d.id} className="catalogo-inicio-item">
-                      <div>
-                        <strong>{d.titulo}</strong>
-                        <span className="dato-sec">{d.descripcion}</span>
+          {editando && (
+            <aside className="catalogo-inicio" aria-label="Agregar al inicio">
+              <h2>Agregar al inicio</h2>
+              <p className="dato-sec">Solo ves lo que tu rol puede consultar. Tambien puedes arrastrar una pestana de la barra lateral hasta el Inicio.</p>
+              {GRUPOS.filter((g) => catalogo.some((d) => d.grupo === g)).map((grupo) => (
+                <div key={grupo} className="catalogo-inicio-grupo">
+                  <h3>{grupo === "Sofi" ? "Sofi" : grupo === "Pendientes" ? "Pendientes de cada modulo" : grupo}</h3>
+                  {catalogo
+                    .filter((d) => d.grupo === grupo)
+                    .map((d) => (
+                      <div key={d.id} className="catalogo-inicio-item">
+                        <div>
+                          <strong>{d.titulo}</strong>
+                          <span className="dato-sec">{d.descripcion}</span>
+                        </div>
+                        {enInicio.has(d.id) ? (
+                          <span className="dato-sec catalogo-inicio-esta">En tu inicio</span>
+                        ) : (
+                          <button className="btn-secondary" onClick={() => agregar(d)}>
+                            Agregar
+                          </button>
+                        )}
                       </div>
-                      {enInicio.has(d.id) ? (
-                        <span className="dato-sec catalogo-inicio-esta">En tu inicio</span>
-                      ) : (
-                        <button className="btn-secondary" onClick={() => agregar(d)}>
-                          Agregar
-                        </button>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            ))}
-          </aside>
-        )}
-      </div>
+                    ))}
+                </div>
+              ))}
+            </aside>
+          )}
+        </div>
+      </ProveedorResumen>
     </div>
   );
 }

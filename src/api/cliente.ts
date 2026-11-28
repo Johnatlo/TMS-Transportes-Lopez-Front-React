@@ -305,6 +305,91 @@ export interface TarjetaInicio {
   h: number;
 }
 
+/** Partes del resumen del Inicio (ver backend/src/inicioResumen.ts). */
+export type ParteResumen = "sofi" | "cifras" | "cobros" | "rentabilidad" | "reparto";
+
+/** Una cosa pendiente de "Sofi te cuenta". */
+export interface ItemSofi {
+  nivel: "urgente" | "atencion";
+  texto: string;
+  detalle?: string;
+  /** Pantalla que lo resuelve. */
+  ruta: string;
+}
+
+/** Un grupo de una prioridad (por ejemplo, "Papeles que se deben"): los primeros items y el total. */
+export interface GrupoSofi {
+  titulo: string;
+  total: number;
+  urgentes: number;
+  items: ItemSofi[];
+  ruta: string;
+}
+
+/** Una de las cuatro prioridades de "Sofi te cuenta". */
+export interface PrioridadSofi {
+  numero: number;
+  titulo: string;
+  grupos: GrupoSofi[];
+}
+
+/** Cifras del mes (de los vehiculos que el rol ve). */
+export interface CifrasMes {
+  mes: string;
+  viajes: number;
+  fletes: number;
+  fletesMesAnteriorAlDia: number;
+  viajesMesAnteriorAlDia: number;
+  facturado: number;
+  cobrado: number;
+  porCobrar: number;
+  sinFacturar: number;
+}
+
+/** Dias de cobro: lo vencido y lo que vence en los proximos 15 dias. */
+export interface CobrosInicio {
+  vencido: { total: number; facturas: number; clientes: number };
+  proximos: Array<{ fecha: string; total: number; facturas: Array<{ numero: string; cliente: string; valor: number }> }>;
+}
+
+/** Rentabilidad del mes por grupo y los vehiculos que mas y menos dejaron. */
+export interface RentabilidadInicio {
+  mes: string;
+  grupos: Array<{ nombre: string; ingresos: number; costos: number; utilidad: number }>;
+  total: number;
+  mejores: Array<{ placa: string; utilidad: number; viajes: number }>;
+  peores: Array<{ placa: string; utilidad: number; viajes: number }>;
+}
+
+/** Reparto del mes anterior. */
+export interface RepartoInicio {
+  mes: string;
+  aprobado: boolean;
+  cerrado: boolean;
+  pendientes: string[];
+  socios: Array<{ nombre: string; repartido: number; neto: number }>;
+}
+
+/** Resumen del Inicio (cada parte solo si se pidio y el rol la ve). */
+export interface ResumenInicio {
+  hoy: string;
+  sofi?: PrioridadSofi[];
+  cifras?: CifrasMes;
+  cobros?: CobrosInicio;
+  rentabilidad?: RentabilidadInicio;
+  reparto?: RepartoInicio;
+}
+
+/** Documento con vencimiento de una empresa (Configuracion). */
+export interface DocumentoEmpresa {
+  id: number;
+  empresa: "LOPEZ" | "MYC";
+  nombre: string;
+  numero: string | null;
+  fechaVencimiento: string | null;
+  nota: string | null;
+}
+
 /** Sesion y usuarios. La cookie de sesion la maneja el navegador solo. */
 export const auth = {
   /** Usuario de la sesion actual (401 si no hay sesion). */
@@ -323,6 +408,8 @@ export const auth = {
   guardarInicio: (tarjetas: TarjetaInicio[]) => put<{ tarjetas: TarjetaInicio[] }>("/auth/inicio", { tarjetas }),
   /** Vuelve al inicio de su rol. */
   borrarInicio: () => del<{ tarjetas: null }>("/auth/inicio"),
+  /** Resumen del Inicio: solo las partes pedidas que el rol puede ver. */
+  resumenInicio: (partes: ParteResumen[]) => get<ResumenInicio>(`/inicio/resumen?partes=${partes.join(",")}`),
 
   /** Usuarios del sistema. */
   listarUsuarios: () => get<Usuario[]>("/usuarios"),
@@ -457,6 +544,14 @@ export const api = {
 
   /** Parametros de la empresa (poliza, retencion...) y aviso de vigencia de la poliza. */
   getParametros: () => get<ParametrosEmpresa>("/catalogo/parametros"),
+  /** Documentos con vencimiento de Transportes Lopez y M&C. */
+  documentosEmpresa: () => get<DocumentoEmpresa[]>("/catalogo/documentos-empresa"),
+  /** Agrega un documento de una empresa (devuelve la lista). */
+  crearDocumentoEmpresa: (d: Omit<DocumentoEmpresa, "id">) => post<DocumentoEmpresa[]>("/catalogo/documentos-empresa", d),
+  /** Cambia un documento de una empresa (devuelve la lista). */
+  guardarDocumentoEmpresa: (id: number, d: Omit<DocumentoEmpresa, "id">) => put<DocumentoEmpresa[]>(`/catalogo/documentos-empresa/${id}`, d),
+  /** Borra un documento de una empresa (devuelve la lista). */
+  borrarDocumentoEmpresa: (id: number) => del<DocumentoEmpresa[]>(`/catalogo/documentos-empresa/${id}`),
   /** Guarda los parametros enviados; los demas no cambian. */
   guardarParametros: (datos: Partial<ParametrosEmpresa>) => put<ParametrosEmpresa>("/catalogo/parametros", datos),
 

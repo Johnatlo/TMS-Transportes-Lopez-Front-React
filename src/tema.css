@@ -1271,3 +1271,67 @@ table.tabla .col-ver-fila { width: 1%; padding-left: 0.3rem; padding-right: 0.6r
 .opcion-radio { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; cursor: pointer; }
 .section-desc.sugerencia-alterna { width: fit-content; max-width: 100%; box-sizing: border-box; margin-top: 0.25rem; padding: 0.35rem 0.6rem; border: 1px dashed var(--color-accent); border-radius: 8px; background: var(--color-accent-suave); }
 .sugerencia-alterna-linea { display: block; margin-top: 0.15rem; }
+
+/* ---------- Inicio 4b: Sofi te cuenta, dinero y tablas de pendientes ---------- */
+.tarjeta-inicio-error { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem; padding: 0.4rem 0; }
+.inicio-soltando .rejilla-inicio, .inicio-soltando .lista-inicio { outline: 2px dashed var(--color-accent); outline-offset: 4px; border-radius: var(--radius); }
+.inicio-soltar-aviso { position: sticky; top: 0.5rem; z-index: 5; margin: 0 auto 0.6rem; width: fit-content; padding: 0.45rem 0.9rem; border-radius: 999px; background: var(--color-accent); color: var(--color-sobre-acento); font-size: 0.85rem; font-weight: 600; pointer-events: none; }
+
+.sofi { display: flex; flex-direction: column; gap: 0.5rem; }
+.sofi-marca { color: var(--color-accent); font-size: 1rem; line-height: 1; }
+.sofi-saludo { margin: 0 0 0.2rem; font-size: 0.88rem; }
+.sofi-prioridad { border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
+.sofi-prioridad > summary { display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.7rem; cursor: pointer; list-style: none; font-weight: 600; font-size: 0.9rem; }
+.sofi-prioridad > summary::-webkit-details-marker { display: none; }
+.sofi-prioridad > summary::after { content: "▾"; color: var(--color-text-muted); transition: transform 0.15s; }
+.sofi-prioridad:not([open]) > summary::after { transform: rotate(-90deg); }
+.sofi-numero { flex: none; display: inline-grid; place-items: center; width: 1.45rem; height: 1.45rem; border-radius: 50%; font-size: 0.78rem; background: var(--gris-100); color: var(--color-text-muted); }
+.sofi-numero.urgente { background: var(--error-50); color: var(--error-700); }
+.sofi-numero.atencion { background: var(--aviso-50); color: var(--aviso-700); }
+.sofi-numero.al-dia { background: var(--color-success-bg); color: var(--color-success-text); }
+.sofi-titulo { flex: 1; min-width: 0; }
+.sofi-conteo { color: var(--color-text-muted); font-size: 0.78rem; font-weight: 500; display: inline-flex; }
+.sofi-conteo svg { width: 1rem; height: 1rem; color: var(--color-success-text); }
+.sofi-grupo { padding: 0.35rem 0.7rem 0.55rem; border-top: 1px solid var(--color-border); }
+.sofi-grupo-cabeza { display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem; }
+.sofi-grupo-cabeza .texto-vencido { font-size: inherit; }
+.sofi-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.sofi-item { display: flex; align-items: flex-start; gap: 0.5rem; width: 100%; padding: 0.35rem 0.4rem; border: none; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.sofi-item:hover { background: var(--color-accent-suave); }
+.sofi-punto { flex: none; width: 0.5rem; height: 0.5rem; margin-top: 0.35rem; border-radius: 50%; background: var(--aviso-500); }
+.sofi-item.urgente .sofi-punto { background: var(--error-500); }
+.sofi-texto { display: flex; flex-direction: column; gap: 0.05rem; min-width: 0; font-size: 0.82rem; }
+.sofi-texto strong { font-weight: 600; overflow-wrap: anywhere; }
+.sofi-texto .dato-sec { font-size: 0.75rem; overflow-wrap: anywhere; }
+.sofi-ver { margin: 0.2rem 0 0 1.4rem; font-size: 0.78rem; }
+
+.cifras-inicio { display: flex; flex-direction: column; gap: 0.4rem; }
+.cifras-mes { margin: 0; font-size: 0.78rem; }
+.cifras-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.4rem 0.8rem; }
+.cifras-rejilla .indicador { padding: 0.35rem 0; }
+
+.cobros-inicio { display: flex; flex-direction: column; gap: 0.6rem; }
+.cobro-vencido { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; padding: 0.55rem 0.7rem; border: 1px solid var(--error-200); border-radius: var(--radius); background: var(--error-50); color: var(--error-700); font: inherit; text-align: left; cursor: pointer; }
+.cobro-vencido span { font-size: 0.8rem; }
+.cobros-dias { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.cobros-dias li { display: grid; grid-template-columns: 5.2rem minmax(0, 1fr) auto; gap: 0.5rem; align-items: baseline; padding: 0.4rem 0; border-bottom: 1px solid var(--color-border); font-size: 0.84rem; }
+.cobro-dia { font-weight: 600; text-transform: capitalize; }
+.cobro-clientes { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rentabilidad-inicio > p { margin: 0 0 0.4rem; font-size: 0.78rem; }
+.rentabilidad-inicio .tabla-tablero .num, .tabla-inicio .num { text-align: right; font-variant-numeric: tabular-nums; }
+.rentabilidad-placas { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin: 0.5rem 0 0 !important; }
+.pastilla-placa { padding: 0.15rem 0.5rem; border-radius: 999px; background: var(--color-success-bg); color: var(--color-success-text); font-size: 0.76rem; font-weight: 600; }
+.pastilla-placa.baja { background: var(--aviso-50); color: var(--aviso-700); }
+
+.reparto-inicio p { margin: 0 0 0.4rem; font-size: 0.86rem; }
+.reparto-socios { list-style: none; margin: 0 0 0.4rem; padding: 0; }
+.reparto-socios li { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid var(--color-border); font-size: 0.86rem; }
+
+.tabla-inicio-resumen { margin: 0 0 0.4rem; font-size: 0.78rem; }
+.tabla-inicio tbody tr.fila-clic { cursor: pointer; }
+.tabla-inicio tbody tr.fila-clic:hover td { background: var(--color-accent-suave); }
+.lista-inicio .tarjeta-inicio-cuerpo .sofi-prioridad { max-width: 100%; }
+.tabla-inicio td { white-space: normal; }
+.tabla-inicio td.num, .tabla-inicio td:first-child { white-space: nowrap; }
+.tabla-inicio td .texto-vencido, .tabla-inicio td .texto-aviso { display: inline-block; min-width: 9rem; }

@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_876 funciones, componentes, métodos y rutas en 132 archivos._
+_912 funciones, componentes, métodos y rutas en 137 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (274)
+- [`src/api/cliente.ts`](#srcapiclientets) (279)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -221,6 +221,7 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
 - [`src/modoPantalla.ts`](#srcmodopantallats) (12)
 - [`src/paginas/Catalogo.tsx`](#srcpaginascatalogotsx) (21)
 - [`src/paginas/Despacho.tsx`](#srcpaginasdespachotsx) (7)
+- [`src/paginas/DocumentosEmpresas.tsx`](#srcpaginasdocumentosempresastsx) (3)
 - [`src/paginas/FormularioPlantilla.tsx`](#srcpaginasformularioplantillatsx) (4)
 - [`src/paginas/Historial.tsx`](#srcpaginashistorialtsx) (2)
 - [`src/paginas/Login.tsx`](#srcpaginaslogintsx) (3)
@@ -262,9 +263,13 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
 - [`src/paginas/gastos/facturasCredito.ts`](#srcpaginasgastosfacturascreditots) (2)
 - [`src/paginas/gastos/nombres.ts`](#srcpaginasgastosnombrests) (1)
 - [`src/paginas/inicio/DatosInicio.tsx`](#srcpaginasiniciodatosiniciotsx) (2)
-- [`src/paginas/inicio/Inicio.tsx`](#srcpaginasinicioiniciotsx) (3)
-- [`src/paginas/inicio/Tarjetas.tsx`](#srcpaginasiniciotarjetastsx) (19)
-- [`src/paginas/inicio/catalogoInicio.ts`](#srcpaginasiniciocatalogoiniciots) (6)
+- [`src/paginas/inicio/Inicio.tsx`](#srcpaginasinicioiniciotsx) (4)
+- [`src/paginas/inicio/MarcoTarjeta.tsx`](#srcpaginasiniciomarcotarjetatsx) (4)
+- [`src/paginas/inicio/ResumenInicio.tsx`](#srcpaginasinicioresumeniniciotsx) (2)
+- [`src/paginas/inicio/TablasInicio.tsx`](#srcpaginasiniciotablasiniciotsx) (9)
+- [`src/paginas/inicio/Tarjetas.tsx`](#srcpaginasiniciotarjetastsx) (17)
+- [`src/paginas/inicio/TarjetasSofi.tsx`](#srcpaginasiniciotarjetassofitsx) (11)
+- [`src/paginas/inicio/catalogoInicio.ts`](#srcpaginasiniciocatalogoiniciots) (9)
 - [`src/paginas/inicio/reglasInicio.ts`](#srcpaginasinicioreglasiniciots) (10)
 - [`src/paginas/nomina/Empleados.tsx`](#srcpaginasnominaempleadostsx) (4)
 - [`src/paginas/nomina/GastoLinea.tsx`](#srcpaginasnominagastolineatsx) (1)
@@ -399,6 +404,9 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
   - **`auth.borrarInicio()`** · _método_
     Vuelve al inicio de su rol.
 
+  - **`auth.resumenInicio(partes)`** · _método_
+    Resumen del Inicio: solo las partes pedidas que el rol puede ver.
+
   - **`auth.listarUsuarios()`** · _método_
     Usuarios del sistema.
 
@@ -521,6 +529,18 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
 
   - **`api.getParametros()`** · _método_
     Parametros de la empresa (poliza, retencion...) y aviso de vigencia de la poliza.
+
+  - **`api.documentosEmpresa()`** · _método_
+    Documentos con vencimiento de Transportes Lopez y M&C.
+
+  - **`api.crearDocumentoEmpresa(d)`** · _método_
+    Agrega un documento de una empresa (devuelve la lista).
+
+  - **`api.guardarDocumentoEmpresa(id, d)`** · _método_
+    Cambia un documento de una empresa (devuelve la lista).
+
+  - **`api.borrarDocumentoEmpresa(id)`** · _método_
+    Borra un documento de una empresa (devuelve la lista).
 
   - **`api.guardarParametros(datos)`** · _método_
     Guarda los parametros enviados; los demas no cambian.
@@ -2192,7 +2212,8 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
   Fecha de vencimiento, en rojo si ya paso.
 
 - **`PanelEmpresa()`** · _componente React_
-  Parametros de la empresa: poliza, FOPAT y tarifa de retefuente.
+  Parametros de la empresa: poliza, FOPAT y tarifa de retefuente, y los
+  documentos con vencimiento de las dos empresas (DocumentosEmpresas).
   Es una sola fila, no una lista, asi que se edita en linea.
 
 - **`aModelo(registro)`** · _función_
@@ -2281,6 +2302,22 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
 
 - **`diasDesdeHoy(n)`** · _función_
   "AAAA-MM-DD" de hoy + n dias, en hora de Colombia (para inputs type="date").
+
+### `src/paginas/DocumentosEmpresas.tsx`
+
+> Configuracion > Empresa: documentos con vencimiento de las dos empresas
+> (Transportes Lopez y M&C), como la camara de comercio, la habilitacion o
+> las polizas. Se guarda el nombre, el numero y la fecha (no el archivo) y
+> avisan en "Sofi te cuenta" 30 dias antes de vencer.
+
+- **`diasHasta(fecha)`** · _función_
+  Dias que faltan para una fecha "AAAA-MM-DD" (negativo si ya paso).
+
+- **`Vence({...})`** · _componente React_
+  El vencimiento con su aviso: rojo si vencio o faltan 7 dias o menos, amarillo a 30.
+
+- **`DocumentosEmpresas()`** · _componente React_
+  Lista y formulario de los documentos de las empresas.
 
 ### `src/paginas/FormularioPlantilla.tsx`
 
@@ -3339,6 +3376,10 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
 > Pagina de Inicio personalizable: una rejilla de tarjetas que cada usuario
 > acomoda (arrastrar, cambiar tamano, quitar y agregar) y guarda en su cuenta.
 
+- **`rutaArrastrada(datos, origen)`** · _función_
+  La ruta de la app de lo que se arrastra (una pestana de la barra lateral es
+  un enlace: llega como URL). null si no es de esta app.
+
 - **`useCelular()`** · _función_
   Si la pantalla es de celular (ahi las tarjetas van en una columna y no se personaliza).
 
@@ -3353,19 +3394,84 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
   guardado. En el celular las tarjetas salen en una columna, en el orden
   guardado (de arriba a abajo y de izquierda a derecha).
 
+  Arrastrar una pestana de la barra lateral (Cuadro pagos, Anticipos,
+  Cartera, RNDC, Gastos, Cuentas conductores, Rentabilidad, Reparto) y
+  soltarla en el Inicio agrega su tabla y abre la personalizacion para
+  acomodarla y guardar.
+
 - **`PaginaInicio()`** · _componente React_
   El contenido del Inicio (dentro del proveedor de datos).
 
-### `src/paginas/inicio/Tarjetas.tsx`
+### `src/paginas/inicio/MarcoTarjeta.tsx`
 
-> Las tarjetas del Inicio. Cada una toma sus datos de useInicio() y llena el
-> espacio que le da la rejilla (o su alto natural en el celular).
+> Piezas comunes de las tarjetas del Inicio: el marco (encabezado con titulo
+> y acciones, y un cuerpo que se desplaza si no cabe) y el esqueleto de carga.
 
 - **`Marco({...})`** · _componente React_
   Tarjeta con encabezado (icono, titulo y acciones) y un cuerpo que se desplaza si no cabe.
 
 - **`Esqueleto({...})`** · _componente React_
   Esqueleto gris mientras llegan los datos.
+
+- **`BotonIr({...})`** · _componente React_
+  Boton del encabezado que lleva a la pantalla completa.
+
+- **`ErrorTarjeta({...})`** · _componente React_
+  Error dentro de una tarjeta, con reintentar (no tumba el resto del Inicio).
+
+### `src/paginas/inicio/ResumenInicio.tsx`
+
+> Resumen del Inicio (GET /api/inicio/resumen) para las tarjetas de "Sofi te
+> cuenta" y de dinero: se pide una sola vez con las partes que necesitan las
+> tarjetas puestas, y cada tarjeta lo toma con useResumen().
+
+- **`useResumen()`** · _función_
+  El resumen del Inicio (dentro de <ProveedorResumen>).
+
+- **`ProveedorResumen({...})`** · _componente React_
+  Pide el resumen con las partes de las tarjetas puestas. Si cambian (se
+  agrega una tarjeta de dinero), lo vuelve a pedir; mientras llega, las
+  tarjetas siguen mostrando lo anterior. Sin partes no pide nada.
+
+### `src/paginas/inicio/TablasInicio.tsx`
+
+> Las seis tablas de pendientes del Inicio, una por modulo de la barra
+> lateral (se agregan arrastrando su pestana al Inicio). Cada una pide sus
+> datos a la API de su modulo (las mismas reglas de esa pantalla) solo
+> cuando esta puesta, y lleva a la pantalla completa.
+
+- **`TablaTarjeta({...})`** · _componente React_
+  Tabla de una tarjeta: encabezado con el conteo (y el total si hay), las
+  primeras FILAS filas (cada una abre su registro) y un vacio amable.
+
+- **`conTotal(valor)`** · _función_
+  " · total $1.234.567"
+
+- **`PorFacturar()`** · _componente React_
+  Cuadro pagos por facturar: listos para facturar y enviados sin factura (la alerta de facturacion de cada viaje).
+
+- **`AnticiposSinCruzar()`** · _componente React_
+  Anticipos sin cruzar con los vales de la bomba (la pestana "Sin cruzar" de Anticipos).
+
+- **`CarteraVencida()`** · _componente React_
+  Cartera vencida: las facturas vencidas, de la mas vieja a la mas nueva.
+
+- **`RndcPendientes()`** · _componente React_
+  RNDC: los manifiestos de contingencia (falta el oficial) y los viajes entregados sin cumplir.
+
+- **`GastosDelMes()`** · _componente React_
+  Gastos del mes: lo que se causa este mes de cada gasto (sin anulados ni ingresos).
+
+- **`mesConductorDeHoy(hoy)`** · _función_
+  Mes de las cuentas de los conductores que va hoy (corte el 26: del 27 en adelante ya es el siguiente).
+
+- **`SinCuenta()`** · _componente React_
+  Cuentas conductores: viajes del periodo que va sin cuenta de viaje.
+
+### `src/paginas/inicio/Tarjetas.tsx`
+
+> Las tarjetas del Inicio. Cada una toma sus datos de useInicio() y llena el
+> espacio que le da la rejilla (o su alto natural en el celular).
 
 - **`TarjetaCifra(props)`** · _componente React_
   Tarjeta de una sola cifra.
@@ -3425,10 +3531,54 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
   ruta, cliente, conductor y avance). Cuando llegue el GPS, los puntos saldran
   de ahi sin cambiar la tarjeta.
 
+### `src/paginas/inicio/TarjetasSofi.tsx`
+
+> Tarjetas del Inicio que salen del resumen (useResumen): "Sofi te cuenta" y
+> las de dinero (cifras del mes, dias de cobro, rentabilidad y reparto).
+
+- **`nombreMes(mes)`** · _función_
+  Nombre de un mes: "2026-11" -> "noviembre de 2026".
+
+- **`diaCobro(fecha)`** · _función_
+  "2026-12-01" -> "lun 01/12".
+
+- **`millones(valor)`** · _función_
+  $ 634.669.761 -> "$634,7 M" (para cifras grandes en poco espacio).
+
+- **`ConParte({...})`** · _componente React_
+  La parte del resumen de una tarjeta: el esqueleto mientras llega, el error
+  con reintentar, o la tarjeta con sus datos.
+
+- **`GrupoPendientes({...})`** · _componente React_
+  Un grupo de una prioridad: sus primeros pendientes y "Ver los N".
+
+- **`Prioridad({...})`** · _componente React_
+  Una prioridad con sus grupos; se puede plegar. Abierta si tiene pendientes.
+
+- **`SofiTeCuenta()`** · _componente React_
+  Sofi te cuenta: lo pendiente en orden de prioridad (1. documentos por
+  vencer, 2. papeles, 3. facturacion, 4. incidencias del sistema). Cada cosa
+  lleva a la pantalla que la resuelve.
+
+- **`CifrasDelMes()`** · _componente React_
+  Cifras del mes de los carros que el rol ve, contra el mes anterior hasta el mismo dia.
+
+- **`DiasDeCobro()`** · _componente React_
+  Dias de cobro: la cartera vencida y lo que vence en los proximos 15 dias, por dia.
+
+- **`RentabilidadDelMes()`** · _componente React_
+  Rentabilidad del mes: lo que dejan los carros (y la empresa, solo el rol total) y los que mas y menos dejan.
+
+- **`RepartoDelMes()`** · _componente React_
+  Reparto a socios del mes anterior: lo de cada socio y si ya se aprobo.
+
 ### `src/paginas/inicio/catalogoInicio.ts`
 
 > Catalogo de las tarjetas del Inicio (que hay, su tamano y quien las puede
 > poner) y el inicio por defecto de cada rol. Sin React: se prueba aparte.
+
+- **`tabla(id, titulo, descripcion, ruta)`** · _función_
+  Una tabla de pendientes de un modulo (6 x 5, se arrastra desde su pestana).
 
 - **`definicion(id)`** · _función_
   La definicion de una tarjeta (undefined si ya no existe).
@@ -3436,14 +3586,21 @@ _876 funciones, componentes, métodos y rutas en 132 archivos._
 - **`tarjetasDelRol(rol)`** · _función_
   Las tarjetas que el rol puede poner en su inicio.
 
+- **`tarjetaDeRuta(ruta, rol)`** · _función_
+  La tarjeta que agrega una pestana de la barra lateral arrastrada al Inicio (si el rol la ve).
+
+- **`partesDe(tarjetas)`** · _función_
+  Las partes del resumen que piden las tarjetas puestas (sin repetir).
+
 - **`en(id, x, y)`** · _función_
   Lugar de una tarjeta del catalogo con su tamano por defecto.
 
 - **`inicioDelRol(rol)`** · _función_
-  Inicio por defecto de un rol (el que se ve sin personalizar): los
-  indicadores arriba, los pendientes, y debajo las tablas de hoy y los ultimos
-  viajes con la grafica y el mapa al lado. Hoy es el mismo para los tres roles;
-  las tarjetas de dinero de cada rol llegan con la etapa 4b.
+  Inicio por defecto de un rol (el que se ve sin personalizar):
+  - Administrativas: la operacion, los pendientes (documentos, cumplidos y
+    Sofi te cuenta) y el Cuadro pagos por facturar.
+  - Total: lo mismo con las cifras del mes, la rentabilidad y los dias de cobro.
+  - M&C: la operacion, lo suyo (cifras y rentabilidad de sus carros) y Sofi.
 
 - **`inicioUsable(guardado, rol)`** · _función_
   El inicio que se pinta: el guardado del usuario (o el de su rol si no tiene

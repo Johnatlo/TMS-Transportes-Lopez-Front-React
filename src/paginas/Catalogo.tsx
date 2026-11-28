@@ -11,6 +11,7 @@ import MenuMas from "../componentes/MenuMas";
 import type { ReactElement } from "react";
 import { api, fechaHora, hoyColombia, soloDia } from "../api/cliente";
 import { useDatos } from "../ganchos/useDatos";
+import DocumentosEmpresas from "./DocumentosEmpresas";
 import { Cargando, ErrorCarga } from "../componentes/Estado";
 import Modal from "../componentes/Modal";
 import FormularioGenerico, { type Modelo, type SeccionFormulario } from "../componentes/FormularioGenerico";
@@ -825,7 +826,8 @@ function Vencimiento({ fecha }: { fecha: string | null }) {
 }
 
 /**
- * Parametros de la empresa: poliza, FOPAT y tarifa de retefuente.
+ * Parametros de la empresa: poliza, FOPAT y tarifa de retefuente, y los
+ * documentos con vencimiento de las dos empresas (DocumentosEmpresas).
  * Es una sola fila, no una lista, asi que se edita en linea.
  */
 function PanelEmpresa() {
@@ -927,6 +929,8 @@ function PanelEmpresa() {
           </button>
         </div>
       </div>
+
+      <DocumentosEmpresas />
     </>
   );
 }

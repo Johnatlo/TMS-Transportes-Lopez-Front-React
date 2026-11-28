@@ -11,35 +11,8 @@ import MapaSeguimiento from "../../componentes/MapaSeguimiento";
 import { IconoCalendario, IconoCamion, IconoCheck, IconoConductores, IconoDocumento, IconoFlecha, IconoGrafica, IconoMapa } from "../../componentes/Iconos";
 import type { AlertaDocumento, Conductor, Viaje } from "../../api/tipos";
 import { useInicio } from "./DatosInicio";
+import { Esqueleto, Marco } from "./MarcoTarjeta";
 import { claseEstado, claveDia, diaMes, estadoViaje, hora, ruta, variacion, type Semana } from "./reglasInicio";
-
-/** Tarjeta con encabezado (icono, titulo y acciones) y un cuerpo que se desplaza si no cabe. */
-function Marco({ titulo, icono, acciones, children }: { titulo: string; icono?: ReactNode; acciones?: ReactNode; children: ReactNode }) {
-  return (
-    <section className="tarjeta-inicio">
-      <header className="tarjeta-inicio-cabeza">
-        <h2 className="titulo-tarjeta">
-          {icono}
-          {titulo}
-        </h2>
-        {acciones}
-      </header>
-      <div className="tarjeta-inicio-cuerpo">{children}</div>
-    </section>
-  );
-}
-
-/** Esqueleto gris mientras llegan los datos. */
-function Esqueleto({ filas = 3 }: { filas?: number }) {
-  return (
-    <div className="esqueleto esqueleto-tarjeta" role="status">
-      <span className="solo-lector">Cargando...</span>
-      {Array.from({ length: filas }, (_, i) => (
-        <span key={i} className="esqueleto-fila" style={{ width: `${[88, 72, 80, 64][i % 4]}%`, animationDelay: `${i * 80}ms` }} />
-      ))}
-    </div>
-  );
-}
 
 /** Tarjeta de una sola cifra. */
 function TarjetaCifra(props: Parameters<typeof Indicador>[0]) {
