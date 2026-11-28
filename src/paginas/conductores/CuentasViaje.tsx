@@ -83,7 +83,21 @@ export default function CuentasViaje({ mes, empresa }: { mes: string; empresa: F
   const sinProducido = viajes.filter((v) => v.producido === null);
 
   const columnas: Columna<ViajeConductor>[] = [
-    { id: "fecha", titulo: "Fecha", valor: (v) => v.fecha, celda: (v) => fechaCorta(v.fecha) },
+    {
+      id: "fecha",
+      titulo: "Fecha",
+      valor: (v) => v.fecha,
+      celda: (v) => (
+        <>
+          {fechaCorta(v.fecha)}
+          {v.mesMovido && (
+            <span className="dato-sec" title={v.notaMovido ?? "Se paso a la liquidacion de este mes"}>
+              traido a este mes
+            </span>
+          )}
+        </>
+      ),
+    },
     {
       id: "placa",
       titulo: "Placa",

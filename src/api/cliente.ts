@@ -2693,6 +2693,11 @@ export interface ViajeConductor {
   tarifa: string | null;
   /** true: el viaje no tiene tarifa en el Cuadro y la del flete conductor es la deducida. */
   tarifaDeducida?: boolean;
+  /** Mes de la liquidacion en que cuenta (el de su fecha o al que se paso). */
+  mesConductor?: string;
+  /** El mes al que se paso a mano (null si cuenta en el de su fecha). */
+  mesMovido?: string | null;
+  notaMovido?: string | null;
   /** Empleado al que se le cuenta: quien manejo el viaje o, si no esta en Nomina, el asignado al vehiculo. */
   empleadoId: number | null;
   conductor: string | null;
@@ -2853,6 +2858,11 @@ export const apiConductores = {
     put<ViajeConductor | null>(`/conductores/viajes/${cuadroViajeId}/cuenta`, { ...d, mes }),
   /** Borra la cuenta de viaje (y su gasto del libro). */
   borrarCuenta: (cuadroViajeId: number) => del<{ ok: boolean }>(`/conductores/viajes/${cuadroViajeId}/cuenta`),
+  /** Viajes del cierre que se pueden traer a la liquidacion de un mes o que se sacaron de ella. */
+  viajesCercanos: (mes: string) => get<ViajeConductor[]>(`/conductores/liquidacion/${mes}/cercanos`),
+  /** Pasa un viaje a la liquidacion de otro mes (el anterior o el siguiente; null = su mes). */
+  moverDeMes: (cuadroViajeId: number, d: { mes: string | null; nota?: string }) =>
+    put<ViajeConductor>(`/conductores/liquidacion/viajes/${cuadroViajeId}/mes`, d),
   /** Transferencia del gerente para completar el anticipo; devuelve el viaje como queda. */
   agregarTransferencia: (cuadroViajeId: number, d: { fecha: string; valor: number; nota?: string }) =>
     post<ViajeConductor>(`/conductores/viajes/${cuadroViajeId}/transferencias`, d),

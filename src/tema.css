@@ -1268,3 +1268,4 @@ table.tabla .col-ver-fila { width: 1%; padding-left: 0.3rem; padding-right: 0.6r
   .tarjeta-inicio-hueco, .tarjeta-inicio .barra.actual, .marcador-carro, .catalogo-inicio { animation: none !important; }
 }
 .motivos-sin-conductor { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+.opcion-radio { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; cursor: pointer; }

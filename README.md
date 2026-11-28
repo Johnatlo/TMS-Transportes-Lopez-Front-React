@@ -175,10 +175,10 @@ entrada indica la firma, el tipo (función, componente, método) y qué hace y
 cómo.
 
 <!-- REFERENCIA:INICIO -->
-_869 funciones, componentes, métodos y rutas en 132 archivos._
+_874 funciones, componentes, métodos y rutas en 132 archivos._
 
 - [`src/App.tsx`](#srcapptsx) (2)
-- [`src/api/cliente.ts`](#srcapiclientets) (270)
+- [`src/api/cliente.ts`](#srcapiclientets) (272)
 - [`src/componentes/AccesoGps.tsx`](#srccomponentesaccesogpstsx) (3)
 - [`src/componentes/AlertasDocumentos.tsx`](#srccomponentesalertasdocumentostsx) (4)
 - [`src/componentes/AlertasSeguimiento.tsx`](#srccomponentesalertasseguimientotsx) (2)
@@ -228,7 +228,7 @@ _869 funciones, componentes, métodos y rutas en 132 archivos._
 - [`src/paginas/Usuarios.tsx`](#srcpaginasusuariostsx) (4)
 - [`src/paginas/conductores/CuentasViaje.tsx`](#srcpaginasconductorescuentasviajetsx) (4)
 - [`src/paginas/conductores/FletesConductor.tsx`](#srcpaginasconductoresfletesconductortsx) (4)
-- [`src/paginas/conductores/Liquidacion.tsx`](#srcpaginasconductoresliquidaciontsx) (5)
+- [`src/paginas/conductores/Liquidacion.tsx`](#srcpaginasconductoresliquidaciontsx) (8)
 - [`src/paginas/conductores/LiquidacionConductores.tsx`](#srcpaginasconductoresliquidacionconductorestsx) (1)
 - [`src/paginas/conductores/Prestamos.tsx`](#srcpaginasconductoresprestamostsx) (2)
 - [`src/paginas/conductores/calculos.ts`](#srcpaginasconductorescalculosts) (10)
@@ -1136,6 +1136,12 @@ _869 funciones, componentes, métodos y rutas en 132 archivos._
 
   - **`apiConductores.borrarCuenta(cuadroViajeId)`** · _método_
     Borra la cuenta de viaje (y su gasto del libro).
+
+  - **`apiConductores.viajesCercanos(mes)`** · _método_
+    Viajes del cierre que se pueden traer a la liquidacion de un mes o que se sacaron de ella.
+
+  - **`apiConductores.moverDeMes(cuadroViajeId, d)`** · _método_
+    Pasa un viaje a la liquidacion de otro mes (el anterior o el siguiente; null = su mes).
 
   - **`apiConductores.agregarTransferencia(cuadroViajeId, d)`** · _método_
     Transferencia del gerente para completar el anticipo; devuelve el viaje como queda.
@@ -2436,6 +2442,11 @@ _869 funciones, componentes, métodos y rutas en 132 archivos._
 > se imprime o se guarda en PDF. Una liquidacion hecha se muestra como quedo
 > (la foto guardada), y sus cuentas de viaje y prestamos de ese mes no cambian
 > sin quitarla antes.
+>
+> Viajes del cierre: "Quitar de este mes" saca un viaje que ya se le pago el
+> mes anterior (por ejemplo el 28/10, que antes del corte del 27 al 26 entro
+> en octubre) o lo pasa al siguiente; "Traer viajes del cierre" trae a este
+> mes viajes de la ultima semana del anterior o de la primera del siguiente.
 
 - **`Liquidacion({...})`** · _componente React_
   Liquidacion de todos los conductores de un mes.
@@ -2445,6 +2456,18 @@ _869 funciones, componentes, métodos y rutas en 132 archivos._
 
 - **`DetalleLiquidacion({...})`** · _componente React_
   El desglose de la liquidacion de un conductor, sus prestamos y sus viajes.
+
+- **`mesVecino(mes, paso)`** · _función_
+  Mes anterior o siguiente ("AAAA-MM").
+
+- **`QuitarDelMes({...})`** · _componente React_
+  Saca un viaje de la liquidacion de este mes: al mes anterior (ya se le
+  pago ahi; no se le vuelve a pagar) o al siguiente. Con una nota del porque.
+
+- **`TraerDelCierre({...})`** · _componente React_
+  Viajes del conductor cerca del cierre que cuentan en otro mes (la ultima
+  semana del periodo anterior o la primera del siguiente, o los que se
+  sacaron de este): "Traer" los pasa a la liquidacion de este mes.
 
 - **`HojaConductor({...})`** · _componente React_
   La hoja que se le envia al conductor (la parte gris del cuadro SWK-973):

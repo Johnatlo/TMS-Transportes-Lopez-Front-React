@@ -13,6 +13,11 @@
  * se imprime o se guarda en PDF. Una liquidacion hecha se muestra como quedo
  * (la foto guardada), y sus cuentas de viaje y prestamos de ese mes no cambian
  * sin quitarla antes.
+ *
+ * Viajes del cierre: "Quitar de este mes" saca un viaje que ya se le pago el
+ * mes anterior (por ejemplo el 28/10, que antes del corte del 27 al 26 entro
+ * en octubre) o lo pasa al siguiente; "Traer viajes del cierre" trae a este
+ * mes viajes de la ultima semana del anterior o de la primera del siguiente.
  */
 import { useState } from "react";
 import { createPortal } from "react-dom";
@@ -214,6 +219,8 @@ function DetalleLiquidacion({
 }) {
   const [fechaPago, setFechaPago] = useState(hoyColombia());
   const [verHoja, setVerHoja] = useState(false);
+  const [moviendo, setMoviendo] = useState<ViajeConductor | null>(null);
+  const [trayendo, setTrayendo] = useState(false);
   const n = c.nomina;
   return (
     <div className="detalle-tanqueo" onClick={(e) => e.stopPropagation()}>
@@ -377,11 +384,173 @@ function DetalleLiquidacion({
               { titulo: "Gastos", num: true, celda: (v) => (v.cuenta ? moneda(v.cuenta.total) : "-") },
               { titulo: "Saldo", num: true, celda: (v) => (v.cuenta ? <Saldo valor={v.cuenta.saldo} /> : <Pastilla tono="aviso">Sin cuenta</Pastilla>) },
               { titulo: "Soportes", celda: (v) => <LinksViaje remisionUrl={v.remisionUrl} facturaUrl={v.facturaUrl} /> },
+              {
+                titulo: "Mes",
+                celda: (v) =>
+                  v.mesMovido ? (
+                    <span title={v.notaMovido ?? undefined}>
+                      <Pastilla tono="info">traido</Pastilla>
+                      {!c.congelada && (
+                        <button className="btn-link" onClick={() => accion(() => apiConductores.moverDeMes(v.cuadroViajeId, { mes: null }))}>
+                          Devolver
+                        </button>
+                      )}
+                    </span>
+                  ) : c.congelada ? (
+                    "-"
+                  ) : (
+                    <button className="btn-link" onClick={() => setMoviendo(v)}>
+                      Quitar de este mes
+                    </button>
+                  ),
+              },
             ]}
           />
         </div>
       )}
+      {!c.congelada && (
+        <button className="btn-link" style={{ marginTop: "0.5rem" }} onClick={() => setTrayendo(true)}>
+          Traer viajes del cierre (ultima semana del mes anterior o primera del siguiente)
+        </button>
+      )}
+      {moviendo && <QuitarDelMes viaje={moviendo} mes={mes} accion={accion} alCerrar={() => setMoviendo(null)} />}
+      {trayendo && <TraerDelCierre c={c} mes={mes} accion={accion} alCerrar={() => setTrayendo(false)} />}
     </div>
+  );
+}
+
+/** Mes anterior o siguiente ("AAAA-MM"). */
+function mesVecino(mes: string, paso: 1 | -1): string {
+  const [a, m] = mes.split("-").map(Number);
+  const d = new Date(Date.UTC(a, m - 1 + paso, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Saca un viaje de la liquidacion de este mes: al mes anterior (ya se le
+ * pago ahi; no se le vuelve a pagar) o al siguiente. Con una nota del porque.
+ */
+function QuitarDelMes({
+  viaje,
+  mes,
+  accion,
+  alCerrar,
+}: {
+  viaje: ViajeConductor;
+  mes: string;
+  accion: (fn: () => Promise<unknown>) => Promise<void>;
+  alCerrar: () => void;
+}) {
+  const anterior = mesVecino(mes, -1);
+  const siguiente = mesVecino(mes, 1);
+  const [destino, setDestino] = useState(anterior);
+  const [nota, setNota] = useState("");
+  return (
+    <Modal
+      titulo={`Quitar de ${nombreMes(mes)} · ${placaConGuion(viaje.placa)} ${fechaCorta(viaje.fecha)}`}
+      alCerrar={alCerrar}
+      pie={
+        <>
+          <button className="btn-secondary" onClick={alCerrar}>
+            Cancelar
+          </button>
+          <button
+            className="btn-primary"
+            onClick={async () => {
+              await accion(() => apiConductores.moverDeMes(viaje.cuadroViajeId, { mes: destino, nota: nota || undefined }));
+              alCerrar();
+            }}
+          >
+            Quitar de {nombreMes(mes)}
+          </button>
+        </>
+      }
+    >
+      <p className="dato-sec" style={{ marginTop: 0 }}>
+        {viaje.cliente} · {viaje.remision ? `remision ${viaje.remision}` : (viaje.manifiesto ?? "")}. El viaje no se borra del Cuadro ni de la rentabilidad:
+        solo deja de contar en esta liquidacion.
+      </p>
+      <label className="opcion-radio">
+        <input type="radio" checked={destino === anterior} onChange={() => setDestino(anterior)} />
+        Ya se le liquido en {nombreMes(anterior)} (no se le vuelve a pagar)
+      </label>
+      <label className="opcion-radio">
+        <input type="radio" checked={destino === siguiente} onChange={() => setDestino(siguiente)} />
+        Pasarlo a la liquidacion de {nombreMes(siguiente)}
+      </label>
+      <label className="campo-ancho" style={{ marginTop: "0.6rem" }}>
+        <span>Nota (opcional)</span>
+        <input value={nota} maxLength={300} onChange={(e) => setNota(e.target.value)} placeholder="Ej.: se pago en la liquidacion de octubre" />
+      </label>
+    </Modal>
+  );
+}
+
+/**
+ * Viajes del conductor cerca del cierre que cuentan en otro mes (la ultima
+ * semana del periodo anterior o la primera del siguiente, o los que se
+ * sacaron de este): "Traer" los pasa a la liquidacion de este mes.
+ */
+function TraerDelCierre({
+  c,
+  mes,
+  accion,
+  alCerrar,
+}: {
+  c: LiquidacionConductor;
+  mes: string;
+  accion: (fn: () => Promise<unknown>) => Promise<void>;
+  alCerrar: () => void;
+}) {
+  const carga = useDatos(() => apiConductores.viajesCercanos(mes), [mes]);
+  const suyos = (carga.datos ?? []).filter((v) => v.empleadoId === c.empleadoId);
+  return (
+    <Modal
+      titulo={`Traer viajes a ${nombreMes(mes)} · ${c.nombre}`}
+      ancho="wide"
+      alCerrar={alCerrar}
+      pie={
+        <button className="btn-secondary" onClick={alCerrar}>
+          Cerrar
+        </button>
+      }
+    >
+      {carga.cargando && !carga.datos ? (
+        <Cargando que="los viajes del cierre" />
+      ) : carga.error ? (
+        <ErrorCarga mensaje={carga.error} alReintentar={carga.recargar} />
+      ) : suyos.length === 0 ? (
+        <p className="dato-sec">No hay viajes de {c.nombre} cerca del cierre que cuenten en otro mes.</p>
+      ) : (
+        <MiniTabla
+          filas={suyos}
+          clave={(v) => v.cuadroViajeId}
+          nombre="viajes"
+          visibles={20}
+          columnas={[
+            { titulo: "Fecha", celda: (v) => fechaCorta(v.fecha) },
+            { titulo: "Placa", celda: (v) => <strong>{placaConGuion(v.placa)}</strong> },
+            { titulo: "Cliente", celda: (v) => v.cliente },
+            { titulo: "Producido", num: true, celda: (v) => (v.producido === null ? "-" : moneda(v.producido)) },
+            { titulo: "Cuenta en", celda: (v) => (v.mesConductor ? nombreMes(v.mesConductor) : "-") },
+            {
+              titulo: "",
+              celda: (v) => (
+                <button
+                  className="btn-secondary"
+                  onClick={async () => {
+                    await accion(() => apiConductores.moverDeMes(v.cuadroViajeId, { mes, nota: `Traido a ${nombreMes(mes)}` }));
+                    carga.recargar();
+                  }}
+                >
+                  Traer a {nombreMes(mes)}
+                </button>
+              ),
+            },
+          ]}
+        />
+      )}
+    </Modal>
   );
 }
 
